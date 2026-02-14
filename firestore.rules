@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ヘルパー関数: メンバードキュメントのパスを取得
+    function memberPathByEmail(workspaceId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.token.email);
+    }
+
+    function memberPathByUid(workspaceId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/members/$(request.auth.uid);
+    }
+
+    // ヘルパー関数: メンバーのロールを取得（exists()で事前チェック）
+    function getMemberRole(workspaceId) {
+      return request.auth.token.email != null && exists(memberPathByEmail(workspaceId))
+           ? get(memberPathByEmail(workspaceId)).data.role
+           : (exists(memberPathByUid(workspaceId))
+              ? get(memberPathByUid(workspaceId)).data.role
+              : null);
+    }
+
+    // ヘルパー関数: 権限チェック
+    function isOwner(workspaceId) {
+      return getMemberRole(workspaceId) == 'owner';
+    }
+
+    function isAdmin(workspaceId) {
+      let role = getMemberRole(workspaceId);
+      return role == 'owner' || role == 'admin';
+    }
+
+    function isMember(workspaceId) {
+      return getMemberRole(workspaceId) != null;
+    }
+
+    function canWriteTask(workspaceId) {
+      let role = getMemberRole(workspaceId);
+      return role == 'owner' || role == 'admin' || role == 'member';
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      let workspacePath = /databases/$(database)/documents/workspaces/$(workspaceId);
+      return exists(workspacePath) && get(workspacePath).data.ownerId == request.auth.token.email;
+    }
+
+    // workspaces コレクション
+    match /workspaces/{workspaceId} {
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.token.email;
+      allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+      allow update, delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+
+      // members サブコレクション
+      match /members/{memberId} {
+        allow create: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+
+        // 自分自身のdisplayNameのみ編集可能
+        allow update: if (memberId == request.auth.token.email || memberId == request.auth.uid)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+                      || isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+
+        allow delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
+      // projects サブコレクション
+      match /projects/{projectId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow write: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+
+        // tasks サブコレクション
+        match /tasks/{taskId} {
+          allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+          allow write: if canWriteTask(workspaceId) || isWorkspaceOwner(workspaceId);
+        }
+      }
+    }
+
+    // collectionGroup クエリ用
+    match /{path=**}/members/{memberId} {
+      allow read: if memberId == request.auth.token.email || memberId == request.auth.uid;
+    }
+  }
+}

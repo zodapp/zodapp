@@ -1,0 +1,57 @@
+{
+  "name": "@zodapp/zod-form",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Core form utilities powered by Zod schemas",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/zod-form"
+  },
+  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": ["zod", "form", "validation"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./def": "./src/def/index.ts",
+    "./externalKey": "./src/externalKey/index.ts",
+    "./externalKey/types": "./src/externalKey/types.ts",
+    "./file": "./src/file/index.ts",
+    "./file/types": "./src/file/types.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "build": "rimraf dist && tsc",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/zod-extendable": "workspace:*",
+    "@zodapp/zod-transform": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

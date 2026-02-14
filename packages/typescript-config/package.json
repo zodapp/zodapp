@@ -1,0 +1,16 @@
+{
+  "name": "@repo/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "author": "zodapp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/typescript-config"
+  },
+  "scripts": {},
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

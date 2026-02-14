@@ -1,0 +1,53 @@
+{
+  "name": "@zodapp/zod-firebase-node",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Node.js Firebase Admin utilities with Zod",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/zod-firebase-node"
+  },
+  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": ["zod", "firebase", "node", "admin"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "build": "rimraf dist && tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint .",
+    "lint:silent": "mkdir -p output && pnpm lint > ./output/lint.txt",
+    "clean": "rimraf dist .turbo node_modules",
+    "check-types": "tsc --noEmit",
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1"
+  },
+  "dependencies": {
+    "@zodapp/zod-firebase": "workspace:*",
+    "@zodapp/caching-utilities": "workspace:*",
+    "firebase-admin": "^13.5.0",
+    "sorted-btree": "^2.1.0",
+    "zod": "^4.3.6"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

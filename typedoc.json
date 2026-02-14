@@ -1,0 +1,34 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "packages",
+  "entryPoints": [
+    "packages/caching-utilities",
+    "packages/eslint-config",
+    "packages/typescript-config",
+    "packages/ui",
+    "packages/zod-extendable",
+    "packages/zod-firebase",
+    "packages/zod-firebase-browser",
+    "packages/zod-firebase-node",
+    "packages/zod-form",
+    "packages/zod-form-firebase",
+    "packages/zod-form-mantine",
+    "packages/zod-form-react",
+    "packages/zod-propagating-registry",
+    "packages/zod-searchparams",
+    "packages/zod-transform"
+  ],
+  "out": "apps/docs/generated/typedoc-md",
+  "plugin": ["typedoc-plugin-markdown"],
+  "entryFileName": "README",
+  "skipErrorChecking": true,
+  "exclude": [
+    "packages/firebase/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true
+}

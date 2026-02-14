@@ -1,0 +1,20 @@
+{
+  /* Editor */
+  "editor.tabSize": 2,
+  /* Disable default formatter */
+  "javascript.format.enable": false,
+  "typescript.format.enable": false,
+  "json.format.enable": false,
+  "html.format.enable": false,
+  "css.format.enable": false,
+  "scss.format.enable": false,
+  "less.format.enable": false,
+  /* ESLint */
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  /* Prettier */
+  "editor.formatOnSave": true,
+  /* Python */
+  "python.terminal.activateEnvironment": false
+}

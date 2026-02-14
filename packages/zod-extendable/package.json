@@ -1,0 +1,53 @@
+{
+  "name": "@zodapp/zod-extendable",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Extensible Zod schema with metadata propagation support",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/zod-extendable"
+  },
+  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": ["zod", "schema", "metadata", "extensible"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "build": "rimraf dist && tsc",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "@vitest/coverage-v8": "^4.0.16",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/zod-propagating-registry": "workspace:*",
+    "zod": "^4.3.6"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

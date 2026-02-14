@@ -1,0 +1,50 @@
+{
+  "name": "zodapp",
+  "description": "An AI-robust application framework supported by Zod for automated AI development.",
+  "private": true,
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git"
+  },
+  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test --continue",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "docs:typedoc": "turbo run docs:typedoc",
+    "check:docs": "pnpm docs:typedoc && git diff --exit-code -- . ':!packages/*/docs/api'",
+    "check-types": "turbo run check-types",
+    "emulator": "firebase emulators:start",
+    "emulator:test": "firebase emulators:exec --only firestore --project zodapp-test \"pnpm test\"",
+    "hosting:deploy": "pnpm build && firebase deploy --only hosting",
+    "hosting:preview": "pnpm build && firebase hosting:channel:deploy preview"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "firebase-tools": "^14.3.1",
+    "prettier": "^3.8.1",
+    "turbo": "^2.8.1",
+    "typedoc": "^0.28.16",
+    "typedoc-plugin-markdown": "^4.10.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.9.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "volta": {
+    "node": "22.14.0",
+    "pnpm": "10.9.0"
+  }
+}

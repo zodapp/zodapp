@@ -1,0 +1,54 @@
+{
+  "name": "@zodapp/zod-searchparams",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Zod schema to URL search params converter for React",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/zod-searchparams"
+  },
+  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": ["zod", "searchparams", "url", "react"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "rimraf dist && tsc",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules",
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/zod-transform": "workspace:*",
+    "dayjs": "^1.11.19",
+    "zod": "^4.3.6"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

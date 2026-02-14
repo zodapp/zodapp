@@ -1,0 +1,38 @@
+{
+  "name": "@repo/firebase",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "author": "zodapp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/firebase"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "build": "rimraf dist && tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint .",
+    "lint:silent": "mkdir -p output && pnpm lint > ./output/lint.txt",
+    "clean": "rimraf dist .turbo node_modules",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1"
+  },
+  "dependencies": {
+    "firebase": "^12.7.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

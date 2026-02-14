@@ -1,0 +1,61 @@
+{
+  "name": "@zodapp/zod-firebase-browser",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Browser-specific Firebase utilities with Zod",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/zod-firebase-browser"
+  },
+  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": ["zod", "firebase", "browser"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "build": "rimraf dist && tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint .",
+    "lint:silent": "mkdir -p output && pnpm lint > ./output/lint.txt",
+    "clean": "rimraf dist .turbo node_modules",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
+  },
+  "peerDependencies": {
+    "firebase": "^12.7.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "@types/react": "^19.2.10",
+    "eslint": "^9.34.0",
+    "firebase": "^12.7.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/caching-utilities": "workspace:*",
+    "@zodapp/zod-firebase": "workspace:*",
+    "sorted-btree": "^2.1.0",
+    "zod": "^4.3.6"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create firebaseConfig.json (CI)
+        shell: bash
+        env:
+          FIREBASE_CONFIG_JSON: ${{ secrets.FIREBASE_CONFIG_JSON }}
+        run: |
+          if [ -n "${FIREBASE_CONFIG_JSON:-}" ]; then
+            printf '%s' "$FIREBASE_CONFIG_JSON" > firebaseConfig.json
+          else
+            printf '%s\n' \
+              '{' \
+              '  "apiKey": "DUMMY",' \
+              '  "authDomain": "DUMMY",' \
+              '  "projectId": "DUMMY",' \
+              '  "storageBucket": "DUMMY",' \
+              '  "messagingSenderId": "DUMMY",' \
+              '  "appId": "DUMMY",' \
+              '  "measurementId": "DUMMY"' \
+              '}' \
+              > firebaseConfig.json
+          fi
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Setup Java (for Firebase Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Type check
+        run: pnpm check-types
+      - name: Test
+        run: pnpm emulator:test
+      - name: Build
+        run: pnpm build

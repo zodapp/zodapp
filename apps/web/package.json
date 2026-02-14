@@ -1,0 +1,65 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "zodapp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "apps/web"
+  },
+  "scripts": {
+    "dev": "vite --host --port 3000",
+    "build": "tsc --noEmit && vite build",
+    "start": "vite preview --host --port 4173",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@mantine/code-highlight": "^8.3.14",
+    "@mantine/core": "^8.3.14",
+    "@mantine/dates": "^8.3.14",
+    "@mantine/dropzone": "^8.3.14",
+    "@mantine/hooks": "^8.3.14",
+    "@repo/firebase": "workspace:*",
+    "@tabler/icons-react": "^3.36.1",
+    "@tanstack/react-form": "^1.28.0",
+    "@tanstack/react-router": "^1.157.18",
+    "@zodapp/caching-utilities": "workspace:*",
+    "@zodapp/zod-extendable": "workspace:*",
+    "@zodapp/zod-firebase": "workspace:*",
+    "@zodapp/zod-firebase-browser": "workspace:*",
+    "@zodapp/zod-form": "workspace:*",
+    "@zodapp/zod-form-firebase": "workspace:*",
+    "@zodapp/zod-form-mantine": "workspace:*",
+    "@zodapp/zod-form-react": "workspace:*",
+    "@zodapp/zod-searchparams": "workspace:*",
+    "lodash": "^4.17.21",
+    "mingo": "^7.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "shiki": "^3.22.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^22.19.7",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.1.3",
+    "eslint": "^9.34.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
