@@ -84,7 +84,11 @@ export const useExternalKeyOptions = (
   // subscribeしてoptionsを取得
   useEffect(() => {
     const unsubscribe = resolverResultRef.current.subscribe((newOptions) => {
-      setOptions(newOptions);
+      // valueの重複を排除
+      const normalizedOptions = Object.values(
+        Object.fromEntries(newOptions.map((option) => [option.value, option])),
+      );
+      setOptions(normalizedOptions);
     });
 
     return unsubscribe;

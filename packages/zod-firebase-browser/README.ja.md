@@ -152,7 +152,7 @@ import { createUseList } from "@zodapp/zod-firebase-browser";
 
 const useList = createUseList(firestore);
 
-// useList({ collection, pathParams, query }) の形で利用
+// useList({ collection, collectionIdentity, query }) の形で利用
 ```
 
 ## API（抜粋）

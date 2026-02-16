@@ -84,7 +84,20 @@ export const extendCustom = <
  */
 export const extendLiteral = <TMeta extends object>(
   metaSchema?: z.ZodType<TMeta>,
-) => extendCustom(z.literal, "literal", metaSchema);
+) =>
+  extendCustom(
+    z.literal,
+    "literal",
+    metaSchema,
+    schemaType<z.ZodLiteral<string | number | boolean | null | undefined>>(),
+  );
+
+const zf = {
+  literal: extendLiteral(z.object({ label: z.string() })),
+};
+const x = z
+  .literal(true)
+  .register(zf.literal.registry, { label: "チェック済み" });
 
 /**
  * `z.string()` をメタ付きに拡張します。

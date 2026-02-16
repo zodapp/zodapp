@@ -52,7 +52,7 @@ const TasksPage = () => {
     from: tasksRoute.id,
   });
 
-  const pathParams = useMemo(
+  const collectionIdentity = useMemo(
     () => ({ workspaceId, projectId }),
     [workspaceId, projectId],
   );
@@ -121,7 +121,7 @@ const TasksPage = () => {
     scannedCount,
   } = useGrowingList({
     collection: tasksCollection,
-    pathParams,
+    collectionIdentity,
     query: queryOptions,
     streamField: "updatedAt",
     clientFilter,
@@ -135,7 +135,7 @@ const TasksPage = () => {
     async (data: z.infer<typeof tasksCollection.createSchema>) => {
       setIsSubmitting(true);
       try {
-        await taskAccessor.createDoc(pathParams, data);
+        await taskAccessor.createDoc(collectionIdentity, data);
         closeModal();
       } catch (error) {
         console.error("Failed to create task:", error);
@@ -143,7 +143,7 @@ const TasksPage = () => {
         setIsSubmitting(false);
       }
     },
-    [taskAccessor, pathParams, closeModal],
+    [taskAccessor, collectionIdentity, closeModal],
   );
 
   const [isSeeding, setIsSeeding] = useState(false);
@@ -151,12 +151,12 @@ const TasksPage = () => {
     setIsSeeding(true);
     await populateSeed(
       async (data) => {
-        await taskAccessor.createDoc(pathParams, data);
+        await taskAccessor.createDoc(collectionIdentity, data);
       },
       30,
       () => setIsSeeding(false),
     );
-  }, [taskAccessor, pathParams]);
+  }, [taskAccessor, collectionIdentity]);
 
   const handleSearchChange = useCallback(
     (data: z.infer<typeof searchFilterSchema>) => {

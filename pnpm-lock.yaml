@@ -305,9 +305,6 @@ importers:
       '@zodapp/zod-firebase':
         specifier: workspace:*
         version: link:../zod-firebase
-      react:
-        specifier: ^18.0.0 || ^19.0.0
-        version: 19.2.4
       sorted-btree:
         specifier: ^2.1.0
         version: 2.1.0
@@ -333,6 +330,12 @@ importers:
       firebase:
         specifier: ^12.7.0
         version: 12.8.0
+      react:
+        specifier: ^19.1.1
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.4(react@19.2.4)
       rimraf:
         specifier: ^6.1.2
         version: 6.1.2
@@ -492,12 +495,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.23
-      react:
-        specifier: ^19.1.1
-        version: 19.2.4
-      react-dom:
-        specifier: ^19.1.1
-        version: 19.2.4(react@19.2.4)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -532,6 +529,12 @@ importers:
       jsdom:
         specifier: ^28.0.0
         version: 28.0.0
+      react:
+        specifier: ^19.1.1
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.4(react@19.2.4)
       rimraf:
         specifier: ^6.1.2
         version: 6.1.2
@@ -562,9 +565,6 @@ importers:
       dayjs:
         specifier: ^1.11.13
         version: 1.11.19
-      react:
-        specifier: ^19.1.1
-        version: 19.2.4
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -584,6 +584,12 @@ importers:
       eslint:
         specifier: ^9.34.0
         version: 9.39.2
+      react:
+        specifier: ^19.1.1
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.4(react@19.2.4)
       rimraf:
         specifier: ^6.1.2
         version: 6.1.2
