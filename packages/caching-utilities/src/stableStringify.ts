@@ -18,6 +18,10 @@ export function stableStringify(value: unknown): string {
     return "[" + value.map(stableStringify).join(",") + "]";
   }
 
+  if (value instanceof Date) {
+    return JSON.stringify(value.toISOString());
+  }
+
   const sortedKeys = Object.keys(value as object).sort();
   const parts: string[] = [];
   for (const key of sortedKeys) {
@@ -29,4 +33,16 @@ export function stableStringify(value: unknown): string {
   }
 
   return "{" + parts.join(",") + "}";
+}
+
+export function parseJsonString(jsonString: string): unknown {
+  return JSON.parse(jsonString, (key, value) => {
+    if (
+      typeof value === "string" &&
+      value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+    ) {
+      return new Date(value);
+    }
+    return value;
+  });
 }

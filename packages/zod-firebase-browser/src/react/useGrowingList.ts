@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { stableStringify } from "@zodapp/caching-utilities";
-import type {
-  CollectionConfigBase,
-  QueryOptions,
-} from "@zodapp/zod-firebase";
+import type { CollectionConfigBase, QueryOptions } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
 import {
@@ -38,6 +35,7 @@ export type UseGrowingListOptions<TConfig extends CollectionConfigBase> = {
   collectionIdentity: z.infer<TConfig["collectionIdentitySchema"]>;
   query?: QueryOptions;
   streamField: string;
+  streamQuery?: QueryOptions;
   clientFilter?: (item: z.infer<TConfig["dataSchema"]>) => boolean;
 };
 
@@ -59,8 +57,14 @@ export function createUseGrowingList(firestore: Firestore) {
   ): UseGrowingListResult<z.infer<TConfig["dataSchema"]>> {
     type ItemType = z.infer<TConfig["dataSchema"]>;
 
-    const { collection, collectionIdentity, query, streamField, clientFilter } =
-      options;
+    const {
+      collection,
+      collectionIdentity,
+      query,
+      streamField,
+      streamQuery,
+      clientFilter,
+    } = options;
 
     const [state, setState] = useState<GrowingListState<ItemType>>({
       items: [],
@@ -102,7 +106,7 @@ export function createUseGrowingList(firestore: Firestore) {
         collectionIdentity,
         normalizedQuery,
         streamField,
-        undefined,
+        streamQuery,
         clientFilter,
       );
 

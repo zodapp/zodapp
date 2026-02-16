@@ -28,8 +28,9 @@ export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
 /**
  * `ZodFormProps` を受け取るフィールド UI コンポーネント型。
  */
-export type ZodForm<TSchema extends z.ZodTypeAny = z.ZodTypeAny> =
-  React.ComponentType<ZodFormProps<TSchema>>;
+export type ZodForm<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = React.FC<
+  ZodFormProps<TSchema>
+>;
 
 /**
  * 遅延ロード等で「コンポーネント定義」を扱うためのラッパー型。

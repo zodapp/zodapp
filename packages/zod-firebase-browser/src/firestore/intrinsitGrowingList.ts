@@ -81,6 +81,12 @@ export const createIntrinsicGrowingList = <
     }[];
   },
 ) => {
+  console.log("createIntrinsicGrowingList", {
+    collectionIdentityParams,
+    query,
+    streamField,
+    streamQuery,
+  });
   // 一回のget取得できるデータの上限
   const PAGE_SIZE = 50;
 

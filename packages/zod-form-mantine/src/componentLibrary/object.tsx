@@ -48,7 +48,10 @@ const ObjectComponent = wrapComponent(
 
     const label = labelFromParent ?? meta?.label;
 
-    const isHorizontal = meta?.uiType === "horizontal";
+    const isHorizontal =
+      meta?.uiType === "horizontal" || meta?.uiType === "horizontal-wrap";
+
+    const isHorizontalWrap = meta?.uiType === "horizontal-wrap";
 
     const propertiesComponent = fields.map(
       (
@@ -82,8 +85,8 @@ const ObjectComponent = wrapComponent(
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
+          flexWrap: isHorizontalWrap ? "wrap" : "nowrap",
+          gap: "0px 4px",
           alignItems: "flex-end",
         }}
       >
