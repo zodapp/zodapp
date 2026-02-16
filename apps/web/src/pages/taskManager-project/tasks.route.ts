@@ -4,7 +4,10 @@ import { zf } from "@zodapp/zod-form";
 import { fromParamsTree, type ParamsTree } from "@zodapp/zod-searchparams";
 
 import { projectLayoutRoute } from "./layout.route";
-import { taskPriorityLiterals, taskStatusLiterals } from "../../shared/taskManager/collections/task";
+import {
+  taskPriorityLiterals,
+  taskStatusLiterals,
+} from "../../shared/taskManager/collections/task";
 
 export const searchFilterSchema = zf
   .object({
@@ -29,10 +32,10 @@ export const searchFilterSchema = zf
           .register(zf.date.registry, { label: "期限（To）" })
           .optional(),
       })
-      .register(zf.object.registry, { uiType: "horizontal" })
+      .register(zf.object.registry, { uiType: "horizontal-wrap" })
       .optional(),
   })
-  .register(zf.object.registry, { uiType: "horizontal" });
+  .register(zf.object.registry, { uiType: "horizontal-wrap" });
 
 const searchSchema = z.object({
   q: searchFilterSchema.optional(),

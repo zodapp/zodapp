@@ -1,8 +1,9 @@
 import React, { Suspense, memo } from "react";
 import { Table, ActionIcon, Loader } from "@mantine/core";
 import { IconArrowRight } from "@tabler/icons-react";
-import { Link } from "@tanstack/react-router";
+import { Link, type LinkProps } from "@tanstack/react-router";
 import { getMetaReact } from "@zodapp/zod-form-react";
+import { getMeta } from "@zodapp/zod-form";
 import {
   ZodFormContextProvider,
   Dynamic,
@@ -10,10 +11,7 @@ import {
 } from "@zodapp/zod-form-mantine";
 import { z } from "zod";
 
-type ActionParams = {
-  to: string;
-  params: Record<string, string>;
-};
+type ActionParams = LinkProps;
 
 type AutoTableProps<T extends z.ZodObject<z.ZodRawShape>> = {
   schema: T;

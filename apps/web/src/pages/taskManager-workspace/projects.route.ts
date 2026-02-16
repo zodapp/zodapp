@@ -23,7 +23,7 @@ export const searchFilterSchema = zf
       .register(zf.enum.registry, { label: "ステータス", uiType: "badge" })
       .optional(),
   })
-  .register(zf.object.registry, { uiType: "horizontal" });
+  .register(zf.object.registry, { uiType: "horizontal-wrap" });
 
 const searchSchema = z.object({
   q: searchFilterSchema.optional(),

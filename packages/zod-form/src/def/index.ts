@@ -4,7 +4,6 @@ import {
   extendArray,
   extendBigint,
   extendBoolean,
-  extendDate,
   extendEnum,
   extendLiteral,
   extendNumber,
@@ -39,6 +38,7 @@ export const zodExtendableCommonDefSchema = z.object({
   hidden: z.boolean().optional(),
   readOnly: z.boolean().optional(),
   color: z.string().optional(),
+  width: z.number().optional(),
 });
 
 // object 用メタ
