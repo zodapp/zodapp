@@ -21,6 +21,7 @@ export type GrowingListState<T> = {
   isLoading: boolean;
   filteredCount: number;
   scannedCount: number;
+  error?: Error;
 };
 
 /**
@@ -72,6 +73,7 @@ export function createUseGrowingList(firestore: Firestore) {
       isLoading: true,
       filteredCount: 0,
       scannedCount: 0,
+      error: undefined,
     });
 
     const growingListRef = useRef<FilteredGrowingList<TConfig> | null>(null);
@@ -119,6 +121,7 @@ export function createUseGrowingList(firestore: Firestore) {
           isLoading: listState.fetchState !== undefined,
           filteredCount: listState.filteredCount,
           scannedCount: listState.scannedCount,
+          error: listState.error,
         });
       });
 

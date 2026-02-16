@@ -101,6 +101,7 @@ const ExternalKeyComponent = wrapComponent(
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
+        searchable={true}
         error={error?.message}
         required={required !== false}
         disabled={readOnly || field.disabled}
