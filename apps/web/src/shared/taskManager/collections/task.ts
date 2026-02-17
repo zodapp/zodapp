@@ -114,13 +114,13 @@ const taskDataSchema = z
 
     expired: zfReact
       .computed()
-      .register(zfReact.computed.registry, {
+      .register(zf.computed.registry, {
         label: "期限切れ",
         width: 80,
         compute: (data) => {
           return (data.dueAt ? data.dueAt < new Date() : null)
-            ? "はい"
-            : "いいえ";
+            ? { type: "badge", label: "期限切れ", color: "red" }
+            : { type: "badge", label: "期限内", color: "green" };
         },
       })
       .optional(),

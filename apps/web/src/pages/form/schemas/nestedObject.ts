@@ -66,9 +66,10 @@ export const schema = z
     emergencyContact: emergencyContactSchema,
 
     message: zfReact
-      .message()
-      .register(zfReact.message.registry, {
-        content: "ネストしたオブジェクトをそのままフォームとして表現できます。",
+      .derived()
+      .register(zf.derived.registry, {
+        compute: () =>
+          "ネストしたオブジェクトをそのままフォームとして表現できます。",
       })
       .optional(),
   })

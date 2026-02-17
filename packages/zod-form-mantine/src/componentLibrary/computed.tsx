@@ -2,8 +2,8 @@ import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
 import { ZodFormProps } from "@zodapp/zod-form-react";
 import { useFormValues, useZodField } from "@zodapp/zod-form-react/common";
-import { ReadonlyText } from "./utils/text";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
+import { renderComputedValue } from "./utils/renderComputedValue";
 
 type ComputedSchema = ReturnType<typeof zf.computed>;
 
@@ -32,7 +32,7 @@ type ComputedInnerProps = {
 type ComputedDisplayProps = {
   label: string | undefined;
   required: boolean;
-  content: React.ReactNode;
+  content: unknown;
 };
 
 /**
@@ -50,7 +50,7 @@ const ComputedDisplay = React.memo(function ComputedDisplay({
       labelElement="div"
       mt={5}
     >
-      <ReadonlyText>{content}</ReadonlyText>
+      {renderComputedValue(content)}
     </InputWrapper>
   );
 });
@@ -95,7 +95,7 @@ const ComputedNested = React.memo(function ComputedNested({
 });
 
 /**
- * 1階層上のfieldPathを購読してcompute関数で計算した結果を表示するコンポーネント
+ * 親オブジェクトを購読してcompute関数で計算した結果を表示するコンポーネント
  * parentPathに応じてルート用/ネスト用のコンポーネントに分岐
  */
 const ComputedComponent = React.memo(function ComputedComponent({

@@ -114,8 +114,46 @@ const date = extendCustom(
 );
 
 /**
+ * ComputedValue - React非依存の計算結果型
+ * compute 関数の戻り値として使用。UI層（zod-form-mantine 等）が適切にレンダリングする。
+ */
+export type ComputedValue =
+  | string
+  | { type: "badge"; label: string; color: string; value?: string }
+  | { type: "icon"; label?: string; icon: string; value?: string };
+
+const computedValueSchema = z.custom<ComputedValue>();
+
+// computed: 親オブジェクトを受け取り ComputedValue を返す
+const computed = extendCustom(
+  z.never,
+  "computed",
+  zodExtendableCommonDefSchema.extend({
+    compute: z.function({
+      input: [z.any()],
+      output: computedValueSchema,
+    }),
+  }),
+  schemaType<z.ZodType>(),
+);
+
+// derived: 該当フィールドの値を受け取り ComputedValue を返す
+const derived = extendCustom(
+  z.never,
+  "derived",
+  zodExtendableCommonDefSchema.extend({
+    compute: z.function({
+      input: [z.any()],
+      output: computedValueSchema,
+    }),
+  }),
+  schemaType<z.ZodType>(),
+);
+
+/**
  * zf - React非依存のZodスキーマ拡張
- * 注意: message, computed は @zodapp/zod-form-react の zfReact に移動
+ * computed: 親オブジェクトを受け取る（複数フィールド横断の計算）
+ * derived: 該当フィールドの値を受け取る（単一フィールドの変換）
  */
 const zf = {
   literal: extendLiteral(zodExtendableCommonDefSchema),
@@ -144,6 +182,8 @@ const zf = {
   hidden,
   externalKey,
   file,
+  computed,
+  derived,
 };
 
 type ZfRegistryKey = {

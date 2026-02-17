@@ -53,9 +53,9 @@ export const schema = z
   .object({
     contact: contactSchema,
     message: zfReact
-      .message()
-      .register(zfReact.message.registry, {
-        content:
+      .derived()
+      .register(zf.derived.registry, {
+        compute: () =>
           "Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。",
       })
       .optional(),

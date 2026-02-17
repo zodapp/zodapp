@@ -88,9 +88,9 @@ const schema = z
   .object({
     notice: zfReact
       .message()
-      .register(zfReact.message.registry, { content: "補足メッセージ" }),
+      .register(zf.message.registry, { content: "補足メッセージ" }),
   })
-  .register(zfReact.object.registry, {});
+  .register(zf.object.registry, {});
 ```
 
 ### `computed`（apps/web の例）
@@ -109,7 +109,7 @@ export const schema = z.object({
   quantity: zf.number().min(0).register(zf.number.registry, { label: "数量" }),
   total: zfReact
     .computed()
-    .register(zfReact.computed.registry, {
+    .register(zf.computed.registry, {
       label: "合計",
       compute: (parent) => {
         const unitPrice = parent?.unitPrice ?? 0;
@@ -166,4 +166,3 @@ Provider コンポーネント:
 ## ライセンス
 
 MIT（[`LICENSE`](../../LICENSE)）
-
