@@ -9,6 +9,7 @@ type CommonMeta = {
   hidden?: boolean;
   readOnly?: boolean;
   color?: string;
+  width?: number;
 };
 type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
