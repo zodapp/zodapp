@@ -120,7 +120,13 @@ const date = extendCustom(
 export type ComputedValue =
   | string
   | { type: "badge"; label: string; color: string; value?: string }
-  | { type: "icon"; label?: string; icon: string; value?: string };
+  | {
+      type: "icon";
+      label?: string;
+      icon: string;
+      color: string;
+      value?: string;
+    };
 
 const computedValueSchema = z.custom<ComputedValue>();
 

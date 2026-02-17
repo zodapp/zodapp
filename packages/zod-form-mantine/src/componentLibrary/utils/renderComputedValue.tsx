@@ -32,10 +32,7 @@ export function renderComputedValue(content: unknown): React.ReactNode {
     const obj = content as { type: string; [key: string]: unknown };
 
     if (obj.type === "badge") {
-      const { label, color } = obj as Extract<
-        ComputedValue,
-        { type: "badge" }
-      >;
+      const { label, color } = obj as Extract<ComputedValue, { type: "badge" }>;
       return (
         <Badge color={color} variant="light">
           {label}
@@ -44,9 +41,12 @@ export function renderComputedValue(content: unknown): React.ReactNode {
     }
 
     if (obj.type === "icon") {
-      const { label, icon } = obj as Extract<ComputedValue, { type: "icon" }>;
+      const { label, icon, color } = obj as Extract<
+        ComputedValue,
+        { type: "icon" }
+      >;
       return (
-        <Text size="sm" component="span">
+        <Text size="sm" component="span" style={{ color }}>
           <span className={icon} />
           {label && <> {label}</>}
         </Text>
