@@ -136,7 +136,7 @@ export function createUseGrowingList(firestore: Firestore) {
       streamField,
       clientFilter,
       collectionIdentity,
-      query,
+      // queryKeyでメモ化されてるので、queryは依存に含めない
     ]);
 
     // clientFilterが変更されたときに自動でsetFilterを呼ぶ

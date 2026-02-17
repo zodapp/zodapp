@@ -77,40 +77,30 @@ const TasksPage = () => {
   );
 
   // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離
-  const { whereConditions, clientQuery } = useMemo(() => {
-    const q = search.q;
-    if (!q)
-      return {
-        whereConditions: [] as WhereParams[],
-        clientQuery: undefined,
-      };
-    const whereConditions: WhereParams[] = [
+  const { fetchCondition, clientFilter } = useMemo(() => {
+    const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
+
+    const fetchCondition: WhereParams[] = [
       ...(taskAccessor.queries.active.params().where ?? []),
     ];
     const { status, ...rest } = q;
     if (status) {
-      whereConditions.push(
+      fetchCondition.push(
         ...(taskAccessor.queries.byStatus.params(status).where ?? []),
       );
     }
     return {
-      whereConditions,
-      clientQuery: rest,
+      fetchCondition,
+      clientFilter: createMingoFilter(rest),
     };
   }, [search.q, taskAccessor]);
 
-  const queryOptions = useMemo(() => {
+  const query = useMemo(() => {
     return {
-      where: whereConditions,
+      where: fetchCondition,
       orderBy: [{ field: "createdAt", direction: "desc" as const }],
     };
-  }, [whereConditions]);
-
-  // clientQuery を mingo クエリとしてコンパイルした clientFilter
-  const clientFilter = useMemo(
-    () => createMingoFilter(clientQuery),
-    [clientQuery],
-  );
+  }, [fetchCondition]);
 
   const {
     items: tasks,
@@ -122,7 +112,10 @@ const TasksPage = () => {
   } = useGrowingList({
     collection: tasksCollection,
     collectionIdentity,
-    query: queryOptions,
+    query: {
+      where: fetchCondition,
+      orderBy: [{ field: "createdAt", direction: "desc" as const }],
+    },
     streamField: "updatedAt",
     clientFilter,
   });
