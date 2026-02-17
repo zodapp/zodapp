@@ -34,14 +34,18 @@ export const taskPriorityLiterals = [
 
 export const taskStatusSchema = zf
   .enum(taskStatusLiterals)
-  .register(zf.enum.registry, { label: "ステータス", uiType: "badge" });
+  .register(zf.enum.registry, {
+    label: "ステータス",
+    uiType: "badge",
+    width: 80,
+  });
 
 export type TaskStatus = z.infer<typeof taskStatusSchema>;
 
 // 優先度
 export const taskPrioritySchema = zf
   .enum(taskPriorityLiterals)
-  .register(zf.enum.registry, { label: "優先度", uiType: "badge" });
+  .register(zf.enum.registry, { label: "優先度", uiType: "badge", width: 80 });
 
 export type TaskPriority = z.infer<typeof taskPrioritySchema>;
 
@@ -51,10 +55,14 @@ const taskDataSchema = z
     title: zf
       .string()
       .min(1)
-      .register(zf.string.registry, { label: "タスク名" }),
+      .register(zf.string.registry, { label: "タスク名", width: 150 }),
     description: zf
       .string()
-      .register(zf.string.registry, { label: "説明", uiType: "textarea" })
+      .register(zf.string.registry, {
+        label: "説明",
+        uiType: "textarea",
+        width: 150,
+      })
       .optional(),
 
     // 状態管理
@@ -77,6 +85,7 @@ const taskDataSchema = z
           collectionConfig: membersCollection,
           conditionId: "membersCondition",
         },
+        width: 150,
       })
       .optional(),
     // 担当・期限（membersCollectionを外部キーとして参照）
@@ -88,20 +97,26 @@ const taskDataSchema = z
             collectionConfig: membersCollection,
             conditionId: "membersCondition",
           }),
+          width: 150,
         }),
       )
       .register(zf.array.registry, {
         label: "ウォッチャー",
         uiType: "multipleExternalKey",
+        width: 150,
       })
       .optional(),
 
-    dueAt: zf.date().register(zf.date.registry, { label: "期限" }).optional(),
+    dueAt: zf
+      .date()
+      .register(zf.date.registry, { label: "期限", width: 100 })
+      .optional(),
 
     expired: zfReact
       .computed()
       .register(zfReact.computed.registry, {
         label: "期限切れ",
+        width: 80,
         compute: (data) => {
           return (data.dueAt ? data.dueAt < new Date() : null)
             ? "はい"
@@ -113,21 +128,33 @@ const taskDataSchema = z
     // ソート/購読用タイムスタンプ
     createdAt: zf
       .date()
-      .register(zf.date.registry, { label: "作成日", readOnly: true })
+      .register(zf.date.registry, {
+        label: "作成日",
+        readOnly: true,
+        width: 100,
+      })
       .optional(),
     updatedAt: zf
       .date()
-      .register(zf.date.registry, { label: "更新日", readOnly: true })
+      .register(zf.date.registry, {
+        label: "更新日",
+        readOnly: true,
+        width: 100,
+      })
       .optional(),
 
     // 論理削除
     archivedAt: zf
       .date()
-      .register(zf.date.registry, { label: "アーカイブ日", readOnly: true })
+      .register(zf.date.registry, {
+        label: "アーカイブ日",
+        readOnly: true,
+        width: 100,
+      })
       .optional(),
     deletedAt: zf
       .date()
-      .register(zf.date.registry, { label: "削除日" })
+      .register(zf.date.registry, { label: "削除日", width: 100 })
       .nullable()
       // hiddenフラグは一番外側につけないといけない
       .register(zf.common.registry, { hidden: true }),
