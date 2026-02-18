@@ -95,13 +95,6 @@ const TasksPage = () => {
     };
   }, [search.q, taskAccessor]);
 
-  const query = useMemo(() => {
-    return {
-      where: fetchCondition,
-      orderBy: [{ field: "createdAt", direction: "desc" as const }],
-    };
-  }, [fetchCondition]);
-
   const {
     items: tasks,
     isLoading,
