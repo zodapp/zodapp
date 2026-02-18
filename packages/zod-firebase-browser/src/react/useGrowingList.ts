@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { stableStringify } from "@zodapp/caching-utilities";
-import type {
-  CollectionConfigBase,
-  QueryOptions,
-} from "@zodapp/zod-firebase";
+import type { CollectionConfigBase, QueryOptions } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
 import {
@@ -24,19 +21,22 @@ export type GrowingListState<T> = {
   isLoading: boolean;
   filteredCount: number;
   scannedCount: number;
+  error?: Error;
 };
 
 /**
  * `useGrowingList` のオプション。
  *
+ * - `collection` / `collectionIdentity`: 対象コレクション（collectionIdentitySchema）
  * - `streamField`: 変更購読（stream）の基準にするフィールド名
  * - `clientFilter`: クライアント側フィルタ（任意）
  */
 export type UseGrowingListOptions<TConfig extends CollectionConfigBase> = {
   collection: TConfig;
-  pathParams: z.infer<TConfig["collectionIdentitySchema"]>;
+  collectionIdentity: z.infer<TConfig["collectionIdentitySchema"]>;
   query?: QueryOptions;
   streamField: string;
+  streamQuery?: QueryOptions;
   clientFilter?: (item: z.infer<TConfig["dataSchema"]>) => boolean;
 };
 
@@ -58,8 +58,14 @@ export function createUseGrowingList(firestore: Firestore) {
   ): UseGrowingListResult<z.infer<TConfig["dataSchema"]>> {
     type ItemType = z.infer<TConfig["dataSchema"]>;
 
-    const { collection, pathParams, query, streamField, clientFilter } =
-      options;
+    const {
+      collection,
+      collectionIdentity,
+      query,
+      streamField,
+      streamQuery,
+      clientFilter,
+    } = options;
 
     const [state, setState] = useState<GrowingListState<ItemType>>({
       items: [],
@@ -67,23 +73,23 @@ export function createUseGrowingList(firestore: Firestore) {
       isLoading: true,
       filteredCount: 0,
       scannedCount: 0,
+      error: undefined,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const growingListRef = useRef<FilteredGrowingList<any> | null>(null);
+    const growingListRef = useRef<FilteredGrowingList<TConfig> | null>(null);
 
-    // pathParamsの依存値をメモ化
-    const pathParamsKey = useMemo(
-      () => stableStringify(pathParams),
-      [pathParams],
+    // collectionIdentityの依存値をメモ化
+    const collectionIdentityKey = useMemo(
+      () => stableStringify(collectionIdentity),
+      [collectionIdentity],
     );
 
     // queryの依存値をメモ化
     const queryKey = useMemo(() => stableStringify(query), [query]);
 
     useEffect(() => {
-      // pathParamsに空文字が含まれる場合は初期化しない
-      const hasEmptyParams = Object.values(pathParams).some(
+      // collectionIdentityに空文字が含まれる場合は初期化しない
+      const hasEmptyParams = Object.values(collectionIdentity).some(
         (value) => value === "" || value === undefined,
       );
       if (hasEmptyParams) return;
@@ -98,27 +104,24 @@ export function createUseGrowingList(firestore: Firestore) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const gl = createFilteredGrowingList(
         firestore,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        collection as any,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        pathParams as any,
+        collection,
+        collectionIdentity,
         normalizedQuery,
         streamField,
-        undefined,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        clientFilter as any,
+        streamQuery,
+        clientFilter,
       );
 
       growingListRef.current = gl;
 
       const unsub = gl.subscribe((listState) => {
         setState({
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          items: listState.items as ItemType[],
+          items: listState.items,
           hasMore: listState.hasMore,
           isLoading: listState.fetchState !== undefined,
           filteredCount: listState.filteredCount,
           scannedCount: listState.scannedCount,
+          error: listState.error,
         });
       });
 
@@ -127,19 +130,18 @@ export function createUseGrowingList(firestore: Firestore) {
         gl.dispose();
       };
     }, [
-      pathParamsKey,
+      collectionIdentityKey,
       queryKey,
       collection,
       streamField,
       clientFilter,
-      pathParams,
-      query,
+      collectionIdentity,
+      // queryKeyでメモ化されてるので、queryは依存に含めない
     ]);
 
     // clientFilterが変更されたときに自動でsetFilterを呼ぶ
     useEffect(() => {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      growingListRef.current?.setFilter(clientFilter as any);
+      growingListRef.current?.setFilter(clientFilter);
     }, [clientFilter]);
 
     const fetchMore = useCallback(() => {

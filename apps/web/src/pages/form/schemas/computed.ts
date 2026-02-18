@@ -17,7 +17,7 @@ export const schema = z.object({
   quantity: zf.number().min(0).register(zf.number.registry, { label: "数量" }),
   total: zfReact
     .computed()
-    .register(zfReact.computed.registry, {
+    .register(zf.computed.registry, {
       label: "合計金額",
       compute: (parent) => {
         const unitPrice = parent?.unitPrice ?? 0;
@@ -38,7 +38,7 @@ export const schema = z.object({
         .register(zf.number.registry, { label: "数量" }),
       total: zfReact
         .computed()
-        .register(zfReact.computed.registry, {
+        .register(zf.computed.registry, {
           label: "合計金額",
           compute: (parent) => {
             const unitPrice = parent?.unitPrice ?? 0;

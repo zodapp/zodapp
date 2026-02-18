@@ -46,6 +46,7 @@ export type GrowingListState<T> = {
   hasMore: boolean;
   fetchState?: FetchState;
   lastItemTime: Date | undefined;
+  error?: Error;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,6 +82,12 @@ export const createIntrinsicGrowingList = <
     }[];
   },
 ) => {
+  console.log("createIntrinsicGrowingList", {
+    collectionIdentityParams,
+    query,
+    streamField,
+    streamQuery,
+  });
   // 一回のget取得できるデータの上限
   const PAGE_SIZE = 50;
 
@@ -102,6 +109,7 @@ export const createIntrinsicGrowingList = <
   let isFetching = false;
   let hasFetchedOnce = false;
   let lastItemTime: Date | undefined = undefined;
+  let lastError: Error | undefined = undefined;
 
   // pause/resume 用の状態
   let pausedAt: Date | undefined = undefined;
@@ -122,6 +130,7 @@ export const createIntrinsicGrowingList = <
         ? { filteredCount: 0, scannedCount: 0 }
         : undefined,
       lastItemTime,
+      error: lastError,
     };
   };
 
@@ -308,10 +317,12 @@ export const createIntrinsicGrowingList = <
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       lastItemTime =
         (fieldForOrder && (lastData as any)?.[fieldForOrder]) ?? undefined;
+      lastError = undefined;
       isFetching = false;
       notifyListeners();
     } catch (error) {
       console.error("fetchMore error", error);
+      lastError = error instanceof Error ? error : new Error(String(error));
       isFetching = false;
       notifyListeners();
     }

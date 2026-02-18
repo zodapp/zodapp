@@ -23,13 +23,13 @@ export type ListState<T> = {
 /**
  * `useList` のオプション。
  *
- * - `collection` / `pathParams`: 対象コレクション
+ * - `collection` / `collectionIdentity`: 対象コレクション（collectionIdentitySchema）
  * - `query`: Firestore クエリ条件（任意）
  * - `clientFilter`: クライアント側フィルタ（任意。`setFilter` より優先度は低い）
  */
 export type UseListOptions<TConfig extends CollectionConfigBase> = {
   collection: TConfig;
-  pathParams: z.infer<TConfig["collectionIdentitySchema"]>;
+  collectionIdentity: z.infer<TConfig["collectionIdentitySchema"]>;
   query?: QueryOptions;
   clientFilter?: (item: z.infer<TConfig["dataSchema"]>) => boolean;
 };
@@ -53,7 +53,7 @@ export function createUseList(firestore: Firestore) {
   ): UseListResult<z.infer<TConfig["dataSchema"]>> {
     type ItemType = z.infer<TConfig["dataSchema"]>;
 
-    const { collection, pathParams, query, clientFilter } = options;
+    const { collection, collectionIdentity, query, clientFilter } = options;
 
     const [items, setItems] = useState<ItemType[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -62,18 +62,18 @@ export function createUseList(firestore: Firestore) {
       ((item: ItemType) => boolean) | undefined
     >(undefined);
 
-    // pathParamsの依存値をメモ化
-    const pathParamsKey = useMemo(
-      () => stableStringify(pathParams),
-      [pathParams],
+    // collectionIdentityの依存値をメモ化
+    const collectionIdentityKey = useMemo(
+      () => stableStringify(collectionIdentity),
+      [collectionIdentity],
     );
 
     // queryの依存値をメモ化
     const queryKey = useMemo(() => stableStringify(query), [query]);
 
     useEffect(() => {
-      // pathParamsに空文字が含まれる場合は初期化しない
-      const hasEmptyParams = Object.values(pathParams).some(
+      // collectionIdentityに空文字が含まれる場合は初期化しない
+      const hasEmptyParams = Object.values(collectionIdentity).some(
         (value) => value === "" || value === undefined,
       );
       if (hasEmptyParams) {
@@ -84,23 +84,18 @@ export function createUseList(firestore: Firestore) {
 
       setIsLoading(true);
 
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const accessor = getAccessor(firestore, collection as any);
+      const accessor = getAccessor(firestore, collection);
 
       const normalizedQuery = {
-        where: query?.where ?? [],
-        orderBy: query?.orderBy ?? [
-          { field: "createdAt", direction: "desc" as const },
-        ],
+        where: query?.where,
+        orderBy: query?.orderBy,
       };
 
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       const unsub = accessor.querySync(
-        pathParams as z.infer<TConfig["collectionIdentitySchema"]>,
+        collectionIdentity,
         normalizedQuery,
         (docs) => {
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          setItems(docs as ItemType[]);
+          setItems(docs);
           setIsLoading(false);
         },
       );
@@ -108,7 +103,7 @@ export function createUseList(firestore: Firestore) {
       return () => {
         unsub();
       };
-    }, [pathParamsKey, queryKey, collection]);
+    }, [collectionIdentityKey, queryKey, collection]);
 
     // フィルタを適用したアイテムを計算
     const filteredItems = useMemo(() => {

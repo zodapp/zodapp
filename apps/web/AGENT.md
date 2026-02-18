@@ -1,4 +1,4 @@
-## apps/web — アプリ開発テンプレ（@zodapp/* サンプル）
+## apps/web — アプリ開発テンプレ（@zodapp/\* サンプル）
 
 `apps/web` は、`@zodapp/*` ファミリを **実アプリに流用するためのテンプレ兼サンプル実装**です。
 
@@ -168,8 +168,14 @@ pnpm --filter web build
     - `createFirestoreResolver({ db, conditions: { ... } })`
     - `identityParams`（例: `workspaceId` を固定）で「どの範囲の候補を出すか」を決める
 
-- **参照（アプリ固有型: 設計の拡張ポイント）**
-  - `apps/web/src/shared/types/externalKeyConfig.ts`
+- **必須: アプリ固有型の登録（`declare module`）**
+  - externalKey を使うには、アプリ側で `externalKeyConfig` の型をライブラリに登録する必要がある
+  - **登録しないと** `zf.externalKey.registry` の `externalKeyConfig` が未知の型になり、型推論が効かない
+  - サンプル: `apps/web/src/shared/types/externalKeyConfig.ts`
+    - `declare module "@zodapp/zod-form/externalKey/types"` で `ExternalKeyConfigRegistry.config` にアプリ固有の型（例: `FirestoreExternalKeyConfig`）を設定
+    - 新しい resolver を追加する場合は union に追加する（例: `FirestoreExternalKeyConfig | OtherConfig`）
+  - **有効化**: `apps/web/src/shared/types/index.ts` で import しないと `declare module` が効かない。このファイルをエントリポイント付近で import すること
+  - 型テスト: `apps/web/src/shared/types/externalKeyConfig.test.ts`
 
 - **関連ドキュメント**
   - `packages/zod-form-firebase/README.ja.md`
@@ -191,8 +197,14 @@ pnpm --filter web build
     - 実アプリでは mock ではなく Storage resolver に差し替えるのが方針
     - `pages/form` は検証用のサンプル実装だが、fileResolver の渡し方として参照できる
 
-- **参照（アプリ固有型: 設計の拡張ポイント）**
-  - `apps/web/src/shared/types/fileConfig.ts`（`firebaseStorage | mock` の union）
+- **必須: アプリ固有型の登録（`declare module`）**
+  - file を使うには、アプリ側で `fileConfig` の型をライブラリに登録する必要がある
+  - **登録しないと** `zf.file.registry` の `fileConfig` が未知の型になり、型推論が効かない
+  - サンプル: `apps/web/src/shared/types/fileConfig.ts`
+    - `declare module "@zodapp/zod-form/file/types"` で `FileConfigRegistry.config` にアプリ固有の型（例: `FirebaseStorageFileConfig | MockFileConfig`）を設定
+    - 新しい resolver を追加する場合は union に追加する（例: `| S3FileConfig`）
+  - **有効化**: `apps/web/src/shared/types/index.ts` で import しないと `declare module` が効かない。このファイルをエントリポイント付近で import すること
+  - 型テスト: `apps/web/src/shared/types/fileConfig.test.ts`
 
 - **関連ドキュメント**
   - `packages/zod-form-firebase/README.ja.md`（`createFirebaseStorageResolver`）
@@ -266,7 +278,7 @@ pnpm --filter web build
 
 ---
 
-## @zodapp/* 関連ドキュメント（入口）
+## @zodapp/\* 関連ドキュメント（入口）
 
 - `@zodapp/zod-firebase`: `packages/zod-firebase/README.ja.md`
 - `@zodapp/zod-firebase-browser`: `packages/zod-firebase-browser/README.ja.md`

@@ -1,5 +1,9 @@
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
-import { retentionCache, stableStringify } from "@zodapp/caching-utilities";
+import {
+  parseJsonString,
+  retentionCache,
+  stableStringify,
+} from "@zodapp/caching-utilities";
 import type { RetentionCache } from "@zodapp/caching-utilities";
 import type { z } from "zod";
 import firebase from "firebase/compat/app";
@@ -57,7 +61,16 @@ function getOrCreateCache<TConfig extends CollectionConfigBase>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const newCache = retentionCache<string, IntrinsicGrowingList<any>>({
     factory: (serializedKey: string) => {
-      const key = JSON.parse(serializedKey) as CacheKey;
+      const key = parseJsonString(serializedKey) as CacheKey;
+      for (const where of key.query?.where ?? []) {
+        if (
+          typeof where.value === "string" &&
+          where.value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+        ) {
+          where.value = new Date(where.value);
+        }
+      }
+
       return createIntrinsicGrowingList(
         db,
         config,

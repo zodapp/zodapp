@@ -106,14 +106,16 @@ type BoundMutations<TConfig extends CollectionConfigBase> =
     ? Record<string, never>
     : [keyof NonNullable<TConfig["mutations"]>] extends [never]
       ? Record<string, never>
-      : [NonNullable<TConfig["mutations"]>[keyof NonNullable<TConfig["mutations"]>]] extends [
-            never,
-          ]
+      : [
+            NonNullable<TConfig["mutations"]>[keyof NonNullable<
+              TConfig["mutations"]
+            >],
+          ] extends [never]
         ? Record<string, never>
         : NonNullable<TConfig["mutations"]> extends Record<
-            string,
-            MutationFn<z.ZodObject<any>>
-          >
+              string,
+              MutationFn<z.ZodObject<any>>
+            >
           ? {
               [K in keyof NonNullable<TConfig["mutations"]>]: (
                 docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
@@ -128,7 +130,11 @@ type BoundQueries<TConfig extends CollectionConfigBase> =
     ? Record<string, never>
     : [keyof NonNullable<TConfig["queries"]>] extends [never]
       ? Record<string, never>
-      : [NonNullable<TConfig["queries"]>[keyof NonNullable<TConfig["queries"]>]] extends [never]
+      : [
+            NonNullable<TConfig["queries"]>[keyof NonNullable<
+              TConfig["queries"]
+            >],
+          ] extends [never]
         ? Record<string, never>
         : NonNullable<TConfig["queries"]> extends Record<string, QueryFn>
           ? {
@@ -152,7 +158,9 @@ type BoundQueries<TConfig extends CollectionConfigBase> =
                   collectionId: z.infer<TConfig["collectionIdentitySchema"]>,
                   ...args: [
                     ...Parameters<NonNullable<TConfig["queries"]>[K]>,
-                    (snapshot: QuerySnapshot<z.infer<TConfig["dataSchema"]>>) => void,
+                    (
+                      snapshot: QuerySnapshot<z.infer<TConfig["dataSchema"]>>,
+                    ) => void,
                   ]
                 ) => () => void;
                 params: (
@@ -330,7 +338,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       return null;
     }
     if (
-      !config.checkNonPathKeys(data as Record<string, unknown>, docIdentityParams)
+      !config.checkNonPathKeys(
+        data as Record<string, unknown>,
+        docIdentityParams,
+      )
     ) {
       throw new Error("Non-path identity keys do not match");
     }

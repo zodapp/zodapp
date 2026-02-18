@@ -42,13 +42,13 @@ const MembersPage = () => {
   const { workspaceId } = useParams({
     from: membersRoute.id,
   });
-  const pathParams = useMemo(() => ({ workspaceId }), [workspaceId]);
+  const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
 
   // accessor を取得
   const memberAccessor = getAccessor(firestore, membersCollection);
   const { items: members, isLoading } = useList({
     collection: membersCollection,
-    pathParams,
+    collectionIdentity,
     query: {
       orderBy: [{ field: "createdAt", direction: "desc" }],
     },

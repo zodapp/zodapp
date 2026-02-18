@@ -52,7 +52,7 @@ const TasksPage = () => {
     from: tasksRoute.id,
   });
 
-  const pathParams = useMemo(
+  const collectionIdentity = useMemo(
     () => ({ workspaceId, projectId }),
     [workspaceId, projectId],
   );
@@ -77,40 +77,23 @@ const TasksPage = () => {
   );
 
   // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離
-  const { whereConditions, clientQuery } = useMemo(() => {
-    const q = search.q;
-    if (!q)
-      return {
-        whereConditions: [] as WhereParams[],
-        clientQuery: undefined,
-      };
-    const whereConditions: WhereParams[] = [
+  const { fetchCondition, clientFilter } = useMemo(() => {
+    const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
+
+    const fetchCondition: WhereParams[] = [
       ...(taskAccessor.queries.active.params().where ?? []),
     ];
     const { status, ...rest } = q;
     if (status) {
-      whereConditions.push(
+      fetchCondition.push(
         ...(taskAccessor.queries.byStatus.params(status).where ?? []),
       );
     }
     return {
-      whereConditions,
-      clientQuery: rest,
+      fetchCondition,
+      clientFilter: createMingoFilter(rest),
     };
   }, [search.q, taskAccessor]);
-
-  const queryOptions = useMemo(() => {
-    return {
-      where: whereConditions,
-      orderBy: [{ field: "createdAt", direction: "desc" as const }],
-    };
-  }, [whereConditions]);
-
-  // clientQuery を mingo クエリとしてコンパイルした clientFilter
-  const clientFilter = useMemo(
-    () => createMingoFilter(clientQuery),
-    [clientQuery],
-  );
 
   const {
     items: tasks,
@@ -121,8 +104,11 @@ const TasksPage = () => {
     scannedCount,
   } = useGrowingList({
     collection: tasksCollection,
-    pathParams,
-    query: queryOptions,
+    collectionIdentity,
+    query: {
+      where: fetchCondition,
+      orderBy: [{ field: "createdAt", direction: "desc" as const }],
+    },
     streamField: "updatedAt",
     clientFilter,
   });
@@ -135,7 +121,7 @@ const TasksPage = () => {
     async (data: z.infer<typeof tasksCollection.createSchema>) => {
       setIsSubmitting(true);
       try {
-        await taskAccessor.createDoc(pathParams, data);
+        await taskAccessor.createDoc(collectionIdentity, data);
         closeModal();
       } catch (error) {
         console.error("Failed to create task:", error);
@@ -143,7 +129,7 @@ const TasksPage = () => {
         setIsSubmitting(false);
       }
     },
-    [taskAccessor, pathParams, closeModal],
+    [taskAccessor, collectionIdentity, closeModal],
   );
 
   const [isSeeding, setIsSeeding] = useState(false);
@@ -151,12 +137,12 @@ const TasksPage = () => {
     setIsSeeding(true);
     await populateSeed(
       async (data) => {
-        await taskAccessor.createDoc(pathParams, data);
+        await taskAccessor.createDoc(collectionIdentity, data);
       },
       30,
       () => setIsSeeding(false),
     );
-  }, [taskAccessor, pathParams]);
+  }, [taskAccessor, collectionIdentity]);
 
   const handleSearchChange = useCallback(
     (data: z.infer<typeof searchFilterSchema>) => {

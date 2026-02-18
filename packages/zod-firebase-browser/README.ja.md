@@ -99,8 +99,7 @@ await taskAccessor.mutations.softDelete({ workspaceId, projectId, taskId });
 
 // query params を合成したい場合（GrowingList / 独自where構築用）
 const baseWhere = taskAccessor.queries.active.params().where ?? [];
-const statusWhere =
-  taskAccessor.queries.byStatus.params("todo").where ?? [];
+const statusWhere = taskAccessor.queries.byStatus.params("todo").where ?? [];
 ```
 
 `accessor.queries.xxx` は次の形で利用できます:
@@ -152,7 +151,7 @@ import { createUseList } from "@zodapp/zod-firebase-browser";
 
 const useList = createUseList(firestore);
 
-// useList({ collection, pathParams, query }) の形で利用
+// useList({ collection, collectionIdentity, query }) の形で利用
 ```
 
 ## API（抜粋）
@@ -171,4 +170,3 @@ const useList = createUseList(firestore);
 ## ライセンス
 
 MIT（[`LICENSE`](../../LICENSE)）
-

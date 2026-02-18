@@ -1,19 +1,13 @@
 import { Query } from "mingo";
+import { Context } from "mingo/core";
+import { resolve } from "mingo/util";
 
-/**
- * 正規表現の特殊文字をエスケープする
- */
 const escapeRegex = (str: string): string => {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /**
- * 再帰的に undefinedを削除し、$containsを$regexに変換する
- *
- * $contains: 部分一致検索（大文字小文字を無視）
- * 使用例: { title: { $contains: "検索語" } }
- *
- * 将来的に高機能版が必要な場合は $textSearch として拡張予定
+ * 再帰的に undefined を削除する
  */
 export const cleanQuery = <T>(obj: T): T => {
   if (typeof obj !== "object" || obj === null) return obj;
@@ -27,13 +21,6 @@ export const cleanQuery = <T>(obj: T): T => {
 
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    // $contains を $regex に変換（大文字小文字を無視した部分一致）
-    if (key === "$contains" && typeof value === "string") {
-      result["$regex"] = escapeRegex(value);
-      result["$options"] = "i";
-      continue;
-    }
-
     const cleaned = cleanQuery(value);
     if (cleaned !== undefined) {
       result[key] = cleaned;
@@ -43,8 +30,24 @@ export const cleanQuery = <T>(obj: T): T => {
 };
 
 /**
- * クエリオブジェクトをクリーンアップしてからmingoフィルター関数を作成する
- * @param query - クリーンアップ前のクエリオブジェクト（MongoDBライクなクエリ）
+ * カスタムクエリオペレータ: $contains
+ * 大文字小文字を無視した部分一致検索
+ * 使用例: { title: { $contains: "検索語" } }
+ */
+const $contains = (selector: string, value: unknown) => {
+  const pattern = typeof value === "string" ? value : String(value);
+  const regex = new RegExp(escapeRegex(pattern), "i");
+  return (obj: Record<string, unknown>) => {
+    const fieldValue = resolve(obj, selector);
+    return typeof fieldValue === "string" && regex.test(fieldValue);
+  };
+};
+
+const context = Context.init().addQueryOps({ $contains });
+
+/**
+ * クエリオブジェクトからmingoフィルター関数を作成する
+ * @param query - MongoDBライクなクエリオブジェクト（$contains カスタムオペレータ対応）
  * @returns フィルター関数、またはクエリがない場合はundefined
  */
 export const createMingoFilter = (
@@ -53,6 +56,6 @@ export const createMingoFilter = (
   if (!query) return undefined;
   const cleaned = cleanQuery(query);
   if (!cleaned) return undefined;
-  const mingoQuery = new Query(cleaned);
+  const mingoQuery = new Query(cleaned, { context });
   return (item: Record<string, unknown>) => mingoQuery.test(item);
 };

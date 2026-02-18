@@ -51,7 +51,7 @@ const ProjectsPage = () => {
     from: projectsRoute.id,
   });
 
-  const pathParams = useMemo(() => ({ workspaceId }), [workspaceId]);
+  const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
 
   // accessor を取得（queries が自動バインドされている）
   const projectAccessor = getAccessor(firestore, projectsCollection);
@@ -62,7 +62,7 @@ const ProjectsPage = () => {
   // サーバからのデータ取得 + クライアントフィルタ
   const { items: projects, isLoading } = useList({
     collection: projectsCollection,
-    pathParams,
+    collectionIdentity,
     query: {
       ...projectAccessor.queries.active.params(),
       orderBy: [{ field: "createdAt", direction: "desc" }],

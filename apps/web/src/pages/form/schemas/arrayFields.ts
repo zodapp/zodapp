@@ -103,9 +103,9 @@ export const schema = z
         discriminator: "id",
       }),
     message: zfReact
-      .message()
-      .register(zfReact.message.registry, {
-        content:
+      .derived()
+      .register(zf.derived.registry, {
+        compute: () =>
           "配列フィールドでは、動的にアイテムの追加・削除ができます。タグは単純な文字列配列、友人はオブジェクト配列です。配列のIDは { hidden: true } 使って非表示にしています。",
       })
       .optional(),

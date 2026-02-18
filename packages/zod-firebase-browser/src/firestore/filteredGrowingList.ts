@@ -112,6 +112,7 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
       lastItemTime: sourceState.lastItemTime,
       scannedCount: sourceState.count,
       filteredCount: filteredList.size,
+      error: sourceState.error,
     };
   };
 
@@ -219,6 +220,13 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
       };
       checkComplete();
     });
+
+    // エラーが発生した場合は再帰を中断
+    if (sourceState.error) {
+      fetchState = undefined;
+      notifyListeners();
+      return;
+    }
 
     // 再帰判定
     if (

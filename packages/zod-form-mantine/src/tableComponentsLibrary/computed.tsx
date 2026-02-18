@@ -1,5 +1,9 @@
-import { Text } from "@mantine/core";
-import { ZodFormProps, zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
+import {
+  ZodFormProps,
+  zfReact as zf,
+  getMetaReact,
+} from "@zodapp/zod-form-react";
+import { renderComputedValue } from "../componentLibrary/utils/renderComputedValue";
 
 type ComputedSchema = ReturnType<typeof zf.computed>;
 
@@ -12,7 +16,7 @@ const ComputedComponent = ({
 
   const content = compute?.(defaultValue);
 
-  return <Text size="sm">{content}</Text>;
+  return <>{renderComputedValue(content)}</>;
 };
 
 export { ComputedComponent as component };

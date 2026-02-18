@@ -8,6 +8,8 @@ import * as enumComponent from "./enum.js";
 import * as booleanComponent from "./boolean.js";
 import * as arrayComponent from "./array.js";
 import * as computedComponent from "./computed.js";
+import * as derivedComponent from "./derived.js";
+import * as externalKeyComponent from "./externalKey.js";
 
 /**
  * テーブル表示向けの `ComponentLibrary`。
@@ -18,6 +20,7 @@ export const tableComponentLibrary: ComponentLibrary = {
   optional: componentLibrary.optional!,
   nullable: componentLibrary.nullable!,
   default: componentLibrary.default!,
+  externalKey: () => externalKeyComponent,
   // テーブル専用コンポーネントで上書き
   object: () => objectComponent,
   string: () => stringComponent,
@@ -28,5 +31,6 @@ export const tableComponentLibrary: ComponentLibrary = {
   boolean: () => booleanComponent,
   array: () => arrayComponent,
   computed: () => computedComponent,
+  derived: () => derivedComponent,
   // optional, nullable は既存のものをそのまま使用（UI実装を持たないため）
 };
