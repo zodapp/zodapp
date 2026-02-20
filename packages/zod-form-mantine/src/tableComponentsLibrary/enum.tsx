@@ -4,10 +4,7 @@ import { zf, getMeta } from "@zodapp/zod-form";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
-const EnumComponent = ({
-  schema,
-  defaultValue,
-}: ZodFormProps<EnumSchema>) => {
+const EnumComponent = ({ schema, defaultValue }: ZodFormProps<EnumSchema>) => {
   const { schemas } = getMeta(schema) ?? {};
   const value = defaultValue as string | undefined;
 
@@ -16,7 +13,7 @@ const EnumComponent = ({
   }
 
   const literalMeta = schemas?.[value] ? getMeta(schemas[value]) : null;
-  const label = literalMeta?.label ?? value;
+  const label = (literalMeta?.label ?? typeof value === "string") ? value : "";
   const color = literalMeta?.color ?? "gray";
 
   return (
