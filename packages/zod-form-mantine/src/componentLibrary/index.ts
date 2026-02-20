@@ -43,6 +43,7 @@ export const componentLibrary = {
   object: (() => import("./object.js")) as DynamicZodFormDef,
   optional: () => optionalComponent,
   string: (() => import("./string.js")) as DynamicZodFormDef,
+  string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
   string_lazy: (() => import("./string_lazy.js")) as DynamicZodFormDef,
   string_password: (() => import("./string_password.js")) as DynamicZodFormDef,
   tuple: (() => import("./tuple.js")) as DynamicZodFormDef,

@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Text } from "@mantine/core";
+import { Badge, Text, Title } from "@mantine/core";
 import { isElement } from "react-is";
 import type { ComputedValue } from "@zodapp/zod-form";
 
@@ -10,6 +10,7 @@ import type { ComputedValue } from "@zodapp/zod-form";
  * - string → <Text> で表示
  * - { type: "badge" } → <Badge> で表示
  * - { type: "icon" } → アイコン + ラベルで表示
+ * - { type: "title" } → <Title> で表示
  * - null/undefined → null
  */
 export function renderComputedValue(content: unknown): React.ReactNode {
@@ -51,6 +52,11 @@ export function renderComputedValue(content: unknown): React.ReactNode {
           {label && <> {label}</>}
         </Text>
       );
+    }
+
+    if (obj.type === "title") {
+      const { label, level } = obj as Extract<ComputedValue, { type: "title" }>;
+      return <Title size={level}>{label}</Title>;
     }
   }
 
