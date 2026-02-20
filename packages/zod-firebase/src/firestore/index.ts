@@ -423,7 +423,7 @@ export const getCollectionConfigBare = <
 
   /**
    * shape[key] を required 化して返す。
-   * optional なら unwrap→clone し、optional 側の label メタを保持する。
+   * optional なら unwrap→clone し、hidden 登録と label を維持する。
    * shape になければ intrinsicSchema.shape をフォールバック参照する。
    * どちらにもなければ z.string() を hidden として返す。
    */
@@ -436,23 +436,23 @@ export const getCollectionConfigBare = <
 
     if (!(schema instanceof z.ZodOptional)) return schema;
 
-    // optional を unwrap し、label メタを保持して clone
     const inner = schema.unwrap() as z.ZodType;
-    const optionalLabel = getMeta(schema as z.ZodTypeAny)?.label;
+    const optionalMeta = getMeta(schema as z.ZodTypeAny);
+    const isHidden =
+      optionalMeta?.typeName === "hidden" || optionalMeta?.hidden;
     const cloned = cloneSchema(inner);
-    if (optionalLabel) {
-      const innerMeta = getMeta(inner as z.ZodTypeAny);
+    if (isHidden) {
       cloned.register(zf.hidden.registry, {
-        ...(innerMeta ?? {}),
-        label: optionalLabel,
+        ...(optionalMeta?.label ? { label: optionalMeta.label } : {}),
       });
     }
+    // ここでlabelを維持する処理が必要かもしれない
     return cloned;
   };
 
   /**
    * shape[key] を optional 化して返す。
-   * optional 化すると registry メタが失われるため、label を付け直す。
+   * identity key は常に hidden 扱いとし、元スキーマの label があれば保持する。
    * shape になければ intrinsicSchema.shape をフォールバック参照する。
    * どちらにもなければ z.string().optional() を hidden として返す。
    */
@@ -467,9 +467,9 @@ export const getCollectionConfigBare = <
 
     const label = getMeta(schema as z.ZodTypeAny)?.label;
     const optional = schema.optional();
-    if (label) {
-      optional.register(zf.hidden.registry, { label });
-    }
+    optional.register(zf.hidden.registry, {
+      ...(label ? { label } : {}),
+    });
     return optional;
   };
 
