@@ -1,12 +1,6 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Fieldset, Select, InputWrapper } from "@mantine/core";
-import z, { ZodType } from "zod";
+import z from "zod";
 
 import {
   ZodFormInternalProps,
@@ -26,6 +20,10 @@ type UnionSchema = z.ZodUnion<[z.ZodTypeAny, ...z.ZodTypeAny[]]>;
 const normalizeValue = (schema: z.ZodTypeAny, value: unknown) => {
   const parsed = schema.safeParse(value);
   return parsed.success ? parsed.data : getDefaultValue(schema);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
 const isDiscriminatedUnion = (
@@ -55,12 +53,16 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta, selectorLabel } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
+  const formValue = fieldPath
+    ? field.api.form.getFieldValue(fieldPath)
+    : field.api.form.state.values;
 
   const compiledOptions: {
     profiles: schemaProfile[];
     determinator: (value: unknown) => schemaProfile | undefined;
     selector: (id: string) => schemaProfile | undefined;
     hasDiscriminator: boolean;
+    discriminator?: string;
   } = useMemo(() => {
     const optionSchemas = schema.def.options as z.ZodTypeAny[];
     if (isDiscriminatedUnion(schema)) {
@@ -93,6 +95,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
           ),
         selector: (id: string) => profileMap.get(id),
         hasDiscriminator: true,
+        discriminator,
       };
     } else {
       const profileMap = new Map(
@@ -116,22 +119,78 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
           profiles.find((profile) => profile.schema.safeParse(value).success),
         selector: (id: string) => profileMap.get(id),
         hasDiscriminator: false,
+        discriminator: undefined,
       };
     }
   }, [schema]);
 
-  const [selectedProfile, setSelectedProfile] = useState<
-    schemaProfile | undefined
-  >(() => {
-    return compiledOptions.determinator(field.value);
-  });
+  const discriminatorFromValue = useMemo(() => {
+    if (!compiledOptions.hasDiscriminator || !compiledOptions.discriminator) {
+      return undefined;
+    }
+    if (!isRecord(formValue)) {
+      return undefined;
+    }
+    const value = formValue[compiledOptions.discriminator];
+    return typeof value === "string" ? value : undefined;
+  }, [compiledOptions, formValue]);
+
+  const [selectedDiscriminator, setSelectedDiscriminator] = useState<
+    string | undefined
+  >(discriminatorFromValue);
 
   useEffect(() => {
-    const matched = compiledOptions.determinator(field.value);
-    if (matched && matched !== selectedProfile) {
-      setSelectedProfile(matched);
+    if (!compiledOptions.hasDiscriminator) {
+      if (selectedDiscriminator !== undefined) {
+        setSelectedDiscriminator(undefined);
+      }
+      return;
     }
-  }, [compiledOptions, field.value, selectedProfile]);
+    if (
+      discriminatorFromValue !== undefined &&
+      discriminatorFromValue !== selectedDiscriminator
+    ) {
+      setSelectedDiscriminator(discriminatorFromValue);
+    }
+  }, [
+    compiledOptions.hasDiscriminator,
+    discriminatorFromValue,
+    selectedDiscriminator,
+  ]);
+
+  const selectedProfile = useMemo(
+    () =>
+      compiledOptions.hasDiscriminator
+        ? compiledOptions.selector(
+            selectedDiscriminator ?? discriminatorFromValue ?? "",
+          ) ?? compiledOptions.determinator(formValue)
+        : compiledOptions.determinator(formValue),
+    [
+      compiledOptions,
+      discriminatorFromValue,
+      formValue,
+      selectedDiscriminator,
+    ],
+  );
+
+  const dynamicDefaultValue = useMemo(() => {
+    if (
+      !compiledOptions.hasDiscriminator ||
+      !compiledOptions.discriminator ||
+      !selectedDiscriminator
+    ) {
+      return formValue;
+    }
+    if (!isRecord(formValue)) {
+      return {
+        [compiledOptions.discriminator]: selectedDiscriminator,
+      };
+    }
+    return {
+      ...formValue,
+      [compiledOptions.discriminator]: selectedDiscriminator,
+    };
+  }, [compiledOptions, formValue, selectedDiscriminator]);
 
   const prevInjectedRef = useRef<string[]>([]);
 
@@ -200,21 +259,55 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
       const profile = id ? compiledOptions.selector(id) : undefined;
       if (!profile) {
         if (compiledOptions.hasDiscriminator) {
-          setSelectedProfile(undefined);
+          setSelectedDiscriminator(undefined);
           field.onChange(undefined);
           return;
         } else {
           return;
         }
       }
-      setSelectedProfile(profile);
-      // discriminatorの場合は、ここでdiscriminatorのvalueが設定される
+      // discriminatedUnion は全体再正規化を避け、discriminator フィールドのみ直接更新する。
+      // 既存データを保持したまま discriminator だけ差し替える（strip 前提）。
+      if (compiledOptions.hasDiscriminator && compiledOptions.discriminator) {
+        setSelectedDiscriminator(profile.value);
+        const currentValue = fieldPath
+          ? field.api.form.getFieldValue(fieldPath)
+          : field.api.form.state.values;
+        const defaults =
+          profile.schema && isRecord(getDefaultValue(profile.schema))
+            ? (getDefaultValue(profile.schema) as Record<string, unknown>)
+            : {};
+        const nextValue = {
+          ...defaults,
+          ...(isRecord(currentValue) ? currentValue : {}),
+          [compiledOptions.discriminator]: profile.value,
+        };
+
+        if (fieldPath) {
+          field.api.form.setFieldValue(fieldPath, nextValue as never, {
+            dontValidate: true,
+          });
+          return;
+        }
+
+        const fallbackValue = isRecord(field.value)
+          ? {
+              ...field.value,
+              [compiledOptions.discriminator]: profile.value,
+            }
+          : {
+              [compiledOptions.discriminator]: profile.value,
+            };
+        field.onChange(fallbackValue ?? undefined);
+        return;
+      }
+
       const normalized = profile.schema
-        ? normalizeValue(profile.schema, field.value)
+        ? normalizeValue(profile.schema, formValue)
         : undefined;
       field.onChange(normalized ?? undefined);
     },
-    [field, compiledOptions],
+    [field, compiledOptions, fieldPath, formValue],
   );
   return (
     <Fieldset legend={label || undefined} mt={10}>
@@ -245,7 +338,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
               <LoadingComponent
                 fieldPath={fieldPath}
                 schema={selectedProfile.schema}
-                defaultValue={field.value}
+                defaultValue={dynamicDefaultValue}
                 required={required}
                 readOnly={readOnly}
                 label={false}
@@ -253,9 +346,10 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
             }
           >
             <Dynamic
+              key={selectedProfile.value}
               fieldPath={fieldPath}
               schema={selectedProfile.schema}
-              defaultValue={field.value}
+              defaultValue={dynamicDefaultValue}
               required={required}
               readOnly={readOnly}
               label={false}

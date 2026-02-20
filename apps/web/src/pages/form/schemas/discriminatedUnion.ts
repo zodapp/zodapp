@@ -19,6 +19,9 @@ const contactSchema = z
         email: z
           .email("有効なメールアドレスを入力してください")
           .register(zf.string.registry, { label: "メール" }),
+        note: zf
+          .string()
+          .register(zf.string.registry, { label: "備考", uiType: "multiline" }),
       })
       .register(zf.object.registry, { label: "メール連絡" }),
     z
@@ -41,6 +44,9 @@ const contactSchema = z
           .min(10)
           .max(15)
           .register(zf.string.registry, { label: "電話番号" }),
+        note: zf
+          .string()
+          .register(zf.string.registry, { label: "備考", uiType: "multiline" }),
       })
       .register(zf.object.registry, { label: "電話連絡" }),
   ])
