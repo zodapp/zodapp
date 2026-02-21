@@ -21,11 +21,7 @@ export function renderComputedValue(content: unknown): React.ReactNode {
 
   // string の場合
   if (typeof content === "string") {
-    return (
-      <Text size="sm">
-        {content}
-      </Text>
-    );
+    return <Text size="sm">{content}</Text>;
   }
 
   // ComputedValue オブジェクトの場合

@@ -4,6 +4,7 @@ import { ZodFormProps } from "@zodapp/zod-form-react";
 import { useFormValues, useZodField } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import { renderComputedValue } from "./utils/renderComputedValue";
+import { ReadonlyText } from "./utils/text";
 
 type ComputedSchema = ReturnType<typeof zf.computed>;
 
@@ -40,17 +41,15 @@ type ComputedDisplayProps = {
  */
 const ComputedDisplay = React.memo(function ComputedDisplay({
   label,
-  required,
   content,
 }: ComputedDisplayProps) {
   return (
-    <InputWrapper
-      label={label ?? undefined}
-      required={required}
-      labelElement="div"
-      mt={5}
-    >
-      {renderComputedValue(content)}
+    <InputWrapper label={label ?? undefined} labelElement="div" mt={5}>
+      {typeof content === "string" ? (
+        <ReadonlyText>{content}</ReadonlyText>
+      ) : (
+        renderComputedValue(content)
+      )}
     </InputWrapper>
   );
 });

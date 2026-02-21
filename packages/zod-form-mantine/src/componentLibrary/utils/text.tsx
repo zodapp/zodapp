@@ -5,10 +5,10 @@ type ReadonlyTextProps = {
 } & Omit<TextProps, "children">;
 
 const readonlyTextStyle = {
-  backgroundColor: "var(--mantine-color-gray-1)",
+  backgroundColor:
+    "var(--zod-form-readonly-background-color, var(--mantine-color-gray-1))",
   color: "var(--mantine-color-gray-7)",
   borderRadius: "var(--mantine-radius-default)",
-  minHeight: "calc(2.25rem * var(--mantine-scale))",
 };
 
 /**
