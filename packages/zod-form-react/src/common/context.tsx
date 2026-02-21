@@ -43,6 +43,8 @@ type ZodFormContextType = {
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（timestamp encoding 時に使用） */
   timezone: string;
+  /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
+  onFieldChange?: (fieldPath: string, value: unknown) => void;
 };
 
 /** ブラウザのローカルタイムゾーンを取得 */
@@ -80,6 +82,7 @@ export const ZodFormContextProvider = ({
   fileResolvers,
   mediaResolvers,
   timezone,
+  onFieldChange,
   children,
   merge,
 }: {
@@ -90,6 +93,8 @@ export const ZodFormContextProvider = ({
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（省略時はブラウザのローカルTZ） */
   timezone?: string;
+  /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
+  onFieldChange?: (fieldPath: string, value: unknown) => void;
   children: React.ReactNode;
   merge?: boolean;
 } & (
@@ -114,6 +119,7 @@ export const ZodFormContextProvider = ({
     fileResolvers: fileResolvers ?? parentContext.fileResolvers,
     mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
     timezone: timezone ?? parentContext.timezone,
+    onFieldChange: onFieldChange ?? parentContext.onFieldChange,
   };
   return (
     <ZodFormContext.Provider value={mergedContext}>
@@ -215,4 +221,13 @@ export const useFileResolver = <
 export const useMediaResolvers = (): MediaResolvers => {
   const { mediaResolvers } = useZodFormContext();
   return mediaResolvers ?? basicMediaResolvers;
+};
+
+/**
+ * onFieldChangeコールバックを取得するフック
+ * reactiveComponentLibrary のコンポーネントが確定時にフィールド値を通知するために使用
+ */
+export const useOnFieldChange = () => {
+  const { onFieldChange } = useZodFormContext();
+  return onFieldChange;
 };

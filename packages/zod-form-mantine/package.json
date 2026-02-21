@@ -29,7 +29,8 @@
     ".": "./src/index.ts",
     "./componentLibrary": "./src/componentLibrary/index.ts",
     "./tableComponentsLibrary": "./src/tableComponentsLibrary/index.ts",
-    "./mediaResolvers": "./src/mediaResolvers/index.ts"
+    "./mediaResolvers": "./src/mediaResolvers/index.ts",
+    "./reactiveComponentLibrary": "./src/reactiveComponentLibrary/index.ts"
   },
   "scripts": {
     "lint": "eslint .",

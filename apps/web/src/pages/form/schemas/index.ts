@@ -10,6 +10,10 @@ import * as refineValidation from "./refineValidation";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
 import * as readOnly from "./readOnly";
+import * as reactiveBasicInput from "./reactiveBasicInput";
+import * as reactiveEnumSelect from "./reactiveEnumSelect";
+import * as reactiveNestedObject from "./reactiveNestedObject";
+import * as reactiveReadOnly from "./reactiveReadOnly";
 
 import basicInputCode from "./basicInput.ts?raw";
 import computedCode from "./computed.ts?raw";
@@ -23,6 +27,10 @@ import refineValidationCode from "./refineValidation.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
 import readOnlyCode from "./readOnly.ts?raw";
+import reactiveBasicInputCode from "./reactiveBasicInput.ts?raw";
+import reactiveEnumSelectCode from "./reactiveEnumSelect.ts?raw";
+import reactiveNestedObjectCode from "./reactiveNestedObject.ts?raw";
+import reactiveReadOnlyCode from "./reactiveReadOnly.ts?raw";
 
 export const formSchemas = {
   [basicInput.formId]: basicInput,
@@ -37,6 +45,10 @@ export const formSchemas = {
   [refineValidation.formId]: refineValidation,
   [recursiveData.formId]: recursiveData,
   [file.formId]: file,
+  [reactiveBasicInput.formId]: reactiveBasicInput,
+  [reactiveEnumSelect.formId]: reactiveEnumSelect,
+  [reactiveNestedObject.formId]: reactiveNestedObject,
+  [reactiveReadOnly.formId]: reactiveReadOnly,
 } as const;
 
 export const formCodes = {
@@ -52,6 +64,10 @@ export const formCodes = {
   [recursiveData.formId]: recursiveDataCode,
   [computed.formId]: computedCode,
   [file.formId]: fileCode,
+  [reactiveBasicInput.formId]: reactiveBasicInputCode,
+  [reactiveEnumSelect.formId]: reactiveEnumSelectCode,
+  [reactiveNestedObject.formId]: reactiveNestedObjectCode,
+  [reactiveReadOnly.formId]: reactiveReadOnlyCode,
 } as const;
 
 export type FormId = keyof typeof formSchemas;

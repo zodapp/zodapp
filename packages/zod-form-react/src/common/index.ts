@@ -9,6 +9,7 @@ export {
   useExternalKeyResolver,
   useFileResolver,
   useMediaResolvers,
+  useOnFieldChange,
   type DynamicZodFormDef,
   type ComponentLibrary,
 } from "./context";

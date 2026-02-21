@@ -4,6 +4,7 @@ import { Container, Tabs, Title, Text } from "@mantine/core";
 import { CodeHighlight } from "@mantine/code-highlight";
 
 import { AutoForm } from "../../components/AutoForm";
+import { ReactiveAutoForm } from "../../components/ReactiveAutoForm";
 import { formDetailRoute } from "./detail.route";
 import { formSchemas, formCodes, defaultFormId, type FormId } from "./schemas";
 
@@ -22,7 +23,9 @@ const FormPageInner = () => {
   const { formId: rawFormId } = useSearch({ from: formDetailRoute.id });
   const formId = (rawFormId as FormId) ?? defaultFormId;
 
-  const { schema, defaultValues, title, description } = formSchemas[formId];
+  const formDef = formSchemas[formId];
+  const { schema, defaultValues, title, description } = formDef;
+  const isReactive = "reactive" in formDef && formDef.reactive === true;
 
   // ファイルフォーム用のresolver
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
@@ -44,13 +47,22 @@ const FormPageInner = () => {
 
         <Tabs.Panel value="form" pt="md">
           <Suspense fallback={<div>Loading form...</div>}>
-            <AutoForm
-              schema={schema}
-              defaultValues={defaultValues}
-              key={formId}
-              fileResolvers={fileResolvers}
-              showPreview={true}
-            />
+            {isReactive ? (
+              <ReactiveAutoForm
+                schema={schema}
+                defaultValues={defaultValues}
+                key={formId}
+                showPreview={true}
+              />
+            ) : (
+              <AutoForm
+                schema={schema}
+                defaultValues={defaultValues}
+                key={formId}
+                fileResolvers={fileResolvers}
+                showPreview={true}
+              />
+            )}
           </Suspense>
         </Tabs.Panel>
 

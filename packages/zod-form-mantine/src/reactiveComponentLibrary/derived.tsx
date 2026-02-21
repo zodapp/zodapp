@@ -1,11 +1,8 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
-import {
-  ZodFormInternalProps,
-  wrapComponent,
-} from "@zodapp/zod-form-react/common";
+import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
-import { renderComputedValue } from "./utils/renderComputedValue";
+import { renderComputedValue } from "../componentLibrary/utils/renderComputedValue";
 
 type DerivedSchema = ReturnType<typeof zf.derived>;
 
@@ -14,23 +11,23 @@ type DerivedMeta = NonNullable<
 >;
 
 /**
- * 該当フィールドの値を購読してcompute関数で変換した結果を表示するコンポーネント
- * computed と異なり、自身のフィールド値を受け取る（単一フィールドの変換）
+ * defaultValue（フィールド自身の値）を compute に渡してレンダリングする。
+ * tanstack 非依存。
  */
-const DerivedComponent = wrapComponent(function DerivedComponentImplement({
+const DerivedComponent = React.memo(function DerivedComponent({
   schema,
+  defaultValue,
   label: labelFromParent,
   required,
-  field,
-}: ZodFormInternalProps<DerivedSchema>) {
+}: ZodFormProps<DerivedSchema>) {
   const meta = getMetaReact(schema, "derived");
   const { label: labelFromMeta, compute } =
     meta ?? ({} as Partial<DerivedMeta>);
   const label = labelFromParent ?? labelFromMeta;
 
   const content = useMemo(() => {
-    return compute?.(field.value);
-  }, [compute, field.value]);
+    return compute?.(defaultValue);
+  }, [compute, defaultValue]);
 
   return (
     <InputWrapper
@@ -43,5 +40,7 @@ const DerivedComponent = wrapComponent(function DerivedComponentImplement({
     </InputWrapper>
   );
 });
+
+DerivedComponent.displayName = "ReactiveDerivedComponent";
 
 export { DerivedComponent as component };
