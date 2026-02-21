@@ -44,6 +44,12 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
       autosize
       minRows={3}
       mt={5}
+      styles={{
+        input: {
+          maxHeight: "var(--zod-form-string-multiline-max-height, none)",
+          overflowY: "auto",
+        },
+      }}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
       rightSectionProps={{
         style: { alignItems: "flex-end", paddingBottom: 6 },

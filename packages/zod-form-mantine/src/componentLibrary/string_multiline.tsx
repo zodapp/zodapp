@@ -54,6 +54,12 @@ const StringMultilineComponent = wrapComponent(function StringMultilineComponent
       mt={5}
       autosize
       minRows={3}
+      styles={{
+        input: {
+          maxHeight: "var(--zod-form-string-multiline-max-height, none)",
+          overflowY: "auto",
+        },
+      }}
     />
   );
 });
