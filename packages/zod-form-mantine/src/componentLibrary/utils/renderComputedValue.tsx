@@ -22,7 +22,7 @@ export function renderComputedValue(content: unknown): React.ReactNode {
   // string の場合
   if (typeof content === "string") {
     return (
-      <Text size="sm" component="span">
+      <Text size="sm">
         {content}
       </Text>
     );
@@ -47,7 +47,7 @@ export function renderComputedValue(content: unknown): React.ReactNode {
         { type: "icon" }
       >;
       return (
-        <Text size="sm" component="span" style={{ color }}>
+        <Text size="sm" style={{ color }}>
           <span className={icon} />
           {label && <> {label}</>}
         </Text>
