@@ -13,7 +13,7 @@ const EnumComponent = ({ schema, defaultValue }: ZodFormProps<EnumSchema>) => {
   }
 
   const literalMeta = schemas?.[value] ? getMeta(schemas[value]) : null;
-  const label = (literalMeta?.label ?? typeof value === "string") ? value : "";
+  const label = literalMeta?.label ?? (typeof value === "string" ? value : "");
   const color = literalMeta?.color ?? "gray";
 
   return (
