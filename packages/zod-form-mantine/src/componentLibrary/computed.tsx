@@ -45,7 +45,11 @@ const ComputedDisplay = React.memo(function ComputedDisplay({
   content,
 }: ComputedDisplayProps) {
   return (
-    <InputWrapper label={label ?? undefined} labelElement="div" style={inputWrapperStyle}>
+    <InputWrapper
+      label={label ?? undefined}
+      labelElement="div"
+      style={inputWrapperStyle}
+    >
       {typeof content === "string" ? (
         <ReadonlyText>{content}</ReadonlyText>
       ) : (
