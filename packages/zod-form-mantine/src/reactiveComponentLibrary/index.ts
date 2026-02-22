@@ -34,4 +34,5 @@ export const reactiveComponentLibrary: ComponentLibrary = {
   literal: (() => import("./literal.js")) as DynamicZodFormDef,
   derived: (() => import("./derived.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
+  record: (() => import("./record.js")) as DynamicZodFormDef,
 };

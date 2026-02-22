@@ -14,6 +14,7 @@ import * as reactiveBasicInput from "./reactiveBasicInput";
 import * as reactiveEnumSelect from "./reactiveEnumSelect";
 import * as reactiveNestedObject from "./reactiveNestedObject";
 import * as reactiveReadOnly from "./reactiveReadOnly";
+import * as reactiveRecord from "./reactiveRecord";
 
 import basicInputCode from "./basicInput.ts?raw";
 import computedCode from "./computed.ts?raw";
@@ -31,6 +32,7 @@ import reactiveBasicInputCode from "./reactiveBasicInput.ts?raw";
 import reactiveEnumSelectCode from "./reactiveEnumSelect.ts?raw";
 import reactiveNestedObjectCode from "./reactiveNestedObject.ts?raw";
 import reactiveReadOnlyCode from "./reactiveReadOnly.ts?raw";
+import reactiveRecordCode from "./reactiveRecord.ts?raw";
 
 export const formSchemas = {
   [basicInput.formId]: basicInput,
@@ -49,6 +51,7 @@ export const formSchemas = {
   [reactiveEnumSelect.formId]: reactiveEnumSelect,
   [reactiveNestedObject.formId]: reactiveNestedObject,
   [reactiveReadOnly.formId]: reactiveReadOnly,
+  [reactiveRecord.formId]: reactiveRecord,
 } as const;
 
 export const formCodes = {
@@ -68,6 +71,7 @@ export const formCodes = {
   [reactiveEnumSelect.formId]: reactiveEnumSelectCode,
   [reactiveNestedObject.formId]: reactiveNestedObjectCode,
   [reactiveReadOnly.formId]: reactiveReadOnlyCode,
+  [reactiveRecord.formId]: reactiveRecordCode,
 } as const;
 
 export type FormId = keyof typeof formSchemas;

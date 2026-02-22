@@ -7,8 +7,10 @@ type ReadonlyTextProps = {
 const readonlyTextStyle = {
   backgroundColor:
     "var(--zod-form-readonly-background-color, var(--mantine-color-gray-1))",
-  color: "var(--mantine-color-gray-7)",
-  borderRadius: "var(--mantine-radius-default)",
+  color: "var(--zod-form-readonly-color, var(--mantine-color-gray-7))",
+  borderRadius:
+    "var(--zod-form-readonly-border-radius, var(--mantine-radius-default))",
+  padding: "var(--zod-form-readonly-padding, var(--mantine-spacing-xs))",
 };
 
 /**
@@ -16,7 +18,7 @@ const readonlyTextStyle = {
  */
 export const ReadonlyText = ({ children, ...props }: ReadonlyTextProps) => {
   return (
-    <Text size="sm" p="xs" style={readonlyTextStyle} {...props}>
+    <Text size="sm" style={readonlyTextStyle} {...props}>
       {children}
     </Text>
   );

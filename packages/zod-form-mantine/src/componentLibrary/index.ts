@@ -41,6 +41,7 @@ export const componentLibrary = {
   number: (() => import("./number.js")) as DynamicZodFormDef,
   number_slider: (() => import("./number_slider.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
+  record: (() => import("./record.js")) as DynamicZodFormDef,
   optional: () => optionalComponent,
   string: (() => import("./string.js")) as DynamicZodFormDef,
   string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
