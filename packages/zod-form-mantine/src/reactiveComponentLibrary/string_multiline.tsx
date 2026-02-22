@@ -9,6 +9,7 @@ import {
   confirmableRightSectionProps,
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../componentLibrary/utils/styles";
+import multilineStyles from "../componentLibrary/utils/stringMultiline.module.css";
 
 type StringSchema = z.ZodString;
 
@@ -45,12 +46,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
       autosize
       minRows={3}
       style={inputWrapperStyle}
-      styles={{
-        input: {
-          maxHeight: "var(--zod-form-string-multiline-max-height, none)",
-          overflowY: "auto",
-        },
-      }}
+      classNames={{ input: multilineStyles.input }}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
       rightSectionProps={{
         style: { alignItems: "flex-end", paddingBottom: 6 },

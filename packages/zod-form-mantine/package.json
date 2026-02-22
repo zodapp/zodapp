@@ -24,7 +24,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
   "exports": {
     ".": "./src/index.ts",
     "./componentLibrary": "./src/componentLibrary/index.ts",

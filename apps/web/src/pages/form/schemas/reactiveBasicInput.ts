@@ -21,6 +21,10 @@ export const schema = z
       label: "姓（string, 必須）",
       uiType: "text",
     }),
+    note: zf.string().register(zf.string.registry, {
+      label: "メモ(string, 複数行)",
+      uiType: "multiline",
+    }),
     frequency: zf.number().max(7).min(0).register(zf.number.registry, {
       label: "1週間にお酒を飲む日数(number, slider)",
       uiType: "slider",
@@ -54,6 +58,7 @@ export const schema = z
 export const defaultValues: z.input<typeof schema> = {
   firstName: "太郎",
   lastName: "山田",
+  note: "これはメモです",
   frequency: 3,
   age: 25,
   birthday: new Date("1999-01-01"),
