@@ -8,6 +8,7 @@ import {
 import { getMeta } from "@zodapp/zod-form";
 import { useExternalKeyOptions } from "@zodapp/zod-form-react/utils/externalKey";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 import type z from "zod";
 
 type ExternalKeySchema = z.ZodString;
@@ -44,7 +45,7 @@ const ExternalKeyComponent = wrapComponent(
 
     if (readOnly || field.disabled) {
       return (
-        <InputWrapper label={label || undefined} mt={5}>
+        <InputWrapper label={label || undefined} style={inputWrapperStyle}>
           <ReadonlyText>{displayLabel}</ReadonlyText>
         </InputWrapper>
       );
@@ -66,7 +67,7 @@ const ExternalKeyComponent = wrapComponent(
           disabled={true}
           rightSection={<Loader size="xs" />}
           placeholder="Loading..."
-          mt={5}
+          style={inputWrapperStyle}
         />
       );
     }
@@ -86,7 +87,7 @@ const ExternalKeyComponent = wrapComponent(
           required={required !== false}
           disabled={true}
           placeholder="選択肢がありません"
-          mt={5}
+          style={inputWrapperStyle}
         />
       );
     }
@@ -107,7 +108,7 @@ const ExternalKeyComponent = wrapComponent(
         disabled={readOnly || field.disabled}
         allowDeselect={true}
         clearable={true}
-        mt={5}
+        style={inputWrapperStyle}
       />
     );
   },

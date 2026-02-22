@@ -4,6 +4,7 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { Dynamic } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -99,7 +100,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
       label={label || undefined}
       required={undefined}
       labelElement="div"
-      mt={5}
+      style={inputWrapperStyle}
     >
       {wrappedPropertiesComponent}
     </InputWrapper>

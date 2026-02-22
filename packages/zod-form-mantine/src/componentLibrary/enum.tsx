@@ -9,6 +9,7 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import { renderSelectOption } from "./utils/selectOption";
 import { useEnumData } from "./utils/enum";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -41,7 +42,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
 
   if (readOnly || field.disabled) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{displayLabel}</ReadonlyText>
       </InputWrapper>
     );
@@ -63,7 +64,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
       disabled={readOnly || field.disabled}
       allowDeselect={true}
       clearable={true}
-      mt={5}
+      style={inputWrapperStyle}
     />
   );
 });

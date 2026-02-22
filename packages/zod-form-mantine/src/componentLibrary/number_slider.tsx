@@ -8,6 +8,7 @@ import {
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
 import { $ZodCheckMultipleOfDef } from "zod/v4/core";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -32,7 +33,7 @@ const NumberSliderComponent = wrapComponent(
 
     if (readOnly || field.disabled) {
       return (
-        <InputWrapper label={label || undefined} mt={5}>
+        <InputWrapper label={label || undefined} style={inputWrapperStyle}>
           <ReadonlyText>{value}</ReadonlyText>
         </InputWrapper>
       );
@@ -43,9 +44,8 @@ const NumberSliderComponent = wrapComponent(
         label={label || undefined}
         required={required !== false}
         error={error?.message}
-        style={{ marginBottom: 10 }}
+        style={{ ...inputWrapperStyle, marginBottom: 10 }}
         labelElement="div"
-        mt={5}
       >
         <div style={{ paddingTop: 3, paddingBottom: 10 }}>
           <Slider

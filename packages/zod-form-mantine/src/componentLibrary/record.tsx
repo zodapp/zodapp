@@ -7,6 +7,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
 } from "@zodapp/zod-form-react/common";
+import { inputWrapperStyle } from "./utils/styles";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -66,7 +67,7 @@ const RecordComponent = wrapComponent(
         required={undefined}
         error={error?.message}
         labelElement="div"
-        mt={5}
+        style={inputWrapperStyle}
       >
         {fieldsComponent}
       </InputWrapper>

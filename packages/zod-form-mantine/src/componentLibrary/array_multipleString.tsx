@@ -7,6 +7,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 import type z from "zod";
 
 type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
@@ -43,7 +44,7 @@ const ArrayOfStringComponent = wrapComponent(
 
     if (readOnly || field.disabled) {
       return (
-        <InputWrapper label={label || undefined} mt={5}>
+        <InputWrapper label={label || undefined} style={inputWrapperStyle}>
           <ReadonlyText>{displayValue}</ReadonlyText>
         </InputWrapper>
       );
@@ -63,7 +64,7 @@ const ArrayOfStringComponent = wrapComponent(
         disabled={readOnly || field.disabled}
         clearable={true}
         splitChars={[",", " ", "|"]}
-        mt={5}
+        style={inputWrapperStyle}
       />
     );
   },

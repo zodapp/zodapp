@@ -9,6 +9,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -37,7 +38,7 @@ const EnumComponent = React.memo(function EnumComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{displayLabel}</ReadonlyText>
       </InputWrapper>
     );
@@ -54,7 +55,7 @@ const EnumComponent = React.memo(function EnumComponent({
       required={required !== false}
       allowDeselect
       clearable
-      mt={5}
+      style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel, {
         clearableWidth: value ? 24 : 0,
       })}

@@ -6,6 +6,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { ZodForm } from "@zodapp/zod-form-react";
 import { zf, getMeta } from "@zodapp/zod-form";
+import { inputWrapperStyle } from "./utils/styles";
 
 type LiteralSchema = ReturnType<typeof zf.literal>;
 
@@ -27,7 +28,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = wrapComponent(
         label={label ?? undefined}
         error={error?.message}
         required={required !== false}
-        mt={5}
+        style={inputWrapperStyle}
       >
         <Text size="sm" c="dimmed">
           {String(displayValue)}

@@ -8,6 +8,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type StringSchema = z.ZodString;
 
@@ -28,7 +29,7 @@ const StringComponent = React.memo(function StringComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{value}</ReadonlyText>
       </InputWrapper>
     );
@@ -41,7 +42,7 @@ const StringComponent = React.memo(function StringComponent({
       onKeyDown={onKeyDown}
       label={label || undefined}
       required={required !== false}
-      mt={5}
+      style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
     />
   );

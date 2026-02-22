@@ -7,6 +7,7 @@ import {
   Dynamic,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
+import { inputWrapperStyle } from "./utils/styles";
 
 type TupleSchema = ReturnType<typeof zf.tuple>;
 
@@ -56,7 +57,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
       required={required !== false}
       error={error?.message}
       labelElement="div"
-      mt={5}
+      style={inputWrapperStyle}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {entries}

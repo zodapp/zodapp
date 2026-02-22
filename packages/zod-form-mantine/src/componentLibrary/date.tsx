@@ -23,6 +23,7 @@ import {
   type CreateDateConverterParams,
 } from "@zodapp/zod-form-react/utils/dateConverter";
 import { z } from "zod";
+import { inputWrapperStyle } from "./utils/styles";
 
 // zf.date でサポートするスキーマ型
 type DateSchema = z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate;
@@ -79,7 +80,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
 
   if (readOnly || field.disabled) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{pickerValue ?? ""}</ReadonlyText>
       </InputWrapper>
     );
@@ -101,7 +102,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
     required: required !== false,
     disabled: readOnly || field.disabled,
     clearable: true,
-    mt: 5,
+    style: inputWrapperStyle,
   };
 
   // unit に応じたコンポーネント選択

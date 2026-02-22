@@ -8,6 +8,7 @@ import {
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type StringSchema = z.ZodString;
 
@@ -34,7 +35,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
 
   if (readOnly || field.disabled) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{value}</ReadonlyText>
       </InputWrapper>
     );
@@ -51,7 +52,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
       error={error?.message}
       required={required !== false}
       disabled={readOnly || field.disabled}
-      mt={5}
+      style={inputWrapperStyle}
     />
   );
 });

@@ -13,6 +13,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type BigIntSchema = ReturnType<typeof zf.bigint>;
 
@@ -82,7 +83,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
 
   if (readOnly || field.disabled) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{displayValue}</ReadonlyText>
       </InputWrapper>
     );
@@ -101,7 +102,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       disabled={readOnly || field.disabled}
       inputMode="numeric"
       pattern="-?\\d*"
-      mt={5}
+      style={inputWrapperStyle}
     />
   );
 });

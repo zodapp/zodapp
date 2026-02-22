@@ -7,6 +7,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
 } from "@zodapp/zod-form-react/common";
+import { inputWrapperStyle } from "./utils/styles";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -115,7 +116,7 @@ const ObjectComponent = wrapComponent(
           required={undefined}
           error={error?.message}
           labelElement="div" // disable auto biding of label to input
-          mt={5}
+          style={inputWrapperStyle}
         >
           {wrappedPropertiesComponent}
         </InputWrapper>

@@ -6,6 +6,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import { renderComputedValue } from "./utils/renderComputedValue";
+import { inputWrapperStyle } from "./utils/styles";
 
 type DerivedSchema = ReturnType<typeof zf.derived>;
 
@@ -37,7 +38,7 @@ const DerivedComponent = wrapComponent(function DerivedComponentImplement({
       label={label ?? undefined}
       required={required !== false}
       labelElement="div"
-      mt={5}
+      style={inputWrapperStyle}
     >
       {renderComputedValue(content)}
     </InputWrapper>

@@ -5,6 +5,7 @@ import { useFormValues, useZodField } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import { renderComputedValue } from "./utils/renderComputedValue";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type ComputedSchema = ReturnType<typeof zf.computed>;
 
@@ -44,7 +45,7 @@ const ComputedDisplay = React.memo(function ComputedDisplay({
   content,
 }: ComputedDisplayProps) {
   return (
-    <InputWrapper label={label ?? undefined} labelElement="div" mt={5}>
+    <InputWrapper label={label ?? undefined} labelElement="div" style={inputWrapperStyle}>
       {typeof content === "string" ? (
         <ReadonlyText>{content}</ReadonlyText>
       ) : (

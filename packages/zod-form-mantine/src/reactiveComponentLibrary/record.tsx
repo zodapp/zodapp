@@ -4,6 +4,7 @@ import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { Dynamic } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -57,7 +58,7 @@ const RecordComponent = React.memo(function RecordComponent({
       label={label || undefined}
       required={undefined}
       labelElement="div"
-      mt={5}
+      style={inputWrapperStyle}
     >
       {fieldsComponent}
     </InputWrapper>

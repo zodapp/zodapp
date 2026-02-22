@@ -6,6 +6,7 @@ import {
   useConfirmableState,
   ConfirmableInputActions,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type BooleanSchema = ReturnType<typeof zf.boolean>;
 
@@ -61,9 +62,8 @@ const BooleanComponent = React.memo(function BooleanComponent({
     <InputWrapper
       label={label || undefined}
       required={required !== false}
-      style={{ marginBottom: 3, marginTop: 3 }}
+      style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
-      mt={5}
     >
       <div style={{ paddingTop: 5, paddingBottom: 3 }}>
         <Group gap="sm" align="center">

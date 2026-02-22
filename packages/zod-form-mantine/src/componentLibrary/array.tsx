@@ -28,6 +28,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { inputWrapperStyle } from "./utils/styles";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -263,7 +264,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       required={required !== false}
       error={error?.message}
       labelElement="div" // disable auto biding of label to input
-      mt={5}
+      style={inputWrapperStyle}
     >
       <DndContext
         sensors={sensors}

@@ -7,6 +7,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -28,7 +29,7 @@ const NumberComponent = React.memo(function NumberComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{value}</ReadonlyText>
       </InputWrapper>
     );
@@ -50,7 +51,7 @@ const NumberComponent = React.memo(function NumberComponent({
       required={required !== false}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}
-      mt={5}
+      style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
     />
   );

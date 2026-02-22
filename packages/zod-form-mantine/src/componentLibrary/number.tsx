@@ -7,6 +7,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -38,7 +39,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
 
   if (readOnly || field.disabled) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{value}</ReadonlyText>
       </InputWrapper>
     );
@@ -57,7 +58,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
       disabled={readOnly || field.disabled}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}
-      mt={5}
+      style={inputWrapperStyle}
     />
   );
 });

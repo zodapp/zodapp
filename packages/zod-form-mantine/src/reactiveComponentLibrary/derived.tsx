@@ -3,6 +3,7 @@ import { InputWrapper } from "@mantine/core";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import { renderComputedValue } from "../componentLibrary/utils/renderComputedValue";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type DerivedSchema = ReturnType<typeof zf.derived>;
 
@@ -34,7 +35,7 @@ const DerivedComponent = React.memo(function DerivedComponent({
       label={label ?? undefined}
       required={required !== false}
       labelElement="div"
-      mt={5}
+      style={inputWrapperStyle}
     >
       {renderComputedValue(content)}
     </InputWrapper>

@@ -2,6 +2,7 @@ import React from "react";
 import { Input, Text } from "@mantine/core";
 import type { ZodFormProps, ZodForm } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type LiteralSchema = ReturnType<typeof zf.literal>;
 
@@ -18,7 +19,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = React.memo(function LiteralComp
     <Input.Wrapper
       label={label ?? undefined}
       required={required !== false}
-      mt={5}
+      style={inputWrapperStyle}
     >
       <Text size="sm" c="dimmed">
         {String(defaultValue)}

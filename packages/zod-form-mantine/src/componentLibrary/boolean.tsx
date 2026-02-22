@@ -6,6 +6,7 @@ import {
   useValidatePrecedingFields,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
+import { inputWrapperStyle } from "./utils/styles";
 
 type BooleanSchema = ReturnType<typeof zf.boolean>;
 
@@ -54,9 +55,8 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
       label={label || undefined}
       required={required !== false}
       error={error?.message}
-      style={{ marginBottom: 3, marginTop: 3 }}
+      style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
-      mt={5}
     >
       <div style={{ paddingTop: 5, paddingBottom: 3 }}>
         <Switch

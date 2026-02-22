@@ -14,6 +14,7 @@ import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
 import { Suspense } from "react";
 import { ReadonlyText } from "./utils/text";
+import { inputWrapperStyle } from "./utils/styles";
 
 type UnionSchema = z.ZodUnion<[z.ZodTypeAny, ...z.ZodTypeAny[]]>;
 
@@ -312,7 +313,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   return (
     <Fieldset legend={label || undefined} mt={10}>
       {readOnly || field.disabled ? (
-        <InputWrapper label={selectorLabel ?? "タイプ"} mt={5}>
+        <InputWrapper label={selectorLabel ?? "タイプ"} style={inputWrapperStyle}>
           <ReadonlyText>{selectedProfile?.label}</ReadonlyText>
         </InputWrapper>
       ) : (

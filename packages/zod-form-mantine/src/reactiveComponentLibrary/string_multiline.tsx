@@ -8,6 +8,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type StringSchema = z.ZodString;
 
@@ -28,7 +29,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{value}</ReadonlyText>
       </InputWrapper>
     );
@@ -43,7 +44,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
       required={required !== false}
       autosize
       minRows={3}
-      mt={5}
+      style={inputWrapperStyle}
       styles={{
         input: {
           maxHeight: "var(--zod-form-string-multiline-max-height, none)",

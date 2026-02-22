@@ -9,6 +9,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -38,7 +39,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{displayLabel}</ReadonlyText>
       </InputWrapper>
     );
@@ -55,7 +56,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         disabled
         rightSection={<Loader size="xs" />}
         placeholder="Loading..."
-        mt={5}
+        style={inputWrapperStyle}
       />
     );
   }
@@ -70,7 +71,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         required={required !== false}
         disabled
         placeholder="選択肢がありません"
-        mt={5}
+        style={inputWrapperStyle}
       />
     );
   }
@@ -85,7 +86,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
       required={required !== false}
       allowDeselect
       clearable
-      mt={5}
+      style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel, {
         clearableWidth: value ? 24 : 0,
       })}

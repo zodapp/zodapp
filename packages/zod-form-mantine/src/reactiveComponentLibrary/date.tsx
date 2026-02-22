@@ -18,6 +18,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
+import { inputWrapperStyle } from "../componentLibrary/utils/styles";
 
 type DateSchema = z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate;
 
@@ -68,7 +69,7 @@ const DateComponent = React.memo(function DateComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} mt={5}>
+      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
         <ReadonlyText>{value ?? ""}</ReadonlyText>
       </InputWrapper>
     );
@@ -83,7 +84,7 @@ const DateComponent = React.memo(function DateComponent({
       label={label || undefined}
       required={required !== false}
       clearable
-      mt={5}
+      style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel, {
         clearableWidth: value ? 24 : 0,
       })}
