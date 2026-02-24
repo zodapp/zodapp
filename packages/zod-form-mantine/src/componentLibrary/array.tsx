@@ -48,7 +48,7 @@ function SortableItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id, disabled });
+  } = useSortable({ id, disabled, animateLayoutChanges: () => false });
 
   const paddingLeft = disabled ? 15 : 37;
   const style: React.CSSProperties = {
@@ -65,7 +65,6 @@ function SortableItem({
   return (
     <div ref={setNodeRef} style={style}>
       {disabled ? (
-        // readOnly時の配列マーカー（グレーベタ塗り）
         <div
           style={{
             position: "absolute",
@@ -79,7 +78,6 @@ function SortableItem({
           }}
         />
       ) : (
-        // 編集時のドラッグハンドル（点々パターン）
         <div
           {...attributes}
           {...listeners}
@@ -135,7 +133,6 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
 
   const { items, insert, remove, append, move } = useArray(
     field.api,
-    fieldPath,
     discriminator,
   );
 
@@ -159,20 +156,54 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
 
   const isDragDisabled = readOnly === true;
 
-  const itemsWithInsertButtons = (items || []).flatMap(
-    (item, index: number) => {
-      const childProps = {
-        fieldPath: `${fieldPath}[${index}]`,
-        schema: itemSchema,
-        defaultValue: defaultValue?.[index],
-        required,
-        readOnly,
-        label: false as const,
-      };
+  const itemsWithInsertButtons = (items || []).flatMap((item) => {
+    const index = item.index;
+    const childProps = {
+      fieldPath: `${fieldPath}[${index}]`,
+      schema: itemSchema,
+      defaultValue: defaultValue?.[index],
+      required,
+      readOnly,
+      label: false as const,
+    };
 
-      return [
-        canInsert && !readOnly && (
-          <div key={`add-before-${item.key}`} style={{ position: "relative" }}>
+    return [
+      canInsert && !readOnly && (
+        <div key={`add-before-${item.key}`} style={{ position: "relative" }}>
+          <ActionIcon
+            size={20}
+            variant="light"
+            color="#63687C"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: "calc(50% - 3px)",
+              transform: "translateY(-50%)",
+              backgroundColor: "white",
+              zIndex: 1,
+              outline: "none",
+            }}
+            onClick={() => {
+              const dv = getDefaultValue(itemSchema);
+              insert(index, dv);
+            }}
+          >
+            <IconCirclePlus />
+          </ActionIcon>
+        </div>
+      ),
+      <Suspense
+        key={`item-${item.key}`}
+        fallback={
+          <SortableItem id={item.key} disabled={isDragDisabled}>
+            <LoadingComponent {...childProps} />
+          </SortableItem>
+        }
+      >
+        <SortableItem id={item.key} disabled={isDragDisabled}>
+          <Dynamic {...childProps} />
+
+          {canRemove && !readOnly && (
             <ActionIcon
               size={20}
               variant="light"
@@ -180,56 +211,21 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
               style={{
                 position: "absolute",
                 left: 0,
-                top: "calc(50% - 3px)",
+                top: "50%",
                 transform: "translateY(-50%)",
                 backgroundColor: "white",
-                zIndex: 1,
+                zIndex: 2,
                 outline: "none",
               }}
-              onClick={() => {
-                const defaultValue = getDefaultValue(itemSchema);
-                insert(index, defaultValue);
-              }}
+              onClick={() => remove(index)}
             >
-              <IconCirclePlus />
+              <IconCircleMinus />
             </ActionIcon>
-          </div>
-        ),
-        <Suspense
-          key={`item-${item.key}`}
-          fallback={
-            <SortableItem id={item.key} disabled={isDragDisabled}>
-              <LoadingComponent {...childProps} />
-            </SortableItem>
-          }
-        >
-          <SortableItem id={item.key} disabled={isDragDisabled}>
-            <Dynamic {...childProps} />
-
-            {canRemove && !readOnly && (
-              <ActionIcon
-                size={20}
-                variant="light"
-                color="#63687C"
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  backgroundColor: "white",
-                  zIndex: 2,
-                  outline: "none",
-                }}
-                onClick={() => remove(index)}
-              >
-                <IconCircleMinus />
-              </ActionIcon>
-            )}
-          </SortableItem>
-        </Suspense>,
-      ];
-    },
-  );
+          )}
+        </SortableItem>
+      </Suspense>,
+    ];
+  });
 
   if (canInsert && !readOnly) {
     itemsWithInsertButtons.push(
@@ -248,8 +244,8 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
             outline: "none",
           }}
           onClick={() => {
-            const defaultValue = getDefaultValue(itemSchema);
-            append(defaultValue);
+            const dv = getDefaultValue(itemSchema);
+            append(dv);
           }}
         >
           <IconCirclePlus />
@@ -263,7 +259,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       label={label || undefined}
       required={required !== false}
       error={error?.message}
-      labelElement="div" // disable auto biding of label to input
+      labelElement="div"
       style={inputWrapperStyle}
     >
       <DndContext

@@ -1,172 +1,123 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import type { AnyFieldApi } from "@tanstack/react-form";
 
-function randomHex(bytes = 16) {
-  const array = new Uint8Array(bytes);
-  crypto.getRandomValues(array);
-  return Array.from(array)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+let idCounter = 0;
+function generateKey() {
+  return `_ai_${++idCounter}_${Date.now().toString(36)}`;
 }
 
-// オブジェクト形式のエラーオブジェクトを、{ [fieldName]: error } の形式に変換する
-// dicreminatorがないstring配列でも、keyを付与して順序を管理する
-type WrappedItem = {
+type ArrayItem = {
   key: string;
-  value: unknown;
+  index: number;
 };
 
 /**
- * TanStack Form の FieldApi で配列フィールドを扱うためのラッパー。
+ * TanStack Form の FieldApi ネイティブ配列操作（insertValue / removeValue /
+ * pushValue / moveValue）を利用する配列フィールド用フック。
  *
- * 目的:
- * - 配列要素ごとに安定した key を付与し、挿入/削除時も UI の順序・識別子を維持する
- * - discriminator が指定された場合は各要素の同名プロパティを key として利用・補完する
- * - TanStack Form の配列操作 API がないため、FieldApi で値を書き換えつつフォーム全体のバリデーションを発火する
+ * このフックは要素単位の操作を TanStack Form に委譲することで、
+ * フィールドメタデータ（バリデーション状態・touched 等）の再インデックスを
+ * フレームワーク側で正しく処理させる。
  *
- * 補足:
- * - FieldApi には pushValue/insertValue/removeValue 等の配列メソッドは存在するが、本実装では
- *   ・key 付与や discriminator 補完
- *   ・挿入/削除時にエラーの再マッピング・クリアを自前で扱いたい
- *   ため、低レベルに setValue + validateAllFields で制御している。
- *
- * 処理内容:
- * - フィールド値を監視し、要素ごとに key 付きの WrappedItem 配列を同期（undefined は null に正規化）
- * - insert/remove/append を提供し、配列を更新した上で FieldApi.setValue でフォーム値を更新
- * - 更新後にフォーム全体の validateAllFields("change") を呼び、配列操作起因の検証を全体バリデーションとして走らせる
+ * React / DnD 用の安定キーは引き続き管理し、discriminator にも対応する。
  */
 export const useArray = (
   fieldApi: AnyFieldApi,
-  fieldPath: string,
   discriminator: string | undefined,
 ) => {
-  const itemsRef = useRef<WrappedItem[]>([]);
-  const [items, setItems] = useState<WrappedItem[]>([]);
+  const keysRef = useRef<string[]>([]);
+  const value = fieldApi.state.value as unknown[] | undefined;
+  const len = value?.length ?? 0;
 
-  useEffect(() => {
-    const syncFromValue = (value: unknown[] | undefined) => {
-      const next = Array.from(value ?? []).map((item, index): WrappedItem => {
-        const prevKey = itemsRef.current[index]?.key;
-        if (discriminator != null) {
-          if (item && typeof item === "object") {
-            const record = { ...(item as Record<string, unknown>) };
-            const rawKey = record[discriminator];
-            const key =
-              typeof rawKey === "string" || typeof rawKey === "number"
-                ? String(rawKey)
-                : (prevKey ?? randomHex());
-            record[discriminator] = key;
-            return { key, value: record };
-          } else {
-            const key = prevKey ?? randomHex();
-            return { key, value: { [discriminator]: key } };
-          }
-        } else {
-          const key = prevKey ?? randomHex();
-          return { key, value: item };
-        }
-      });
-      itemsRef.current = next;
-      setItems(next);
-    };
+  const items: ArrayItem[] = useMemo(() => {
+    const prev = keysRef.current;
 
-    syncFromValue(fieldApi.state.value as unknown[] | undefined);
-  }, [fieldApi.state.value, discriminator]);
-
-  const { insert, remove, append, move } = useMemo(() => {
-    const validateArray = () => {
-      queueMicrotask(() => {
-        // 配列操作後、バリデーションが表示とずれるのを避けるため、この配列内のフィールドのバリデーションをすべて更新する
-        for (const [key, fieldInfo] of Object.entries(
-          fieldApi.form.fieldInfo,
-        )) {
-          if (fieldInfo.instance && key.startsWith(fieldPath)) {
-            fieldInfo.instance.handleBlur();
+    if (discriminator) {
+      const nextKeys: string[] = [];
+      for (let i = 0; i < len; i++) {
+        const item = value![i];
+        if (item && typeof item === "object") {
+          const rawKey = (item as Record<string, unknown>)[discriminator];
+          if (typeof rawKey === "string" || typeof rawKey === "number") {
+            nextKeys.push(String(rawKey));
+            continue;
           }
         }
-      });
+        nextKeys.push(prev[i] ?? generateKey());
+      }
+      keysRef.current = nextKeys;
+    } else {
+      while (prev.length < len) {
+        prev.push(generateKey());
+      }
+      prev.length = len;
+    }
+
+    return keysRef.current.map((key, index) => ({ key, index }));
+  }, [value, len, discriminator]);
+
+  const ops = useMemo(() => {
+    const ensureDiscriminator = (newItem: unknown): unknown => {
+      if (!discriminator) return newItem;
+      if (newItem && typeof newItem === "object") {
+        const record = newItem as Record<string, unknown>;
+        if (
+          typeof record[discriminator] !== "string" &&
+          typeof record[discriminator] !== "number"
+        ) {
+          record[discriminator] = generateKey();
+        }
+        return record;
+      }
+      return { [discriminator]: generateKey() };
     };
 
-    const setWrappedItems = (
-      updater: (current: WrappedItem[]) => WrappedItem[],
-    ) => {
-      const nextItems = updater(itemsRef.current);
-      itemsRef.current = nextItems;
-      setItems(nextItems);
-      fieldApi.setValue(
-        () =>
-          nextItems.map(
-            (item) => item.value,
-          ) as unknown as typeof fieldApi.state.value,
-      );
-      validateArray();
+    const keyFor = (prepared: unknown): string => {
+      if (discriminator && prepared && typeof prepared === "object") {
+        return String(
+          (prepared as Record<string, unknown>)[discriminator] ?? generateKey(),
+        );
+      }
+      return generateKey();
     };
 
     const insert = (index: number, newItem: unknown) => {
-      const key = (() => {
-        if (discriminator) {
-          if (newItem && typeof newItem === "object") {
-            const record = newItem as Record<string, unknown>;
-            const candidate = record[discriminator];
-            const safeKey =
-              typeof candidate === "string" || typeof candidate === "number"
-                ? String(candidate)
-                : randomHex();
-            record[discriminator] = safeKey;
-            return safeKey;
-          }
-          const safeKey = randomHex();
-          newItem = { [discriminator]: safeKey };
-          return safeKey;
-        } else {
-          return randomHex();
-        }
-      })();
-      setWrappedItems((current) => {
-        const newItems = current.slice();
-        newItems.splice(index, 0, {
-          key,
-          value: newItem,
-        });
-        return newItems;
-      });
+      const prepared = ensureDiscriminator(newItem);
+      keysRef.current.splice(index, 0, keyFor(prepared));
+      fieldApi.insertValue(index, prepared);
     };
 
     const remove = (index: number) => {
-      setWrappedItems((current) =>
-        current.filter((_, i: number) => i !== index),
-      );
+      keysRef.current.splice(index, 1);
+      fieldApi.removeValue(index);
     };
 
-    const append = (item: unknown) => {
-      insert(itemsRef.current.length ?? 0, item);
+    const append = (newItem: unknown) => {
+      const prepared = ensureDiscriminator(newItem);
+      keysRef.current.push(keyFor(prepared));
+      fieldApi.pushValue(prepared);
     };
 
     const move = (fromIndex: number, toIndex: number) => {
-      setWrappedItems((current) => {
-        if (
-          fromIndex < 0 ||
-          fromIndex >= current.length ||
-          toIndex < 0 ||
-          toIndex >= current.length
-        ) {
-          return current;
-        }
-        const newItems = [...current];
-        const [removed] = newItems.splice(fromIndex, 1);
-        newItems.splice(toIndex, 0, removed!);
-        return newItems;
-      });
+      const keys = keysRef.current;
+      if (
+        fromIndex < 0 ||
+        fromIndex >= keys.length ||
+        toIndex < 0 ||
+        toIndex >= keys.length
+      ) {
+        return;
+      }
+      const [movedKey] = keys.splice(fromIndex, 1);
+      keys.splice(toIndex, 0, movedKey!);
+      fieldApi.moveValue(fromIndex, toIndex);
     };
 
     return { insert, remove, append, move };
-  }, [discriminator, fieldApi, fieldPath]);
+  }, [fieldApi, discriminator]);
 
   return {
     items,
-    insert,
-    remove,
-    append,
-    move,
+    ...ops,
   };
 };
