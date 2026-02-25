@@ -38,6 +38,7 @@
     "@zodapp/zod-form-mantine": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",
     "@zodapp/zod-searchparams": "workspace:*",
+    "@zodapp/zod-tabular": "workspace:*",
     "lodash": "^4.17.21",
     "mingo": "^7.2.0",
     "react": "^19.2.4",

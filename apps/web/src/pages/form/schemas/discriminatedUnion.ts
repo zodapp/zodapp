@@ -72,6 +72,7 @@ export const defaultValues: z.input<typeof schema> = {
   contact: {
     type: "email",
     email: "du@example.com",
+    note: "",
   },
 };
 

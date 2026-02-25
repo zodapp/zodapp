@@ -65,8 +65,11 @@ export const WorkspaceService = {
    * ユーザーの所属ワークスペースを取得（IDの取得から詳細取得・ソートまで一括）
    */
   async fetchUserWorkspaces(userEmail: string): Promise<WorkspaceData[]> {
+    console.log("#001", userEmail);
     const workspaceIds = await this.fetchWorkspaceIdsByEmail(userEmail);
+    console.log("#002", workspaceIds);
     const workspaces = await this.fetchWorkspacesByIds(workspaceIds);
+    console.log("#003", workspaces);
     return [...workspaces].sort((a, b) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;

@@ -1,6 +1,20 @@
-import { Title, Container, Button, Group, Modal, Box } from "@mantine/core";
+import {
+  Title,
+  Container,
+  Button,
+  Group,
+  Modal,
+  Box,
+  Menu,
+  ActionIcon,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconDots,
+  IconDownload,
+  IconUpload,
+} from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { AutoTable } from "../../components/AutoTable";
@@ -21,6 +35,7 @@ import { populateSeed } from "./seed";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
 import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useExportModal, useImportModal } from "../../components/TabularModal";
 
 import pageCode from "./tasks.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/task.ts?raw";
@@ -164,6 +179,34 @@ const TasksPage = () => {
     [workspaceId, projectId],
   );
 
+  // Export: 全件取得してCSVエクスポート（プレビューは現在表示中のデータ）
+  const fetchAllTasks = useCallback(
+    () => taskAccessor.query(collectionIdentity),
+    [taskAccessor, collectionIdentity],
+  );
+
+  const { open: openExport, modal: exportModal } = useExportModal({
+    schema: tasksCollection.dataSchema,
+    data: tasks,
+    fetchAll: fetchAllTasks,
+    filename: `tasks-${projectId}.csv`,
+  });
+
+  // Import: CSVからタスクを一括インポート
+  const handleImport = useCallback(
+    async (rows: z.infer<typeof tasksCollection.createSchema>[]) => {
+      for (const row of rows) {
+        await taskAccessor.createDoc(collectionIdentity, row);
+      }
+    },
+    [taskAccessor, collectionIdentity],
+  );
+
+  const { open: openImport, modal: importModal } = useImportModal({
+    schema: tasksCollection.createSchema,
+    onImport: handleImport,
+  });
+
   return (
     <Container size="lg">
       <Group justify="space-between" mb="lg">
@@ -179,6 +222,28 @@ const TasksPage = () => {
           <Button variant="outline" onClick={handleSeed} loading={isSeeding}>
             ダミーデータ追加
           </Button>
+          <Menu shadow="md" width={200} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconDots size={20} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>データ操作</Menu.Label>
+              <Menu.Item
+                leftSection={<IconDownload size={16} />}
+                onClick={openExport}
+              >
+                CSVエクスポート
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconUpload size={16} />}
+                onClick={openImport}
+              >
+                CSVインポート
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
       <Box
@@ -234,6 +299,9 @@ const TasksPage = () => {
           showPreview={true}
         />
       </Modal>
+
+      {exportModal}
+      {importModal}
     </Container>
   );
 };
