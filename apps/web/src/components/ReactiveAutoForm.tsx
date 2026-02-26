@@ -3,8 +3,8 @@ import { Code, Loader, Stack } from "@mantine/core";
 import {
   Dynamic,
   ZodFormContextProvider,
+  reactiveComponentLibrary,
 } from "@zodapp/zod-form-mantine";
-import { reactiveComponentLibrary } from "@zodapp/zod-form-mantine/reactiveComponentLibrary";
 import type { ExternalKeyResolvers } from "@zodapp/zod-form";
 import type { z } from "zod";
 

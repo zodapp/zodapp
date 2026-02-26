@@ -489,6 +489,9 @@ importers:
       '@zodapp/zod-form':
         specifier: workspace:*
         version: link:../zod-form
+      '@zodapp/zod-form-mantine-lite':
+        specifier: workspace:*
+        version: link:../zod-form-mantine-lite
       '@zodapp/zod-form-react':
         specifier: workspace:*
         version: link:../zod-form-react
@@ -538,6 +541,73 @@ importers:
       jsdom:
         specifier: ^28.0.0
         version: 28.1.0
+      react:
+        specifier: ^19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.4(react@19.2.4)
+      rimraf:
+        specifier: ^6.1.2
+        version: 6.1.3
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(jsdom@28.1.0)(yaml@2.8.2)
+
+  packages/zod-form-mantine-lite:
+    dependencies:
+      '@mantine/core':
+        specifier: ^8.2.7
+        version: 8.3.15(@mantine/hooks@8.3.15(react@19.2.4))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@mantine/hooks':
+        specifier: ^8.2.7
+        version: 8.3.15(react@19.2.4)
+      '@tabler/icons-react':
+        specifier: ^3.36.1
+        version: 3.37.1(react@19.2.4)
+      '@zodapp/zod-form':
+        specifier: workspace:*
+        version: link:../zod-form
+      '@zodapp/zod-form-react':
+        specifier: workspace:*
+        version: link:../zod-form-react
+      dayjs:
+        specifier: ^1.11.19
+        version: 1.11.19
+      react-is:
+        specifier: ^19.2.4
+        version: 19.2.4
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@mantine/dates':
+        specifier: ^8.3.14
+        version: 8.3.15(@mantine/core@8.3.15(@mantine/hooks@8.3.15(react@19.2.4))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(@mantine/hooks@8.3.15(react@19.2.4))(dayjs@1.11.19)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.19.7
+        version: 22.19.11
+      '@types/react':
+        specifier: ^19.2.3
+        version: 19.2.14
+      '@types/react-is':
+        specifier: ^19.2.0
+        version: 19.2.0
+      eslint:
+        specifier: ^9.34.0
+        version: 9.39.3
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -1969,8 +2039,8 @@ packages:
     peerDependencies:
       react: '>= 16'
 
-  '@tabler/icons@3.36.1':
-    resolution: {integrity: sha512-f4Jg3Fof/Vru5ioix/UO4GX+sdDsF9wQo47FbtvG+utIYYVQ/QVAC0QYgcBbAjQGfbdOh2CCf0BgiFOF9Ixtjw==}
+  '@tabler/icons@3.37.1':
+    resolution: {integrity: sha512-neLCWkuyNHEPXCyYu6nbN4S3g/59BTa4qyITAugYVpq1YzYNDOZooW7/vRWH98ZItXAudxdKU8muFT7y1PqzuA==}
 
   '@tanstack/devtools-event-client@0.4.0':
     resolution: {integrity: sha512-RPfGuk2bDZgcu9bAJodvO2lnZeHuz4/71HjZ0bGb/SPg8+lyTA+RLSKQvo7fSmPSi8/vcH3aKQ8EM9ywf1olaw==}
@@ -7238,10 +7308,10 @@ snapshots:
 
   '@tabler/icons-react@3.37.1(react@19.2.4)':
     dependencies:
-      '@tabler/icons': 3.36.1
+      '@tabler/icons': 3.37.1
       react: 19.2.4
 
-  '@tabler/icons@3.36.1': {}
+  '@tabler/icons@3.37.1': {}
 
   '@tanstack/devtools-event-client@0.4.0': {}
 
