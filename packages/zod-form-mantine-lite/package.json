@@ -28,13 +28,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./baseComponents": "./src/baseComponents/index.ts",
+    "./baseComponents/*": "./src/baseComponents/*.tsx",
     "./tableComponents": "./src/tableComponents/index.ts",
+    "./tableComponents/*": "./src/tableComponents/*.tsx",
     "./reactiveComponents": "./src/reactiveComponents/index.ts",
+    "./reactiveComponents/*": "./src/reactiveComponents/*.tsx",
     "./mediaResolvers": "./src/mediaResolvers/index.ts",
     "./utils": "./src/utils/index.ts",
-    "./utils/stringMultiline.module.css": "./src/utils/stringMultiline.module.css",
-    "./baseComponents/optional": "./src/baseComponents/optional.tsx",
-    "./baseComponents/hidden": "./src/baseComponents/hidden.tsx"
+    "./utils/*": "./src/utils/*"
   },
   "scripts": {
     "lint": "eslint .",

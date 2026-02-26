@@ -19,7 +19,7 @@ import {
   useZodForm,
 } from "@zodapp/zod-form-react/common";
 
-import { component as HiddenComponent } from "@zodapp/zod-form-mantine-lite/baseComponents/hidden";
+import { HiddenComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as LiteralComponent } from "./literal";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";

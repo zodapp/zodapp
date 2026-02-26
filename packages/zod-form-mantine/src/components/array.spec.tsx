@@ -12,7 +12,7 @@ import { z } from "zod";
 import { MantineProvider } from "@mantine/core";
 
 import { component as ArrayComponent } from "./array";
-import { component as OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents/optional";
+import { OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
 import {

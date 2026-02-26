@@ -1,38 +1,45 @@
-import {
-  DynamicZodFormDef,
-  type ComponentLibrary,
-} from "@zodapp/zod-form-react/common";
+import type { ComponentLibrary, DynamicZodFormDef } from "@zodapp/zod-form-react/common";
 import { baseComponents } from "@zodapp/zod-form-mantine-lite";
 
-/**
- * Mantine UI 用の `ComponentLibrary`（ZodForm のコンポーネント対応表）。
- *
- * key は `typeName` や `typeName_uiType` を想定し、value は `{ component }` を返すローダです。
- * unwrap 系（optional, nullable, default, lazy, hidden）は lite パッケージの baseComponents を使用。
- */
-export const componentLibrary: ComponentLibrary = {
-  // unwrap 系は baseComponents から取得（TanStack 非依存）
-  default: baseComponents.default,
-  hidden: baseComponents.hidden,
-  lazy: baseComponents.lazy,
-  nullable: baseComponents.nullable,
-  optional: baseComponents.optional,
+// Named exports（個別 static import 用）
+export { component as ArrayComponent } from "./array.js";
+export { component as ArrayOfEnumComponent } from "./array_multipleEnum.js";
+export { component as ArrayOfExternalKeyComponent } from "./array_multipleExternalKey.js";
+export { component as ArrayOfStringComponent } from "./array_multipleString.js";
+export { component as BigIntComponent } from "./bigint.js";
+export { component as BooleanComponent } from "./boolean.js";
+export { component as ComputedComponent } from "./computed.js";
+export { component as DateComponent } from "./date.js";
+export { component as DerivedComponent } from "./derived.js";
+export { component as EnumComponent } from "./enum.js";
+export { component as ExternalKeyComponent } from "./externalKey.js";
+export { component as FileComponent } from "./file.js";
+export { component as LiteralComponent } from "./literal.js";
+export { component as NumberComponent } from "./number.js";
+export { component as NumberSliderComponent } from "./number_slider.js";
+export { component as ObjectComponent } from "./object.js";
+export { component as RecordComponent } from "./record.js";
+export { component as StringComponent } from "./string.js";
+export { component as StringLazyComponent } from "./string_lazy.js";
+export { component as StringMultilineComponent } from "./string_multiline.js";
+export { component as StringPasswordComponent } from "./string_password.js";
+export { component as TupleComponent } from "./tuple.js";
+export { component as UnionComponent } from "./union.js";
 
-  // TanStack 依存コンポーネント
+// Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
+export const componentLibrary: ComponentLibrary = {
+  ...baseComponents,
   array: (() => import("./array.js")) as DynamicZodFormDef,
-  array_multipleEnum: (() =>
-    import("./array_multipleEnum.js")) as DynamicZodFormDef,
-  array_multipleEnumBudge: () => import("./array_multipleEnum.js"),
-  array_multipleExternalKey: (() =>
-    import("./array_multipleExternalKey.js")) as DynamicZodFormDef,
-  array_multipleString: (() =>
-    import("./array_multipleString.js")) as DynamicZodFormDef,
+  array_multipleEnum: (() => import("./array_multipleEnum.js")) as DynamicZodFormDef,
+  array_multipleEnumBudge: (() => import("./array_multipleEnum.js")) as DynamicZodFormDef,
+  array_multipleExternalKey: (() => import("./array_multipleExternalKey.js")) as DynamicZodFormDef,
+  array_multipleString: (() => import("./array_multipleString.js")) as DynamicZodFormDef,
   bigint: (() => import("./bigint.js")) as DynamicZodFormDef,
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
   date: (() => import("./date.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,
-  enum_badge: () => import("./enum.js"),
+  enum_badge: (() => import("./enum.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
   file: (() => import("./file.js")) as DynamicZodFormDef,
   literal: (() => import("./literal.js")) as DynamicZodFormDef,
@@ -42,8 +49,7 @@ export const componentLibrary: ComponentLibrary = {
   object: (() => import("./object.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
-  string_multiline: (() =>
-    import("./string_multiline.js")) as DynamicZodFormDef,
+  string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
   string_lazy: (() => import("./string_lazy.js")) as DynamicZodFormDef,
   string_password: (() => import("./string_password.js")) as DynamicZodFormDef,
   tuple: (() => import("./tuple.js")) as DynamicZodFormDef,

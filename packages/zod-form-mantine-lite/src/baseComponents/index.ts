@@ -1,21 +1,23 @@
 import type { ComponentLibrary } from "@zodapp/zod-form-react/common";
-import * as defaultComponent from "./default.js";
-import * as optionalComponent from "./optional.js";
-import * as nullableComponent from "./nullable.js";
-import * as lazyComponent from "./lazy.js";
-import * as hiddenComponent from "./hidden.js";
 
-/**
- * TanStack 非依存の unwrap / パススルー系コンポーネント。
- *
- * optional, nullable, default, lazy, hidden などスキーマを unwrap して
- * `Dynamic` に委譲するだけのコンポーネントをまとめたライブラリ。
- * componentLibrary / tableComponents / reactiveComponents から共有される。
- */
+// Named exports（個別 static import 用）
+export { component as OptionalComponent } from "./optional.js";
+export { component as NullableComponent } from "./nullable.js";
+export { component as DefaultComponent } from "./default.js";
+export { component as LazyComponent } from "./lazy.js";
+export { component as HiddenComponent } from "./hidden.js";
+
+// Library（baseComponents は軽量なので static import で組み立て）
+import * as optionalModule from "./optional.js";
+import * as nullableModule from "./nullable.js";
+import * as defaultModule from "./default.js";
+import * as lazyModule from "./lazy.js";
+import * as hiddenModule from "./hidden.js";
+
 export const baseComponents = {
-  default: () => defaultComponent,
-  optional: () => optionalComponent,
-  nullable: () => nullableComponent,
-  lazy: () => lazyComponent,
-  hidden: () => hiddenComponent,
+  optional: () => optionalModule,
+  nullable: () => nullableModule,
+  default: () => defaultModule,
+  lazy: () => lazyModule,
+  hidden: () => hiddenModule,
 } as const satisfies ComponentLibrary;

@@ -27,7 +27,8 @@
   "sideEffects": ["*.css"],
   "exports": {
     ".": "./src/index.ts",
-    "./componentLibrary": "./src/components/index.ts"
+    "./components": "./src/components/index.ts",
+    "./components/*": "./src/components/*.tsx"
   },
   "scripts": {
     "lint": "eslint .",

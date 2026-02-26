@@ -1,28 +1,24 @@
+import type { ComponentLibrary, DynamicZodFormDef } from "@zodapp/zod-form-react/common";
 import { baseComponents } from "../baseComponents/index";
-import type {
-  DynamicZodFormDef,
-  ComponentLibrary,
-} from "@zodapp/zod-form-react/common";
 
-/**
- * Reactive（@tanstack/react-form 非依存）な `ComponentLibrary`。
- *
- * `defaultValue` でデータを受け取り、変更は `onFieldChange(fieldPath, value)` で通知する。
- * 全編集コンポーネントに confirm UI（確認/キャンセル）を備える。
- *
- * unwrap 系（optional, nullable, default, lazy, hidden）は baseComponents のものを使用。
- * union, array は非対応。
- */
+// Named exports（個別 static import 用）
+export { component as StringComponent } from "./string.js";
+export { component as StringMultilineComponent } from "./string_multiline.js";
+export { component as NumberComponent } from "./number.js";
+export { component as BooleanComponent } from "./boolean.js";
+export { component as EnumComponent } from "./enum.js";
+export { component as DateComponent } from "./date.js";
+export { component as ExternalKeyComponent } from "./externalKey.js";
+export { component as LiteralComponent } from "./literal.js";
+export { component as DerivedComponent } from "./derived.js";
+export { component as ObjectComponent } from "./object.js";
+export { component as RecordComponent } from "./record.js";
+
+// Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
 export const reactiveComponentLibrary: ComponentLibrary = {
-  optional: baseComponents.optional!,
-  nullable: baseComponents.nullable!,
-  default: baseComponents.default!,
-  lazy: baseComponents.lazy!,
-  hidden: baseComponents.hidden!,
-
+  ...baseComponents,
   string: (() => import("./string.js")) as DynamicZodFormDef,
-  string_multiline: (() =>
-    import("./string_multiline.js")) as DynamicZodFormDef,
+  string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
   number: (() => import("./number.js")) as DynamicZodFormDef,
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,

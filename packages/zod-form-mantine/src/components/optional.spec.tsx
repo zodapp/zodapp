@@ -11,7 +11,7 @@ import { describe, it, beforeEach, afterEach, vi, expect } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { z } from "zod";
 
-import { component as OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents/optional";
+import { OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as StringComponent } from "./string";
 import {
   ZodFormContextProvider,
