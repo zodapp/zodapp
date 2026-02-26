@@ -14,6 +14,7 @@ import {
   IconDots,
   IconDownload,
   IconUpload,
+  IconSeeding,
 } from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
@@ -219,9 +220,6 @@ const TasksPage = () => {
           <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
             新規作成
           </Button>
-          <Button variant="outline" onClick={handleSeed} loading={isSeeding}>
-            ダミーデータ追加
-          </Button>
           <Menu shadow="md" width={200} position="bottom-end">
             <Menu.Target>
               <ActionIcon variant="subtle" size="lg">
@@ -241,6 +239,14 @@ const TasksPage = () => {
                 onClick={openImport}
               >
                 CSVインポート
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<IconSeeding size={16} />}
+                onClick={handleSeed}
+                disabled={isSeeding}
+              >
+                ダミーデータ追加
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
