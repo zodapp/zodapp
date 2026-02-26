@@ -1,15 +1,15 @@
 import type { z } from "zod";
-import type { TypedTable, TabularOptions } from "../types/publicTypes.js";
+import type { Table, FromTableOptions } from "../types/publicTypes.js";
 import type { CellValue } from "../types/internalTypes.js";
 import { compileSchema } from "../compile/compileSchema.js";
 import { resolveHeaderToColKey } from "../columns/encodeHeader.js";
 import { readRow } from "../decode/rowReader.js";
 import { coerceRow } from "../decode/coerce.js";
 
-export function fromTypedTable<S extends z.ZodType>(
+export function fromTable<S extends z.ZodType>(
   schema: S,
-  table: TypedTable,
-  _options?: TabularOptions,
+  table: Table,
+  options?: FromTableOptions,
 ): z.infer<S>[] {
   if (table.length < 1) return [];
 
@@ -37,7 +37,7 @@ export function fromTypedTable<S extends z.ZodType>(
     }
 
     const raw = readRow(compiled, cells, allColKeys);
-    results.push(coerceRow(schema, raw));
+    results.push(coerceRow(schema, raw, options));
   }
 
   return results;

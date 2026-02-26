@@ -1,36 +1,22 @@
 import type { z } from "zod";
 
-export type StringRow = string[];
-export type StringTable = StringRow[];
+export type TableCell = string | number | boolean | Date | null;
+export type Table = TableCell[][];
 
-export type TypedCell = string | number | boolean | Date | null;
-export type TypedRow = TypedCell[];
-export type TypedTable = TypedRow[];
-
-export interface TabularOptions {
-  // reserved for future extensions
+export interface FromTableOptions {
+  booleanConverter?: (v: unknown) => boolean | undefined;
+  numberConverter?: (v: unknown) => number | undefined;
+  dateConverter?: (v: unknown) => Date | undefined;
+  bigintConverter?: (v: unknown) => bigint | undefined;
 }
 
-export type ToStringTableFn = <S extends z.ZodType>(
+export type ToTableFn = <S extends z.ZodType>(
   schema: S,
   rows: z.infer<S>[],
-  options?: TabularOptions,
-) => StringTable;
+) => Table;
 
-export type FromStringTableFn = <S extends z.ZodType>(
+export type FromTableFn = <S extends z.ZodType>(
   schema: S,
-  table: StringTable,
-  options?: TabularOptions,
-) => z.infer<S>[];
-
-export type ToTypedTableFn = <S extends z.ZodType>(
-  schema: S,
-  rows: z.infer<S>[],
-  options?: TabularOptions,
-) => TypedTable;
-
-export type FromTypedTableFn = <S extends z.ZodType>(
-  schema: S,
-  table: TypedTable,
-  options?: TabularOptions,
+  table: Table,
+  options?: FromTableOptions,
 ) => z.infer<S>[];

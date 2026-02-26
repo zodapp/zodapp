@@ -1,15 +1,12 @@
-export { toStringTable } from "./api/toStringTable.js";
-export { fromStringTable } from "./api/fromStringTable.js";
-export { toTypedTable } from "./api/toTypedTable.js";
-export { fromTypedTable } from "./api/fromTypedTable.js";
+export { toTable } from "./api/toTable.js";
+export { fromTable } from "./api/fromTable.js";
 
 export type {
-  StringTable,
-  StringRow,
-  TypedTable,
-  TypedRow,
-  TypedCell,
-  TabularOptions,
+  TableCell,
+  Table,
+  FromTableOptions,
+  ToTableFn,
+  FromTableFn,
 } from "./types/publicTypes.js";
 
 export { TabularError } from "./errors/createError.js";
