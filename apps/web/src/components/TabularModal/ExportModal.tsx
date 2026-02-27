@@ -11,14 +11,23 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconDownload } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
-import { toStringTable } from "@zodapp/zod-tabular";
-import { stringTableToCsv, downloadCsv } from "./csvUtils";
+import { toTable, tableToExcelCsv } from "@zodapp/zod-tabular";
 
 interface ExportModalProps<S extends z.ZodType> {
   schema: S;
   data: z.infer<S>[];
   fetchAll: () => Promise<z.infer<S>[]>;
   filename?: string;
+}
+
+function downloadCsv(csv: string, filename: string): void {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function useExportModal<S extends z.ZodType>({
@@ -37,7 +46,7 @@ export function useExportModal<S extends z.ZodType>({
 
   const previewTable = useMemo(() => {
     if (!opened || previewData.length === 0) return null;
-    return toStringTable(schema, previewData);
+    return toTable(schema, previewData);
   }, [opened, schema, previewData]);
 
   const handleDownload = useCallback(async () => {
@@ -49,8 +58,8 @@ export function useExportModal<S extends z.ZodType>({
         setError("エクスポート対象のデータがありません。");
         return;
       }
-      const table = toStringTable(schema, allData);
-      const csv = stringTableToCsv(table);
+      const table = toTable(schema, allData);
+      const csv = tableToExcelCsv(table);
       downloadCsv(csv, filename);
       close();
     } catch (e) {
@@ -108,7 +117,7 @@ export function useExportModal<S extends z.ZodType>({
                   <Table.Tr>
                     {previewTable[0]!.map((header, i) => (
                       <Table.Th key={i} style={{ whiteSpace: "nowrap" }}>
-                        {header}
+                        {String(header)}
                       </Table.Th>
                     ))}
                   </Table.Tr>
@@ -118,7 +127,7 @@ export function useExportModal<S extends z.ZodType>({
                     <Table.Tr key={ri}>
                       {row.map((cell, ci) => (
                         <Table.Td key={ci} style={{ whiteSpace: "nowrap" }}>
-                          {cell}
+                          {cell === null ? "" : String(cell)}
                         </Table.Td>
                       ))}
                     </Table.Tr>

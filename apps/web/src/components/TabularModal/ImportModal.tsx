@@ -12,10 +12,34 @@ import { Dropzone } from "@mantine/dropzone";
 import { IconUpload, IconFileTypeCsv, IconX } from "@tabler/icons-react";
 import { useCallback, useState } from "react";
 import { z } from "zod";
-import { fromStringTable, type StringTable } from "@zodapp/zod-tabular";
-import { csvToStringTable } from "./csvUtils";
+import {
+  fromTable,
+  excelCsvToTable,
+  type FromTableOptions,
+} from "@zodapp/zod-tabular";
 
 const PREVIEW_LIMIT = 20;
+
+const CSV_CONVERTER: FromTableOptions = {
+  booleanConverter: (v) => {
+    if (typeof v === "string") {
+      const s = v.trim().toUpperCase();
+      if (s === "TRUE" || s === "1") return true;
+      if (s === "FALSE" || s === "0") return false;
+    }
+    if (typeof v === "number") return v === 1 ? true : v === 0 ? false : undefined;
+    return undefined;
+  },
+  dateConverter: (v) => {
+    if (typeof v === "string") {
+      const s = v.trim();
+      if (s === "") return undefined;
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? undefined : d;
+    }
+    return undefined;
+  },
+};
 
 interface ImportModalProps<S extends z.ZodType> {
   schema: S;
@@ -27,7 +51,7 @@ export function useImportModal<S extends z.ZodType>({
   onImport,
 }: ImportModalProps<S>) {
   const [opened, { open, close }] = useDisclosure(false);
-  const [parsedTable, setParsedTable] = useState<StringTable | null>(null);
+  const [parsedTable, setParsedTable] = useState<string[][] | null>(null);
   const [parsedRows, setParsedRows] = useState<z.infer<S>[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -45,17 +69,15 @@ export function useImportModal<S extends z.ZodType>({
       reader.onload = () => {
         try {
           const csv = reader.result as string;
-          const table = csvToStringTable(csv);
-          console.log("csvToStringTable", table);
+          const table = excelCsvToTable(csv);
           if (table.length < 2) {
             setError("ヘッダ行のみ、またはデータが空です。");
             return;
           }
           setParsedTable(table);
-          const rows = fromStringTable(schema, table);
+          const rows = fromTable(schema, table, CSV_CONVERTER);
           setParsedRows(rows);
         } catch (e) {
-          console.log("parse error", e);
           setError(
             e instanceof Error
               ? `パースエラー: ${e.message}`
@@ -78,7 +100,6 @@ export function useImportModal<S extends z.ZodType>({
       setError(null);
       close();
     } catch (e) {
-      console.log("インポートエラー", e);
       setError(
         e instanceof Error
           ? `インポートエラー: ${e.message}`
