@@ -21,4 +21,7 @@ export {
   type ListState,
   type UseListOptions,
   type UseListResult,
+  createUseDoc,
+  type DocState,
+  type UseDocOptions,
 } from "./react";

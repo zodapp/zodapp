@@ -11,3 +11,5 @@ export {
   type UseListOptions,
   type UseListResult,
 } from "./useList";
+
+export { createUseDoc, type DocState, type UseDocOptions } from "./useDoc";
