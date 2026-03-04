@@ -11,7 +11,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconDownload } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
-import { toTable, tableToExcelCsv } from "@zodapp/zod-tabular";
+import { toTable, tableToCsv, formatCell } from "@zodapp/zod-tabular";
 
 interface ExportModalProps<S extends z.ZodType> {
   schema: S;
@@ -59,7 +59,7 @@ export function useExportModal<S extends z.ZodType>({
         return;
       }
       const table = toTable(schema, allData);
-      const csv = tableToExcelCsv(table);
+      const csv = tableToCsv(table);
       downloadCsv(csv, filename);
       close();
     } catch (e) {
@@ -117,7 +117,7 @@ export function useExportModal<S extends z.ZodType>({
                   <Table.Tr>
                     {previewTable[0]!.map((header, i) => (
                       <Table.Th key={i} style={{ whiteSpace: "nowrap" }}>
-                        {String(header)}
+                        {formatCell(header)}
                       </Table.Th>
                     ))}
                   </Table.Tr>
@@ -127,7 +127,7 @@ export function useExportModal<S extends z.ZodType>({
                     <Table.Tr key={ri}>
                       {row.map((cell, ci) => (
                         <Table.Td key={ci} style={{ whiteSpace: "nowrap" }}>
-                          {cell === null ? "" : String(cell)}
+                          {cell == null ? "-" : formatCell(cell)}
                         </Table.Td>
                       ))}
                     </Table.Tr>

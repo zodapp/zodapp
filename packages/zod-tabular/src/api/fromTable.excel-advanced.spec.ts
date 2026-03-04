@@ -15,9 +15,9 @@ describe("Excel Advanced: fromTable with type-mismatched cells and converters", 
       ]);
     });
 
-    it("returns undefined for non-0/1 numbers (safe default)", () => {
+    it("skips row for non-0/1 numbers (safe default)", () => {
       const tableData = [["flag"], [42]];
-      expect(fromTable(schema, tableData)).toEqual([{ flag: undefined }]);
+      expect(fromTable(schema, tableData)).toEqual([]);
     });
   });
 
@@ -88,9 +88,9 @@ describe("Excel Advanced: fromTable with type-mismatched cells and converters", 
   describe("date from numeric cells (no converter)", () => {
     const schema = z.object({ dueDate: z.date() });
 
-    it("returns undefined for number without converter (safe default)", () => {
+    it("skips row for number without converter (safe default)", () => {
       const tableData = [["dueDate"], [45671]];
-      expect(fromTable(schema, tableData)).toEqual([{ dueDate: undefined }]);
+      expect(fromTable(schema, tableData)).toEqual([]);
     });
   });
 

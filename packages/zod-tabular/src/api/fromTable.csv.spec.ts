@@ -72,9 +72,9 @@ describe("CSV: fromTable restores typed values from string-only input", () => {
       ]);
     });
 
-    it("returns undefined for ambiguous string that cannot be coerced", () => {
+    it("skips row when ambiguous string cannot be coerced", () => {
       const tableData = [["active"], ["yes"]];
-      expect(fromTable(schema, tableData)).toEqual([{ active: undefined }]);
+      expect(fromTable(schema, tableData)).toEqual([]);
     });
   });
 

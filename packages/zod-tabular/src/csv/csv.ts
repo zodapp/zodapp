@@ -1,6 +1,6 @@
 import type { Table, TableCell } from "../types/publicTypes.js";
 
-function formatCell(cell: TableCell): string {
+export function formatCell(cell: TableCell): string {
   if (cell === null || cell === undefined) return "";
   if (typeof cell === "boolean") return cell ? "TRUE" : "FALSE";
   if (cell instanceof Date) {
@@ -31,7 +31,7 @@ function escapeField(value: string): string {
  * Table -> Excel互換CSV文字列。
  * BOM付きUTF-8、CRLF改行、TRUE/FALSE大文字、日付は "YYYY-MM-DD HH:mm:ss" 形式。
  */
-export function tableToExcelCsv(table: Table): string {
+export function tableToCsv(table: Table): string {
   const BOM = "\uFEFF";
   const lines = table.map((row) =>
     row.map((cell) => escapeField(formatCell(cell))).join(","),
@@ -83,7 +83,7 @@ function parseLine(line: string): string[] {
  * Excel互換CSV文字列 -> string[][] テーブル。
  * BOM自動除去、CRLF/LF両対応。セル値はすべてstringで返す。
  */
-export function excelCsvToTable(csv: string): string[][] {
+export function csvToTable(csv: string): string[][] {
   let text = csv;
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
 

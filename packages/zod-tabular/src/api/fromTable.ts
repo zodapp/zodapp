@@ -37,7 +37,11 @@ export function fromTable<S extends z.ZodType>(
     }
 
     const raw = readRow(compiled, cells, allColKeys);
-    results.push(coerceRow(schema, raw, options));
+    const coerced = coerceRow(schema, raw, options);
+    const parsed = schema.safeParse(coerced);
+    if (parsed.success) {
+      results.push(parsed.data);
+    }
   }
 
   return results;

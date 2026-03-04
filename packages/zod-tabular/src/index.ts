@@ -1,6 +1,6 @@
 export { toTable } from "./api/toTable.js";
 export { fromTable } from "./api/fromTable.js";
-export { tableToExcelCsv, excelCsvToTable } from "./csv/excelCsv.js";
+export { tableToCsv, csvToTable, formatCell } from "./csv/csv.js";
 
 export type {
   TableCell,

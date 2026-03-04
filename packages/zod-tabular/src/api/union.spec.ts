@@ -83,8 +83,8 @@ describe("union handling", () => {
       const table = toTable(schema, rawData);
       const restored = fromTable(schema, table);
       expect(restored).toEqual([
-        { payload: { kind: "text", text: "hello", num: null } },
-        { payload: { kind: "num", num: 42, text: null } },
+        { payload: { kind: "text", text: "hello" } },
+        { payload: { kind: "num", num: 42 } },
       ]);
     });
   });
