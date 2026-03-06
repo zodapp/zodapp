@@ -183,7 +183,7 @@ type AccessorResult<TConfig extends CollectionConfigBase> = {
   ) => Promise<DocumentSnapshot | null>;
   docSync: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
-    callback: (doc: z.infer<TConfig["dataSchema"]>) => void,
+    callback: (doc: z.infer<TConfig["dataSchema"]> | null) => void,
   ) => () => void;
   updateDoc: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
@@ -315,10 +315,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
   });
   const docSubscriptionCache = subscriptionCache({
     generator: (docIdentityParams: DocIdentityParams) => ({
-      subscribe: (callback: (doc: _DataType) => void) => {
+      subscribe: (callback: (doc: _DataType | null) => void) => {
         const doc = db.doc(config.buildDocumentPath(docIdentityParams));
         const unsubscribe = doc.onSnapshot((snapshot: DocumentSnapshot) => {
-          callback(docToDataSafe(snapshot, docIdentityParams));
+          callback(docToData(snapshot, docIdentityParams));
         });
         return unsubscribe;
       },
@@ -380,7 +380,7 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     },
     docSync: (
       docIdentityParams: DocIdentityParams,
-      callback: (doc: _DataType) => void,
+      callback: (doc: _DataType | null) => void,
     ) => {
       return docSubscriptionCache.subscribe(docIdentityParams, callback);
     },

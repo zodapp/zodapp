@@ -18,11 +18,13 @@ export type DocState<T> = {
 /**
  * `useDoc` のオプション。
  *
- * - `collection` / `documentIdentity`: 対象ドキュメント（documentIdentitySchema）
+ * - `collection`: 対象コレクション定義
+ * - `documentIdentity`: 対象ドキュメントの識別パラメータ。
+ *   `undefined` を渡すと監視を行わず `{ item: undefined, isLoading: false }` を返す。
  */
 export type UseDocOptions<TConfig extends CollectionConfigBase> = {
   collection: TConfig;
-  documentIdentity: z.infer<TConfig["documentIdentitySchema"]>;
+  documentIdentity?: z.infer<TConfig["documentIdentitySchema"]>;
 };
 
 /**
@@ -38,18 +40,13 @@ export function createUseDoc(firestore: Firestore) {
     const [item, setItem] = useState<ItemType | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
 
-    // documentIdentityの依存値をメモ化
     const documentIdentityKey = useMemo(
       () => stableStringify(documentIdentity),
       [documentIdentity],
     );
 
     useEffect(() => {
-      // documentIdentityに空文字が含まれる場合は初期化しない
-      const hasEmptyParams = Object.values(documentIdentity).some(
-        (value) => value === "" || value === undefined,
-      );
-      if (hasEmptyParams) {
+      if (documentIdentity === undefined) {
         setItem(undefined);
         setIsLoading(false);
         return;
@@ -58,7 +55,7 @@ export function createUseDoc(firestore: Firestore) {
       setIsLoading(true);
       const accessor = getAccessor(firestore, collection);
       const unsub = accessor.docSync(documentIdentity, (doc) => {
-        setItem(doc);
+        setItem(doc ?? undefined);
         setIsLoading(false);
       });
 

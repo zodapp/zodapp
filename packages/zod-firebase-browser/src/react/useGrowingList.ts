@@ -27,13 +27,15 @@ export type GrowingListState<T> = {
 /**
  * `useGrowingList` のオプション。
  *
- * - `collection` / `collectionIdentity`: 対象コレクション（collectionIdentitySchema）
+ * - `collection`: 対象コレクション定義
+ * - `collectionIdentity`: 対象コレクションの識別パラメータ。
+ *   `undefined` を渡すと監視を行わず空の結果を返す。
  * - `streamField`: 変更購読（stream）の基準にするフィールド名
  * - `clientFilter`: クライアント側フィルタ（任意）
  */
 export type UseGrowingListOptions<TConfig extends CollectionConfigBase> = {
   collection: TConfig;
-  collectionIdentity: z.infer<TConfig["collectionIdentitySchema"]>;
+  collectionIdentity?: z.infer<TConfig["collectionIdentitySchema"]>;
   query?: QueryOptions;
   streamField: string;
   streamQuery?: QueryOptions;
@@ -47,6 +49,15 @@ export type UseGrowingListOptions<TConfig extends CollectionConfigBase> = {
  */
 export type UseGrowingListResult<T> = GrowingListState<T> & {
   fetchMore: () => void;
+};
+
+const emptyState: GrowingListState<never> = {
+  items: [],
+  hasMore: false,
+  isLoading: false,
+  filteredCount: 0,
+  scannedCount: 0,
+  error: undefined,
 };
 
 /**
@@ -88,11 +99,11 @@ export function createUseGrowingList(firestore: Firestore) {
     const queryKey = useMemo(() => stableStringify(query), [query]);
 
     useEffect(() => {
-      // collectionIdentityに空文字が含まれる場合は初期化しない
-      const hasEmptyParams = Object.values(collectionIdentity).some(
-        (value) => value === "" || value === undefined,
-      );
-      if (hasEmptyParams) return;
+      if (collectionIdentity === undefined) {
+        setState(emptyState);
+        growingListRef.current = null;
+        return;
+      }
 
       const normalizedQuery = {
         where: query?.where ?? [],

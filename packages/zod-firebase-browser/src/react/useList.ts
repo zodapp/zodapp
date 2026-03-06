@@ -23,13 +23,15 @@ export type ListState<T> = {
 /**
  * `useList` のオプション。
  *
- * - `collection` / `collectionIdentity`: 対象コレクション（collectionIdentitySchema）
+ * - `collection`: 対象コレクション定義
+ * - `collectionIdentity`: 対象コレクションの識別パラメータ。
+ *   `undefined` を渡すと監視を行わず空の結果を返す。
  * - `query`: Firestore クエリ条件（任意）
  * - `clientFilter`: クライアント側フィルタ（任意。`setFilter` より優先度は低い）
  */
 export type UseListOptions<TConfig extends CollectionConfigBase> = {
   collection: TConfig;
-  collectionIdentity: z.infer<TConfig["collectionIdentitySchema"]>;
+  collectionIdentity?: z.infer<TConfig["collectionIdentitySchema"]>;
   query?: QueryOptions;
   clientFilter?: (item: z.infer<TConfig["dataSchema"]>) => boolean;
 };
@@ -72,11 +74,7 @@ export function createUseList(firestore: Firestore) {
     const queryKey = useMemo(() => stableStringify(query), [query]);
 
     useEffect(() => {
-      // collectionIdentityに空文字が含まれる場合は初期化しない
-      const hasEmptyParams = Object.values(collectionIdentity).some(
-        (value) => value === "" || value === undefined,
-      );
-      if (hasEmptyParams) {
+      if (collectionIdentity === undefined) {
         setItems([]);
         setIsLoading(false);
         return;
