@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo } from "react";
-import { InputWrapper, TagsInput } from "@mantine/core";
+import { InputWrapper, Pill, TagsInput } from "@mantine/core";
 import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
 
 type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
@@ -39,12 +39,33 @@ const ArrayOfStringComponent = wrapComponent(
       [field],
     );
 
-    const displayValue = useMemo(() => value.join(", "), [value]);
-
     if (readOnly || field.disabled) {
       return (
         <InputWrapper label={label || undefined} style={inputWrapperStyle}>
-          <ReadonlyText>{displayValue}</ReadonlyText>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "var(--mantine-spacing-xs)",
+              minHeight: "var(--input-size-sm)",
+              paddingInline: "calc(var(--mantine-spacing-xs) + 2px)",
+              paddingBlock: "calc(var(--mantine-spacing-xs) - 2px)",
+              border: "1px solid var(--mantine-color-gray-4)",
+              borderRadius: "var(--mantine-radius-default)",
+              backgroundColor: "var(--mantine-color-white)",
+            }}
+          >
+            {value.length > 0 ? (
+              <Pill.Group>
+                {value.map((item, index) => (
+                  <Pill key={`${item}-${index}`}>{item}</Pill>
+                ))}
+              </Pill.Group>
+            ) : (
+              "-"
+            )}
+          </div>
         </InputWrapper>
       );
     }
