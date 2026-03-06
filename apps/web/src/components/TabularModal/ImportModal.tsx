@@ -30,7 +30,8 @@ const CSV_CONVERTER: FromTableOptions = {
       if (s === "TRUE" || s === "1") return true;
       if (s === "FALSE" || s === "0") return false;
     }
-    if (typeof v === "number") return v === 1 ? true : v === 0 ? false : undefined;
+    if (typeof v === "number")
+      return v === 1 ? true : v === 0 ? false : undefined;
     return undefined;
   },
   dateConverter: (v) => {

@@ -30,6 +30,8 @@ function downloadCsv(csv: string, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
+const PREVIEW_LIMIT = 20;
+
 export function useExportModal<S extends z.ZodType>({
   schema,
   data,
@@ -39,8 +41,6 @@ export function useExportModal<S extends z.ZodType>({
   const [opened, { open, close }] = useDisclosure(false);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const PREVIEW_LIMIT = 20;
 
   const previewData = useMemo(() => data.slice(0, PREVIEW_LIMIT), [data]);
 
