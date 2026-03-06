@@ -347,8 +347,8 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     }
     convertFromFirestore(data);
     return {
-      ...params,
       ...data,
+      ...params,
     } as _DataType;
   };
   const docToDataSafe = (
