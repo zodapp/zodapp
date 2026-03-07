@@ -10,6 +10,7 @@ type CommonMeta = {
   readOnly?: boolean;
   color?: string;
   width?: number;
+  align?: "left" | "center" | "right";
 };
 type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
@@ -22,6 +23,7 @@ describe("zod-form def/index", () => {
       label: "名前",
       uiType: "text",
       tags: ["a"],
+      align: "center",
     });
     const meta = getMeta(schema);
     expect(meta).toEqual({
@@ -29,6 +31,7 @@ describe("zod-form def/index", () => {
       label: "名前",
       uiType: "text",
       tags: ["a"],
+      align: "center",
     });
     expectTypeOf(meta).toEqualTypeOf<
       ({ typeName: "string" } & CommonMeta) | undefined
