@@ -49,7 +49,11 @@ export function renderComputedValue(content: unknown): React.ReactNode {
 
     if (obj.type === "title") {
       const { label, level } = obj as Extract<ComputedValue, { type: "title" }>;
-      return <Title size={level}>{label}</Title>;
+      return (
+        <Title size={level} mt="12px">
+          {label}
+        </Title>
+      );
     }
   }
 
