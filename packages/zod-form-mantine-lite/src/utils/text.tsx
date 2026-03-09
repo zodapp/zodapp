@@ -11,6 +11,8 @@ const readonlyTextStyle = {
   borderRadius:
     "var(--zod-form-readonly-border-radius, var(--mantine-radius-default))",
   padding: "var(--zod-form-readonly-padding, var(--mantine-spacing-xs))",
+  minHeight:
+    "calc(var(--mantine-font-size-sm) * var(--text-lh, var(--mantine-line-height-md)) + var(--mantine-spacing-xs) * 2)",
 };
 
 /**
