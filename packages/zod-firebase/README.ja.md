@@ -147,7 +147,7 @@ export const users = collectionConfig({
 
 > fieldKeys のうち nonPathKeys が空の場合、`nonPathKeySchema` は `z.unknown()` になります。
 
-### `externalKeyConfig`（任意）
+### `lookupConfig`（任意）
 
 **型**: `{ labelField: string; valueField: string }`
 
@@ -160,7 +160,7 @@ export const users = collectionConfig({
 export const members = collectionConfig({
   path: "workspaces/:workspaceId/members/:memberId",
   schema: memberSchema,
-  externalKeyConfig: {
+  lookupConfig: {
     labelField: "displayName", // セレクトボックスに表示される名前
     valueField: "memberId", // 選択時に保存される値（= documentKey）
   },
@@ -653,7 +653,7 @@ export const members = collectionConfig({
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
   // 他のコレクションから外部キーとして参照する際の設定
-  externalKeyConfig: {
+  lookupConfig: {
     labelField: "displayName",
     valueField: "memberId",
   },
@@ -742,7 +742,7 @@ const updated = users.beforeWrite(
 ## API（型エクスポート）
 
 - `collectionConfig({ path, schema, fieldKeys, ... })` — コレクション定義関数
-- 設定関連型: `CollectionConfig`, `CollectionConfigBase`, `LooseCollectionConfigBase`, `BrandedCollectionConfig`, `CollectionDefinition`, `ExternalKeyConfig`
+- 設定関連型: `CollectionConfig`, `CollectionConfigBase`, `LooseCollectionConfigBase`, `BrandedCollectionConfig`, `CollectionDefinition`, `LookupConfig`
 - Identity 関連型: `IdentityKeys`, `IdentityParams`, `DocumentIdentityParams`, `CollectionIdentityParams`, `CollectionIdentityKeys`
 - クエリ関連型: `QueryOptions`, `WhereParams`, `OrderByParams`, `WhereFilterOp`, `QueryFn`
 - ミューテーション関連型: `MutationFn`

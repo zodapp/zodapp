@@ -68,7 +68,7 @@ export const membersCollection = collectionConfig({
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
   // 外部キー用設定（担当者選択などで使用）
-  externalKeyConfig: {
+  lookupConfig: {
     labelField: "displayName",
     valueField: "memberId",
   },

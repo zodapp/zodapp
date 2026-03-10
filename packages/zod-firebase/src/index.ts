@@ -6,8 +6,8 @@ export type {
   CollectionConfigBase,
   LooseCollectionConfigBase,
   CollectionConfigMethods,
-  // 構成要素の型(externalKey関連)
-  ExternalKeyConfig,
+  // 構成要素の型(lookup関連)
+  LookupConfig,
   // 構成要素の型(QueryOptions関連)
   QueryOptions,
   WhereFilterOp,

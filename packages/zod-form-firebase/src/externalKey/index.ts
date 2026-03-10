@@ -47,12 +47,12 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         );
       }
 
-      if (!config.collectionConfig.externalKeyConfig) {
-        throw new Error(`externalKeyConfig is not defined in collectionConfig`);
+      if (!config.collectionConfig.lookupConfig) {
+        throw new Error(`lookupConfig is not defined in collectionConfig`);
       }
 
       const { labelField, valueField } =
-        config.collectionConfig.externalKeyConfig;
+        config.collectionConfig.lookupConfig;
 
       return {
         subscribe: (callback: ExternalKeyOptionsHandler) => {

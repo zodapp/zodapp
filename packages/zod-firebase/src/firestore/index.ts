@@ -27,7 +27,7 @@ declare const CollectionConfigBrand: unique symbol;
 
 /**
  * ブランド付き CollectionConfig の型
- * externalKeyConfig などで collectionConfig() の戻り値のみを受け入れるために使用
+ * lookupConfig などで collectionConfig() の戻り値のみを受け入れるために使用
  */
 export type BrandedCollectionConfig = {
   readonly [CollectionConfigBrand]: true;
@@ -38,7 +38,7 @@ export type BrandedCollectionConfig = {
 /**
  * 外部キー用フィールド設定
  */
-export type ExternalKeyConfig = {
+export type LookupConfig = {
   /** 表示用フィールド名 */
   labelField: string;
   /** 値用フィールド名（パスパラメータから取得されるドキュメントIDキーを指定） */
@@ -182,7 +182,7 @@ export type CollectionDefinition<
    * - `labelField`: 表示用フィールド名
    * - `valueField`: 値用フィールド名（ドキュメントID等）
    */
-  externalKeyConfig?: ExternalKeyConfig;
+  lookupConfig?: LookupConfig;
   /**
    * create 時の入力（createSchema）から除外するキー。
    *
@@ -964,7 +964,7 @@ export interface CollectionConfigBase {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly queries: Record<string, any>;
   readonly createOmitKeys?: readonly string[];
-  readonly externalKeyConfig?: ExternalKeyConfig;
+  readonly lookupConfig?: LookupConfig;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onCreateId?: (
     collectionIdentity: any,
@@ -1047,7 +1047,7 @@ export interface LooseCollectionConfigBase {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly queries: Record<string, any>;
   readonly createOmitKeys?: readonly string[];
-  readonly externalKeyConfig?: ExternalKeyConfig;
+  readonly lookupConfig?: LookupConfig;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onCreateId?: (
     collectionIdentity: any,

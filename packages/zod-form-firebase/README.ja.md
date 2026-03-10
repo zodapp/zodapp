@@ -93,7 +93,7 @@ const usersConfig = collectionConfig({
   path: "workspaces/:workspaceId/users/:userId",
   extraIdentityKeys: [],
   schema: userSchema,
-  externalKeyConfig: { labelField: "name", valueField: "userId" },
+  lookupConfig: { labelField: "name", valueField: "userId" },
 });
 
 export const formSchema = z

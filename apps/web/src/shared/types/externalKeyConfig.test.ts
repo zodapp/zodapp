@@ -22,7 +22,7 @@ const testCollection = collectionConfig({
   path: "/test/:testId" as const,
   fieldKeys: [] as const,
   schema: z.object({ name: z.string() }),
-  externalKeyConfig: { labelField: "name", valueField: "testId" },
+  lookupConfig: { labelField: "name", valueField: "testId" },
 });
 
 describe("ExternalKeyConfig 型テスト", () => {
