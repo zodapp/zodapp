@@ -201,6 +201,12 @@ type AccessorResult<TConfig extends CollectionConfigBase> = {
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     queryFn?: (query: Query) => Query,
   ) => Promise<DocumentSnapshot[]>;
+  collectionGroupQuery: (
+    queryFn?: (query: Query) => Query,
+  ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
+  collectionGroupQuerySnapshot: (
+    queryFn?: (query: Query) => Query,
+  ) => Promise<DocumentSnapshot[]>;
   querySync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     queryParams: QueryOptions,
@@ -225,6 +231,12 @@ type AccessorResult<TConfig extends CollectionConfigBase> = {
     docIdentityParams:
       | z.infer<TConfig["documentIdentitySchema"]>
       | z.infer<TConfig["collectionIdentitySchema"]>,
+  ) => z.infer<TConfig["dataSchema"]>;
+  collectionGroupDocToData: (
+    doc: DocumentSnapshot,
+  ) => z.infer<TConfig["dataSchema"]> | null;
+  collectionGroupDocToDataSafe: (
+    doc: DocumentSnapshot,
   ) => z.infer<TConfig["dataSchema"]>;
   mutations: BoundMutations<TConfig>;
   queries: BoundQueries<TConfig>;
@@ -266,6 +278,14 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     collectionIdentityParams: CollIdentityParams;
     queryParams: QueryOptions;
   };
+  const collectionGroupName = (() => {
+    const segments = config.path.split("/").filter(Boolean);
+    const name = segments[segments.length - 2];
+    if (!name || name.startsWith(":")) {
+      throw new Error(`Invalid collection config path for collection group: ${config.path}`);
+    }
+    return name;
+  })();
   const querySubscriptionCache = subscriptionCache({
     generator: ({
       collectionIdentityParams,
@@ -361,6 +381,36 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     }
     return data;
   };
+  const getDocIdentityFromSnapshot = (doc: DocumentSnapshot): DocIdentityParams => {
+    const pathParams = config.parseDocumentPath(doc.ref.path);
+    if (!pathParams) {
+      throw new Error(`Failed to parse document path: ${doc.ref.path}`);
+    }
+    const data = doc.data();
+    if (!data) {
+      throw new Error("Document not found");
+    }
+    const identityParams = {
+      ...pathParams,
+    } as Record<string, unknown>;
+    for (const key of config.documentIdentityKeys) {
+      if (key in identityParams) {
+        continue;
+      }
+      identityParams[key] = (data as Record<string, unknown>)[key];
+    }
+    return config.documentIdentitySchema.parse(identityParams) as DocIdentityParams;
+  };
+  const collectionGroupDocToData = (doc: DocumentSnapshot) => {
+    return docToData(doc, getDocIdentityFromSnapshot(doc));
+  };
+  const collectionGroupDocToDataSafe = (doc: DocumentSnapshot) => {
+    const data = collectionGroupDocToData(doc);
+    if (!data) {
+      throw new Error("Document not found");
+    }
+    return data;
+  };
   return {
     getDoc: async (docIdentityParams: DocIdentityParams) => {
       const path = config.buildDocumentPath(docIdentityParams);
@@ -440,6 +490,18 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       const docs = await query.get();
       return docs.docs;
     },
+    collectionGroupQuery: async (queryFn?: (query: Query) => Query) => {
+      const collectionRef = db.collectionGroup(collectionGroupName);
+      const query = queryFn ? queryFn(collectionRef) : collectionRef;
+      const docs = await query.get();
+      return docs.docs.map((doc) => collectionGroupDocToDataSafe(doc));
+    },
+    collectionGroupQuerySnapshot: async (queryFn?: (query: Query) => Query) => {
+      const collectionRef = db.collectionGroup(collectionGroupName);
+      const query = queryFn ? queryFn(collectionRef) : collectionRef;
+      const docs = await query.get();
+      return docs.docs;
+    },
     querySync: (
       collectionIdentityParams: CollIdentityParams,
       queryParams: QueryOptions,
@@ -479,6 +541,8 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     },
     docToData,
     docToDataSafe,
+    collectionGroupDocToData,
+    collectionGroupDocToDataSafe,
 
     // mutations を自動バインド
     mutations: Object.fromEntries(
@@ -580,14 +644,19 @@ export const getAccessor = getAccessorCached;
 
 const normalizeKeys = (keys: unknown[] | DocumentSnapshot) => {
   if (Array.isArray(keys)) {
-    return keys.map((key) => {
-      if (key instanceof Date) {
-        return firebase.firestore.Timestamp.fromDate(key);
-      }
-      return key;
-    });
+    return keys.map((key) => normalizeQueryValue(key));
   }
   return keys;
+};
+
+const normalizeQueryValue = (value: unknown): unknown => {
+  if (value instanceof Date) {
+    return firebase.firestore.Timestamp.fromDate(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeQueryValue(item));
+  }
+  return value;
 };
 
 /**
@@ -612,7 +681,7 @@ export const queryBuilder =
       _query = _query.where(
         where.field,
         where.operator as WhereFilterOp,
-        where.value,
+        normalizeQueryValue(where.value),
       );
     }
     for (const orderBy of options?.orderBy ?? []) {

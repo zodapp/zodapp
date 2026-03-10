@@ -53,6 +53,12 @@ describe("getAccessor（@zodapp/zod-firebase-browser）", () => {
     expectTypeOf(taskAccessor.queries.active).toHaveProperty("get");
     expectTypeOf(taskAccessor.queries.active).toHaveProperty("params");
     expectTypeOf(taskAccessor.mutations).toHaveProperty("setDueDate");
+    expectTypeOf(taskAccessor.collectionGroupQuery).returns.toEqualTypeOf<
+      Promise<Task[]>
+    >();
+    expectTypeOf(taskAccessor.collectionGroupQuerySnapshot).returns.toEqualTypeOf<
+      Promise<firebase.firestore.DocumentSnapshot[]>
+    >();
 
     // ここでは「第1引数（collectionIdentityParams）」の型は見ない（別テストで扱う）
     // 代わりに「第2引数以降」のみを検証して、mutations/queries 側の推論不具合と切り分ける。
