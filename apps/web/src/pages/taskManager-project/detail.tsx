@@ -9,10 +9,11 @@ import {
   Group,
 } from "@mantine/core";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
+import { useStoreKey } from "../../shared/auth";
 
 import { projectsCollection } from "../../shared/taskManager/collections/project";
 import { AutoForm } from "../../components/AutoForm";
@@ -28,8 +29,12 @@ const ProjectDetailPage = () => {
     from: projectDetailRoute.id,
   });
   const navigate = useNavigate();
+  const storeKey = useStoreKey();
 
-  const accessor = getAccessor(firestore, projectsCollection);
+  const accessor = useMemo(
+    () => getAccessor(firestore, projectsCollection, storeKey),
+    [storeKey],
+  );
   const [project, setProject] = useState<z.infer<
     typeof projectsCollection.updateSchema
   > | null>(null);

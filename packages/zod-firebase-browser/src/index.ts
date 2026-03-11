@@ -1,4 +1,5 @@
 export { getAccessor, queryBuilder } from "./firestore";
+export type { AccessorStoreKey } from "./firestore";
 export {
   type GrowingListState,
   type FetchState,

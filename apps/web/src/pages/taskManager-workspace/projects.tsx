@@ -16,6 +16,7 @@ import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
+import { useStoreKey } from "../../shared/auth";
 import { AutoTable } from "../../components/AutoTable";
 import { createMingoFilter } from "../../components/mingoQuery";
 
@@ -52,9 +53,13 @@ const ProjectsPage = () => {
   });
 
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
+  const storeKey = useStoreKey();
 
   // accessor を取得（queries が自動バインドされている）
-  const projectAccessor = getAccessor(firestore, projectsCollection);
+  const projectAccessor = useMemo(
+    () => getAccessor(firestore, projectsCollection, storeKey),
+    [storeKey],
+  );
 
   // クライアントサイドフィルタ
   const clientFilter = useMemo(() => createMingoFilter(search.q), [search.q]);

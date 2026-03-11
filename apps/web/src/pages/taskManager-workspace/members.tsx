@@ -15,6 +15,7 @@ import { useParams } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
+import { useStoreKey } from "../../shared/auth";
 import { AutoTable } from "../../components/AutoTable";
 
 import type { z } from "zod";
@@ -28,7 +29,6 @@ import { CodeViewerModal } from "../../components/CodeViewerModal";
 
 import pageCode from "./members.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/member.ts?raw";
-import { WorkspaceService } from "../taskManager-top/utils/userWorkspace";
 import { zf } from "@zodapp/zod-form";
 
 // テーブル表示用スキーマ
@@ -43,9 +43,13 @@ const MembersPage = () => {
     from: membersRoute.id,
   });
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
+  const storeKey = useStoreKey();
 
   // accessor を取得
-  const memberAccessor = getAccessor(firestore, membersCollection);
+  const memberAccessor = useMemo(
+    () => getAccessor(firestore, membersCollection, storeKey),
+    [storeKey],
+  );
   const { items: members, isLoading } = useList({
     collection: membersCollection,
     collectionIdentity,

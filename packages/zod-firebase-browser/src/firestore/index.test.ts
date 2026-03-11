@@ -46,7 +46,8 @@ describe("getAccessor（@zodapp/zod-firebase-browser）", () => {
 
   it("正常系: bound queries / mutations の「第2引数以降」の型が推論される（collectionIdentitySchema と分離）", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
-    const taskAccessor = getAccessor(firestore, tasksCollection);
+    const storeKey = {};
+    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
     // accessor の型（queries / mutations がバインドされている）
     expectTypeOf(taskAccessor.queries).toHaveProperty("active");
@@ -89,7 +90,8 @@ describe("getAccessor（@zodapp/zod-firebase-browser）", () => {
 
   it("異常系: bound mutations の引数が違うと型エラーになる（@ts-expect-error）", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
-    const taskAccessor = getAccessor(firestore, tasksCollection);
+    const storeKey = {};
+    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
     const docIdentityParams: DocParams = {
       workspaceId: "w1",
       projectId: "p1",
@@ -116,6 +118,7 @@ describe("getAccessor（@zodapp/zod-firebase-browser）", () => {
 
   it("異常系: config に mutations / queries が無い場合は accessor から触れない", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
+    const storeKey = {};
     const bareCollection = collectionConfig({
       path: "/users/:userId" as const,
       fieldKeys: [] as const,
@@ -124,7 +127,7 @@ describe("getAccessor（@zodapp/zod-firebase-browser）", () => {
       }),
       createOmitKeys: [] as const,
     });
-    const bareAccessor = getAccessor(firestore, bareCollection);
+    const bareAccessor = getAccessor(firestore, bareCollection, storeKey);
 
     if (false as boolean) {
       // @ts-expect-error mutations は定義されていないので呼び出せないはず
@@ -153,10 +156,18 @@ describe("getAccessor（@zodapp/zod-firebase-browser）", () => {
     expectTypeOf<Actual>().toEqualTypeOf<Expected>();
   });
 
-  it("正常系: 同一 db + 同一 config は accessor がキャッシュされる", () => {
+  it("正常系: 同一 db + 同一 config + 同一 storeKey は accessor がキャッシュされる", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
-    const a1 = getAccessor(firestore, tasksCollection);
-    const a2 = getAccessor(firestore, tasksCollection);
+    const storeKey = {};
+    const a1 = getAccessor(firestore, tasksCollection, storeKey);
+    const a2 = getAccessor(firestore, tasksCollection, storeKey);
     expect(a1).toBe(a2);
+  });
+
+  it("正常系: 同一 db + 同一 config でも storeKey が違えば別 accessor になる", () => {
+    const firestore = {} as unknown as firebase.firestore.Firestore;
+    const a1 = getAccessor(firestore, tasksCollection, {});
+    const a2 = getAccessor(firestore, tasksCollection, {});
+    expect(a1).not.toBe(a2);
   });
 });

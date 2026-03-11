@@ -3,7 +3,7 @@ import { stableStringify } from "@zodapp/caching-utilities";
 import type { CollectionConfigBase, QueryOptions } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
-import { getAccessor } from "../firestore";
+import { getAccessor, type AccessorStoreKey } from "../firestore";
 
 type Firestore = firebase.firestore.Firestore;
 
@@ -30,6 +30,7 @@ export type ListState<T> = {
  * - `clientFilter`: クライアント側フィルタ（任意。`setFilter` より優先度は低い）
  */
 export type UseListOptions<TConfig extends CollectionConfigBase> = {
+  storeKey: AccessorStoreKey;
   collection: TConfig;
   collectionIdentity?: z.infer<TConfig["collectionIdentitySchema"]>;
   query?: QueryOptions;
@@ -55,7 +56,8 @@ export function createUseList(firestore: Firestore) {
   ): UseListResult<z.infer<TConfig["dataSchema"]>> {
     type ItemType = z.infer<TConfig["dataSchema"]>;
 
-    const { collection, collectionIdentity, query, clientFilter } = options;
+    const { storeKey, collection, collectionIdentity, query, clientFilter } =
+      options;
 
     const [items, setItems] = useState<ItemType[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +75,11 @@ export function createUseList(firestore: Firestore) {
     // queryの依存値をメモ化
     const queryKey = useMemo(() => stableStringify(query), [query]);
 
+    const accessor = useMemo(
+      () => getAccessor(firestore, collection, storeKey),
+      [collection, storeKey],
+    );
+
     useEffect(() => {
       if (collectionIdentity === undefined) {
         setItems([]);
@@ -81,8 +88,6 @@ export function createUseList(firestore: Firestore) {
       }
 
       setIsLoading(true);
-
-      const accessor = getAccessor(firestore, collection);
 
       const normalizedQuery = {
         where: query?.where,
@@ -101,7 +106,7 @@ export function createUseList(firestore: Firestore) {
       return () => {
         unsub();
       };
-    }, [collectionIdentityKey, queryKey, collection]);
+    }, [accessor, collectionIdentityKey, queryKey, query]);
 
     // フィルタを適用したアイテムを計算
     const filteredItems = useMemo(() => {

@@ -5,7 +5,11 @@ import {
   type QueryFn,
   type MutationFn,
 } from "@zodapp/zod-firebase";
-import { subscriptionCache, stableStringify } from "@zodapp/caching-utilities";
+import {
+  hierarchicalWeakCache,
+  subscriptionCache,
+  stableStringify,
+} from "@zodapp/caching-utilities";
 import type { z } from "zod";
 import firebase from "firebase/compat/app";
 
@@ -15,6 +19,12 @@ type QuerySnapshot<T = firebase.firestore.DocumentData> =
   firebase.firestore.QuerySnapshot<T>;
 type Timestamp = firebase.firestore.Timestamp;
 type Firestore = firebase.firestore.Firestore;
+export type AccessorStoreKey = object;
+type AccessorCacheKeys = readonly [
+  Firestore,
+  AccessorStoreKey,
+  CollectionConfigBase,
+];
 
 // 型ユーティリティ
 type IsAny<T> = 0 extends 1 & T ? true : false;
@@ -98,7 +108,7 @@ const convertForFirestoreWrite = (
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const dbCache = new WeakMap<Firestore, WeakMap<CollectionConfigBase, any>>();
+const accessorCache = hierarchicalWeakCache<AccessorCacheKeys, any>();
 
 /** accessor にバインドされた mutations の型（docIdentityParams を第一引数に挿入） */
 type BoundMutations<TConfig extends CollectionConfigBase> =
@@ -233,22 +243,11 @@ type AccessorResult<TConfig extends CollectionConfigBase> = {
 const getAccessorCached = <TConfig extends CollectionConfigBase>(
   db: Firestore,
   config: TConfig,
+  storeKey: AccessorStoreKey,
 ): AccessorResult<TConfig> => {
-  const cacheForDB =
-    dbCache.get(db) ??
-    (() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const accessorCache = new WeakMap<CollectionConfigBase, any>();
-      dbCache.set(db, accessorCache);
-      return accessorCache;
-    })();
-  const accessor =
-    cacheForDB.get(config) ??
-    (() => {
-      const newAccessor = getAccessorInternal(db, config);
-      cacheForDB.set(config, newAccessor);
-      return newAccessor;
-    })();
+  const accessor = accessorCache.getOrCreate([db, storeKey, config], () =>
+    getAccessorInternal(db, config),
+  );
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return accessor as AccessorResult<TConfig>;
 };
@@ -574,7 +573,7 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
 /**
  * Firestore アクセサ生成関数（キャッシュ付き）を公開します。
  *
- * 同一の `(db, collectionConfig)` に対して accessor を共有し、購読やクエリの内部キャッシュを効かせます。
+ * 同一の `(db, collectionConfig, storeKey)` に対して accessor を共有し、購読やクエリの内部キャッシュを効かせます。
  */
 export const getAccessor = getAccessorCached;
 
