@@ -3,7 +3,7 @@ import { stableStringify } from "@zodapp/caching-utilities";
 import type { CollectionConfigBase, QueryOptions } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
-import { getAccessor, queryBuilder } from "../firestore";
+import { getAccessor, queryBuilder, type AccessorStoreKey } from "../firestore";
 
 type Firestore = firebase.firestore.Firestore;
 type QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
@@ -18,6 +18,7 @@ export type CollectionGroupListState<T> = {
 };
 
 export type UseCollectionGroupListOptions<TConfig extends CollectionConfigBase> = {
+  storeKey: AccessorStoreKey;
   collection: TConfig;
   query?: QueryOptions;
   clientFilter?: (item: z.infer<TConfig["dataSchema"]>) => boolean;
@@ -46,13 +47,17 @@ export function createUseCollectionGroupList(firestore: Firestore) {
     type ItemType = z.infer<TConfig["dataSchema"]>;
 
     const {
+      storeKey,
       collection,
       query,
       clientFilter,
       pageSize = 100,
       enabled = true,
     } = options;
-    const accessor = useMemo(() => getAccessor(firestore, collection), [collection]);
+    const accessor = useMemo(
+      () => getAccessor(firestore, collection, storeKey),
+      [collection, storeKey],
+    );
 
     const [state, setState] = useState<CollectionGroupListState<ItemType>>({
       items: [],
