@@ -100,6 +100,14 @@ export function createUseGrowingList(firestore: Firestore) {
 
     // queryの依存値をメモ化
     const queryKey = useMemo(() => stableStringify(query), [query]);
+    const streamQueryKey = useMemo(
+      () => stableStringify(streamQuery),
+      [streamQuery],
+    );
+    const stableCollectionIdentity = useMemo(
+      () => collectionIdentity,
+      [collectionIdentityKey],
+    );
 
     const normalizedQuery = useMemo(
       () => ({
@@ -108,31 +116,34 @@ export function createUseGrowingList(firestore: Firestore) {
           { field: "createdAt", direction: "desc" as const },
         ],
       }),
-      [query],
+      [queryKey],
+    );
+    const normalizedStreamQuery = useMemo(
+      () => streamQuery,
+      [streamQueryKey],
     );
 
     const growingList = useMemo(() => {
-      if (collectionIdentity === undefined) {
+      if (stableCollectionIdentity === undefined) {
         return null;
       }
       return createFilteredGrowingList(
         firestore,
         collection,
         storeKey,
-        collectionIdentity,
+        stableCollectionIdentity,
         normalizedQuery,
         streamField,
-        streamQuery,
+        normalizedStreamQuery,
         clientFilter,
       );
     }, [
-      clientFilter,
       collection,
-      collectionIdentity,
       normalizedQuery,
+      normalizedStreamQuery,
       storeKey,
+      stableCollectionIdentity,
       streamField,
-      streamQuery,
     ]);
 
     useEffect(() => {
@@ -159,12 +170,12 @@ export function createUseGrowingList(firestore: Firestore) {
         unsub();
         growingList.dispose();
       };
-    }, [collectionIdentityKey, growingList, queryKey]);
+    }, [growingList]);
 
     // clientFilterが変更されたときに自動でsetFilterを呼ぶ
     useEffect(() => {
       growingListRef.current?.setFilter(clientFilter);
-    }, [clientFilter]);
+    }, [clientFilter, growingList]);
 
     const fetchMore = useCallback(() => {
       growingListRef.current?.fetchMore();

@@ -73,15 +73,15 @@ export function createUseCollectionGroupList(firestore: Firestore) {
     const clientFilterRef = useRef(clientFilter);
 
     const queryKey = useMemo(() => stableStringify(query), [query]);
-    const filterKey = useMemo(() => clientFilter?.toString() ?? "", [clientFilter]);
+    const stableQuery = useMemo(() => query, [queryKey]);
 
     useEffect(() => {
-      queryRef.current = query;
-    }, [query, queryKey]);
+      queryRef.current = stableQuery;
+    }, [stableQuery]);
 
     useEffect(() => {
       clientFilterRef.current = clientFilter;
-    }, [clientFilter, filterKey]);
+    }, [clientFilter]);
 
     const loadPage = useCallback(
       async (reset: boolean) => {
@@ -159,7 +159,7 @@ export function createUseCollectionGroupList(firestore: Firestore) {
         error: undefined,
       });
       void loadPage(true);
-    }, [enabled, filterKey, loadPage, queryKey]);
+    }, [enabled, clientFilter, loadPage, queryKey]);
 
     const fetchMore = useCallback(() => {
       if (state.isLoading || !state.hasMore) {

@@ -74,6 +74,17 @@ export function createUseList(firestore: Firestore) {
 
     // queryの依存値をメモ化
     const queryKey = useMemo(() => stableStringify(query), [query]);
+    const stableCollectionIdentity = useMemo(
+      () => collectionIdentity,
+      [collectionIdentityKey],
+    );
+    const stableQuery = useMemo(
+      () => ({
+        where: query?.where,
+        orderBy: query?.orderBy,
+      }),
+      [queryKey],
+    );
 
     const accessor = useMemo(
       () => getAccessor(firestore, collection, storeKey),
@@ -81,7 +92,7 @@ export function createUseList(firestore: Firestore) {
     );
 
     useEffect(() => {
-      if (collectionIdentity === undefined) {
+      if (stableCollectionIdentity === undefined) {
         setItems([]);
         setIsLoading(false);
         return;
@@ -89,14 +100,9 @@ export function createUseList(firestore: Firestore) {
 
       setIsLoading(true);
 
-      const normalizedQuery = {
-        where: query?.where,
-        orderBy: query?.orderBy,
-      };
-
       const unsub = accessor.querySync(
-        collectionIdentity,
-        normalizedQuery,
+        stableCollectionIdentity,
+        stableQuery,
         (docs) => {
           setItems(docs);
           setIsLoading(false);
@@ -106,7 +112,7 @@ export function createUseList(firestore: Firestore) {
       return () => {
         unsub();
       };
-    }, [accessor, collectionIdentityKey, queryKey, query]);
+    }, [accessor, stableCollectionIdentity, stableQuery]);
 
     // フィルタを適用したアイテムを計算
     const filteredItems = useMemo(() => {
