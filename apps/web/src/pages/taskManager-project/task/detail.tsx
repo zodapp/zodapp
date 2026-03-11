@@ -15,6 +15,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
+import { useStoreKey } from "../../../shared/auth";
 
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { tasksCollection } from "../../../shared/taskManager/collections/task";
@@ -30,15 +31,20 @@ const TaskDetailPage = () => {
     from: taskDetailRoute.id,
   });
   const navigate = useNavigate();
+  const storeKey = useStoreKey();
 
   // accessor を使用（mutations / queries が自動バインドされている）
-  const accessor = getAccessor(firestore, tasksCollection);
+  const accessor = useMemo(
+    () => getAccessor(firestore, tasksCollection, storeKey),
+    [storeKey],
+  );
 
   // 外部キーResolver（workspaceIdを固定）
   const externalKeyResolvers = useMemo(
     () => [
       createFirestoreResolver({
         db: firestore,
+        storeKey,
         conditions: {
           membersCondition: {
             identityParams: { workspaceId },
@@ -47,7 +53,7 @@ const TaskDetailPage = () => {
         },
       }),
     ],
-    [workspaceId],
+    [storeKey, workspaceId],
   );
 
   const [task, setTask] = useState<z.infer<

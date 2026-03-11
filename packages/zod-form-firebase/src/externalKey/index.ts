@@ -12,7 +12,10 @@ import type {
   FirestoreConditions,
 } from "./types";
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
-import { getAccessor } from "@zodapp/zod-firebase-browser";
+import {
+  getAccessor,
+  type AccessorStoreKey,
+} from "@zodapp/zod-firebase-browser";
 import firebase from "firebase/compat/app";
 
 type Firestore = firebase.firestore.Firestore;
@@ -30,10 +33,12 @@ type Firestore = firebase.firestore.Firestore;
 export function createFirestoreResolver<TType extends string = "firestore">({
   type = "firestore" as TType,
   db,
+  storeKey,
   conditions,
 }: {
   type?: TType;
   db: Firestore;
+  storeKey: AccessorStoreKey;
   conditions: FirestoreConditions;
 }): ExternalKeyResolverEntry<TType, FirestoreExternalKeyConfigCore> {
   return {
@@ -62,6 +67,7 @@ export function createFirestoreResolver<TType extends string = "firestore">({
           const accessor = getAccessor(
             db,
             config.collectionConfig as unknown as CollectionConfigBase,
+            storeKey,
           );
 
           // querySyncが内部でsubscriptionCacheを使ってキャッシュ

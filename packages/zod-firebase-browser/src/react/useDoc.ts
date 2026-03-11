@@ -3,7 +3,7 @@ import { stableStringify } from "@zodapp/caching-utilities";
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
-import { getAccessor } from "../firestore";
+import { getAccessor, type AccessorStoreKey } from "../firestore";
 
 type Firestore = firebase.firestore.Firestore;
 
@@ -23,6 +23,7 @@ export type DocState<T> = {
  *   `undefined` を渡すと監視を行わず `{ item: undefined, isLoading: false }` を返す。
  */
 export type UseDocOptions<TConfig extends CollectionConfigBase> = {
+  storeKey: AccessorStoreKey;
   collection: TConfig;
   documentIdentity?: z.infer<TConfig["documentIdentitySchema"]>;
 };
@@ -36,13 +37,18 @@ export function createUseDoc(firestore: Firestore) {
   ): DocState<z.infer<TConfig["dataSchema"]>> {
     type ItemType = z.infer<TConfig["dataSchema"]>;
 
-    const { collection, documentIdentity } = options;
+    const { storeKey, collection, documentIdentity } = options;
     const [item, setItem] = useState<ItemType | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
 
     const documentIdentityKey = useMemo(
       () => stableStringify(documentIdentity),
       [documentIdentity],
+    );
+
+    const accessor = useMemo(
+      () => getAccessor(firestore, collection, storeKey),
+      [collection, storeKey],
     );
 
     useEffect(() => {
@@ -53,7 +59,6 @@ export function createUseDoc(firestore: Firestore) {
       }
 
       setIsLoading(true);
-      const accessor = getAccessor(firestore, collection);
       const unsub = accessor.docSync(documentIdentity, (doc) => {
         setItem(doc ?? undefined);
         setIsLoading(false);
@@ -62,7 +67,7 @@ export function createUseDoc(firestore: Firestore) {
       return () => {
         unsub();
       };
-    }, [documentIdentityKey, collection]);
+    }, [accessor, documentIdentityKey]);
 
     return { item, isLoading };
   };

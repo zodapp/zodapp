@@ -1,7 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
-import { getAccessor } from "@zodapp/zod-firebase-browser";
+import {
+  getAccessor,
+  type AccessorStoreKey,
+} from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
 import type { z } from "zod";
+import { useStoreKey } from "../../../shared/auth";
 
 import {
   workspacesCollection,
@@ -25,7 +29,7 @@ export interface WorkspaceOwnerInfo {
 // 非React依存: WorkspaceService
 // Firestoreへのアクセスロジックを提供
 // =====================================
-export const WorkspaceService = {
+const WorkspaceService = {
   /**
    * ユーザーのメールアドレスから所属ワークスペースIDを取得
    * collectionGroup("members")を使用してクエリ
@@ -46,12 +50,19 @@ export const WorkspaceService = {
   /**
    * ワークスペースIDの配列からワークスペース詳細を取得
    */
-  async fetchWorkspacesByIds(workspaceIds: string[]): Promise<WorkspaceData[]> {
+  async fetchWorkspacesByIds(
+    workspaceIds: string[],
+    storeKey: AccessorStoreKey,
+  ): Promise<WorkspaceData[]> {
     if (workspaceIds.length === 0) {
       return [];
     }
 
-    const workspaceAccessor = getAccessor(firestore, workspacesCollection);
+    const workspaceAccessor = getAccessor(
+      firestore,
+      workspacesCollection,
+      storeKey,
+    );
     const workspacePromises = workspaceIds.map((workspaceId) =>
       workspaceAccessor.getDoc({ workspaceId }),
     );
@@ -64,11 +75,14 @@ export const WorkspaceService = {
   /**
    * ユーザーの所属ワークスペースを取得（IDの取得から詳細取得・ソートまで一括）
    */
-  async fetchUserWorkspaces(userEmail: string): Promise<WorkspaceData[]> {
+  async fetchUserWorkspaces(
+    userEmail: string,
+    storeKey: AccessorStoreKey,
+  ): Promise<WorkspaceData[]> {
     console.log("#001", userEmail);
     const workspaceIds = await this.fetchWorkspaceIdsByEmail(userEmail);
     console.log("#002", workspaceIds);
-    const workspaces = await this.fetchWorkspacesByIds(workspaceIds);
+    const workspaces = await this.fetchWorkspacesByIds(workspaceIds, storeKey);
     console.log("#003", workspaces);
     return [...workspaces].sort((a, b) => {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -84,9 +98,14 @@ export const WorkspaceService = {
   async createWorkspaceWithOwner(
     data: WorkspaceCreateData,
     owner: WorkspaceOwnerInfo,
+    storeKey: AccessorStoreKey,
   ): Promise<string> {
     // 1. ワークスペース作成（ownerIdを設定）
-    const workspaceAccessor = getAccessor(firestore, workspacesCollection);
+    const workspaceAccessor = getAccessor(
+      firestore,
+      workspacesCollection,
+      storeKey,
+    );
     const workspaceId = await workspaceAccessor.createDoc(
       {},
       {
@@ -94,7 +113,7 @@ export const WorkspaceService = {
         ownerId: owner.email,
       },
     );
-    const memberAccessor = getAccessor(firestore, membersCollection);
+    const memberAccessor = getAccessor(firestore, membersCollection, storeKey);
     await memberAccessor.createDoc(
       { workspaceId },
       {
@@ -115,12 +134,16 @@ export interface UseUserWorkspacesResult {
   workspaces: WorkspaceData[];
   isLoading: boolean;
   refetch: () => Promise<void>;
-  createWorkspaceWithOwner: typeof WorkspaceService.createWorkspaceWithOwner;
+  createWorkspaceWithOwner: (
+    data: WorkspaceCreateData,
+    owner: WorkspaceOwnerInfo,
+  ) => Promise<string>;
 }
 
 export function useUserWorkspaces(
   userEmail: string | null | undefined,
 ): UseUserWorkspacesResult {
+  const storeKey = useStoreKey();
   const [workspaces, setWorkspaces] = useState<WorkspaceData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -133,7 +156,10 @@ export function useUserWorkspaces(
 
     setIsLoading(true);
     try {
-      const result = await WorkspaceService.fetchUserWorkspaces(userEmail);
+      const result = await WorkspaceService.fetchUserWorkspaces(
+        userEmail,
+        storeKey,
+      );
       setWorkspaces(result);
     } catch (error) {
       console.error("Failed to fetch workspaces:", error);
@@ -141,7 +167,13 @@ export function useUserWorkspaces(
     } finally {
       setIsLoading(false);
     }
-  }, [userEmail]);
+  }, [storeKey, userEmail]);
+
+  const createWorkspaceWithOwner = useCallback(
+    (data: WorkspaceCreateData, owner: WorkspaceOwnerInfo) =>
+      WorkspaceService.createWorkspaceWithOwner(data, owner, storeKey),
+    [storeKey],
+  );
 
   // 初回マウント時とuserEmail変更時にワークスペースを取得
   useEffect(() => {
@@ -152,6 +184,6 @@ export function useUserWorkspaces(
     workspaces,
     isLoading,
     refetch: fetchUserWorkspaces,
-    createWorkspaceWithOwner: WorkspaceService.createWorkspaceWithOwner,
+    createWorkspaceWithOwner,
   };
 }

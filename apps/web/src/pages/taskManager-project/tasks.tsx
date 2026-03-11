@@ -37,6 +37,7 @@ import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
 import { CodeViewerModal } from "../../components/CodeViewerModal";
 import { useExportModal, useImportModal } from "../../components/TabularModal";
+import { useStoreKey } from "../../shared/auth";
 
 import pageCode from "./tasks.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/task.ts?raw";
@@ -67,6 +68,7 @@ const TasksPage = () => {
   const navigate = useNavigate({
     from: tasksRoute.id,
   });
+  const storeKey = useStoreKey();
 
   const collectionIdentity = useMemo(
     () => ({ workspaceId, projectId }),
@@ -74,13 +76,17 @@ const TasksPage = () => {
   );
 
   // accessor を取得（mutations / queries が自動バインドされている）
-  const taskAccessor = getAccessor(firestore, tasksCollection);
+  const taskAccessor = useMemo(
+    () => getAccessor(firestore, tasksCollection, storeKey),
+    [storeKey],
+  );
 
   // 外部キーResolver（workspaceIdを固定）
   const externalKeyResolvers = useMemo(
     () => [
       createFirestoreResolver({
         db: firestore,
+        storeKey,
         conditions: {
           membersCondition: {
             identityParams: { workspaceId },
@@ -89,7 +95,7 @@ const TasksPage = () => {
         },
       }),
     ],
-    [workspaceId],
+    [storeKey, workspaceId],
   );
 
   // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離

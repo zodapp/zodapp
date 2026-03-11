@@ -9,10 +9,11 @@ import {
   Group,
 } from "@mantine/core";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
+import { useStoreKey } from "../../shared/auth";
 
 import { workspacesCollection } from "../../shared/taskManager/collections/workspace";
 import { AutoForm } from "../../components/AutoForm";
@@ -28,8 +29,12 @@ const WorkspaceDetailPage = () => {
     from: workspaceDetailRoute.id,
   });
   const navigate = useNavigate();
+  const storeKey = useStoreKey();
 
-  const accessor = getAccessor(firestore, workspacesCollection);
+  const accessor = useMemo(
+    () => getAccessor(firestore, workspacesCollection, storeKey),
+    [storeKey],
+  );
   const [workspace, setWorkspace] = useState<z.infer<
     typeof workspacesCollection.updateSchema
   > | null>(null);

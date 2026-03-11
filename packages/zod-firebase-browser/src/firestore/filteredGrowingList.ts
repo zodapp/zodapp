@@ -1,6 +1,7 @@
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import firebase from "firebase/compat/app";
+import type { AccessorStoreKey } from ".";
 
 import BTree from "sorted-btree";
 
@@ -43,6 +44,7 @@ export type FilteredGrowingList<TConfig extends CollectionConfigBase = any> =
 export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
   db: Firestore,
   config: TConfig,
+  storeKey: AccessorStoreKey,
   collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
   query: {
     where?: {
@@ -77,6 +79,7 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
   const source = createCachedGrowingList(
     db,
     config,
+    storeKey,
     collectionIdentityParams,
     query,
     streamField,

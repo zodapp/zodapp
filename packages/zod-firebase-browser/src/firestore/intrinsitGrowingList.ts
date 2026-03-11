@@ -1,5 +1,5 @@
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
-import { queryBuilder, getAccessor } from ".";
+import { queryBuilder, getAccessor, type AccessorStoreKey } from ".";
 import type { z } from "zod";
 import firebase from "firebase/compat/app";
 
@@ -61,6 +61,7 @@ export const createIntrinsicGrowingList = <
 >(
   db: Firestore,
   config: TConfig,
+  storeKey: AccessorStoreKey,
   collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
   query: {
     where?: {
@@ -94,7 +95,7 @@ export const createIntrinsicGrowingList = <
   type _DataType = z.infer<TConfig["dataSchema"]>;
   type Key = unknown[];
 
-  const accessor = getAccessor(db, config);
+  const accessor = getAccessor(db, config, storeKey);
 
   const normalizedQuery = query;
 
