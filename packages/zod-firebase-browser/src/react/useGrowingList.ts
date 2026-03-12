@@ -123,11 +123,23 @@ export function createUseGrowingList(firestore: Firestore) {
       [streamQueryKey],
     );
 
-    const growingList = useMemo(() => {
+    useEffect(() => {
       if (stableCollectionIdentity === undefined) {
-        return null;
+        setState(emptyState as GrowingListState<ItemType>);
+        growingListRef.current = null;
+        return;
       }
-      return createFilteredGrowingList(
+
+      setState({
+        items: [],
+        hasMore: true,
+        isLoading: true,
+        filteredCount: 0,
+        scannedCount: 0,
+        error: undefined,
+      });
+
+      const growingList = createFilteredGrowingList(
         firestore,
         collection,
         storeKey,
@@ -137,21 +149,6 @@ export function createUseGrowingList(firestore: Firestore) {
         normalizedStreamQuery,
         clientFilter,
       );
-    }, [
-      collection,
-      normalizedQuery,
-      normalizedStreamQuery,
-      storeKey,
-      stableCollectionIdentity,
-      streamField,
-    ]);
-
-    useEffect(() => {
-      if (!growingList) {
-        setState(emptyState);
-        growingListRef.current = null;
-        return;
-      }
 
       growingListRef.current = growingList;
 
@@ -167,15 +164,26 @@ export function createUseGrowingList(firestore: Firestore) {
       });
 
       return () => {
+        if (growingListRef.current === growingList) {
+          growingListRef.current = null;
+        }
         unsub();
         growingList.dispose();
       };
-    }, [growingList]);
+    }, [
+      collection,
+      firestore,
+      normalizedQuery,
+      normalizedStreamQuery,
+      stableCollectionIdentity,
+      storeKey,
+      streamField,
+    ]);
 
     // clientFilterが変更されたときに自動でsetFilterを呼ぶ
     useEffect(() => {
       growingListRef.current?.setFilter(clientFilter);
-    }, [clientFilter, growingList]);
+    }, [clientFilter]);
 
     const fetchMore = useCallback(() => {
       growingListRef.current?.fetchMore();

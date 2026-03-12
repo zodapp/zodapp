@@ -1,11 +1,7 @@
 import React, { useCallback, useMemo } from "react";
+import dayjs from "dayjs";
 import { InputWrapper } from "@mantine/core";
-import {
-  DatePickerInput,
-  MonthPickerInput,
-  YearPickerInput,
-  DateTimePicker,
-} from "@mantine/dates";
+import { DateInput, DateTimePicker } from "@mantine/dates";
 import "dayjs/locale/ja";
 import {
   ZodFormInternalProps,
@@ -110,11 +106,46 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   // unit に応じたコンポーネント選択
   switch (unit) {
     case "year":
-      return <YearPickerInput {...commonProps} valueFormat="YYYY" />;
+      return (
+        <DateInput
+          {...commonProps}
+          valueFormat="YYYY"
+          defaultLevel="decade"
+          maxLevel="decade"
+          dateParser={(value) => {
+            const parsed = dayjs(value.trim(), "YYYY", true);
+            return parsed.isValid()
+              ? parsed.startOf("year").format("YYYY-MM-DD")
+              : null;
+          }}
+        />
+      );
     case "month":
-      return <MonthPickerInput {...commonProps} valueFormat="YYYY-MM" />;
+      return (
+        <DateInput
+          {...commonProps}
+          valueFormat="YYYY-MM"
+          defaultLevel="year"
+          maxLevel="year"
+          dateParser={(value) => {
+            const parsed = dayjs(value.trim(), "YYYY-MM", true);
+            return parsed.isValid()
+              ? parsed.startOf("month").format("YYYY-MM-DD")
+              : null;
+          }}
+        />
+      );
     case "day":
-      return <DatePickerInput {...commonProps} valueFormat="YYYY-MM-DD" />;
+      return (
+        <DateInput
+          {...commonProps}
+          valueFormat="YYYY-MM-DD"
+          dateParser={(value) => {
+            const parsed = dayjs(value.trim(), "YYYY-MM-DD", true);
+            return parsed.isValid() ? parsed.format("YYYY-MM-DD") : null;
+          }}
+        />
+      );
     case "minute":
       return (
         <DateTimePicker
