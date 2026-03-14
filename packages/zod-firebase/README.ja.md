@@ -147,39 +147,6 @@ export const users = collectionConfig({
 
 > fieldKeys のうち nonPathKeys が空の場合、`nonPathKeySchema` は `z.unknown()` になります。
 
-### `lookupConfig`（任意）
-
-**型**: `LookupConfig<T>`（`T` は `z.infer<dataSchema>` から自動推論）
-
-外部キー参照時の表示用ラベルと値用フィールドを指定します。他のコレクションからこのコレクションを外部キーとして参照する際に使用されます。
-
-- `label`（任意）: 表示用ラベル。フィールド名（`keyof T`）を指定するか、データから文字列を生成する関数 `(data: T) => string` を渡す。省略時は `valueField`（または `documentKey`）の値が使われる。
-- `valueField`（任意）: 値として保持するフィールド名。`keyof T` で型安全に制約される。省略時はコレクションの `documentKey` にフォールバックする。
-
-```ts
-// フィールド名を指定
-export const membersRef = createCollectionReference(membersCollection, {
-  label: "displayName",
-  valueField: "memberId",
-});
-
-// 関数で動的にラベルを生成
-export const membersRef2 = createCollectionReference(membersCollection, {
-  label: (data) => `${data.displayName} (${data.email})`,
-  valueField: "memberId",
-});
-
-// label 省略（valueField の値がラベルに使われる）
-export const membersRef3 = createCollectionReference(membersCollection, {
-  valueField: "memberId",
-});
-
-// valueField も省略（documentKey = "memberId" にフォールバック）
-export const membersRef4 = createCollectionReference(membersCollection, {
-  label: "displayName",
-});
-```
-
 ### `createOmitKeys`（任意）
 
 **型**: `readonly string[]`
@@ -319,13 +286,56 @@ export const projects = collectionConfig({
 });
 ```
 
-### `mutations`（任意）
+---
 
-**型**: `Record<string, (...args: any[]) => Partial<z.infer<schema>>>`
+## `CollectionReference` の設定
 
-実行環境に依存しないドメインミューテーション（状態変更操作）の定義。各関数は任意の引数を受け取り、スキーマの部分更新値を返します。
+`CollectionReference` は `createCollectionReference(collection, config)` で生成します。`collectionConfig()` のオプションではなく、コレクション定義とは独立した参照用設定です。
 
-このパッケージでは単に型チェックだけを行い、そのままcollectionConfigの戻り値に含まれるqueriesオブジェクトとして利用できます。zod-firebase-browser / zod-firebase-nodeでは identityを引数として追加し、`collection.mutations.xxx(identity, ...args)` のように呼び出し、返された部分オブジェクトを Firestore に書き込みます。
+### `config`
+
+**型**: `CollectionReferenceConfig<T>`（`T` は `z.infer<dataSchema>` から自動推論）
+
+外部キー参照時の表示用ラベルと値用フィールドを指定します。他のコレクションからこのコレクションを外部キーとして参照する際に使用されます。
+
+- `label`（任意）: 表示用ラベル。フィールド名（`keyof T`）を指定するか、データから文字列を生成する関数 `(data: T) => string` を渡す。省略時は `valueField`（または `documentKey`）の値が使われる。
+- `valueField`（任意）: 値として保持するフィールド名。`keyof T` で型安全に制約される。省略時はコレクションの `documentKey` にフォールバックする。
+
+```ts
+// フィールド名を指定
+export const membersRef = createCollectionReference(membersCollection, {
+  label: "displayName",
+  valueField: "memberId",
+});
+
+// 関数で動的にラベルを生成
+export const membersRef2 = createCollectionReference(membersCollection, {
+  label: (data) => `${data.displayName} (${data.email})`,
+  valueField: "memberId",
+});
+
+// label 省略（valueField の値がラベルに使われる）
+export const membersRef3 = createCollectionReference(membersCollection, {
+  valueField: "memberId",
+});
+
+// valueField も省略（documentKey = "memberId" にフォールバック）
+export const membersRef4 = createCollectionReference(membersCollection, {
+  label: "displayName",
+});
+```
+
+---
+
+## `CollectionMutations` / `CollectionQueries` の設定
+
+`CollectionMutations` と `CollectionQueries` は `collectionConfig()` のオプションではありません。`createCollectionMutations(collection, mutations)` / `createCollectionQueries(collection, queries)` で、コレクション定義とは独立して生成します。
+
+### `createCollectionMutations()`
+
+**型**: `createCollectionMutations(collection, mutations)`
+
+実行環境に依存しないドメインミューテーション（状態変更操作）の定義です。各関数は任意の引数を受け取り、スキーマの部分更新値を返します。
 
 ```ts
 export const tasks = collectionConfig({
@@ -339,35 +349,36 @@ export const tasks = collectionConfig({
     deletedAt: z.date().nullable().optional(),
     archivedAt: z.date().optional(),
   }),
-  mutations: {
-    // 引数なしの mutation
-    softDelete: () => ({ deletedAt: new Date() }),
-    archive: () => ({ archivedAt: new Date() }),
-    restore: () => ({ deletedAt: null }),
+});
 
-    // 引数ありの mutation
-    setDueDate: (dueAt: Date) => ({ dueAt }),
-    changeStatus: (status: "todo" | "doing" | "done") => ({ status }),
-    assignTo: (assigneeId: string, priority?: "low" | "medium" | "high") => ({
-      assigneeId,
-      ...(priority && { priority }),
-    }),
-  },
+export const taskMutations = createCollectionMutations(tasks, {
+  // 引数なしの mutation
+  softDelete: () => ({ deletedAt: new Date() }),
+  archive: () => ({ archivedAt: new Date() }),
+  restore: () => ({ deletedAt: null }),
+
+  // 引数ありの mutation
+  setDueDate: (dueAt: Date) => ({ dueAt }),
+  changeStatus: (status: "todo" | "doing" | "done") => ({ status }),
+  assignTo: (assigneeId: string, priority?: "low" | "medium" | "high") => ({
+    assigneeId,
+    ...(priority && { priority }),
+  }),
 });
 
 // 使用例:
-// tasks.mutations.softDelete()         => { deletedAt: Date }
-// tasks.mutations.changeStatus("done") => { status: "done" }
-// tasks.mutations.assignTo("user1", "high") => { assigneeId: "user1", priority: "high" }
+// taskMutations.mutations.softDelete()         => { deletedAt: Date }
+// taskMutations.mutations.changeStatus("done") => { status: "done" }
+// taskMutations.mutations.assignTo("user1", "high") => { assigneeId: "user1", priority: "high" }
 ```
 
-### `queries`（任意）
+zod-firebase-browser / zod-firebase-node では identity を引数として追加し、`accessor.mutations.xxx(identity, ...args)` のように呼び出して Firestore 書き込みに変換します。
 
-**型**: `Record<string, (...args: any[]) => QueryOptions>`
+### `createCollectionQueries()`
 
-実行環境に依存しないクエリ定義。各関数は任意の引数を受け取り、`QueryOptions`（`where` / `orderBy`）を返します。
+**型**: `createCollectionQueries(collection, queries)`
 
-このパッケージでは単に型チェックだけを行い、そのままcollectionConfigの戻り値に含まれるqueriesオブジェクトとして利用できます。zod-firebase-browser / zod-firebase-nodeで identityは引数に追加し、実際の Firestore クエリに変換されます。
+実行環境に依存しないクエリ定義です。各関数は任意の引数を受け取り、`QueryOptions`（`where` / `orderBy`）を返します。
 
 ```ts
 export const tasks = collectionConfig({
@@ -377,23 +388,26 @@ export const tasks = collectionConfig({
     status: z.enum(["todo", "doing", "done"]),
     deletedAt: z.date().nullable().optional(),
   }),
-  queries: {
-    // 引数なしのクエリ
-    active: () => ({
-      where: [{ field: "deletedAt", operator: "==" as const, value: null }],
-    }),
+});
 
-    // 引数ありのクエリ
-    byStatus: (status: "todo" | "doing" | "done") => ({
-      where: [{ field: "status", operator: "==" as const, value: status }],
-    }),
-  },
+export const taskQueries = createCollectionQueries(tasks, {
+  // 引数なしのクエリ
+  active: () => ({
+    where: [{ field: "deletedAt", operator: "==" as const, value: null }],
+  }),
+
+  // 引数ありのクエリ
+  byStatus: (status: "todo" | "doing" | "done") => ({
+    where: [{ field: "status", operator: "==" as const, value: status }],
+  }),
 });
 
 // 使用例:
-// tasks.queries.active()          => { where: [{ field: "deletedAt", operator: "==", value: null }] }
-// tasks.queries.byStatus("doing") => { where: [{ field: "status", operator: "==", value: "doing" }] }
+// taskQueries.queries.active()          => { where: [{ field: "deletedAt", operator: "==", value: null }] }
+// taskQueries.queries.byStatus("doing") => { where: [{ field: "status", operator: "==", value: "doing" }] }
 ```
+
+zod-firebase-browser / zod-firebase-node では identity が追加され、実際の Firestore クエリに変換されます。
 
 `QueryOptions` の型定義:
 
@@ -612,13 +626,6 @@ tasks.parseDocumentPath("/invalid/path");
 | `beforeWrite(documentIdentity, data)`         | `(identity, data) => data`          | update 時の前処理（`onWrite` → fieldKeys 注入）                  |
 | `checkNonPathKeys(data, identityParams)`       | `(data, params) => boolean`         | data 内の nonPathKeys が identityParams と一致するか検証          |
 
-### その他
-
-| プロパティ  | 型                           | 説明                                  |
-| ----------- | ---------------------------- | ------------------------------------- |
-| `mutations` | `Record<string, MutationFn>` | 入力した mutations（未設定時は `{}`） |
-| `queries`   | `Record<string, QueryFn>`    | 入力した queries（未設定時は `{}`）   |
-
 ---
 
 ## 実践的な使用例
@@ -649,7 +656,7 @@ export const workspaces = collectionConfig({
 ### 外部キー参照を含むコレクション
 
 ```ts
-// メンバーコレクション（外部キー参照元として設定）
+// メンバーコレクション
 export const members = collectionConfig({
   path: "/workspaces/:workspaceId/members/:memberId" as const,
   fieldKeys: [] as const,
@@ -665,11 +672,12 @@ export const members = collectionConfig({
   onCreateId: (_collectionIdentity, inputData) => inputData.email,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
-  // 他のコレクションから外部キーとして参照する際の設定
-  lookupConfig: {
-    label: "displayName",
-    valueField: "memberId",
-  },
+});
+
+// 他のコレクションから外部キーとして参照する際の設定
+export const membersReference = createCollectionReference(members, {
+  label: "displayName",
+  valueField: "memberId",
 });
 ```
 
@@ -700,25 +708,27 @@ export const tasks = collectionConfig({
     priority: "medium" as const,
     labels: [],
   }),
-  mutations: {
-    softDelete: () => ({ deletedAt: new Date() }),
-    archive: () => ({ archivedAt: new Date() }),
-    restore: () => ({ deletedAt: null }),
-    setDueDate: (dueAt: Date) => ({ dueAt }),
-    changeStatus: (status: "todo" | "doing" | "done") => ({ status }),
-    assignTo: (assigneeId: string, priority?: "low" | "medium" | "high") => ({
-      assigneeId,
-      ...(priority && { priority }),
-    }),
-  },
-  queries: {
-    active: () => ({
-      where: [{ field: "deletedAt", operator: "==" as const, value: null }],
-    }),
-    byStatus: (status: "todo" | "doing" | "done") => ({
-      where: [{ field: "status", operator: "==" as const, value: status }],
-    }),
-  },
+});
+
+export const taskMutations = createCollectionMutations(tasks, {
+  softDelete: () => ({ deletedAt: new Date() }),
+  archive: () => ({ archivedAt: new Date() }),
+  restore: () => ({ deletedAt: null }),
+  setDueDate: (dueAt: Date) => ({ dueAt }),
+  changeStatus: (status: "todo" | "doing" | "done") => ({ status }),
+  assignTo: (assigneeId: string, priority?: "low" | "medium" | "high") => ({
+    assigneeId,
+    ...(priority && { priority }),
+  }),
+});
+
+export const taskQueries = createCollectionQueries(tasks, {
+  active: () => ({
+    where: [{ field: "deletedAt", operator: "==" as const, value: null }],
+  }),
+  byStatus: (status: "todo" | "doing" | "done") => ({
+    where: [{ field: "status", operator: "==" as const, value: status }],
+  }),
 });
 ```
 
@@ -755,7 +765,7 @@ const updated = users.beforeWrite(
 ## API（型エクスポート）
 
 - `collectionConfig({ path, schema, fieldKeys, ... })` — コレクション定義関数
-- 設定関連型: `CollectionConfig`, `CollectionConfigBase`, `LooseCollectionConfigBase`, `BrandedCollectionConfig`, `CollectionDefinition`, `LookupConfig`
+- 設定関連型: `CollectionConfig`, `CollectionConfigBase`, `LooseCollectionConfigBase`, `BrandedCollectionConfig`, `CollectionDefinition`, `CollectionReferenceConfig`
 - Identity 関連型: `IdentityKeys`, `IdentityParams`, `DocumentIdentityParams`, `CollectionIdentityParams`, `CollectionIdentityKeys`
 - クエリ関連型: `QueryOptions`, `WhereParams`, `OrderByParams`, `WhereFilterOp`, `QueryFn`
 - ミューテーション関連型: `MutationFn`

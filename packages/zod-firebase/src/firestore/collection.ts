@@ -27,7 +27,7 @@ declare const CollectionConfigBrand: unique symbol;
 
 /**
  * ブランド付き CollectionConfig の型
- * lookupConfig などで collectionConfig() の戻り値のみを受け入れるために使用
+ * CollectionReference.config などで collectionConfig() の戻り値のみを受け入れるために使用
  */
 export type BrandedCollectionConfig = {
   readonly [CollectionConfigBrand]: true;

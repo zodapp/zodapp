@@ -10,7 +10,7 @@ import {
   CollectionConfig,
   CollectionConfigMethods,
   CollectionReference,
-  type LookupConfig,
+  type CollectionReferenceConfig,
 } from "./index";
 
 describe("collectionConfig", () => {
@@ -404,7 +404,7 @@ describe("collectionConfig", () => {
       expect(queries.collection).toBe(testCollection);
       expect(mutations.collection).toBe(testCollection);
       expect(reference.collection).toBe(testCollection);
-      expect(reference.lookupConfig).toEqual({
+      expect(reference.config).toEqual({
         label: "name",
         valueField: "userId",
       });
@@ -431,14 +431,14 @@ describe("collectionConfig", () => {
     });
   });
 
-  describe("LookupConfig の型安全性", () => {
+  describe("CollectionReferenceConfig の型安全性", () => {
     it("label にフィールド名（keyof T）を指定できる", () => {
       const ref = createCollectionReference(testCollection, {
         label: "name",
         valueField: "userId",
       });
-      expect(ref.lookupConfig.label).toBe("name");
-      expect(ref.lookupConfig.valueField).toBe("userId");
+      expect(ref.config.label).toBe("name");
+      expect(ref.config.valueField).toBe("userId");
     });
 
     it("label に関数を指定できる", () => {
@@ -446,32 +446,32 @@ describe("collectionConfig", () => {
         label: (data) => `${data.name} (${data.email})`,
         valueField: "userId",
       });
-      expect(typeof ref.lookupConfig.label).toBe("function");
+      expect(typeof ref.config.label).toBe("function");
     });
 
     it("label を省略できる", () => {
       const ref = createCollectionReference(testCollection, {
         valueField: "userId",
       });
-      expect(ref.lookupConfig.label).toBeUndefined();
+      expect(ref.config.label).toBeUndefined();
     });
 
     it("valueField を省略できる", () => {
       const ref = createCollectionReference(testCollection, {
         label: "name",
       });
-      expect(ref.lookupConfig.valueField).toBeUndefined();
+      expect(ref.config.valueField).toBeUndefined();
     });
 
     it("label と valueField の両方を省略できる（空オブジェクト）", () => {
       const ref = createCollectionReference(testCollection, {});
-      expect(ref.lookupConfig.label).toBeUndefined();
-      expect(ref.lookupConfig.valueField).toBeUndefined();
+      expect(ref.config.label).toBeUndefined();
+      expect(ref.config.valueField).toBeUndefined();
     });
 
-    it("LookupConfig<T> の型パラメータが dataSchema から推論される", () => {
+    it("CollectionReferenceConfig<T> の型パラメータが dataSchema から推論される", () => {
       type TestData = z.infer<(typeof testCollection)["dataSchema"]>;
-      type RefLookup = (typeof testRef)["lookupConfig"];
+      type RefLookup = (typeof testRef)["config"];
 
       const testRef = createCollectionReference(testCollection, {
         label: "name",
@@ -479,7 +479,9 @@ describe("collectionConfig", () => {
       });
       void testRef;
 
-      expectTypeOf<RefLookup>().toEqualTypeOf<LookupConfig<TestData>>();
+      expectTypeOf<RefLookup>().toEqualTypeOf<
+        CollectionReferenceConfig<TestData>
+      >();
     });
 
     it("label 関数の引数がデータ型に型付けされている", () => {

@@ -30,7 +30,7 @@ export type {
   LooseCollectionMutationsBase,
 } from "./mutation";
 export type {
-  LookupConfig,
+  CollectionReferenceConfig,
   CollectionReference,
   CollectionFromReference,
   CollectionReferenceBase,

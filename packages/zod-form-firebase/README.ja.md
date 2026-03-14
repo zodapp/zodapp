@@ -93,7 +93,11 @@ const usersConfig = collectionConfig({
   path: "workspaces/:workspaceId/users/:userId",
   extraIdentityKeys: [],
   schema: userSchema,
-  lookupConfig: { label: "name", valueField: "userId" },
+});
+
+const usersReference = createCollectionReference(usersConfig, {
+  label: "name",
+  valueField: "userId",
 });
 
 export const formSchema = z
@@ -104,7 +108,7 @@ export const formSchema = z
       externalKeyConfig: {
         type: "firestore",
         conditionId: "usersInWorkspace",
-        collectionConfig: usersConfig,
+        reference: usersReference,
       },
     }),
 

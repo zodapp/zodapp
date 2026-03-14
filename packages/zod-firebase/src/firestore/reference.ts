@@ -11,7 +11,9 @@ import type {
  *
  * @typeParam T - コレクションのデータ型。label / valueField のキーを型安全に制約する。
  */
-export type LookupConfig<T extends Record<string, unknown> = Record<string, unknown>> = {
+export type CollectionReferenceConfig<
+  T extends Record<string, unknown> = Record<string, unknown>,
+> = {
   /** 表示用ラベル。フィールド名を指定するか、データから文字列を生成する関数を渡す */
   label?: ((data: T) => string) | (keyof T & string);
   /** 値用フィールド名。省略時は collection の documentKey にフォールバックする */
@@ -31,19 +33,19 @@ export type CollectionReference<
   TCollection extends LooseCollectionConfigBase,
 > = {
   readonly collection: TCollection;
-  readonly lookupConfig: LookupConfig<DataOfCollection<TCollection>>;
+  readonly config: CollectionReferenceConfig<DataOfCollection<TCollection>>;
 };
 
 export interface CollectionReferenceBase {
   readonly collection: CollectionConfigBase;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly lookupConfig: LookupConfig<any>;
+  readonly config: CollectionReferenceConfig<any>;
 }
 
 export interface LooseCollectionReferenceBase {
   readonly collection: LooseCollectionConfigBase;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly lookupConfig: LookupConfig<any>;
+  readonly config: CollectionReferenceConfig<any>;
 }
 
 /**
@@ -59,8 +61,8 @@ export const createCollectionReference = <
   const TCollection extends LooseCollectionConfigBase,
 >(
   collection: TCollection,
-  lookupConfig: LookupConfig<DataOfCollection<TCollection>>,
+  config: CollectionReferenceConfig<DataOfCollection<TCollection>>,
 ): CollectionReference<TCollection> => ({
   collection,
-  lookupConfig,
+  config,
 });

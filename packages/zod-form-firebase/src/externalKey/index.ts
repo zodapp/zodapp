@@ -52,7 +52,7 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         );
       }
 
-      const { label, valueField } = config.reference.lookupConfig;
+      const { label, valueField } = config.reference.config;
       const resolvedValueField =
         valueField ?? config.reference.collection.documentKey;
 
