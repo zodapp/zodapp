@@ -52,7 +52,20 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         );
       }
 
-      const { labelField, valueField } = config.reference.lookupConfig;
+      const { label, valueField } = config.reference.lookupConfig;
+      const resolvedValueField =
+        valueField ?? config.reference.collection.documentKey;
+
+      const resolveLabel = (doc: unknown): string => {
+        const record = doc as unknown as Record<string, unknown>;
+        if (typeof label === "function") {
+          return label(record);
+        }
+        if (typeof label === "string") {
+          return String(record[label]);
+        }
+        return String(record[resolvedValueField]);
+      };
 
       return {
         subscribe: (callback: ExternalKeyOptionsHandler) => {
@@ -78,11 +91,11 @@ export function createFirestoreResolver<TType extends string = "firestore">({
                 : docs;
 
               const options = filtered.map((doc) => ({
-                label: String(
-                  (doc as unknown as Record<string, unknown>)[labelField],
-                ),
+                label: resolveLabel(doc),
                 value: String(
-                  (doc as unknown as Record<string, unknown>)[valueField],
+                  (doc as unknown as Record<string, unknown>)[
+                    resolvedValueField
+                  ],
                 ),
               }));
 

@@ -5,9 +5,12 @@ import {
   createCollectionMutations,
   createCollectionQueries,
   createCollectionReference,
+  CollectionFromReference,
   CollectionDefinition,
   CollectionConfig,
   CollectionConfigMethods,
+  CollectionReference,
+  type LookupConfig,
 } from "./index";
 
 describe("collectionConfig", () => {
@@ -394,7 +397,7 @@ describe("collectionConfig", () => {
         rename: (name: string) => ({ name }),
       });
       const reference = createCollectionReference(testCollection, {
-        labelField: "name",
+        label: "name",
         valueField: "userId",
       });
 
@@ -402,7 +405,117 @@ describe("collectionConfig", () => {
       expect(mutations.collection).toBe(testCollection);
       expect(reference.collection).toBe(testCollection);
       expect(reference.lookupConfig).toEqual({
-        labelField: "name",
+        label: "name",
+        valueField: "userId",
+      });
+    });
+  });
+
+  describe("CollectionReference の型ユーティリティ", () => {
+    it("CollectionFromReference で元の collection 型を取り出せる", () => {
+      const reference = createCollectionReference(testCollection, {
+        label: "name",
+        valueField: "userId",
+      });
+
+      type ExtractedCollection = CollectionFromReference<typeof reference>;
+      type ExtractedCollectionFromGeneric = CollectionFromReference<
+        CollectionReference<typeof testCollection>
+      >;
+
+      expectTypeOf<ExtractedCollection>().toEqualTypeOf<typeof testCollection>();
+      expectTypeOf<ExtractedCollectionFromGeneric>().toEqualTypeOf<
+        typeof testCollection
+      >();
+      expectTypeOf(reference.collection).toEqualTypeOf<ExtractedCollection>();
+    });
+  });
+
+  describe("LookupConfig の型安全性", () => {
+    it("label にフィールド名（keyof T）を指定できる", () => {
+      const ref = createCollectionReference(testCollection, {
+        label: "name",
+        valueField: "userId",
+      });
+      expect(ref.lookupConfig.label).toBe("name");
+      expect(ref.lookupConfig.valueField).toBe("userId");
+    });
+
+    it("label に関数を指定できる", () => {
+      const ref = createCollectionReference(testCollection, {
+        label: (data) => `${data.name} (${data.email})`,
+        valueField: "userId",
+      });
+      expect(typeof ref.lookupConfig.label).toBe("function");
+    });
+
+    it("label を省略できる", () => {
+      const ref = createCollectionReference(testCollection, {
+        valueField: "userId",
+      });
+      expect(ref.lookupConfig.label).toBeUndefined();
+    });
+
+    it("valueField を省略できる", () => {
+      const ref = createCollectionReference(testCollection, {
+        label: "name",
+      });
+      expect(ref.lookupConfig.valueField).toBeUndefined();
+    });
+
+    it("label と valueField の両方を省略できる（空オブジェクト）", () => {
+      const ref = createCollectionReference(testCollection, {});
+      expect(ref.lookupConfig.label).toBeUndefined();
+      expect(ref.lookupConfig.valueField).toBeUndefined();
+    });
+
+    it("LookupConfig<T> の型パラメータが dataSchema から推論される", () => {
+      type TestData = z.infer<(typeof testCollection)["dataSchema"]>;
+      type RefLookup = (typeof testRef)["lookupConfig"];
+
+      const testRef = createCollectionReference(testCollection, {
+        label: "name",
+        valueField: "userId",
+      });
+      void testRef;
+
+      expectTypeOf<RefLookup>().toEqualTypeOf<LookupConfig<TestData>>();
+    });
+
+    it("label 関数の引数がデータ型に型付けされている", () => {
+      createCollectionReference(testCollection, {
+        label: (data) => {
+          expectTypeOf(data).toHaveProperty("name");
+          expectTypeOf(data).toHaveProperty("email");
+          expectTypeOf(data).toHaveProperty("userId");
+          expectTypeOf(data).toHaveProperty("teamId");
+          return data.name;
+        },
+        valueField: "userId",
+      });
+    });
+
+    it("存在しないフィールド名を label に指定するとコンパイルエラーになる", () => {
+      createCollectionReference(testCollection, {
+        // @ts-expect-error "nonExistent" は dataSchema のキーに存在しない
+        label: "nonExistent",
+        valueField: "userId",
+      });
+    });
+
+    it("存在しないフィールド名を valueField に指定するとコンパイルエラーになる", () => {
+      createCollectionReference(testCollection, {
+        label: "name",
+        // @ts-expect-error "nonExistent" は dataSchema のキーに存在しない
+        valueField: "nonExistent",
+      });
+    });
+
+    it("label 関数内で存在しないプロパティにアクセスするとコンパイルエラーになる", () => {
+      createCollectionReference(testCollection, {
+        label: (data) =>
+          // @ts-expect-error "nonExistent" は dataSchema のキーに存在しない
+          data.nonExistent,
         valueField: "userId",
       });
     });

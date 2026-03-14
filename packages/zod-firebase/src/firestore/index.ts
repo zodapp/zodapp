@@ -32,6 +32,7 @@ export type {
 export type {
   LookupConfig,
   CollectionReference,
+  CollectionFromReference,
   CollectionReferenceBase,
   LooseCollectionReferenceBase,
 } from "./reference";

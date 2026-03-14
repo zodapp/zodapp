@@ -18,6 +18,7 @@ export type {
   CollectionMutationsBase,
   LooseCollectionMutationsBase,
   CollectionReference,
+  CollectionFromReference,
   CollectionReferenceBase,
   LooseCollectionReferenceBase,
   // 構成要素の型(lookup関連)

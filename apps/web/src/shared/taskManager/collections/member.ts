@@ -74,6 +74,5 @@ export const membersCollection = collectionConfig({
 
 // 外部キー用設定（担当者選択などで使用）
 export const membersReference = createCollectionReference(membersCollection, {
-  labelField: "displayName",
-  valueField: "memberId",
+  label: "displayName",
 });

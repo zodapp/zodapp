@@ -149,21 +149,34 @@ export const users = collectionConfig({
 
 ### `lookupConfig`（任意）
 
-**型**: `{ labelField: string; valueField: string }`
+**型**: `LookupConfig<T>`（`T` は `z.infer<dataSchema>` から自動推論）
 
-外部キー参照時の表示用フィールドと値用フィールドを指定します。他のコレクションからこのコレクションを外部キーとして参照する際に使用されます。
+外部キー参照時の表示用ラベルと値用フィールドを指定します。他のコレクションからこのコレクションを外部キーとして参照する際に使用されます。
 
-- `labelField`: セレクトボックス等で表示するフィールド名
-- `valueField`: 値として保持するフィールド名（通常は docKey に対応するフィールド）
+- `label`（任意）: 表示用ラベル。フィールド名（`keyof T`）を指定するか、データから文字列を生成する関数 `(data: T) => string` を渡す。省略時は `valueField`（または `documentKey`）の値が使われる。
+- `valueField`（任意）: 値として保持するフィールド名。`keyof T` で型安全に制約される。省略時はコレクションの `documentKey` にフォールバックする。
 
 ```ts
-export const members = collectionConfig({
-  path: "workspaces/:workspaceId/members/:memberId",
-  schema: memberSchema,
-  lookupConfig: {
-    labelField: "displayName", // セレクトボックスに表示される名前
-    valueField: "memberId", // 選択時に保存される値（= documentKey）
-  },
+// フィールド名を指定
+export const membersRef = createCollectionReference(membersCollection, {
+  label: "displayName",
+  valueField: "memberId",
+});
+
+// 関数で動的にラベルを生成
+export const membersRef2 = createCollectionReference(membersCollection, {
+  label: (data) => `${data.displayName} (${data.email})`,
+  valueField: "memberId",
+});
+
+// label 省略（valueField の値がラベルに使われる）
+export const membersRef3 = createCollectionReference(membersCollection, {
+  valueField: "memberId",
+});
+
+// valueField も省略（documentKey = "memberId" にフォールバック）
+export const membersRef4 = createCollectionReference(membersCollection, {
+  label: "displayName",
 });
 ```
 
@@ -654,7 +667,7 @@ export const members = collectionConfig({
   onWrite: () => ({ updatedAt: new Date() }),
   // 他のコレクションから外部キーとして参照する際の設定
   lookupConfig: {
-    labelField: "displayName",
+    label: "displayName",
     valueField: "memberId",
   },
 });
