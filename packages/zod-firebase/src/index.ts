@@ -1,11 +1,25 @@
 // Firestore utility exports
-export { collectionConfig } from "./firestore";
+export {
+  collectionConfig,
+  createCollectionQueries,
+  createCollectionMutations,
+  createCollectionReference,
+} from "./firestore";
 export type {
   CollectionDefinition,
   CollectionConfig,
   CollectionConfigBase,
   LooseCollectionConfigBase,
   CollectionConfigMethods,
+  CollectionQueries,
+  CollectionQueriesBase,
+  LooseCollectionQueriesBase,
+  CollectionMutations,
+  CollectionMutationsBase,
+  LooseCollectionMutationsBase,
+  CollectionReference,
+  CollectionReferenceBase,
+  LooseCollectionReferenceBase,
   // 構成要素の型(lookup関連)
   LookupConfig,
   // 構成要素の型(QueryOptions関連)

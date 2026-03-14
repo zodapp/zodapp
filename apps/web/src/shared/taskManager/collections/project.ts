@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { collectionConfig } from "@zodapp/zod-firebase";
+import { collectionConfig, createCollectionQueries } from "@zodapp/zod-firebase";
 import { zf } from "@zodapp/zod-form";
 
 export const projectStatusLiterals = [
@@ -61,15 +61,15 @@ export const projectsCollection = collectionConfig({
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
   onInit: () => ({ status: "active" as const }),
+});
 
-  queries: {
-    active: () => ({
-      where: [
-        { field: "status", operator: "==" as const, value: "active" as const },
-      ],
-    }),
-    byStatus: (status: ProjectStatus) => ({
-      where: [{ field: "status", operator: "==" as const, value: status }],
-    }),
-  },
+export const projectQueries = createCollectionQueries(projectsCollection, {
+  active: () => ({
+    where: [
+      { field: "status", operator: "==" as const, value: "active" as const },
+    ],
+  }),
+  byStatus: (status: ProjectStatus) => ({
+    where: [{ field: "status", operator: "==" as const, value: status }],
+  }),
 });

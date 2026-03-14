@@ -24,8 +24,14 @@ import { createMingoFilter } from "../../components/mingoQuery";
 import { z } from "zod";
 
 import { useGrowingList } from "../../shared/taskManager/hooks";
-import { tasksCollection } from "../../shared/taskManager/collections/task";
-import { getAccessor } from "@zodapp/zod-firebase-browser";
+import {
+  taskQueries,
+  tasksCollection,
+} from "../../shared/taskManager/collections/task";
+import {
+  getAccessor,
+  getQueriesAccessor,
+} from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
 import { AutoForm } from "../../components/AutoForm";
 import { AutoSearch } from "../../components/AutoSearch";
@@ -75,9 +81,13 @@ const TasksPage = () => {
     [workspaceId, projectId],
   );
 
-  // accessor を取得（mutations / queries が自動バインドされている）
+  // CRUD accessor を取得
   const taskAccessor = useMemo(
     () => getAccessor(firestore, tasksCollection, storeKey),
+    [storeKey],
+  );
+  const taskQueriesAccessor = useMemo(
+    () => getQueriesAccessor(firestore, taskQueries, storeKey),
     [storeKey],
   );
 
@@ -103,19 +113,19 @@ const TasksPage = () => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
 
     const fetchCondition: WhereParams[] = [
-      ...(taskAccessor.queries.active.params().where ?? []),
+      ...(taskQueriesAccessor.active.params().where ?? []),
     ];
     const { status, ...rest } = q;
     if (status) {
       fetchCondition.push(
-        ...(taskAccessor.queries.byStatus.params(status).where ?? []),
+        ...(taskQueriesAccessor.byStatus.params(status).where ?? []),
       );
     }
     return {
       fetchCondition,
       clientFilter: createMingoFilter(rest),
     };
-  }, [search.q, taskAccessor]);
+  }, [search.q, taskQueriesAccessor]);
 
   const {
     items: tasks,

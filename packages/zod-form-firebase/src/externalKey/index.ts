@@ -52,21 +52,16 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         );
       }
 
-      if (!config.collectionConfig.lookupConfig) {
-        throw new Error(`lookupConfig is not defined in collectionConfig`);
-      }
-
-      const { labelField, valueField } =
-        config.collectionConfig.lookupConfig;
+      const { labelField, valueField } = config.reference.lookupConfig;
 
       return {
         subscribe: (callback: ExternalKeyOptionsHandler) => {
-          // LooseCollectionConfigBase は CollectionConfigBase と互換性があるが、
+          // LooseCollectionReferenceBase.collection は CollectionConfigBase と互換性があるが、
           // 型定義上は $replace 回避のため緩い型を使用しているため、キャストが必要
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const accessor = getAccessor(
             db,
-            config.collectionConfig as unknown as CollectionConfigBase,
+            config.reference.collection as unknown as CollectionConfigBase,
             storeKey,
           );
 

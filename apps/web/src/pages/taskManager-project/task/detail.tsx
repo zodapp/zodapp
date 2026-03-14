@@ -17,8 +17,14 @@ import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
 import { useStoreKey } from "../../../shared/auth";
 
-import { getAccessor } from "@zodapp/zod-firebase-browser";
-import { tasksCollection } from "../../../shared/taskManager/collections/task";
+import {
+  getAccessor,
+  getMutationsAccessor,
+} from "@zodapp/zod-firebase-browser";
+import {
+  taskMutations,
+  tasksCollection,
+} from "../../../shared/taskManager/collections/task";
 import { AutoForm } from "../../../components/AutoForm";
 import { taskDetailRoute } from "./detail.route";
 import { tasksRoute } from "../tasks.route";
@@ -33,9 +39,13 @@ const TaskDetailPage = () => {
   const navigate = useNavigate();
   const storeKey = useStoreKey();
 
-  // accessor を使用（mutations / queries が自動バインドされている）
+  // CRUD accessor / mutation accessor を使用
   const accessor = useMemo(
     () => getAccessor(firestore, tasksCollection, storeKey),
+    [storeKey],
+  );
+  const mutationsAccessor = useMemo(
+    () => getMutationsAccessor(firestore, taskMutations, storeKey),
     [storeKey],
   );
 
@@ -75,8 +85,7 @@ const TaskDetailPage = () => {
     if (!confirm("このタスクを削除しますか？")) return;
     setIsLoading(true);
     try {
-      // accessor.mutations.softDelete を直接使用
-      await accessor.mutations.softDelete({ workspaceId, projectId, taskId });
+      await mutationsAccessor.softDelete({ workspaceId, projectId, taskId });
       navigate({
         to: tasksRoute.to,
         params: { workspaceId, projectId },
@@ -86,14 +95,13 @@ const TaskDetailPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [accessor, taskId, navigate, workspaceId, projectId]);
+  }, [mutationsAccessor, taskId, navigate, workspaceId, projectId]);
 
   const handleArchive = useCallback(async () => {
     if (!confirm("このタスクをアーカイブしますか？")) return;
     setIsLoading(true);
     try {
-      // accessor.mutations.archive を直接使用
-      await accessor.mutations.archive({ workspaceId, projectId, taskId });
+      await mutationsAccessor.archive({ workspaceId, projectId, taskId });
       navigate({
         to: tasksRoute.to,
         params: { workspaceId, projectId },
@@ -103,7 +111,7 @@ const TaskDetailPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [accessor, taskId, navigate, workspaceId, projectId]);
+  }, [mutationsAccessor, taskId, navigate, workspaceId, projectId]);
 
   const handleSubmit = useCallback(
     async (data: z.infer<typeof tasksCollection.updateSchema>) => {

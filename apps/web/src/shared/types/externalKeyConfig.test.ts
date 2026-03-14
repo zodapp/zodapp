@@ -14,7 +14,10 @@ import type { WebExternalKeyConfig } from "./externalKeyConfig";
 
 // collectionConfig のモック（型テスト用）
 // 実際の collectionConfig 関数を使うと依存が複雑になるため、型だけを模倣
-import { collectionConfig } from "@zodapp/zod-firebase";
+import {
+  collectionConfig,
+  createCollectionReference,
+} from "@zodapp/zod-firebase";
 import { z } from "zod";
 
 // テスト用のコレクション定義
@@ -22,7 +25,10 @@ const testCollection = collectionConfig({
   path: "/test/:testId" as const,
   fieldKeys: [] as const,
   schema: z.object({ name: z.string() }),
-  lookupConfig: { labelField: "name", valueField: "testId" },
+});
+const testReference = createCollectionReference(testCollection, {
+  labelField: "name",
+  valueField: "testId",
 });
 
 describe("ExternalKeyConfig 型テスト", () => {
@@ -45,7 +51,7 @@ describe("ExternalKeyConfig 型テスト", () => {
         label: "テスト",
         externalKeyConfig: {
           type: "firestore",
-          collectionConfig: testCollection,
+          reference: testReference,
           conditionId: "testCondition",
         },
       });
@@ -58,7 +64,7 @@ describe("ExternalKeyConfig 型テスト", () => {
         label: "テスト",
         externalKeyConfig: () => ({
           type: "firestore",
-          collectionConfig: testCollection,
+          reference: testReference,
           conditionId: "testCondition",
         }),
       });
@@ -69,7 +75,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       // 最小限の設定
       const config = {
         type: "firestore" as const,
-        collectionConfig: testCollection,
+        reference: testReference,
         conditionId: "default",
       } satisfies WebExternalKeyConfig;
 
@@ -94,7 +100,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       // zf.string().register(zf.externalKey.registry, {
       //   externalKeyConfig: {
       //     type: "invalid", // Error: "invalid" は "firestore" に代入できない
-      //     collectionConfig: testCollection,
+      //     reference: testReference,
       //     conditionId: "default",
       //   },
       // });
@@ -103,19 +109,19 @@ describe("ExternalKeyConfig 型テスト", () => {
       expectTypeOf<"firestore">().not.toEqualTypeOf<"invalid">();
     });
 
-    it("collectionConfig が欠けているとエラーになる（コメント参照）", () => {
+    it("reference が欠けているとエラーになる（コメント参照）", () => {
       // 以下はコンパイルエラーになるべき例:
       // zf.string().register(zf.externalKey.registry, {
       //   externalKeyConfig: {
       //     type: "firestore",
-      //     // collectionConfig: 欠落 - Error
+      //     // reference: 欠落 - Error
       //     conditionId: "default",
       //   },
       // });
 
-      // collectionConfig は必須プロパティ
+      // reference は必須プロパティ
       type Required = keyof FirestoreExternalKeyConfig;
-      expectTypeOf<"collectionConfig">().toMatchTypeOf<Required>();
+      expectTypeOf<"reference">().toMatchTypeOf<Required>();
     });
 
     it("conditionId が欠けているとエラーになる（コメント参照）", () => {
@@ -123,7 +129,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       // zf.string().register(zf.externalKey.registry, {
       //   externalKeyConfig: {
       //     type: "firestore",
-      //     collectionConfig: testCollection,
+      //     reference: testReference,
       //     // conditionId: 欠落 - Error
       //   },
       // });
@@ -148,7 +154,7 @@ describe("ExternalKeyConfig 型テスト", () => {
      * zf.string().register(zf.externalKey.registry, {
      *   externalKeyConfig: {
      *     type: "firestore",
-     *     collectionConfig: testCollection,
+      *     reference: testReference,
      *     conditionId: "default",
      *     unknownProp: "value", // Error: 余分なプロパティ
      *   },
@@ -157,7 +163,7 @@ describe("ExternalKeyConfig 型テスト", () => {
      * // これはエラーにならない（変数経由）
      * const config = {
      *   type: "firestore" as const,
-     *   collectionConfig: testCollection,
+      *   reference: testReference,
      *   conditionId: "default",
      *   unknownProp: "value",
      * };
@@ -172,7 +178,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       // 以下はコンパイルエラーになるべき例:
       // const config = {
       //   type: "firestore" as const,
-      //   collectionConfig: testCollection,
+      //   reference: testReference,
       //   conditionId: "default",
       //   unknownProp: "value", // Error: satisfies により余分なプロパティが検出される
       // } satisfies WebExternalKeyConfig;

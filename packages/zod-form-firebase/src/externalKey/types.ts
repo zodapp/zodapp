@@ -3,7 +3,7 @@
  */
 
 import type {
-  LooseCollectionConfigBase,
+  LooseCollectionReferenceBase,
   WhereParams,
 } from "@zodapp/zod-firebase";
 import type { BaseExternalKeyConfig } from "@zodapp/zod-form/externalKey/types";
@@ -12,12 +12,12 @@ import type { BaseExternalKeyConfig } from "@zodapp/zod-form/externalKey/types";
  * Firestore外部キー設定（type除外版）
  * 実装固有のフィールドのみ定義
  *
- * 注意: collectionConfig は LooseCollectionConfigBase を使用
+ * 注意: reference は LooseCollectionReferenceBase を使用
  * これは Zod の $replace による型展開を回避するため
- * collectionConfig() で生成されたブランド付きの値のみを受け入れる
+ * createCollectionReference() で生成された値を受け入れる
  */
 export type FirestoreExternalKeyConfigCore = {
-  collectionConfig: LooseCollectionConfigBase;
+  reference: LooseCollectionReferenceBase;
   conditionId: string; // 必須（defaultは廃止）
 };
 

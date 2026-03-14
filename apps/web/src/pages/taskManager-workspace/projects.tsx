@@ -14,7 +14,10 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
-import { getAccessor } from "@zodapp/zod-firebase-browser";
+import {
+  getAccessor,
+  getQueriesAccessor,
+} from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
 import { AutoTable } from "../../components/AutoTable";
@@ -23,7 +26,10 @@ import { createMingoFilter } from "../../components/mingoQuery";
 import { z } from "zod";
 
 import { useList } from "../../shared/taskManager/hooks";
-import { projectsCollection } from "../../shared/taskManager/collections";
+import {
+  projectQueries,
+  projectsCollection,
+} from "../../shared/taskManager/collections";
 import { AutoForm } from "../../components/AutoForm";
 import { AutoSearch } from "../../components/AutoSearch";
 import { projectsRoute, searchFilterSchema } from "./projects.route";
@@ -55,9 +61,13 @@ const ProjectsPage = () => {
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
   const storeKey = useStoreKey();
 
-  // accessor を取得（queries が自動バインドされている）
+  // CRUD accessor / query accessor を取得
   const projectAccessor = useMemo(
     () => getAccessor(firestore, projectsCollection, storeKey),
+    [storeKey],
+  );
+  const projectQueriesAccessor = useMemo(
+    () => getQueriesAccessor(firestore, projectQueries, storeKey),
     [storeKey],
   );
 
@@ -69,7 +79,7 @@ const ProjectsPage = () => {
     collection: projectsCollection,
     collectionIdentity,
     query: {
-      ...projectAccessor.queries.active.params(),
+      ...projectQueriesAccessor.active.params(),
       orderBy: [{ field: "createdAt", direction: "desc" }],
     },
     clientFilter,

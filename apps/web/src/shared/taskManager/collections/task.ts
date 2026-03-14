@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { collectionConfig } from "@zodapp/zod-firebase";
+import {
+  collectionConfig,
+  createCollectionMutations,
+  createCollectionQueries,
+} from "@zodapp/zod-firebase";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
-import { membersCollection } from "./member";
+import { membersReference } from "./member";
 
 // タスクステータス（カンバン対応）
 export const taskStatusLiterals = [
@@ -82,7 +86,7 @@ const taskDataSchema = z
         label: "担当者",
         externalKeyConfig: {
           type: "firestore",
-          collectionConfig: membersCollection,
+          reference: membersReference,
           conditionId: "membersCondition",
         },
         width: 150,
@@ -94,7 +98,7 @@ const taskDataSchema = z
         zf.string().register(zf.externalKey.registry, {
           externalKeyConfig: () => ({
             type: "firestore",
-            collectionConfig: membersCollection,
+            reference: membersReference,
             conditionId: "membersCondition",
           }),
           width: 150,
@@ -180,30 +184,28 @@ export const tasksCollection = collectionConfig({
     priority: "medium" as const,
     labels: [],
   }),
+});
 
-  // ドメインミューテーション
-  mutations: {
-    // 引数なしの mutationの例
-    softDelete: () => ({ deletedAt: new Date() }),
-    archive: () => ({ archivedAt: new Date() }),
-    restore: () => ({ deletedAt: null }),
+export const taskMutations = createCollectionMutations(tasksCollection, {
+  // 引数なしの mutationの例
+  softDelete: () => ({ deletedAt: new Date() }),
+  archive: () => ({ archivedAt: new Date() }),
+  restore: () => ({ deletedAt: null }),
 
-    // カスタムパラメータありの mutationの例
-    setDueDate: (dueAt: Date) => ({ dueAt }),
-    changeStatus: (status: TaskStatus) => ({ status }),
-    assignTo: (assigneeId: string, priority?: TaskPriority) => ({
-      assigneeId,
-      ...(priority && { priority }),
-    }),
-  },
+  // カスタムパラメータありの mutationの例
+  setDueDate: (dueAt: Date) => ({ dueAt }),
+  changeStatus: (status: TaskStatus) => ({ status }),
+  assignTo: (assigneeId: string, priority?: TaskPriority) => ({
+    assigneeId,
+    ...(priority && { priority }),
+  }),
+});
 
-  // クエリ定義（常に関数、mutations と同じパターン）
-  queries: {
-    active: () => ({
-      where: [{ field: "deletedAt", operator: "==" as const, value: null }],
-    }),
-    byStatus: (status: TaskStatus) => ({
-      where: [{ field: "status", operator: "==" as const, value: status }],
-    }),
-  },
+export const taskQueries = createCollectionQueries(tasksCollection, {
+  active: () => ({
+    where: [{ field: "deletedAt", operator: "==" as const, value: null }],
+  }),
+  byStatus: (status: TaskStatus) => ({
+    where: [{ field: "status", operator: "==" as const, value: status }],
+  }),
 });

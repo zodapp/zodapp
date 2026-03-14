@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { collectionConfig } from "@zodapp/zod-firebase";
+import {
+  collectionConfig,
+  createCollectionReference,
+} from "@zodapp/zod-firebase";
 import { zf } from "@zodapp/zod-form";
 
 // メンバーロールのリテラル定義
@@ -67,9 +70,10 @@ export const membersCollection = collectionConfig({
   onCreateId: (_collectionIdentity, inputData) => inputData.email,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
-  // 外部キー用設定（担当者選択などで使用）
-  lookupConfig: {
-    labelField: "displayName",
-    valueField: "memberId",
-  },
+});
+
+// 外部キー用設定（担当者選択などで使用）
+export const membersReference = createCollectionReference(membersCollection, {
+  labelField: "displayName",
+  valueField: "memberId",
 });

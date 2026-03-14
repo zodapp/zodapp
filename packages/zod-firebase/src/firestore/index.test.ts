@@ -2,9 +2,10 @@ import { describe, it, expect, vi, expectTypeOf } from "vitest";
 import { z } from "zod";
 import {
   collectionConfig,
+  createCollectionMutations,
+  createCollectionQueries,
+  createCollectionReference,
   CollectionDefinition,
-  QueryFn,
-  MutationFn,
   CollectionConfig,
   CollectionConfigMethods,
 } from "./index";
@@ -382,6 +383,31 @@ describe("collectionConfig", () => {
     });
   });
 
+  describe("分離 helper", () => {
+    it("queries / mutations / reference を別 object として作成できる", () => {
+      const queries = createCollectionQueries(testCollection, {
+        recent: () => ({
+          orderBy: [{ field: "updatedAt", direction: "desc" as const }],
+        }),
+      });
+      const mutations = createCollectionMutations(testCollection, {
+        rename: (name: string) => ({ name }),
+      });
+      const reference = createCollectionReference(testCollection, {
+        labelField: "name",
+        valueField: "userId",
+      });
+
+      expect(queries.collection).toBe(testCollection);
+      expect(mutations.collection).toBe(testCollection);
+      expect(reference.collection).toBe(testCollection);
+      expect(reference.lookupConfig).toEqual({
+        labelField: "name",
+        valueField: "userId",
+      });
+    });
+  });
+
   describe("pathFieldKeys（fieldKeys のうち path に含まれるキー）", () => {
     it("should include pathFieldKeys in storeSchema as required", () => {
       const withPathField = collectionConfig({
@@ -643,26 +669,17 @@ describe("collectionConfig", () => {
         FieldKeys extends string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodObject<any>,
-        Mutations extends Record<string, MutationFn<IntrinsicSchema>> = Record<
-          string,
-          never
-        >,
-        Queries extends Record<string, QueryFn> = Record<string, never>,
         CreateOmitKeys extends string = never,
       > = CollectionDefinition<
         Path,
         FieldKeys,
         IntrinsicSchema,
-        Mutations,
-        Queries,
         CreateOmitKeys
       > &
         CollectionConfigMethods<
           Path,
           FieldKeys,
           IntrinsicSchema,
-          Mutations,
-          Queries,
           CreateOmitKeys
         >;
 
@@ -671,18 +688,11 @@ describe("collectionConfig", () => {
         const FieldKeys extends string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodObject<any>,
-        Mutations extends Record<string, MutationFn<IntrinsicSchema>> = Record<
-          string,
-          never
-        >,
-        Queries extends Record<string, QueryFn> = Record<string, never>,
         CreateOmitKeys extends string = never,
       >() => CollectionConfigBare<
         Path,
         FieldKeys,
         IntrinsicSchema,
-        Mutations,
-        Queries,
         CreateOmitKeys
       >;
 
@@ -691,18 +701,11 @@ describe("collectionConfig", () => {
         const FieldKeys extends string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodObject<any>,
-        Mutations extends Record<string, MutationFn<IntrinsicSchema>> = Record<
-          string,
-          never
-        >,
-        Queries extends Record<string, QueryFn> = Record<string, never>,
         CreateOmitKeys extends string = never,
       >() => CollectionConfig<
         Path,
         FieldKeys,
         IntrinsicSchema,
-        Mutations,
-        Queries,
         CreateOmitKeys
       >;
 
