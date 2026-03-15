@@ -298,30 +298,31 @@ export const projects = collectionConfig({
 
 外部キー参照時の表示用ラベルと値用フィールドを指定します。他のコレクションからこのコレクションを外部キーとして参照する際に使用されます。
 
-- `label`（任意）: 表示用ラベル。フィールド名（`keyof T`）を指定するか、データから文字列を生成する関数 `(data: T) => string` を渡す。省略時は `valueField`（または `documentKey`）の値が使われる。
+- `labelField`（任意）: 表示用ラベルのフィールド名。`keyof T` で型安全に制約される。省略時は `valueField`（または `documentKey`）の値が使われる。
+- `labelFormatter`（任意）: 表示用ラベルを動的に生成する関数 `(data: T) => string`。`labelField` より優先される。
 - `valueField`（任意）: 値として保持するフィールド名。`keyof T` で型安全に制約される。省略時はコレクションの `documentKey` にフォールバックする。
 
 ```ts
 // フィールド名を指定
 export const membersRef = createCollectionReference(membersCollection, {
-  label: "displayName",
+  labelField: "displayName",
   valueField: "memberId",
 });
 
 // 関数で動的にラベルを生成
 export const membersRef2 = createCollectionReference(membersCollection, {
-  label: (data) => `${data.displayName} (${data.email})`,
+  labelFormatter: (data) => `${data.displayName} (${data.email})`,
   valueField: "memberId",
 });
 
-// label 省略（valueField の値がラベルに使われる）
+// labelField 省略（valueField の値がラベルに使われる）
 export const membersRef3 = createCollectionReference(membersCollection, {
   valueField: "memberId",
 });
 
 // valueField も省略（documentKey = "memberId" にフォールバック）
 export const membersRef4 = createCollectionReference(membersCollection, {
-  label: "displayName",
+  labelField: "displayName",
 });
 ```
 
@@ -676,7 +677,7 @@ export const members = collectionConfig({
 
 // 他のコレクションから外部キーとして参照する際の設定
 export const membersReference = createCollectionReference(members, {
-  label: "displayName",
+  labelField: "displayName",
   valueField: "memberId",
 });
 ```

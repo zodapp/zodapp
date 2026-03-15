@@ -52,17 +52,17 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         );
       }
 
-      const { label, valueField } = config.reference.config;
+      const { labelField, labelFormatter, valueField } = config.reference.config;
       const resolvedValueField =
         valueField ?? config.reference.collection.documentKey;
 
       const resolveLabel = (doc: unknown): string => {
         const record = doc as unknown as Record<string, unknown>;
-        if (typeof label === "function") {
-          return label(record);
+        if (typeof labelFormatter === "function") {
+          return labelFormatter(record);
         }
-        if (typeof label === "string") {
-          return String(record[label]);
+        if (typeof labelField === "string") {
+          return String(record[labelField]);
         }
         return String(record[resolvedValueField]);
       };

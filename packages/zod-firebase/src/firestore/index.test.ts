@@ -397,7 +397,7 @@ describe("collectionConfig", () => {
         rename: (name: string) => ({ name }),
       });
       const reference = createCollectionReference(testCollection, {
-        label: "name",
+        labelField: "name",
         valueField: "userId",
       });
 
@@ -405,7 +405,7 @@ describe("collectionConfig", () => {
       expect(mutations.collection).toBe(testCollection);
       expect(reference.collection).toBe(testCollection);
       expect(reference.config).toEqual({
-        label: "name",
+        labelField: "name",
         valueField: "userId",
       });
     });
@@ -414,7 +414,7 @@ describe("collectionConfig", () => {
   describe("CollectionReference の型ユーティリティ", () => {
     it("CollectionFromReference で元の collection 型を取り出せる", () => {
       const reference = createCollectionReference(testCollection, {
-        label: "name",
+        labelField: "name",
         valueField: "userId",
       });
 
@@ -432,40 +432,50 @@ describe("collectionConfig", () => {
   });
 
   describe("CollectionReferenceConfig の型安全性", () => {
-    it("label にフィールド名（keyof T）を指定できる", () => {
+    it("labelField にフィールド名（keyof T）を指定できる", () => {
       const ref = createCollectionReference(testCollection, {
-        label: "name",
+        labelField: "name",
         valueField: "userId",
       });
-      expect(ref.config.label).toBe("name");
+      expect(ref.config.labelField).toBe("name");
       expect(ref.config.valueField).toBe("userId");
     });
 
-    it("label に関数を指定できる", () => {
+    it("labelFormatter に関数を指定できる", () => {
       const ref = createCollectionReference(testCollection, {
-        label: (data) => `${data.name} (${data.email})`,
+        labelFormatter: (data) => `${data.name} (${data.email})`,
         valueField: "userId",
       });
-      expect(typeof ref.config.label).toBe("function");
+      expect(typeof ref.config.labelFormatter).toBe("function");
     });
 
-    it("label を省略できる", () => {
+    it("labelField と labelFormatter を同時に指定できる（labelFormatter が優先される）", () => {
+      const ref = createCollectionReference(testCollection, {
+        labelField: "name",
+        labelFormatter: (data) => `${data.name} (${data.email})`,
+        valueField: "userId",
+      });
+      expect(ref.config.labelField).toBe("name");
+      expect(typeof ref.config.labelFormatter).toBe("function");
+    });
+
+    it("labelField を省略できる", () => {
       const ref = createCollectionReference(testCollection, {
         valueField: "userId",
       });
-      expect(ref.config.label).toBeUndefined();
+      expect(ref.config.labelField).toBeUndefined();
     });
 
     it("valueField を省略できる", () => {
       const ref = createCollectionReference(testCollection, {
-        label: "name",
+        labelField: "name",
       });
       expect(ref.config.valueField).toBeUndefined();
     });
 
-    it("label と valueField の両方を省略できる（空オブジェクト）", () => {
+    it("labelField と valueField の両方を省略できる（空オブジェクト）", () => {
       const ref = createCollectionReference(testCollection, {});
-      expect(ref.config.label).toBeUndefined();
+      expect(ref.config.labelField).toBeUndefined();
       expect(ref.config.valueField).toBeUndefined();
     });
 
@@ -474,7 +484,7 @@ describe("collectionConfig", () => {
       type RefLookup = (typeof testRef)["config"];
 
       const testRef = createCollectionReference(testCollection, {
-        label: "name",
+        labelField: "name",
         valueField: "userId",
       });
       void testRef;
@@ -484,9 +494,9 @@ describe("collectionConfig", () => {
       >();
     });
 
-    it("label 関数の引数がデータ型に型付けされている", () => {
+    it("labelFormatter の引数がデータ型に型付けされている", () => {
       createCollectionReference(testCollection, {
-        label: (data) => {
+        labelFormatter: (data) => {
           expectTypeOf(data).toHaveProperty("name");
           expectTypeOf(data).toHaveProperty("email");
           expectTypeOf(data).toHaveProperty("userId");
@@ -497,25 +507,25 @@ describe("collectionConfig", () => {
       });
     });
 
-    it("存在しないフィールド名を label に指定するとコンパイルエラーになる", () => {
+    it("存在しないフィールド名を labelField に指定するとコンパイルエラーになる", () => {
       createCollectionReference(testCollection, {
         // @ts-expect-error "nonExistent" は dataSchema のキーに存在しない
-        label: "nonExistent",
+        labelField: "nonExistent",
         valueField: "userId",
       });
     });
 
     it("存在しないフィールド名を valueField に指定するとコンパイルエラーになる", () => {
       createCollectionReference(testCollection, {
-        label: "name",
+        labelField: "name",
         // @ts-expect-error "nonExistent" は dataSchema のキーに存在しない
         valueField: "nonExistent",
       });
     });
 
-    it("label 関数内で存在しないプロパティにアクセスするとコンパイルエラーになる", () => {
+    it("labelFormatter 関数内で存在しないプロパティにアクセスするとコンパイルエラーになる", () => {
       createCollectionReference(testCollection, {
-        label: (data) =>
+        labelFormatter: (data) =>
           // @ts-expect-error "nonExistent" は dataSchema のキーに存在しない
           data.nonExistent,
         valueField: "userId",

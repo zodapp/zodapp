@@ -27,7 +27,7 @@ const testCollection = collectionConfig({
   schema: z.object({ name: z.string() }),
 });
 const testReference = createCollectionReference(testCollection, {
-  label: "name",
+  labelField: "name",
 });
 
 describe("ExternalKeyConfig 型テスト", () => {
