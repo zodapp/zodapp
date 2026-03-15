@@ -65,6 +65,48 @@ const dateMetaSchema = zodExtendableCommonDefSchema.extend({
   encoding: z.enum(["timestamp", "utcEncode", "native"]).optional(),
 });
 
+/**
+ * ComputedValue - React非依存の計算結果型
+ * compute 関数の戻り値として使用。UI層（zod-form-mantine 等）が適切にレンダリングする。
+ */
+export type ComputedValue =
+  | string
+  | { type: "badge"; label: string; color?: string; value?: string }
+  | {
+      type: "icon";
+      label?: string;
+      icon: string;
+      color?: string;
+      value?: string;
+    }
+  | {
+      type: "title";
+      label?: string;
+      level: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+    };
+
+const computedValueSchema = z.custom<ComputedValue>();
+
+// string 専用メタスキーマ（formatter で表示時の整形を指定可能）
+const stringMetaSchema = zodExtendableCommonDefSchema.extend({
+  formatter: z
+    .function({
+      input: [z.string()],
+      output: computedValueSchema,
+    })
+    .optional(),
+});
+
+// number 専用メタスキーマ（formatter で表示時の整形を指定可能）
+const numberMetaSchema = zodExtendableCommonDefSchema.extend({
+  formatter: z
+    .function({
+      input: [z.number()],
+      output: computedValueSchema,
+    })
+    .optional(),
+});
+
 const common = extendCustom(
   z.never,
   "common",
@@ -114,28 +156,6 @@ const date = extendCustom(
   schemaType<z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate>(),
 );
 
-/**
- * ComputedValue - React非依存の計算結果型
- * compute 関数の戻り値として使用。UI層（zod-form-mantine 等）が適切にレンダリングする。
- */
-export type ComputedValue =
-  | string
-  | { type: "badge"; label: string; color?: string; value?: string }
-  | {
-      type: "icon";
-      label?: string;
-      icon: string;
-      color?: string;
-      value?: string;
-    }
-  | {
-      type: "title";
-      label?: string;
-      level: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
-    };
-
-const computedValueSchema = z.custom<ComputedValue>();
-
 // computed: 親オブジェクトを受け取り ComputedValue を返す
 const computed = extendCustom(
   z.never,
@@ -169,8 +189,8 @@ const derived = extendCustom(
  */
 const zf = {
   literal: extendLiteral(zodExtendableCommonDefSchema),
-  string: extendString(zodExtendableCommonDefSchema),
-  number: extendNumber(zodExtendableCommonDefSchema),
+  string: extendString(stringMetaSchema),
+  number: extendNumber(numberMetaSchema),
   bigint: extendBigint(zodExtendableCommonDefSchema),
   date, // extendCustom パターンに変更
   boolean: extendBoolean(zodExtendableCommonDefSchema),

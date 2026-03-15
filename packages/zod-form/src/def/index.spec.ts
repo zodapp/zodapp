@@ -1,6 +1,6 @@
 import z from "zod";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { getMeta, zf } from "./index";
+import { getMeta, zf, type ComputedValue } from "./index";
 
 type CommonMeta = {
   label?: string;
@@ -11,6 +11,12 @@ type CommonMeta = {
   color?: string;
   width?: number;
   align?: "left" | "center" | "right";
+};
+type StringMeta = CommonMeta & {
+  formatter?: (value: string) => ComputedValue;
+};
+type NumberMeta = CommonMeta & {
+  formatter?: (value: number) => ComputedValue;
 };
 type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
@@ -34,8 +40,9 @@ describe("zod-form def/index", () => {
       align: "center",
     });
     expectTypeOf(meta).toEqualTypeOf<
-      ({ typeName: "string" } & CommonMeta) | undefined
-    >();
+      ({ typeName: "string" } & StringMeta) | undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    >(undefined as any);
   });
 
   it("getMeta respects object properties meta (order/pick)", () => {
@@ -92,6 +99,68 @@ describe("zod-form def/index", () => {
         user: "user";
       }>
     >(undefined as any);
+  });
+
+  it("getMeta returns formatter for string with formatter", () => {
+    const fmt = (v: string) => `+${v}`;
+    const schema = zf.string().register(zf.string.registry, {
+      label: "電話番号",
+      formatter: fmt,
+    });
+    const meta = getMeta(schema);
+    expect(meta?.label).toBe("電話番号");
+    expect(meta?.formatter).toBe(fmt);
+    expect(meta?.formatter?.("123")).toBe("+123");
+    expectTypeOf(meta).toEqualTypeOf<
+      ({ typeName: "string" } & StringMeta) | undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    >(undefined as any);
+  });
+
+  it("getMeta returns no formatter when string is registered without one", () => {
+    const schema = zf.string().register(zf.string.registry, {
+      label: "名前",
+    });
+    const meta = getMeta(schema);
+    expect(meta?.formatter).toBeUndefined();
+  });
+
+  it("getMeta returns formatter for number with formatter", () => {
+    const fmt = (v: number) => v.toFixed(3);
+    const schema = zf.number().register(zf.number.registry, {
+      label: "スコア",
+      formatter: fmt,
+    });
+    const meta = getMeta(schema);
+    expect(meta?.label).toBe("スコア");
+    expect(meta?.formatter).toBe(fmt);
+    expect(meta?.formatter?.(1.5)).toBe("1.500");
+    expectTypeOf(meta).toEqualTypeOf<
+      ({ typeName: "number" } & NumberMeta) | undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    >(undefined as any);
+  });
+
+  it("number formatter can return ComputedValue badge", () => {
+    const fmt = (v: number): ComputedValue =>
+      v > 0.5
+        ? { type: "badge", label: "高", color: "green" }
+        : { type: "badge", label: "低", color: "red" };
+    const schema = zf.number().register(zf.number.registry, {
+      label: "信頼度",
+      formatter: fmt,
+    });
+    const meta = getMeta(schema);
+    expect(meta?.formatter?.(0.8)).toEqual({
+      type: "badge",
+      label: "高",
+      color: "green",
+    });
+    expect(meta?.formatter?.(0.3)).toEqual({
+      type: "badge",
+      label: "低",
+      color: "red",
+    });
   });
 
   it("returns undefined when schema is not registered or unsupported", () => {

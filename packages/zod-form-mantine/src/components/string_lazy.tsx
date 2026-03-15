@@ -12,7 +12,7 @@ import {
   useValidatePrecedingFields,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
 import z from "zod";
 
 type StringSchema = z.ZodString;
@@ -27,7 +27,8 @@ const StringLazyComponent = wrapComponent(
     error,
   }: ZodFormInternalProps<StringSchema>) {
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta } = getMeta(schema) ?? {};
+    const { label: labelFromMeta, formatter } =
+      getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
     const value = typeof field.value === "string" ? field.value : "";
@@ -64,7 +65,9 @@ const StringLazyComponent = wrapComponent(
     if (readOnly || field.disabled) {
       return (
         <InputWrapper label={label || undefined} style={inputWrapperStyle}>
-          <ReadonlyText>{value}</ReadonlyText>
+          {value && formatter
+            ? renderComputedValue(formatter(value), "readOnly")
+            : <ReadonlyText>{value}</ReadonlyText>}
         </InputWrapper>
       );
     }
