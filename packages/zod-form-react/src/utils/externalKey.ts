@@ -1,10 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { getMeta } from "@zodapp/zod-form";
-import { useExternalKeyResolver } from "../common/context";
+import {
+  useExternalKeyResolver,
+  useZodFormContext,
+  type ExternalKeyActionWrapper,
+} from "../common/context";
 import type {
   ExternalKeyConfig,
   BaseExternalKeyConfig,
   ExternalKeyResolverResult,
+  RegisteredExternalKeyActionConfig,
 } from "@zodapp/zod-form/externalKey/types";
 import type z from "zod";
 
@@ -99,4 +104,32 @@ export const useExternalKeyOptions = (
   }
 
   return { options, isLoading: false };
+};
+
+/**
+ * ExternalKey の現在値に対する action wrapper を取得する hook。
+ * 値・schema meta・runtime resolver の3点が揃ったときだけ wrapper を返す。
+ */
+export const useExternalKeyAction = (
+  schema: ExternalKeySchema,
+  value: string | null | undefined,
+): ExternalKeyActionWrapper | undefined => {
+  const meta = getMeta(schema, "externalKey");
+  const { externalKeyActionResolver } = useZodFormContext();
+
+  const actionConfig = meta?.externalKeyActionConfig as
+    | RegisteredExternalKeyActionConfig
+    | undefined;
+
+  return useMemo(() => {
+    if (!value || !actionConfig || !externalKeyActionResolver) {
+      return undefined;
+    }
+
+    return externalKeyActionResolver({
+      schema,
+      value,
+      actionConfig,
+    });
+  }, [actionConfig, externalKeyActionResolver, schema, value]);
 };

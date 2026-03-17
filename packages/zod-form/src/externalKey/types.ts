@@ -34,6 +34,25 @@ export type BaseExternalKeyConfig<TType extends ResolverId = ResolverId> = {
 };
 
 /**
+ * 外部キー action の基底パラメータ。
+ * core は router/link 実装を知らないため、広い object 型に留める。
+ */
+export type BaseExternalKeyActionParams = Record<string, unknown>;
+
+/**
+ * 外部キー action 設定の基底型。
+ * actionId は app 側が解釈し、context も runtime で注入される。
+ */
+export type BaseExternalKeyActionConfig<
+  TActionId extends string = string,
+  TContext = unknown,
+  TParams extends BaseExternalKeyActionParams = BaseExternalKeyActionParams,
+> = {
+  actionId: TActionId;
+  getActionParams: (value: string, context: TContext) => TParams;
+};
+
+/**
  * Resolver Entry（配列登録用）
  * typeをResolver側で持つことで、登録キーとconfig.typeの一致を構造的に保証
  */
@@ -85,3 +104,27 @@ export type RegisteredExternalKeyConfig = ExternalKeyConfigRegistry extends {
 }
   ? T
   : BaseExternalKeyConfig;
+
+/**
+ * 登録済みの外部キー action 設定型
+ * - ExternalKeyConfigRegistry に actionConfig が登録されていればその型を使用
+ * - 未登録なら BaseExternalKeyActionConfig にフォールバック
+ */
+export type RegisteredExternalKeyActionConfig =
+  ExternalKeyConfigRegistry extends {
+    actionConfig: infer T;
+  }
+    ? T
+    : BaseExternalKeyActionConfig;
+
+/**
+ * 登録済みの外部キー action params 型
+ * - ExternalKeyConfigRegistry に actionParams が登録されていればその型を使用
+ * - 未登録なら BaseExternalKeyActionParams にフォールバック
+ */
+export type RegisteredExternalKeyActionParams =
+  ExternalKeyConfigRegistry extends {
+    actionParams: infer T;
+  }
+    ? T
+    : BaseExternalKeyActionParams;

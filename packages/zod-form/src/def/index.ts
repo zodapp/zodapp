@@ -22,6 +22,7 @@ import {
 import type {
   ExternalKeyConfig,
   RegisteredExternalKeyConfig,
+  RegisteredExternalKeyActionConfig,
 } from "../externalKey/types";
 import type { FileConfig, RegisteredFileConfig } from "../file/types";
 
@@ -125,6 +126,8 @@ const hidden = extendCustom(
 const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
   externalKeyConfig: z.custom<ExternalKeyConfig<RegisteredExternalKeyConfig>>(),
+  // action は runtime resolver が解釈するため、core では構造だけ受ける
+  externalKeyActionConfig: z.custom<RegisteredExternalKeyActionConfig>().optional(),
 });
 
 const externalKey = extendCustom(

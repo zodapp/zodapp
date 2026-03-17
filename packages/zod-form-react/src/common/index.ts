@@ -12,7 +12,11 @@ export {
   useOnFieldChange,
   type DynamicZodFormDef,
   type ComponentLibrary,
+  type ExternalKeyActionWrapper,
+  type BaseExternalKeyActionResolver,
+  type ExternalKeyActionResolver,
 } from "./context";
+export { useExternalKeyAction } from "../utils/externalKey";
 export {
   FormProvider,
   useFormApi,

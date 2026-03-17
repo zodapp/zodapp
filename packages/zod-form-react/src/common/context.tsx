@@ -5,6 +5,8 @@ import type {
   ExternalKeyResolvers,
   ExternalKeyResolverResult,
   BaseExternalKeyConfig,
+  BaseExternalKeyActionConfig,
+  RegisteredExternalKeyActionConfig,
 } from "@zodapp/zod-form/externalKey/types";
 import type {
   FileResolvers,
@@ -13,6 +15,7 @@ import type {
 } from "@zodapp/zod-form/file/types";
 import type { MediaResolvers } from "../media/types";
 import { basicMediaResolvers } from "../mediaResolvers";
+import type z from "zod";
 
 /**
  * 動的ローダ（Dynamic loader）の型。
@@ -34,11 +37,27 @@ export type DynamicZodFormDef =
  */
 export type ComponentLibrary = Record<string, DynamicZodFormDef>;
 
+export type ExternalKeyActionWrapper = (
+  children: React.ReactNode,
+) => React.ReactNode;
+
+export type BaseExternalKeyActionResolver<
+  TActionConfig = BaseExternalKeyActionConfig,
+> = (ctx: {
+  schema: z.ZodString;
+  value: string;
+  actionConfig: TActionConfig;
+}) => ExternalKeyActionWrapper | undefined;
+
+export type ExternalKeyActionResolver =
+  BaseExternalKeyActionResolver<RegisteredExternalKeyActionConfig>;
+
 type ZodFormContextType = {
   componentLibrary: ComponentLibrary;
   loadingComponent: ZodForm;
   notFoundComponent: ZodForm;
   externalKeyResolvers?: ExternalKeyResolvers;
+  externalKeyActionResolver?: ExternalKeyActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（timestamp encoding 時に使用） */
@@ -53,10 +72,7 @@ const getDefaultTimezone = (): string =>
 
 const ZodFormContext = createContext<ZodFormContextType>({
   componentLibrary: {},
-  loadingComponent: (props) => {
-    const meta = getMeta(props.schema);
-    return <div>Loading...</div>;
-  },
+  loadingComponent: () => <div>Loading...</div>,
   notFoundComponent: ({ schema }) => {
     const meta = getMeta(schema);
     return (
@@ -79,6 +95,7 @@ export const ZodFormContextProvider = ({
   loadingComponent,
   notFoundComponent,
   externalKeyResolvers,
+  externalKeyActionResolver,
   fileResolvers,
   mediaResolvers,
   timezone,
@@ -89,6 +106,7 @@ export const ZodFormContextProvider = ({
   loadingComponent?: ZodForm;
   notFoundComponent?: ZodForm;
   externalKeyResolvers?: ExternalKeyResolvers;
+  externalKeyActionResolver?: ExternalKeyActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（省略時はブラウザのローカルTZ） */
@@ -116,6 +134,8 @@ export const ZodFormContextProvider = ({
     notFoundComponent: notFoundComponent || parentContext.notFoundComponent,
     externalKeyResolvers:
       externalKeyResolvers ?? parentContext.externalKeyResolvers,
+    externalKeyActionResolver:
+      externalKeyActionResolver ?? parentContext.externalKeyActionResolver,
     fileResolvers: fileResolvers ?? parentContext.fileResolvers,
     mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
     timezone: timezone ?? parentContext.timezone,

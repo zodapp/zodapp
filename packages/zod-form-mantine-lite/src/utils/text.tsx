@@ -19,8 +19,10 @@ const readonlyTextStyle = {
  * 読み取り専用のテキスト表示用コンポーネント
  */
 export const ReadonlyText = ({ children, ...props }: ReadonlyTextProps) => {
+  const { style, ...restProps } = props;
+
   return (
-    <Text size="sm" style={readonlyTextStyle} {...props}>
+    <Text size="sm" style={{ ...readonlyTextStyle, ...style }} {...restProps}>
       {children}
     </Text>
   );

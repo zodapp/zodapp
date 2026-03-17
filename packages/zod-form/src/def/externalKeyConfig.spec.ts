@@ -14,6 +14,10 @@ import { zf } from "./index";
 import type {
   RegisteredExternalKeyConfig,
   BaseExternalKeyConfig,
+  RegisteredExternalKeyActionConfig,
+  RegisteredExternalKeyActionParams,
+  BaseExternalKeyActionConfig,
+  BaseExternalKeyActionParams,
   ExternalKeyConfigRegistry,
 } from "../externalKey/types";
 
@@ -29,6 +33,14 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       // ExternalKeyConfigRegistry に config が定義されていない場合、
       // RegisteredExternalKeyConfig は BaseExternalKeyConfig にフォールバック
       expectTypeOf<RegisteredExternalKeyConfig>().toEqualTypeOf<BaseExternalKeyConfig>();
+    });
+
+    it("RegisteredExternalKeyActionConfig は未拡張時 BaseExternalKeyActionConfig にフォールバック", () => {
+      expectTypeOf<RegisteredExternalKeyActionConfig>().toEqualTypeOf<BaseExternalKeyActionConfig>();
+    });
+
+    it("RegisteredExternalKeyActionParams は未拡張時 BaseExternalKeyActionParams にフォールバック", () => {
+      expectTypeOf<RegisteredExternalKeyActionParams>().toEqualTypeOf<BaseExternalKeyActionParams>();
     });
   });
 
@@ -50,6 +62,23 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
         externalKeyConfig: () => ({
           type: "anyResolver",
         }),
+      });
+      expectTypeOf(schema).toBeObject();
+    });
+
+    it("BaseExternalKeyActionConfig を指定できる", () => {
+      const schema = zf.string().register(zf.externalKey.registry, {
+        label: "テスト",
+        externalKeyConfig: {
+          type: "anyResolver",
+        },
+        externalKeyActionConfig: {
+          actionId: "anyAction",
+          getActionParams: (value: string, context: unknown) => ({
+            value,
+            context,
+          }),
+        },
       });
       expectTypeOf(schema).toBeObject();
     });
@@ -109,6 +138,9 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
 
       // BaseExternalKeyConfig は type を持つ
       expectTypeOf<BaseExternalKeyConfig["type"]>().toEqualTypeOf<string>();
+
+      // BaseExternalKeyActionConfig は actionId / getActionParams を持つ
+      expectTypeOf<BaseExternalKeyActionConfig["actionId"]>().toEqualTypeOf<string>();
     });
   });
 });
