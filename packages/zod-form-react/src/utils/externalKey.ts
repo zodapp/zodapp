@@ -113,6 +113,7 @@ export const useExternalKeyOptions = (
 export const useExternalKeyAction = (
   schema: ExternalKeySchema,
   value: string | null | undefined,
+  newTab?: boolean,
 ): ExternalKeyActionWrapper | undefined => {
   const meta = getMeta(schema, "externalKey");
   const { externalKeyActionResolver } = useZodFormContext();
@@ -127,9 +128,9 @@ export const useExternalKeyAction = (
     }
 
     return externalKeyActionResolver({
-      schema,
       value,
       actionConfig,
+      newTab,
     });
-  }, [actionConfig, externalKeyActionResolver, schema, value]);
+  }, [actionConfig, externalKeyActionResolver, newTab, value]);
 };

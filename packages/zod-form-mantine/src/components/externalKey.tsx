@@ -72,7 +72,7 @@ const ExternalKeyComponent = wrapComponent(
     if (readOnly || field.disabled) {
       return (
         <InputWrapper label={label || undefined} style={inputWrapperStyle}>
-          <Group gap="xs" wrap="nowrap" align="center">
+          <Group gap="0" wrap="nowrap" align="center">
             <ReadonlyText style={{ flex: 1 }}>{displayLabel}</ReadonlyText>
             {actionContent}
           </Group>
@@ -146,7 +146,7 @@ const ExternalKeyComponent = wrapComponent(
     }
 
     return (
-      <Group gap="xs" wrap="nowrap" align="flex-end">
+      <Group gap="0" wrap="nowrap" align="flex-end">
         <div style={{ flex: 1 }}>{select}</div>
         {actionContent}
       </Group>

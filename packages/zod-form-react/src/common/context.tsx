@@ -15,7 +15,6 @@ import type {
 } from "@zodapp/zod-form/file/types";
 import type { MediaResolvers } from "../media/types";
 import { basicMediaResolvers } from "../mediaResolvers";
-import type z from "zod";
 
 /**
  * 動的ローダ（Dynamic loader）の型。
@@ -44,9 +43,9 @@ export type ExternalKeyActionWrapper = (
 export type BaseExternalKeyActionResolver<
   TActionConfig = BaseExternalKeyActionConfig,
 > = (ctx: {
-  schema: z.ZodString;
   value: string;
   actionConfig: TActionConfig;
+  newTab?: boolean;
 }) => ExternalKeyActionWrapper | undefined;
 
 export type ExternalKeyActionResolver =

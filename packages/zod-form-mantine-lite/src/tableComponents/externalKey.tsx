@@ -14,7 +14,7 @@ const ExternalKeyComponent = ({
 }: ZodFormProps<ExternalKeySchema>) => {
   const value = typeof defaultValue === "string" ? defaultValue : null;
   const { options, isLoading } = useExternalKeyOptions(schema);
-  const actionWrapper = useExternalKeyAction(schema, value);
+  const actionWrapper = useExternalKeyAction(schema, value, false);
 
   if (isLoading) {
     return <Loader size="xs" />;
