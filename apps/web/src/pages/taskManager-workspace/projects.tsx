@@ -14,10 +14,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
-import {
-  getAccessor,
-  getQueriesAccessor,
-} from "@zodapp/zod-firebase-browser";
+import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
 import { AutoTable } from "../../components/AutoTable";
@@ -61,13 +58,9 @@ const ProjectsPage = () => {
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
   const storeKey = useStoreKey();
 
-  // CRUD accessor / query accessor を取得
+  // CRUD accessor を取得
   const projectAccessor = useMemo(
     () => getAccessor(firestore, projectsCollection, storeKey),
-    [storeKey],
-  );
-  const projectQueriesAccessor = useMemo(
-    () => getQueriesAccessor(firestore, projectQueries, storeKey),
     [storeKey],
   );
 
@@ -79,7 +72,7 @@ const ProjectsPage = () => {
     collection: projectsCollection,
     collectionIdentity,
     query: {
-      ...projectQueriesAccessor.active.params(),
+      ...projectQueries.queries.active(),
       orderBy: [{ field: "createdAt", direction: "desc" }],
     },
     clientFilter,

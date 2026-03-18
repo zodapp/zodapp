@@ -57,8 +57,7 @@ const TaskDetailPage = () => {
         storeKey,
         conditions: {
           membersCondition: {
-            identityParams: { workspaceId },
-            where: [],
+            workspaceId,
           },
         },
       }),

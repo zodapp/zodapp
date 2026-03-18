@@ -7,6 +7,7 @@ export { workspacesCollection } from "./workspace";
 export {
   memberRoleSchema,
   membersCollection,
+  memberQueries,
   membersReference,
   type MemberRole,
 } from "./member";

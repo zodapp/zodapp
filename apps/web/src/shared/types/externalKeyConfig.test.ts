@@ -16,6 +16,7 @@ import type { WebExternalKeyConfig } from "./externalKeyConfig";
 // 実際の collectionConfig 関数を使うと依存が複雑になるため、型だけを模倣
 import {
   collectionConfig,
+  createCollectionQueries,
   createCollectionReference,
 } from "@zodapp/zod-firebase";
 import { z } from "zod";
@@ -28,6 +29,9 @@ const testCollection = collectionConfig({
 });
 const testReference = createCollectionReference(testCollection, {
   labelField: "name",
+});
+const testQueries = createCollectionQueries(testCollection, {
+  all: () => ({}),
 });
 
 describe("ExternalKeyConfig 型テスト", () => {
@@ -52,6 +56,7 @@ describe("ExternalKeyConfig 型テスト", () => {
           type: "firestore",
           reference: testReference,
           conditionId: "testCondition",
+          getQuery: () => testQueries.queries.all(),
         },
       });
       expectTypeOf(schema).toBeObject();
@@ -65,6 +70,7 @@ describe("ExternalKeyConfig 型テスト", () => {
           type: "firestore",
           reference: testReference,
           conditionId: "testCondition",
+          getQuery: () => testQueries.queries.all(),
         }),
       });
       expectTypeOf(schema).toBeObject();
@@ -76,6 +82,7 @@ describe("ExternalKeyConfig 型テスト", () => {
         type: "firestore" as const,
         reference: testReference,
         conditionId: "default",
+        getQuery: () => testQueries.queries.all(),
       } satisfies WebExternalKeyConfig;
 
       expectTypeOf(config).toMatchTypeOf<FirestoreExternalKeyConfig>();

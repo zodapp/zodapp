@@ -28,10 +28,7 @@ import {
   taskQueries,
   tasksCollection,
 } from "../../shared/taskManager/collections/task";
-import {
-  getAccessor,
-  getQueriesAccessor,
-} from "@zodapp/zod-firebase-browser";
+import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
 import { AutoForm } from "../../components/AutoForm";
 import { AutoSearch } from "../../components/AutoSearch";
@@ -86,10 +83,6 @@ const TasksPage = () => {
     () => getAccessor(firestore, tasksCollection, storeKey),
     [storeKey],
   );
-  const taskQueriesAccessor = useMemo(
-    () => getQueriesAccessor(firestore, taskQueries, storeKey),
-    [storeKey],
-  );
 
   // 外部キーResolver（workspaceIdを固定）
   const externalKeyResolvers = useMemo(
@@ -99,8 +92,7 @@ const TasksPage = () => {
         storeKey,
         conditions: {
           membersCondition: {
-            identityParams: { workspaceId },
-            where: [],
+            workspaceId,
           },
         },
       }),
@@ -111,21 +103,18 @@ const TasksPage = () => {
   // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離
   const { fetchCondition, clientFilter } = useMemo(() => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
+    const activeQuery = taskQueries.queries.active();
 
-    const fetchCondition: WhereParams[] = [
-      ...(taskQueriesAccessor.active.params().where ?? []),
-    ];
+    const fetchCondition: WhereParams[] = [...(activeQuery.where ?? [])];
     const { status, ...rest } = q;
     if (status) {
-      fetchCondition.push(
-        ...(taskQueriesAccessor.byStatus.params(status).where ?? []),
-      );
+      fetchCondition.push(...(taskQueries.queries.byStatus(status).where ?? []));
     }
     return {
       fetchCondition,
       clientFilter: createMingoFilter(rest),
     };
-  }, [search.q, taskQueriesAccessor]);
+  }, [search.q]);
 
   const {
     items: tasks,

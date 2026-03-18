@@ -1,6 +1,5 @@
 export {
   getAccessor,
-  getQueriesAccessor,
   getMutationsAccessor,
   queryBuilder,
 } from "./firestore";

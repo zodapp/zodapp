@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   collectionConfig,
+  createCollectionQueries,
   createCollectionReference,
 } from "@zodapp/zod-firebase";
 import { zf } from "@zodapp/zod-form";
@@ -75,4 +76,8 @@ export const membersCollection = collectionConfig({
 // 外部キー用設定（担当者選択などで使用）
 export const membersReference = createCollectionReference(membersCollection, {
   labelField: "displayName",
+});
+
+export const memberQueries = createCollectionQueries(membersCollection, {
+  all: () => ({}),
 });

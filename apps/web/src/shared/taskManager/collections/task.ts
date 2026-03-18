@@ -6,7 +6,7 @@ import {
 } from "@zodapp/zod-firebase";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
-import { membersReference } from "./member";
+import { memberQueries, membersReference } from "./member";
 
 // タスクステータス（カンバン対応）
 export const taskStatusLiterals = [
@@ -88,6 +88,7 @@ const taskDataSchema = z
           type: "firestore",
           reference: membersReference,
           conditionId: "membersCondition",
+          getQuery: () => memberQueries.queries.all(),
         },
         width: 150,
       })
@@ -100,6 +101,7 @@ const taskDataSchema = z
             type: "firestore",
             reference: membersReference,
             conditionId: "membersCondition",
+            getQuery: () => memberQueries.queries.all(),
           }),
           width: 150,
         }),

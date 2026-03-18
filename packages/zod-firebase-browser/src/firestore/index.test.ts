@@ -10,7 +10,6 @@ import {
 import {
   getAccessor,
   getMutationsAccessor,
-  getQueriesAccessor,
   type AccessorLevelQueryOptions,
 } from "./index";
 
@@ -50,24 +49,29 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
   type DocParams = z.infer<typeof tasksCollection.documentIdentitySchema>;
   type Task = z.infer<typeof tasksCollection.dataSchema>;
 
-  it("正常系: CRUD accessor と query/mutation accessor がそれぞれ型推論される", () => {
+  it("正常系: CRUD accessor と query 定義 / mutation accessor がそれぞれ型推論される", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
     const storeKey = {};
     const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
-    const taskQueriesAccessor = getQueriesAccessor(
-      firestore,
-      taskQueries,
-      storeKey,
-    );
     const taskMutationsAccessor = getMutationsAccessor(
       firestore,
       taskMutations,
       storeKey,
     );
+    const activeQuery = taskQueries.queries.active();
+    const doneQuery = taskQueries.queries.byStatus("done");
 
-    expectTypeOf(taskQueriesAccessor).toHaveProperty("active");
-    expectTypeOf(taskQueriesAccessor.active).toHaveProperty("get");
-    expectTypeOf(taskQueriesAccessor.active).toHaveProperty("params");
+    expect(taskQueries.collection).toBe(tasksCollection);
+    expect(activeQuery).toEqual({
+      where: [{ field: "deletedAt", operator: "==", value: null }],
+    });
+    expect(doneQuery).toEqual({
+      where: [{ field: "status", operator: "==", value: "done" }],
+    });
+
+    expectTypeOf(taskQueries).toHaveProperty("queries");
+    expectTypeOf(taskQueries.queries).toHaveProperty("active");
+    expectTypeOf(taskQueries.queries).toHaveProperty("byStatus");
     expectTypeOf(taskMutationsAccessor).toHaveProperty("setDueDate");
     expectTypeOf(taskAccessor.collectionGroupQuery).returns.toEqualTypeOf<
       Promise<Task[]>
@@ -76,30 +80,20 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
       Promise<firebase.firestore.DocumentSnapshot[]>
     >();
 
-    type ActiveGetTail = Tail<Parameters<typeof taskQueriesAccessor.active.get>>;
-    type ByStatusGetTail = Tail<
-      Parameters<typeof taskQueriesAccessor.byStatus.get>
-    >;
+    type ActiveQueryArgs = Parameters<(typeof taskQueries.queries)["active"]>;
+    type ByStatusQueryArgs = Parameters<(typeof taskQueries.queries)["byStatus"]>;
     type SetDueDateTail = Tail<
       Parameters<typeof taskMutationsAccessor.setDueDate>
     >;
 
-    expectTypeOf<ActiveGetTail>().toEqualTypeOf<[]>();
-    expectTypeOf<ByStatusGetTail>().toEqualTypeOf<[TaskStatus]>();
+    expectTypeOf<ActiveQueryArgs>().toEqualTypeOf<[]>();
+    expectTypeOf<ByStatusQueryArgs>().toEqualTypeOf<[TaskStatus]>();
     expectTypeOf<SetDueDateTail>().toEqualTypeOf<[Date]>();
 
-    expectTypeOf(taskQueriesAccessor.active.get).returns.toEqualTypeOf<
-      Promise<Task[]>
-    >();
-    expectTypeOf(taskQueriesAccessor.byStatus.get).returns.toEqualTypeOf<
-      Promise<Task[]>
-    >();
-    expectTypeOf(taskQueriesAccessor.active.params).returns.toEqualTypeOf<
-      QueryOptions
-    >();
-    expectTypeOf(taskQueriesAccessor.byStatus.params).returns.toEqualTypeOf<
-      QueryOptions
-    >();
+    expectTypeOf<ReturnType<(typeof taskQueries.queries)["active"]>>()
+      .toMatchTypeOf<QueryOptions>();
+    expectTypeOf<ReturnType<(typeof taskQueries.queries)["byStatus"]>>()
+      .toMatchTypeOf<QueryOptions>();
   });
 
   it("異常系: bound mutation の引数が違うと型エラーになる（@ts-expect-error）", () => {
@@ -130,7 +124,7 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     expect(true).toBe(true);
   });
 
-  it("異常系: empty queries / mutations は accessor から触れない", () => {
+  it("異常系: empty queries / mutations は定義から触れない", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
     const storeKey = {};
     const bareCollection = collectionConfig({
@@ -143,25 +137,20 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     });
     const bareQueries = createCollectionQueries(bareCollection, {});
     const bareMutations = createCollectionMutations(bareCollection, {});
-    const bareQueriesAccessor = getQueriesAccessor(
-      firestore,
-      bareQueries,
-      storeKey,
-    );
     const bareMutationsAccessor = getMutationsAccessor(
       firestore,
       bareMutations,
       storeKey,
     );
 
-    expectTypeOf(bareQueriesAccessor).toEqualTypeOf<Record<string, never>>();
+    expect(Object.keys(bareQueries.queries)).toEqual([]);
     expectTypeOf(bareMutationsAccessor).toEqualTypeOf<Record<string, never>>();
 
     if (false as boolean) {
       // @ts-expect-error mutations は定義されていないので呼び出せない
       bareMutationsAccessor.anything();
-      // @ts-expect-error queries は定義されていないので get も存在しない
-      bareQueriesAccessor.anything.get();
+      // @ts-expect-error queries は定義されていないので呼び出せない
+      bareQueries.queries.anything();
     }
   });
 
@@ -176,8 +165,6 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     const storeKey = {};
     const collectionA1 = getAccessor(firestore, tasksCollection, storeKey);
     const collectionA2 = getAccessor(firestore, tasksCollection, storeKey);
-    const queriesA1 = getQueriesAccessor(firestore, taskQueries, storeKey);
-    const queriesA2 = getQueriesAccessor(firestore, taskQueries, storeKey);
     const mutationsA1 = getMutationsAccessor(
       firestore,
       taskMutations,
@@ -190,24 +177,27 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     );
 
     expect(collectionA1).toBe(collectionA2);
-    expect(queriesA1).toBe(queriesA2);
     expect(mutationsA1).toBe(mutationsA2);
   });
 
   it("正常系: 同一 db + 同一 config でも storeKey が違えば別 accessor になる", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
-    const a1 = getQueriesAccessor(firestore, taskQueries, {});
-    const a2 = getQueriesAccessor(firestore, taskQueries, {});
-    expect(a1).not.toBe(a2);
+    const collectionA1 = getAccessor(firestore, tasksCollection, {});
+    const collectionA2 = getAccessor(firestore, tasksCollection, {});
+    const mutationsA1 = getMutationsAccessor(firestore, taskMutations, {});
+    const mutationsA2 = getMutationsAccessor(firestore, taskMutations, {});
+
+    expect(collectionA1).not.toBe(collectionA2);
+    expect(mutationsA1).not.toBe(mutationsA2);
   });
 
   it("型テスト: query / querySnapshot は AccessorLevelQueryOptions を受け付ける", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
     const storeKey = {};
-    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+    const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
-    type QuerySecondArg = Parameters<typeof taskAccessor.query>[1];
-    type QuerySnapshotSecondArg = Parameters<typeof taskAccessor.querySnapshot>[1];
+    type QuerySecondArg = Parameters<typeof _taskAccessor.query>[1];
+    type QuerySnapshotSecondArg = Parameters<typeof _taskAccessor.querySnapshot>[1];
 
     expectTypeOf<QuerySecondArg>().toEqualTypeOf<
       AccessorLevelQueryOptions | undefined
@@ -220,10 +210,10 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
   it("型テスト: collectionGroupQuery / collectionGroupQuerySnapshot は AccessorLevelQueryOptions を受け付ける", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
     const storeKey = {};
-    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+    const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
-    type CGQArg = Parameters<typeof taskAccessor.collectionGroupQuery>[0];
-    type CGQSArg = Parameters<typeof taskAccessor.collectionGroupQuerySnapshot>[0];
+    type CGQArg = Parameters<typeof _taskAccessor.collectionGroupQuery>[0];
+    type CGQSArg = Parameters<typeof _taskAccessor.collectionGroupQuerySnapshot>[0];
 
     expectTypeOf<CGQArg>().toEqualTypeOf<
       AccessorLevelQueryOptions | undefined
@@ -236,10 +226,12 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
   it("型テスト: querySync / querySnapshotSync は QueryOptions を受け付ける", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
     const storeKey = {};
-    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+    const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
-    type QuerySyncSecondArg = Parameters<typeof taskAccessor.querySync>[1];
-    type QuerySnapshotSyncSecondArg = Parameters<typeof taskAccessor.querySnapshotSync>[1];
+    type QuerySyncSecondArg = Parameters<typeof _taskAccessor.querySync>[1];
+    type QuerySnapshotSyncSecondArg = Parameters<
+      typeof _taskAccessor.querySnapshotSync
+    >[1];
 
     expectTypeOf<QuerySyncSecondArg>().toEqualTypeOf<QueryOptions>();
     expectTypeOf<QuerySnapshotSyncSecondArg>().toEqualTypeOf<QueryOptions>();
