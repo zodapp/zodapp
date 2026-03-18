@@ -3,8 +3,7 @@ export { createFirestoreResolver } from "./externalKey";
 export type {
   FirestoreExternalKeyConfig,
   FirestoreExternalKeyConfigCore,
-  FirestoreCondition,
-  FirestoreConditions,
+  FirestoreConditionContextMap,
 } from "./externalKey/types";
 
 // File

@@ -9,7 +9,7 @@ import type {
 import type {
   FirestoreExternalKeyConfig,
   FirestoreExternalKeyConfigCore,
-  FirestoreConditions,
+  FirestoreConditionContextMap,
 } from "./types";
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
 import {
@@ -26,9 +26,12 @@ type Firestore = firebase.firestore.Firestore;
  * キャッシュはquerySyncに委譲する。querySyncは内部でsubscriptionCacheを使用しており、
  * 同じ{ collectionIdentityParams, queryParams }に対してFirestore subscriptionを共有する。
  *
+ * conditions は conditionId をキーとする context map。
+ * query 生成は externalKeyConfig.getQuery に委譲する。
+ *
  * @param type - ResolverのID（デフォルト: "firestore"）
  * @param db - Firestoreインスタンス
- * @param conditions - 絞り込み条件群（conditionIdをキーとする）
+ * @param conditions - condition context map（conditionIdをキーとする）
  */
 export function createFirestoreResolver<TType extends string = "firestore">({
   type = "firestore" as TType,
@@ -39,14 +42,14 @@ export function createFirestoreResolver<TType extends string = "firestore">({
   type?: TType;
   db: Firestore;
   storeKey: AccessorStoreKey;
-  conditions: FirestoreConditions;
+  conditions: FirestoreConditionContextMap;
 }): ExternalKeyResolverEntry<TType, FirestoreExternalKeyConfigCore> {
   return {
     type,
     resolver: (config: FirestoreExternalKeyConfig<TType>) => {
-      const condition = conditions[config.conditionId];
+      const context = conditions[config.conditionId];
 
-      if (!condition) {
+      if (!context) {
         throw new Error(
           `conditionId "${config.conditionId}" not found in conditions`,
         );
@@ -67,10 +70,18 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         return String(record[resolvedValueField]);
       };
 
+      const resolved = config.getQuery("", context);
+      const collectionIdentityKeys =
+        config.reference.collection.collectionIdentityKeys as readonly string[];
+      const identityParams = Object.fromEntries(
+        collectionIdentityKeys
+          .filter((key) => key in context)
+          .map((key) => [key, String(context[key])]),
+      );
+      const queryOptions = { where: resolved.where ?? [] };
+
       return {
         subscribe: (callback: ExternalKeyOptionsHandler) => {
-          // LooseCollectionReferenceBase.collection は CollectionConfigBase と互換性があるが、
-          // 型定義上は $replace 回避のため緩い型を使用しているため、キャストが必要
           // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           const accessor = getAccessor(
             db,
@@ -78,19 +89,12 @@ export function createFirestoreResolver<TType extends string = "firestore">({
             storeKey,
           );
 
-          // querySyncが内部でsubscriptionCacheを使ってキャッシュ
-          // 同じpathParams + whereのクエリはFirestore subscriptionを共有
           return accessor.querySync(
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-explicit-any
-            condition.identityParams as any,
-            { where: condition.where ?? [] },
+            identityParams as any,
+            queryOptions,
             (docs) => {
-              // filterはキャッシュ外（callback内）で適用
-              const filtered = condition.filter
-                ? docs.filter(condition.filter)
-                : docs;
-
-              const options = filtered.map((doc) => ({
+              const options = docs.map((doc) => ({
                 label: resolveLabel(doc),
                 value: String(
                   (doc as unknown as Record<string, unknown>)[

@@ -4,7 +4,7 @@
 
 import type {
   LooseCollectionReferenceBase,
-  WhereParams,
+  QueryOptions,
 } from "@zodapp/zod-firebase";
 import type { BaseExternalKeyConfig } from "@zodapp/zod-form/externalKey/types";
 
@@ -18,7 +18,8 @@ import type { BaseExternalKeyConfig } from "@zodapp/zod-form/externalKey/types";
  */
 export type FirestoreExternalKeyConfigCore = {
   reference: LooseCollectionReferenceBase;
-  conditionId: string; // 必須（defaultは廃止）
+  conditionId: string;
+  getQuery: (value: string, context: Record<string, unknown>) => QueryOptions;
 };
 
 /**
@@ -29,18 +30,11 @@ export type FirestoreExternalKeyConfig<TType extends string = "firestore"> =
   BaseExternalKeyConfig<TType> & FirestoreExternalKeyConfigCore;
 
 /**
- * 絞り込み条件（resolver生成時に注入）
+ * condition context map（conditionId をキーとする）
+ *
+ * 画面側は context のみを渡し、query 生成は externalKeyConfig.getQuery に委譲する。
  */
-export type FirestoreCondition = {
-  /** querySyncの第1引数（collectionIdentityParams）に渡す */
-  identityParams: Record<string, string>;
-  /** where条件 */
-  where?: WhereParams[];
-  /** クライアントサイドでの追加フィルタ */
-  filter?: (doc: unknown) => boolean;
-};
-
-/**
- * 条件群（conditionIdをキーとする）
- */
-export type FirestoreConditions = Record<string, FirestoreCondition>;
+export type FirestoreConditionContextMap = Record<
+  string,
+  Record<string, unknown>
+>;
