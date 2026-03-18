@@ -11,6 +11,7 @@ import {
   getAccessor,
   getMutationsAccessor,
   getQueriesAccessor,
+  type AccessorLevelQueryOptions,
 } from "./index";
 
 describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
@@ -198,5 +199,49 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     const a1 = getQueriesAccessor(firestore, taskQueries, {});
     const a2 = getQueriesAccessor(firestore, taskQueries, {});
     expect(a1).not.toBe(a2);
+  });
+
+  it("型テスト: query / querySnapshot は AccessorLevelQueryOptions を受け付ける", () => {
+    const firestore = {} as unknown as firebase.firestore.Firestore;
+    const storeKey = {};
+    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+
+    type QuerySecondArg = Parameters<typeof taskAccessor.query>[1];
+    type QuerySnapshotSecondArg = Parameters<typeof taskAccessor.querySnapshot>[1];
+
+    expectTypeOf<QuerySecondArg>().toEqualTypeOf<
+      AccessorLevelQueryOptions | undefined
+    >();
+    expectTypeOf<QuerySnapshotSecondArg>().toEqualTypeOf<
+      AccessorLevelQueryOptions | undefined
+    >();
+  });
+
+  it("型テスト: collectionGroupQuery / collectionGroupQuerySnapshot は AccessorLevelQueryOptions を受け付ける", () => {
+    const firestore = {} as unknown as firebase.firestore.Firestore;
+    const storeKey = {};
+    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+
+    type CGQArg = Parameters<typeof taskAccessor.collectionGroupQuery>[0];
+    type CGQSArg = Parameters<typeof taskAccessor.collectionGroupQuerySnapshot>[0];
+
+    expectTypeOf<CGQArg>().toEqualTypeOf<
+      AccessorLevelQueryOptions | undefined
+    >();
+    expectTypeOf<CGQSArg>().toEqualTypeOf<
+      AccessorLevelQueryOptions | undefined
+    >();
+  });
+
+  it("型テスト: querySync / querySnapshotSync は QueryOptions を受け付ける", () => {
+    const firestore = {} as unknown as firebase.firestore.Firestore;
+    const storeKey = {};
+    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+
+    type QuerySyncSecondArg = Parameters<typeof taskAccessor.querySync>[1];
+    type QuerySnapshotSyncSecondArg = Parameters<typeof taskAccessor.querySnapshotSync>[1];
+
+    expectTypeOf<QuerySyncSecondArg>().toEqualTypeOf<QueryOptions>();
+    expectTypeOf<QuerySnapshotSyncSecondArg>().toEqualTypeOf<QueryOptions>();
   });
 });

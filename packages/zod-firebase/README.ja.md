@@ -444,6 +444,42 @@ type QueryOptions = {
 
 ---
 
+## autoQuery（collectionIdentity からの自動 where 生成）
+
+`collectionIdentity` に nonPathKeys（`fieldKeys` のうち path に含まれないキー）がある場合、アクセサはそれらのキーに対して自動的に `where field == value` を付与します。これにより、アプリ側で `teamId == teamId` などを手動でクエリ条件に追加する必要がなくなります。
+
+**API**:
+
+- `config.nonPathKeys` — コレクション設定の nonPathKeys プロパティ（`fieldKeys` のうち path に含まれないキー）
+- `resolveScopedQueryOptions(config, identity, explicitQuery)` — auto where と明示クエリをマージし、重複排除・競合時はエラーを投げる
+
+**ルール**:
+
+- pathFieldKeys（fieldKeys かつ path に含まれるキー）は auto 対象外
+- `query === undefined` でも auto where は適用される
+- `where: []` でも auto scope は解除されない
+- auto 対象フィールドの同値 `==` は重複排除される
+- auto 対象フィールドに対する別値の `==` や非 `==` 演算子はエラー
+
+**使用例（Before / After）**:
+
+```ts
+// Before: アプリ側で teamId を毎回 where に追加
+accessor.list(identity, {
+  where: [
+    { field: "teamId", operator: "==", value: identity.teamId },
+    { field: "status", operator: "==", value: "active" },
+  ],
+});
+
+// After: nonPathKeys が teamId の場合、auto where が付与されるため省略可能
+accessor.list(identity, {
+  where: [{ field: "status", operator: "==", value: "active" }],
+});
+```
+
+---
+
 ## 生成されるスキーマと型（`z.infer`）
 
 `collectionConfig()` は、`path` と `schema` を起点に用途別の `***Schema` を多数生成します。これらは **フロント/バック両方で同じ型として共有**でき、`z.infer<typeof collection.***Schema>`（`collection` は `collectionConfig()` の戻り値。例: `tasks`）で型を取り出せます。
@@ -769,6 +805,7 @@ const updated = users.beforeWrite(
 - 設定関連型: `CollectionConfig`, `CollectionConfigBase`, `LooseCollectionConfigBase`, `BrandedCollectionConfig`, `CollectionDefinition`, `CollectionReferenceConfig`
 - Identity 関連型: `IdentityKeys`, `IdentityParams`, `DocumentIdentityParams`, `CollectionIdentityParams`, `CollectionIdentityKeys`
 - クエリ関連型: `QueryOptions`, `WhereParams`, `OrderByParams`, `WhereFilterOp`, `QueryFn`
+- autoQuery ヘルパー: `resolveScopedQueryOptions`
 - ミューテーション関連型: `MutationFn`
 
 ## 関連

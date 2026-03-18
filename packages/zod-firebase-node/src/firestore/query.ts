@@ -5,7 +5,7 @@ import {
 } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import { firestore } from "firebase-admin";
-import { getAccessor, queryBuilder } from "./collection";
+import { getAccessor } from "./collection";
 
 type DocumentSnapshot = firestore.DocumentSnapshot;
 type QuerySnapshot<T = firestore.DocumentData> = firestore.QuerySnapshot<T>;
@@ -103,7 +103,7 @@ const getQueriesAccessorInternal = <
           ...args: any[]
         ) => {
           const queryParams = (queryFn as QueryFn)(...args);
-          return accessor.query(collectionId, queryBuilder(queryParams));
+          return accessor.query(collectionId, queryParams);
         },
         getSnapshot: async (
           collectionId: CollIdentityParams,
@@ -111,7 +111,7 @@ const getQueriesAccessorInternal = <
           ...args: any[]
         ) => {
           const queryParams = (queryFn as QueryFn)(...args);
-          return accessor.querySnapshot(collectionId, queryBuilder(queryParams));
+          return accessor.querySnapshot(collectionId, queryParams);
         },
         sync: (
           collectionId: CollIdentityParams,

@@ -8,7 +8,6 @@ import type { z } from "zod";
 import firebase from "firebase/compat/app";
 import {
   getAccessor,
-  queryBuilder,
   type AccessorStoreKey,
 } from "./collection";
 
@@ -102,7 +101,7 @@ const getQueriesAccessorInternal = <
           ...args: any[]
         ) => {
           const queryParams = (queryFn as QueryFn)(...args);
-          return accessor.query(collectionId, queryBuilder(queryParams));
+          return accessor.query(collectionId, queryParams);
         },
         getSnapshot: async (
           collectionId: CollIdentityParams,
@@ -110,7 +109,7 @@ const getQueriesAccessorInternal = <
           ...args: any[]
         ) => {
           const queryParams = (queryFn as QueryFn)(...args);
-          return accessor.querySnapshot(collectionId, queryBuilder(queryParams));
+          return accessor.querySnapshot(collectionId, queryParams);
         },
         sync: (
           collectionId: CollIdentityParams,

@@ -10,7 +10,10 @@ export type {
   CollectionConfigBase,
   LooseCollectionConfigBase,
 } from "./collection";
-export { createCollectionQueries } from "./query";
+export {
+  createCollectionQueries,
+  resolveScopedQueryOptions,
+} from "./query";
 export { createCollectionMutations } from "./mutation";
 export { createCollectionReference } from "./reference";
 export type {

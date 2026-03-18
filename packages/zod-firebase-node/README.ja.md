@@ -43,7 +43,7 @@ const taskSchema = z.object({
 
 const tasks = collectionConfig({
   path: "workspaces/:workspaceId/tasks/:taskId",
-  extraIdentityKeys: [],
+  fieldKeys: [],
   schema: taskSchema,
 });
 
@@ -62,16 +62,18 @@ await accessor.createDoc({ workspaceId: "ws1" }, { title: "hello", done: false }
   - **`updateDoc(docIdentityParams, partialOrUpdateData)`**: `Promise<void>`（内部では `set({ merge: true })`）
   - **`deleteDoc(docIdentityParams)`**: `Promise<void>`（`delete()`）
 - **クエリ**
-  - **`query(collectionIdentityParams, queryFn?)`**: `Promise<Data[]>`
-  - **`querySync(collectionIdentityParams, queryFn, callback)`**: realtime 購読（`unsubscribe`）
-  - **`querySnapshotSync(collectionIdentityParams, queryFn?, callback)`**: snapshot realtime 購読（`unsubscribe`）
+  - **`query(collectionIdentityParams, queryOptions?)`**: `Promise<Data[]>`（`queryOptions` は `AccessorLevelQueryOptions`。autoQuery を自動適用）
+  - **`querySync(collectionIdentityParams, queryParams, callback)`**: realtime 購読（`unsubscribe`）。第2引数は `AccessorLevelQueryOptions`。autoQuery を自動適用
+  - **`querySnapshotSync(collectionIdentityParams, queryParams?, callback)`**: snapshot realtime 購読（`unsubscribe`）。autoQuery を自動適用
 - **変換**
   - **`docToData(doc, identityParams)`**: `Data | null`（Timestamp-like を `Date` に変換）
   - **`docToDataSafe(doc, identityParams)`**: `Data`（存在しない場合は例外）
 
-> `docIdentityParams` / `collectionIdentityParams` は、path の `:param` と `extraIdentityKeys` を合成したものです。
+> `docIdentityParams` / `collectionIdentityParams` は、path の `:param` と `fieldKeys` を合成したものです。
 
 ## `queryBuilder()` の詳細
+
+`queryBuilder()` はレガシー用ヘルパーです。アプリコードでは `AccessorLevelQueryOptions` をアクセサメソッドに直接渡すことを推奨します。
 
 `queryBuilder()` は `where`/`orderBy` と cursor/pagination 用のオプションから `firebase-admin` の `Query` を組み立てます。
 
@@ -88,10 +90,15 @@ queryBuilder({
 })
 ```
 
+## autoQuery
+
+`query` / `querySync` / `querySnapshotSync` では、`collectionIdentity` の nonPathKeys が自動で `where field == value` 句として付与されます。
+
 ## API（抜粋）
 
 - `getAccessor(db, collectionConfig)`
-- `queryBuilder(options)`
+- `queryBuilder(options)`（レガシー）
+- `AccessorLevelQueryOptions` 型エクスポート
 
 ## 関連
 

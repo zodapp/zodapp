@@ -7,7 +7,8 @@
 `@zodapp/zod-firebase-browser` は、`@zodapp/zod-firebase` の `collectionConfig` を使って **ブラウザ（firebase/compat）で Firestore を扱うための実装**を提供します。
 
 - `getAccessor(firestore, collection)`: コレクション定義にバインドされた CRUD / 購読 API
-- `queryBuilder(queryParams)`: `SerializableQueryParams` + pagination/cursor から Firestore Query を構築
+- `queryBuilder(queryParams)`: レガシー／内部用ヘルパー。アプリでは `AccessorLevelQueryOptions` をアクセサメソッドに直接渡すことを推奨
+- **autoQuery**: `collectionIdentity` の nonPathKeys が自動で `where field == value` 句として付与される
 - `subscriptionCache` による購読共有（同一クエリの subscription を共有）
 - GrowingList / React Hooks（`createUseList`, `createUseGrowingList`）
 
@@ -41,7 +42,7 @@ const taskSchema = z.object({
 
 const tasks = collectionConfig({
   path: "workspaces/:workspaceId/tasks/:taskId",
-  extraIdentityKeys: [],
+  fieldKeys: [],
   schema: taskSchema,
 });
 
@@ -71,10 +72,13 @@ unsubscribe();
   - **`updateDoc(docIdentityParams, partialOrUpdateData)`**: `Promise<void>`（内部では `set({ merge: true })`）
   - **`deleteDoc(docIdentityParams)`**: `Promise<void>`（削除通知用の `set({ merge: true })` 後に `delete()`）
 - **クエリ**
-  - **`query(collectionIdentityParams, queryFn?)`**: `Promise<Data[]>`
-  - **`querySnapshot(collectionIdentityParams, queryFn?)`**: `Promise<DocumentSnapshot[]>`
+  - **`query(collectionIdentityParams, queryOptions?)`**: `Promise<Data[]>`（`queryOptions` は `AccessorLevelQueryOptions`：where/orderBy + cursor/pagination）
+  - **`querySnapshot(collectionIdentityParams, queryOptions?)`**: `Promise<DocumentSnapshot[]>`
+  - **`collectionGroupQuery(queryOptions?)`**: `Promise<Data[]>`（コレクショングループ用。autoQuery は適用されない）
+  - **`collectionGroupQuerySnapshot(queryOptions?)`**: `Promise<DocumentSnapshot[]>`
   - **`querySync(collectionIdentityParams, queryParams, callback)`**: realtime 購読（`unsubscribe`）
   - **`querySnapshotSync(collectionIdentityParams, queryParams, callback)`**: snapshot realtime 購読（`unsubscribe`）
+  - ※ `query` / `querySnapshot` / `querySync` / `querySnapshotSync` は autoQuery を自動適用
 - **変換**
   - **`docToData(doc, identityParams)`**: `Data | null`（Timestamp-like を `Date` に変換）
   - **`docToDataSafe(doc, identityParams)`**: `Data`（存在しない場合は例外）
@@ -82,7 +86,7 @@ unsubscribe();
   - **`mutations`**: `collectionConfig.mutations` を `accessor.mutations.xxx(docIdentityParams, ...args)` として実行可能にしたもの
   - **`queries`**: `collectionConfig.queries` を `accessor.queries.xxx.*` として利用可能にしたもの（詳細は後述）
 
-> `docIdentityParams` / `collectionIdentityParams` は、path の `:param` と `extraIdentityKeys` を合成したものです。
+> `docIdentityParams` / `collectionIdentityParams` は、path の `:param` と `fieldKeys` を合成したものです。
 
 ### `mutations` / `queries` 自動バインド（apps/web での例）
 
@@ -112,6 +116,8 @@ const statusWhere = taskAccessor.queries.byStatus.params("todo").where ?? [];
 
 ## `queryBuilder()` の詳細
 
+`queryBuilder()` はレガシー用ヘルパーです。アプリコードでは `AccessorLevelQueryOptions` をアクセサメソッド（`query` / `querySnapshot` 等）に直接渡すことを推奨します。
+
 `queryBuilder()` は `SerializableQueryParams` に加えて、cursor/pagination 用のオプションを受け取れます。
 
 ```ts
@@ -131,6 +137,10 @@ queryBuilder({
   - `DocumentSnapshot` か、`orderBy` と同じ順序の **キー配列**を渡せます
   - キー配列内の `Date` は内部で `Timestamp` に正規化されます
 - **`limit` / `limitToLast`**: Firestore の pagination 用
+
+## autoQuery の挙動
+
+`collectionIdentity` に含まれる **nonPathKeys**（path の `:param` 以外のキー、例: `fieldKeys` 由来）は、自動的に `where field == value` 句としてクエリに付与されます。`query` / `querySnapshot` / `querySync` / `querySnapshotSync` でこの autoQuery が適用されます。`collectionGroupQuery` / `collectionGroupQuerySnapshot` では autoQuery は適用されません。
 
 ## GrowingList（無限スクロール + realtime 更新のためのユーティリティ）
 
@@ -157,7 +167,8 @@ const useList = createUseList(firestore);
 ## API（抜粋）
 
 - `getAccessor(firestore, collectionConfig)`
-- `queryBuilder(queryParams)`
+- `queryBuilder(queryParams)`（レガシー）
+- `AccessorLevelQueryOptions` 型エクスポート
 - GrowingList: `createGrowingList`, `createFilteredGrowingList`, `createCachedGrowingList`
 - Hooks: `createUseList`, `createUseGrowingList`
 

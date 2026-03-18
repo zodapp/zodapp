@@ -2,6 +2,7 @@ import {
   type CollectionConfigBase,
   type QueryOptions,
   type WhereFilterOp,
+  resolveScopedQueryOptions,
 } from "@zodapp/zod-firebase";
 import {
   hierarchicalWeakCache,
@@ -18,6 +19,18 @@ type QuerySnapshot<T = firebase.firestore.DocumentData> =
 type Timestamp = firebase.firestore.Timestamp;
 type Firestore = firebase.firestore.Firestore;
 export type AccessorStoreKey = object;
+
+/**
+ * accessor-level query options: core `QueryOptions` + cursor/pagination
+ */
+export type AccessorLevelQueryOptions = QueryOptions & {
+  startAfter?: DocumentSnapshot | unknown[];
+  endBefore?: DocumentSnapshot | unknown[];
+  startAt?: DocumentSnapshot | unknown[];
+  endAt?: DocumentSnapshot | unknown[];
+  limit?: number;
+  limitToLast?: number;
+};
 type CollectionAccessorCacheKeys = readonly [
   Firestore,
   AccessorStoreKey,
@@ -131,17 +144,17 @@ type CollectionAccessorResult<TConfig extends CollectionConfigBase> = {
   ) => Promise<string>;
   query: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
-    queryFn?: (query: Query) => Query,
+    queryOptions?: AccessorLevelQueryOptions,
   ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
   querySnapshot: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
-    queryFn?: (query: Query) => Query,
+    queryOptions?: AccessorLevelQueryOptions,
   ) => Promise<DocumentSnapshot[]>;
   collectionGroupQuery: (
-    queryFn?: (query: Query) => Query,
+    queryOptions?: AccessorLevelQueryOptions,
   ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
   collectionGroupQuerySnapshot: (
-    queryFn?: (query: Query) => Query,
+    queryOptions?: AccessorLevelQueryOptions,
   ) => Promise<DocumentSnapshot[]>;
   querySync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
@@ -188,6 +201,14 @@ const getAccessorCached = <TConfig extends CollectionConfigBase>(
   return accessor as CollectionAccessorResult<TConfig>;
 };
 
+const extractCursorOptions = (
+  options: AccessorLevelQueryOptions | undefined,
+): Omit<AccessorLevelQueryOptions, "where" | "orderBy"> | undefined => {
+  if (!options) return undefined;
+  const { where: _w, orderBy: _o, ...cursor } = options;
+  return cursor;
+};
+
 const getAccessorInternal = <TConfig extends CollectionConfigBase>(
   db: Firestore,
   config: TConfig,
@@ -197,9 +218,9 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
   type DocIdentityParams = z.infer<TConfig["documentIdentitySchema"]>;
   type CollIdentityParams = z.infer<TConfig["collectionIdentitySchema"]>;
 
-  type QuerySubscriptionParams = {
+  type EffectiveQuerySubscriptionParams = {
     collectionIdentityParams: CollIdentityParams;
-    queryParams: QueryOptions;
+    effectiveQuery: QueryOptions;
   };
   const collectionGroupName = (() => {
     const segments = config.path.split("/").filter(Boolean);
@@ -212,14 +233,14 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
   const querySubscriptionCache = subscriptionCache({
     generator: ({
       collectionIdentityParams,
-      queryParams,
-    }: QuerySubscriptionParams) => ({
+      effectiveQuery,
+    }: EffectiveQuerySubscriptionParams) => ({
       subscribe: (callback: (docs: _DataType[]) => void) => {
         const collectionPath = config.buildCollectionPath(
           collectionIdentityParams,
         );
         const collectionRef = db.collection(collectionPath);
-        const query = queryBuilder(queryParams)(collectionRef);
+        const query = queryBuilder(effectiveQuery)(collectionRef);
         const unsubscribe = query.onSnapshot((snapshot: QuerySnapshot) => {
           const docs = snapshot.docs.map((doc) =>
             docToDataSafe(doc, collectionIdentityParams),
@@ -232,19 +253,19 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       },
     }),
     retentionTime: 10 * 1000, // 10 seconds
-    serializer: (params: QuerySubscriptionParams) => stableStringify(params),
+    serializer: (params: EffectiveQuerySubscriptionParams) => stableStringify(params),
   });
   const querySnapshotSubscriptionCache = subscriptionCache({
     generator: ({
       collectionIdentityParams,
-      queryParams,
-    }: QuerySubscriptionParams) => ({
+      effectiveQuery,
+    }: EffectiveQuerySubscriptionParams) => ({
       subscribe: (callback: (snapshot: QuerySnapshot<_DataType>) => void) => {
         const collectionPath = config.buildCollectionPath(
           collectionIdentityParams,
         );
         const collectionRef = db.collection(collectionPath);
-        const query = queryBuilder(queryParams)(collectionRef);
+        const query = queryBuilder(effectiveQuery)(collectionRef);
         const unsubscribe = query.onSnapshot((snapshot: QuerySnapshot) => {
           callback(snapshot as QuerySnapshot<_DataType>);
         });
@@ -254,7 +275,7 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       },
     }),
     retentionTime: 10 * 1000, // 10 seconds
-    serializer: (params: QuerySubscriptionParams) => stableStringify(params),
+    serializer: (params: EffectiveQuerySubscriptionParams) => stableStringify(params),
   });
   const docSubscriptionCache = subscriptionCache({
     generator: (docIdentityParams: DocIdentityParams) => ({
@@ -389,13 +410,18 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     },
     query: async (
       collectionIdentityParams: CollIdentityParams,
-      queryFn?: (query: Query) => Query,
+      queryOptions?: AccessorLevelQueryOptions,
     ) => {
+      const effectiveQuery = resolveScopedQueryOptions(
+        config,
+        collectionIdentityParams as Record<string, unknown>,
+        queryOptions,
+      );
       const collectionPath = config.buildCollectionPath(
         collectionIdentityParams,
       );
       const collectionRef = db.collection(collectionPath);
-      const query = queryFn ? queryFn(collectionRef) : collectionRef;
+      const query = queryBuilder({ ...effectiveQuery, ...extractCursorOptions(queryOptions) })(collectionRef);
       const docs = await query.get();
       return docs.docs.map((doc) =>
         docToDataSafe(doc, collectionIdentityParams),
@@ -403,25 +429,30 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     },
     querySnapshot: async (
       collectionIdentityParams: CollIdentityParams,
-      queryFn?: (query: Query) => Query,
+      queryOptions?: AccessorLevelQueryOptions,
     ) => {
+      const effectiveQuery = resolveScopedQueryOptions(
+        config,
+        collectionIdentityParams as Record<string, unknown>,
+        queryOptions,
+      );
       const collectionPath = config.buildCollectionPath(
         collectionIdentityParams,
       );
       const collectionRef = db.collection(collectionPath);
-      const query = queryFn ? queryFn(collectionRef) : collectionRef;
+      const query = queryBuilder({ ...effectiveQuery, ...extractCursorOptions(queryOptions) })(collectionRef);
       const docs = await query.get();
       return docs.docs;
     },
-    collectionGroupQuery: async (queryFn?: (query: Query) => Query) => {
+    collectionGroupQuery: async (queryOptions?: AccessorLevelQueryOptions) => {
       const collectionRef = db.collectionGroup(collectionGroupName);
-      const query = queryFn ? queryFn(collectionRef) : collectionRef;
+      const query = queryBuilder(queryOptions)(collectionRef);
       const docs = await query.get();
       return docs.docs.map((doc) => collectionGroupDocToDataSafe(doc));
     },
-    collectionGroupQuerySnapshot: async (queryFn?: (query: Query) => Query) => {
+    collectionGroupQuerySnapshot: async (queryOptions?: AccessorLevelQueryOptions) => {
       const collectionRef = db.collectionGroup(collectionGroupName);
-      const query = queryFn ? queryFn(collectionRef) : collectionRef;
+      const query = queryBuilder(queryOptions)(collectionRef);
       const docs = await query.get();
       return docs.docs;
     },
@@ -430,10 +461,15 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       queryParams: QueryOptions,
       callback: (docs: _DataType[]) => void,
     ) => {
+      const effectiveQuery = resolveScopedQueryOptions(
+        config,
+        collectionIdentityParams as Record<string, unknown>,
+        queryParams,
+      );
       return querySubscriptionCache.subscribe(
         {
           collectionIdentityParams,
-          queryParams,
+          effectiveQuery,
         },
         callback,
       );
@@ -443,10 +479,15 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       queryParams: QueryOptions,
       callback: (snapshot: QuerySnapshot<_DataType>) => void,
     ) => {
+      const effectiveQuery = resolveScopedQueryOptions(
+        config,
+        collectionIdentityParams as Record<string, unknown>,
+        queryParams,
+      );
       return querySnapshotSubscriptionCache.subscribe(
         {
           collectionIdentityParams,
-          queryParams,
+          effectiveQuery,
         },
         callback,
       );

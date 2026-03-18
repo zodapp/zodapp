@@ -3,7 +3,7 @@ import { stableStringify } from "@zodapp/caching-utilities";
 import type { CollectionConfigBase, QueryOptions } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
-import { getAccessor, queryBuilder, type AccessorStoreKey } from "../firestore";
+import { getAccessor, type AccessorStoreKey } from "../firestore";
 
 type Firestore = firebase.firestore.Firestore;
 type QueryDocumentSnapshot = firebase.firestore.QueryDocumentSnapshot;
@@ -97,14 +97,12 @@ export function createUseCollectionGroupList(firestore: Firestore) {
         }));
 
         try {
-          const docs = await accessor.collectionGroupQuerySnapshot((q) =>
-            queryBuilder({
-              where: queryRef.current?.where,
-              orderBy: queryRef.current?.orderBy,
-              limit: pageSize,
-              startAfter: reset ? undefined : lastDocRef.current ?? undefined,
-            })(q),
-          );
+          const docs = await accessor.collectionGroupQuerySnapshot({
+            where: queryRef.current?.where,
+            orderBy: queryRef.current?.orderBy,
+            limit: pageSize,
+            startAfter: reset ? undefined : lastDocRef.current ?? undefined,
+          });
 
           if (generationRef.current !== generation) {
             return;

@@ -1,5 +1,5 @@
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
-import { queryBuilder, getAccessor, type AccessorStoreKey } from ".";
+import { getAccessor, type AccessorStoreKey, type AccessorLevelQueryOptions } from ".";
 import type { z } from "zod";
 import firebase from "firebase/compat/app";
 
@@ -288,17 +288,14 @@ export const createIntrinsicGrowingList = <
     isFetching = true;
     notifyListeners();
     try {
-      const pageQueryOptions: NonNullable<Parameters<typeof queryBuilder>[0]> =
-        {
-          ...normalizedQuery,
-          limit: PAGE_SIZE,
-        };
+      const pageQueryOptions: AccessorLevelQueryOptions = {
+        ...normalizedQuery,
+        limit: PAGE_SIZE,
+      };
       if (lastCursorKey) {
         pageQueryOptions.startAfter = lastCursorKey;
       }
-      const docs = await accessor.querySnapshot(collectionIdentityParams, (q) =>
-        queryBuilder(pageQueryOptions)(q),
-      );
+      const docs = await accessor.querySnapshot(collectionIdentityParams, pageQueryOptions);
 
       hasFetchedOnce = true;
       if (docs.length > 0) {

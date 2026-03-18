@@ -506,6 +506,7 @@ export const getCollectionConfigBare = <
     // collectionIdentityKeys = collectionPathKeys + nonPathKeys
     collectionIdentityKeys,
     fieldKeys,
+    nonPathKeys,
   };
   return response;
 };
@@ -723,6 +724,8 @@ export type CollectionConfigMethods<
   >[];
   /** 入力された fieldKeys（doc field として保持する keys）。 */
   readonly fieldKeys: readonly FieldKeys[];
+  /** fieldKeys のうち path に含まれない keys（autoQuery の対象）。 */
+  readonly nonPathKeys: readonly NonPathKeysOf<Path, FieldKeys>[];
 };
 
 /**

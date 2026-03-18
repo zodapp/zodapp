@@ -4,6 +4,7 @@ export {
   createCollectionQueries,
   createCollectionMutations,
   createCollectionReference,
+  resolveScopedQueryOptions,
 } from "./firestore";
 export type {
   CollectionDefinition,

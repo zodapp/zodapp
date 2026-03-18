@@ -5,6 +5,7 @@ import {
   createCollectionMutations,
   createCollectionQueries,
   createCollectionReference,
+  resolveScopedQueryOptions,
   CollectionFromReference,
   CollectionDefinition,
   CollectionConfig,
@@ -835,6 +836,294 @@ describe("collectionConfig", () => {
       >;
 
       expectTypeOf<CollectionConfigFn>().toEqualTypeOf<CollectionConfigBareFn>();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// autoQuery helpers
+// ---------------------------------------------------------------------------
+
+describe("autoQuery helpers", () => {
+  // top-level collection: path に teamId が含まれず fieldKeys に teamId がある
+  const topLevelCollection = collectionConfig({
+    path: "/dialogs/:id" as const,
+    fieldKeys: ["teamId"] as const,
+    schema: z.object({
+      teamId: z.string(),
+      name: z.string(),
+      deleted: z.boolean(),
+    }),
+  });
+
+  // path-scoped collection: path に teamId が含まれる（nonPathKeys なし）
+  const pathScopedCollection = collectionConfig({
+    path: "/teams/:teamId/auditLogs/:id" as const,
+    fieldKeys: [] as const,
+    schema: z.object({
+      action: z.string(),
+    }),
+  });
+
+  // pathFieldKeys を持つ collection: fieldKeys に teamId があるが path にも teamId がある
+  const pathFieldCollection = collectionConfig({
+    path: "/teams/:teamId/users/:userId" as const,
+    fieldKeys: ["teamId", "groupId"] as const,
+    schema: z.object({
+      userId: z.string(),
+      teamId: z.string(),
+      groupId: z.string(),
+      name: z.string(),
+    }),
+  });
+
+  // 複数 nonPathKeys
+  const multiNonPathCollection = collectionConfig({
+    path: "/items/:id" as const,
+    fieldKeys: ["teamId", "orgId"] as const,
+    schema: z.object({
+      teamId: z.string(),
+      orgId: z.string(),
+      title: z.string(),
+    }),
+  });
+
+  describe("config.nonPathKeys", () => {
+    it("should contain nonPath keys for top-level collection", () => {
+      expect(topLevelCollection.nonPathKeys).toEqual(["teamId"]);
+    });
+
+    it("should be empty for path-scoped collection with no fieldKeys", () => {
+      expect(pathScopedCollection.nonPathKeys).toEqual([]);
+    });
+
+    it("should exclude pathFieldKeys", () => {
+      expect(pathFieldCollection.nonPathKeys).toEqual(["groupId"]);
+      expect(pathFieldCollection.nonPathKeys).not.toContain("teamId");
+    });
+
+    it("should contain multiple nonPath keys", () => {
+      expect(multiNonPathCollection.nonPathKeys).toEqual([
+        "teamId",
+        "orgId",
+      ]);
+    });
+  });
+
+  describe("resolveScopedQueryOptions", () => {
+    it("should apply auto where when explicitQuery is undefined", () => {
+      const result = resolveScopedQueryOptions(
+        topLevelCollection,
+        { teamId: "team_1" },
+        undefined,
+      );
+      expect(result).toEqual({
+        where: [{ field: "teamId", operator: "==", value: "team_1" }],
+        orderBy: undefined,
+      });
+    });
+
+    it("should apply auto where when explicitQuery is empty object", () => {
+      const result = resolveScopedQueryOptions(
+        topLevelCollection,
+        { teamId: "team_1" },
+        {},
+      );
+      expect(result).toEqual({
+        where: [{ field: "teamId", operator: "==", value: "team_1" }],
+        orderBy: undefined,
+      });
+    });
+
+    it("should not remove auto scope when where is empty array", () => {
+      const result = resolveScopedQueryOptions(
+        topLevelCollection,
+        { teamId: "team_1" },
+        { where: [] },
+      );
+      expect(result).toEqual({
+        where: [{ field: "teamId", operator: "==", value: "team_1" }],
+        orderBy: undefined,
+      });
+    });
+
+    it("should merge auto where with explicit business conditions", () => {
+      const result = resolveScopedQueryOptions(
+        topLevelCollection,
+        { teamId: "team_1" },
+        {
+          where: [{ field: "deleted", operator: "==", value: false }],
+          orderBy: [{ field: "createdAt", direction: "desc" }],
+        },
+      );
+      expect(result).toEqual({
+        where: [
+          { field: "teamId", operator: "==", value: "team_1" },
+          { field: "deleted", operator: "==", value: false },
+        ],
+        orderBy: [{ field: "createdAt", direction: "desc" }],
+      });
+    });
+
+    it("should deduplicate same-value == on auto-scoped field", () => {
+      const result = resolveScopedQueryOptions(
+        topLevelCollection,
+        { teamId: "team_1" },
+        {
+          where: [
+            { field: "teamId", operator: "==", value: "team_1" },
+            { field: "deleted", operator: "==", value: false },
+          ],
+        },
+      );
+      expect(result).toEqual({
+        where: [
+          { field: "teamId", operator: "==", value: "team_1" },
+          { field: "deleted", operator: "==", value: false },
+        ],
+      });
+      expect(result.where!.filter((w) => w.field === "teamId")).toHaveLength(1);
+    });
+
+    it("should throw on conflicting == value for auto-scoped field", () => {
+      expect(() =>
+        resolveScopedQueryOptions(
+          topLevelCollection,
+          { teamId: "team_1" },
+          {
+            where: [{ field: "teamId", operator: "==", value: "team_2" }],
+          },
+        ),
+      ).toThrow(/conflicting values/);
+    });
+
+    it("should throw on non-== operator for auto-scoped field", () => {
+      expect(() =>
+        resolveScopedQueryOptions(
+          topLevelCollection,
+          { teamId: "team_1" },
+          {
+            where: [{ field: "teamId", operator: "!=", value: "team_1" }],
+          },
+        ),
+      ).toThrow(/does not accept operator/);
+    });
+
+    it("should throw on 'in' operator for auto-scoped field", () => {
+      expect(() =>
+        resolveScopedQueryOptions(
+          topLevelCollection,
+          { teamId: "team_1" },
+          {
+            where: [
+              {
+                field: "teamId",
+                operator: "in",
+                value: ["team_1", "team_2"],
+              },
+            ],
+          },
+        ),
+      ).toThrow(/does not accept operator/);
+    });
+
+    it("should throw on range operator for auto-scoped field", () => {
+      expect(() =>
+        resolveScopedQueryOptions(
+          topLevelCollection,
+          { teamId: "team_1" },
+          {
+            where: [{ field: "teamId", operator: ">", value: "team_0" }],
+          },
+        ),
+      ).toThrow(/does not accept operator/);
+    });
+
+    it("should pass through for path-scoped collection (no auto where)", () => {
+      const explicit = {
+        where: [{ field: "deleted", operator: "==" as const, value: false }],
+        orderBy: [{ field: "createdAt", direction: "desc" as const }],
+      };
+      const result = resolveScopedQueryOptions(
+        pathScopedCollection,
+        { teamId: "team_1" },
+        explicit,
+      );
+      expect(result).toEqual(explicit);
+    });
+
+    it("should return undefined where/orderBy for path-scoped + undefined query", () => {
+      const result = resolveScopedQueryOptions(
+        pathScopedCollection,
+        { teamId: "team_1" },
+        undefined,
+      );
+      expect(result).toEqual({ where: undefined, orderBy: undefined });
+    });
+
+    it("should only auto-where on groupId, not teamId (pathFieldKey)", () => {
+      const result = resolveScopedQueryOptions(
+        pathFieldCollection,
+        { teamId: "team_1", groupId: "g1" },
+        {
+          where: [{ field: "name", operator: "==", value: "Alice" }],
+        },
+      );
+      expect(result).toEqual({
+        where: [
+          { field: "groupId", operator: "==", value: "g1" },
+          { field: "name", operator: "==", value: "Alice" },
+        ],
+        orderBy: undefined,
+      });
+    });
+
+    it("should handle multiple nonPath keys", () => {
+      const result = resolveScopedQueryOptions(
+        multiNonPathCollection,
+        { teamId: "team_1", orgId: "org_1" },
+        {
+          where: [{ field: "title", operator: "==", value: "test" }],
+          orderBy: [{ field: "title", direction: "asc" }],
+        },
+      );
+      expect(result).toEqual({
+        where: [
+          { field: "teamId", operator: "==", value: "team_1" },
+          { field: "orgId", operator: "==", value: "org_1" },
+          { field: "title", operator: "==", value: "test" },
+        ],
+        orderBy: [{ field: "title", direction: "asc" }],
+      });
+    });
+
+    it("should preserve orderBy even when where is empty", () => {
+      const result = resolveScopedQueryOptions(
+        topLevelCollection,
+        { teamId: "team_1" },
+        { orderBy: [{ field: "createdAt", direction: "desc" }] },
+      );
+      expect(result).toEqual({
+        where: [{ field: "teamId", operator: "==", value: "team_1" }],
+        orderBy: [{ field: "createdAt", direction: "desc" }],
+      });
+    });
+
+    it("canonical: auto where always comes first, then explicit", () => {
+      const result = resolveScopedQueryOptions(
+        multiNonPathCollection,
+        { teamId: "team_1", orgId: "org_1" },
+        {
+          where: [
+            { field: "title", operator: "==", value: "a" },
+            { field: "orgId", operator: "==", value: "org_1" },
+          ],
+        },
+      );
+      expect(result.where).toHaveLength(3);
+      expect(result.where?.[0]?.field).toBe("teamId");
+      expect(result.where?.[1]?.field).toBe("orgId");
+      expect(result.where?.[2]?.field).toBe("title");
     });
   });
 });

@@ -47,6 +47,7 @@ export interface CollectionConfigBase {
 
   // メタ情報
   readonly fieldKeys: readonly string[];
+  readonly nonPathKeys: readonly string[];
   readonly documentIdentityKeys: readonly string[];
   readonly collectionIdentityKeys: readonly string[];
 
@@ -125,6 +126,7 @@ export interface LooseCollectionConfigBase {
 
   // メタ情報
   readonly fieldKeys: readonly string[];
+  readonly nonPathKeys: readonly string[];
   readonly documentIdentityKeys: readonly string[];
   readonly collectionIdentityKeys: readonly string[];
 
