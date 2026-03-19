@@ -46,6 +46,7 @@ export type BaseExternalKeyActionResolver<
   value: string;
   actionConfig: TActionConfig;
   newTab?: boolean;
+  resolverContext: unknown;
 }) => ExternalKeyActionWrapper | undefined;
 
 export type ExternalKeyActionResolver =
@@ -63,6 +64,8 @@ type ZodFormContextType = {
   timezone: string;
   /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
   onFieldChange?: (fieldPath: string, value: unknown) => void;
+  /** resolver 共通の runtime context（teamId 等のページ依存値） */
+  resolverContext?: unknown;
 };
 
 /** ブラウザのローカルタイムゾーンを取得 */
@@ -99,6 +102,7 @@ export const ZodFormContextProvider = ({
   mediaResolvers,
   timezone,
   onFieldChange,
+  resolverContext,
   children,
   merge,
 }: {
@@ -112,6 +116,8 @@ export const ZodFormContextProvider = ({
   timezone?: string;
   /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
   onFieldChange?: (fieldPath: string, value: unknown) => void;
+  /** resolver 共通の runtime context（teamId 等のページ依存値） */
+  resolverContext?: unknown;
   children: React.ReactNode;
   merge?: boolean;
 } & (
@@ -139,6 +145,7 @@ export const ZodFormContextProvider = ({
     mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
     timezone: timezone ?? parentContext.timezone,
     onFieldChange: onFieldChange ?? parentContext.onFieldChange,
+    resolverContext: resolverContext ?? parentContext.resolverContext,
   };
   return (
     <ZodFormContext.Provider value={mergedContext}>
@@ -173,7 +180,7 @@ export const useExternalKeyResolver = <
 >(
   config: TConfig,
 ): ExternalKeyResolverResult => {
-  const { externalKeyResolvers } = useZodFormContext();
+  const { externalKeyResolvers, resolverContext } = useZodFormContext();
 
   // 配列をMapに変換（メモ化）
   const resolversMap = useMemo(
@@ -195,7 +202,7 @@ export const useExternalKeyResolver = <
     );
   }
 
-  return entry.resolver(config);
+  return entry.resolver(config, resolverContext);
 };
 
 /**
@@ -208,7 +215,7 @@ export const useFileResolver = <
 >(
   config: TConfig,
 ): FileResolverResult => {
-  const { fileResolvers } = useZodFormContext();
+  const { fileResolvers, resolverContext } = useZodFormContext();
 
   // 配列をMapに変換（メモ化）
   const resolversMap = useMemo(
@@ -230,7 +237,7 @@ export const useFileResolver = <
     );
   }
 
-  return entry.resolver(config);
+  return entry.resolver(config, resolverContext);
 };
 
 /**
@@ -240,6 +247,14 @@ export const useFileResolver = <
 export const useMediaResolvers = (): MediaResolvers => {
   const { mediaResolvers } = useZodFormContext();
   return mediaResolvers ?? basicMediaResolvers;
+};
+
+/**
+ * resolver 共通の runtime context を取得するフック
+ */
+export const useResolverContext = <T = unknown>(): T | undefined => {
+  const { resolverContext } = useZodFormContext();
+  return resolverContext as T | undefined;
 };
 
 /**

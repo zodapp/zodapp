@@ -55,7 +55,7 @@ describe("ExternalKeyConfig 型テスト", () => {
         externalKeyConfig: {
           type: "firestore",
           reference: testReference,
-          conditionId: "testCondition",
+          contextId: "test",
           getQuery: () => testQueries.queries.all(),
         },
       });
@@ -69,7 +69,7 @@ describe("ExternalKeyConfig 型テスト", () => {
         externalKeyConfig: () => ({
           type: "firestore",
           reference: testReference,
-          conditionId: "testCondition",
+          contextId: "test",
           getQuery: () => testQueries.queries.all(),
         }),
       });
@@ -81,7 +81,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       const config = {
         type: "firestore" as const,
         reference: testReference,
-        conditionId: "default",
+        contextId: "default",
         getQuery: () => testQueries.queries.all(),
       } satisfies WebExternalKeyConfig;
 
@@ -107,7 +107,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       //   externalKeyConfig: {
       //     type: "invalid", // Error: "invalid" は "firestore" に代入できない
       //     reference: testReference,
-      //     conditionId: "default",
+      //     contextId: "default",
       //   },
       // });
 
@@ -121,7 +121,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       //   externalKeyConfig: {
       //     type: "firestore",
       //     // reference: 欠落 - Error
-      //     conditionId: "default",
+      //     contextId: "default",
       //   },
       // });
 
@@ -130,19 +130,19 @@ describe("ExternalKeyConfig 型テスト", () => {
       expectTypeOf<"reference">().toMatchTypeOf<Required>();
     });
 
-    it("conditionId が欠けているとエラーになる（コメント参照）", () => {
+    it("contextId が欠けているとエラーになる（コメント参照）", () => {
       // 以下はコンパイルエラーになるべき例:
       // zf.string().register(zf.externalKey.registry, {
       //   externalKeyConfig: {
       //     type: "firestore",
       //     reference: testReference,
-      //     // conditionId: 欠落 - Error
+      //     // contextId: 欠落 - Error
       //   },
       // });
 
-      // conditionId は必須プロパティ
+      // contextId は必須プロパティ
       type Required = keyof FirestoreExternalKeyConfig;
-      expectTypeOf<"conditionId">().toMatchTypeOf<Required>();
+      expectTypeOf<"contextId">().toMatchTypeOf<Required>();
     });
 
     /**
@@ -161,7 +161,7 @@ describe("ExternalKeyConfig 型テスト", () => {
      *   externalKeyConfig: {
      *     type: "firestore",
       *     reference: testReference,
-     *     conditionId: "default",
+     *     contextId: "default",
      *     unknownProp: "value", // Error: 余分なプロパティ
      *   },
      * });
@@ -170,7 +170,7 @@ describe("ExternalKeyConfig 型テスト", () => {
      * const config = {
      *   type: "firestore" as const,
       *   reference: testReference,
-     *   conditionId: "default",
+     *   contextId: "default",
      *   unknownProp: "value",
      * };
      * zf.string().register(zf.externalKey.registry, {
@@ -185,7 +185,7 @@ describe("ExternalKeyConfig 型テスト", () => {
       // const config = {
       //   type: "firestore" as const,
       //   reference: testReference,
-      //   conditionId: "default",
+      //   contextId: "default",
       //   unknownProp: "value", // Error: satisfies により余分なプロパティが検出される
       // } satisfies WebExternalKeyConfig;
 

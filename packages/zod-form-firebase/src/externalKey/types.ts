@@ -18,7 +18,7 @@ import type { BaseExternalKeyConfig } from "@zodapp/zod-form/externalKey/types";
  */
 export type FirestoreExternalKeyConfigCore = {
   reference: LooseCollectionReferenceBase;
-  conditionId: string;
+  contextId: string;
   getQuery: (value: string, context: Record<string, unknown>) => QueryOptions;
 };
 
@@ -28,13 +28,3 @@ export type FirestoreExternalKeyConfigCore = {
  */
 export type FirestoreExternalKeyConfig<TType extends string = "firestore"> =
   BaseExternalKeyConfig<TType> & FirestoreExternalKeyConfigCore;
-
-/**
- * condition context map（conditionId をキーとする）
- *
- * 画面側は context のみを渡し、query 生成は externalKeyConfig.getQuery に委譲する。
- */
-export type FirestoreConditionContextMap = Record<
-  string,
-  Record<string, unknown>
->;

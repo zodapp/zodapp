@@ -9,7 +9,6 @@ import type {
 import type {
   FirebaseStorageFileConfig,
   FirebaseStorageFileConfigCore,
-  FirebaseStorageLocations,
 } from "./types";
 import firebase from "firebase/compat/app";
 import { v4 as uuidv4 } from "uuid";
@@ -19,31 +18,30 @@ type Storage = firebase.storage.Storage;
 /**
  * Firebase Storage用のファイルResolverEntryを生成する
  *
+ * resolverContext は ZodFormContextProvider 経由で resolver(config, resolverContext) の
+ * 第2引数として渡される。保存先は fileConfig.getLocation(resolverContext) で決定される。
+ *
  * @param type - ResolverのID（デフォルト: "firebaseStorage"）
  * @param storage - Firebase Storageインスタンス
- * @param locations - ロケーション群（storageLocationIdをキーとする）
  */
 export function createFirebaseStorageResolver<
   TType extends string = "firebaseStorage",
 >({
   type = "firebaseStorage" as TType,
   storage,
-  locations,
 }: {
   type?: TType;
   storage: Storage;
-  locations: FirebaseStorageLocations;
 }): FileResolverEntry<TType, FirebaseStorageFileConfigCore> {
   return {
     type,
-    resolver: (config: FirebaseStorageFileConfig<TType>): FileResolverResult => {
-      const location = locations[config.storageLocationId];
-
-      if (!location) {
-        throw new Error(
-          `storageLocationId "${config.storageLocationId}" not found in locations`,
-        );
-      }
+    resolver: (
+      config: FirebaseStorageFileConfig<TType>,
+      resolverContext: unknown,
+    ): FileResolverResult => {
+      const location = config.getLocation(
+        resolverContext as Record<string, unknown>,
+      );
 
       return {
         upload: async (file: File): Promise<{ url: string }> => {
@@ -56,7 +54,6 @@ export function createFirebaseStorageResolver<
           const ref = storage.refFromURL(`gs://${bucket}/${fullPath}`);
           await ref.put(file);
 
-          // mimeTypeをsearchParamsに含めて返す
           const storedUrl = `gs://${bucket}/${fullPath}?mimeType=${encodeURIComponent(file.type)}`;
           return { url: storedUrl };
         },
@@ -65,7 +62,6 @@ export function createFirebaseStorageResolver<
           const url = new URL(storedUrl);
           const gsPath = `gs://${url.host}${url.pathname}`;
           const ref = storage.refFromURL(gsPath);
-          // signedURLを取得
           const downloadUrl = await ref.getDownloadURL();
           return { url: downloadUrl };
         },

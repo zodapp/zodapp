@@ -73,7 +73,7 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
           type: "anyResolver",
         },
         externalKeyActionConfig: {
-          actionId: "anyAction",
+          contextId: "anyAction",
           getActionParams: (value: string, context: unknown) => ({
             value,
             context,
@@ -127,7 +127,7 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
      * - zf.externalKey.registry の externalKeyConfig が
      *   FirestoreExternalKeyConfig のみを受け入れるようになる
      * - 不正な type（"firestore" 以外）がコンパイルエラーになる
-     * - 必須フィールド（collectionConfig, conditionId）の欠落がエラーになる
+     * - 必須フィールド（collectionConfig, contextId）の欠落がエラーになる
      */
     it("型拡張の仕組みを理解するためのドキュメント的テスト", () => {
       // RegisteredExternalKeyConfig の型推論を確認
@@ -139,8 +139,8 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       // BaseExternalKeyConfig は type を持つ
       expectTypeOf<BaseExternalKeyConfig["type"]>().toEqualTypeOf<string>();
 
-      // BaseExternalKeyActionConfig は actionId / getActionParams を持つ
-      expectTypeOf<BaseExternalKeyActionConfig["actionId"]>().toEqualTypeOf<string>();
+      // BaseExternalKeyActionConfig は contextId / getActionParams を持つ
+      expectTypeOf<BaseExternalKeyActionConfig["contextId"]>().toEqualTypeOf<string>();
     });
   });
 });

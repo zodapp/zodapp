@@ -26,6 +26,7 @@ type AutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   externalKeyResolvers?: ExternalKeyResolvers;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
+  resolverContext?: unknown;
 };
 
 const AutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
@@ -40,6 +41,7 @@ const AutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   externalKeyResolvers,
   fileResolvers,
   mediaResolvers,
+  resolverContext,
 }: AutoFormProps<T>) => {
   const initialValues = useMemo(
     () => (defaultValues ?? {}) as z.input<T>,
@@ -67,6 +69,7 @@ const AutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
         externalKeyResolvers={externalKeyResolvers}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
+        resolverContext={resolverContext}
       >
         <FormProvider form={form}>
           <ValidatePrecedingFieldsProvider>

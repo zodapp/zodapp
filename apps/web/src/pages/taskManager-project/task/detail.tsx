@@ -49,20 +49,14 @@ const TaskDetailPage = () => {
     [storeKey],
   );
 
-  // 外部キーResolver（workspaceIdを固定）
   const externalKeyResolvers = useMemo(
     () => [
       createFirestoreResolver({
         db: firestore,
         storeKey,
-        conditions: {
-          membersCondition: {
-            workspaceId,
-          },
-        },
       }),
     ],
-    [storeKey, workspaceId],
+    [storeKey],
   );
 
   const [task, setTask] = useState<z.infer<

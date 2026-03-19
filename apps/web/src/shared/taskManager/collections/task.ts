@@ -87,7 +87,7 @@ const taskDataSchema = z
         externalKeyConfig: {
           type: "firestore",
           reference: membersReference,
-          conditionId: "membersCondition",
+          contextId: "workspace",
           getQuery: () => memberQueries.queries.all(),
         },
         width: 150,
@@ -100,7 +100,7 @@ const taskDataSchema = z
           externalKeyConfig: () => ({
             type: "firestore",
             reference: membersReference,
-            conditionId: "membersCondition",
+            contextId: "workspace",
             getQuery: () => memberQueries.queries.all(),
           }),
           width: 150,

@@ -9,7 +9,6 @@ import type {
 import type {
   FirestoreExternalKeyConfig,
   FirestoreExternalKeyConfigCore,
-  FirestoreConditionContextMap,
 } from "./types";
 import type { CollectionConfigBase } from "@zodapp/zod-firebase";
 import {
@@ -26,35 +25,28 @@ type Firestore = firebase.firestore.Firestore;
  * キャッシュはquerySyncに委譲する。querySyncは内部でsubscriptionCacheを使用しており、
  * 同じ{ collectionIdentityParams, queryParams }に対してFirestore subscriptionを共有する。
  *
- * conditions は conditionId をキーとする context map。
- * query 生成は externalKeyConfig.getQuery に委譲する。
+ * resolverContext は ZodFormContextProvider 経由で resolver(config, resolverContext) の
+ * 第2引数として渡される。
  *
  * @param type - ResolverのID（デフォルト: "firestore"）
  * @param db - Firestoreインスタンス
- * @param conditions - condition context map（conditionIdをキーとする）
  */
 export function createFirestoreResolver<TType extends string = "firestore">({
   type = "firestore" as TType,
   db,
   storeKey,
-  conditions,
 }: {
   type?: TType;
   db: Firestore;
   storeKey: AccessorStoreKey;
-  conditions: FirestoreConditionContextMap;
 }): ExternalKeyResolverEntry<TType, FirestoreExternalKeyConfigCore> {
   return {
     type,
-    resolver: (config: FirestoreExternalKeyConfig<TType>) => {
-      const context = conditions[config.conditionId];
-
-      if (!context) {
-        throw new Error(
-          `conditionId "${config.conditionId}" not found in conditions`,
-        );
-      }
-
+    resolver: (
+      config: FirestoreExternalKeyConfig<TType>,
+      resolverContext: unknown,
+    ) => {
+      const ctx = resolverContext as Record<string, unknown>;
       const { labelField, labelFormatter, valueField } = config.reference.config;
       const resolvedValueField =
         valueField ?? config.reference.collection.documentKey;
@@ -70,13 +62,13 @@ export function createFirestoreResolver<TType extends string = "firestore">({
         return String(record[resolvedValueField]);
       };
 
-      const resolved = config.getQuery("", context);
+      const resolved = config.getQuery("", ctx);
       const collectionIdentityKeys =
         config.reference.collection.collectionIdentityKeys as readonly string[];
       const identityParams = Object.fromEntries(
         collectionIdentityKeys
-          .filter((key) => key in context)
-          .map((key) => [key, String(context[key])]),
+          .filter((key) => key in ctx)
+          .map((key) => [key, String(ctx[key])]),
       );
       const queryOptions = { where: resolved.where ?? [] };
 

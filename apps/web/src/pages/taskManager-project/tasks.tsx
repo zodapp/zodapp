@@ -84,20 +84,14 @@ const TasksPage = () => {
     [storeKey],
   );
 
-  // 外部キーResolver（workspaceIdを固定）
   const externalKeyResolvers = useMemo(
     () => [
       createFirestoreResolver({
         db: firestore,
         storeKey,
-        conditions: {
-          membersCondition: {
-            workspaceId,
-          },
-        },
       }),
     ],
-    [storeKey, workspaceId],
+    [storeKey],
   );
 
   // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離

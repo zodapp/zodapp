@@ -81,10 +81,10 @@ export const useExternalKeyOptions = (
   // eslint-disable-next-line react-hooks/refs
   resolverResultRef.current = resolverResult;
 
-  // config.typeとconfig.conditionIdを安定した依存として使用
   const configType = config.type;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const conditionId = (config as any).conditionId as string | undefined;
+  const contextId = (config as any).contextId as string | undefined;
+  const { resolverContext } = useZodFormContext();
 
   // subscribeしてoptionsを取得
   useEffect(() => {
@@ -97,7 +97,7 @@ export const useExternalKeyOptions = (
     });
 
     return unsubscribe;
-  }, [configType, conditionId]);
+  }, [configType, contextId, resolverContext]);
 
   if (options === null) {
     return { options: null, isLoading: true };
@@ -116,7 +116,7 @@ export const useExternalKeyAction = (
   newTab?: boolean,
 ): ExternalKeyActionWrapper | undefined => {
   const meta = getMeta(schema, "externalKey");
-  const { externalKeyActionResolver } = useZodFormContext();
+  const { externalKeyActionResolver, resolverContext } = useZodFormContext();
 
   const actionConfig = meta?.externalKeyActionConfig as
     | RegisteredExternalKeyActionConfig
@@ -131,6 +131,7 @@ export const useExternalKeyAction = (
       value,
       actionConfig,
       newTab,
+      resolverContext,
     });
-  }, [actionConfig, externalKeyActionResolver, newTab, value]);
+  }, [actionConfig, externalKeyActionResolver, newTab, value, resolverContext]);
 };

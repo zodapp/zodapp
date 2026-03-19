@@ -54,7 +54,10 @@ export type FileResolverEntry<
   TConfig extends BaseFileConfigCore = BaseFileConfigCore,
 > = {
   type: TType;
-  resolver: (config: TConfig & { type: TType }) => FileResolverResult;
+  resolver: (
+    config: TConfig & { type: TType },
+    resolverContext: unknown,
+  ) => FileResolverResult;
 };
 
 /**

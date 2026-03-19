@@ -11,9 +11,7 @@ import type { BaseFileConfig } from "@zodapp/zod-form";
 /**
  * Mock 用の FileConfig 型（開発・テスト用）
  */
-export type MockFileConfig = BaseFileConfig<"mock"> & {
-  storageLocationId?: string;
-};
+export type MockFileConfig = BaseFileConfig<"mock">;
 
 /**
  * Web アプリで使用する FileConfig の union 型
@@ -22,7 +20,7 @@ export type MockFileConfig = BaseFileConfig<"mock"> & {
 export type WebFileConfig = FirebaseStorageFileConfig | MockFileConfig;
 
 /**
- * 案3: declare module でグローバル型を登録
+ * declare module でグローバル型を登録
  * これにより zf.file.registry の fileConfig が
  * WebFileConfig として型推論される
  */

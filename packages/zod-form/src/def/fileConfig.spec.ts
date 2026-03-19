@@ -91,7 +91,8 @@ describe("FileConfig 型テスト（base package）", () => {
      * import type { BaseFileConfig } from "@zodapp/zod-form";
      *
      * export type MockFileConfig = BaseFileConfig<"mock"> & {
-     *   storageLocationId?: string;
+     *   contextId?: string;
+     *   getLocation?: (context: Record<string, unknown>) => string;
      * };
      *
      * export type WebFileConfig = FirebaseStorageFileConfig | MockFileConfig;
@@ -108,7 +109,7 @@ describe("FileConfig 型テスト（base package）", () => {
      * - zf.file.registry の fileConfig が
      *   FirebaseStorageFileConfig | MockFileConfig のみを受け入れる
      * - 不正な type（"firebaseStorage" | "mock" 以外）がコンパイルエラーになる
-     * - FirebaseStorageFileConfig では storageLocationId が必須になる
+     * - FirebaseStorageFileConfig では contextId と getLocation が必須になる
      */
     it("型拡張の仕組みを理解するためのドキュメント的テスト", () => {
       // RegisteredFileConfig の型推論を確認

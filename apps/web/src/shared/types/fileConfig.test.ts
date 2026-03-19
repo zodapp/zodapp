@@ -64,7 +64,6 @@ describe("FileConfig 型テスト", () => {
             type: "mock",
             mimeTypes: ["image/png", "image/jpeg"],
             maxSize: 5 * 1024 * 1024,
-            storageLocationId: "testLocation",
           },
         });
         expectTypeOf(schema).toBeObject();
@@ -77,7 +76,8 @@ describe("FileConfig 型テスト", () => {
           label: "テスト",
           fileConfig: {
             type: "firebaseStorage",
-            storageLocationId: "default",
+            contextId: "test",
+            getLocation: () => ({ parentPath: "test" }),
           },
         });
         expectTypeOf(schema).toBeObject();
@@ -88,7 +88,8 @@ describe("FileConfig 型テスト", () => {
           label: "テスト",
           fileConfig: () => ({
             type: "firebaseStorage",
-            storageLocationId: "default",
+            contextId: "test",
+            getLocation: () => ({ parentPath: "test" }),
           }),
         });
         expectTypeOf(schema).toBeObject();
@@ -99,7 +100,8 @@ describe("FileConfig 型テスト", () => {
           label: "テスト",
           fileConfig: {
             type: "firebaseStorage",
-            storageLocationId: "default",
+            contextId: "test",
+            getLocation: () => ({ parentPath: "test" }),
             mimeTypes: ["image/png"],
             maxSize: 10 * 1024 * 1024,
           },
@@ -121,7 +123,8 @@ describe("FileConfig 型テスト", () => {
       it("FirebaseStorageFileConfig として satisfies できる", () => {
         const config = {
           type: "firebaseStorage",
-          storageLocationId: "default",
+          contextId: "test",
+          getLocation: () => ({ parentPath: "test" }),
         } satisfies FirebaseStorageFileConfig;
 
         expectTypeOf(config).toMatchTypeOf<FirebaseStorageFileConfig>();
@@ -134,7 +137,8 @@ describe("FileConfig 型テスト", () => {
 
         const firebaseConfig = {
           type: "firebaseStorage" as const,
-          storageLocationId: "default",
+          contextId: "test",
+          getLocation: () => ({ parentPath: "test" }),
         } satisfies WebFileConfig;
 
         expectTypeOf(mockConfig).toMatchTypeOf<WebFileConfig>();
@@ -163,34 +167,20 @@ describe("FileConfig 型テスト", () => {
       expectTypeOf<WebFileConfig["type"]>().toEqualTypeOf<"firebaseStorage" | "mock">();
     });
 
-    it("FirebaseStorageFileConfig で storageLocationId が欠けているとエラーになる（コメント参照）", () => {
+    it("FirebaseStorageFileConfig で contextId と getLocation が欠けているとエラーになる（コメント参照）", () => {
       // 以下はコンパイルエラーになるべき例:
       // zf.string().register(zf.file.registry, {
       //   fileConfig: {
       //     type: "firebaseStorage",
-      //     // storageLocationId: 欠落 - Error
+      //     // contextId: 欠落 - Error
+      //     // getLocation: 欠落 - Error
       //   },
       // });
 
-      // storageLocationId は FirebaseStorageFileConfig の必須プロパティ
+      // contextId と getLocation は FirebaseStorageFileConfig の必須プロパティ
       type Required = keyof FirebaseStorageFileConfig;
-      expectTypeOf<"storageLocationId">().toMatchTypeOf<Required>();
-    });
-
-    it("MockFileConfig では storageLocationId はオプショナル（コメント参照）", () => {
-      // MockFileConfig では storageLocationId は任意
-      const config: MockFileConfig = {
-        type: "mock",
-        // storageLocationId: 省略可能
-      };
-      expectTypeOf(config).toMatchTypeOf<MockFileConfig>();
-
-      // storageLocationId を指定しても OK
-      const configWithLocation: MockFileConfig = {
-        type: "mock",
-        storageLocationId: "testLocation",
-      };
-      expectTypeOf(configWithLocation).toMatchTypeOf<MockFileConfig>();
+      expectTypeOf<"contextId">().toMatchTypeOf<Required>();
+      expectTypeOf<"getLocation">().toMatchTypeOf<Required>();
     });
 
     /**

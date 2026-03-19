@@ -3,7 +3,6 @@ export { createFirestoreResolver } from "./externalKey";
 export type {
   FirestoreExternalKeyConfig,
   FirestoreExternalKeyConfigCore,
-  FirestoreConditionContextMap,
 } from "./externalKey/types";
 
 // File
@@ -12,5 +11,4 @@ export type {
   FirebaseStorageFileConfig,
   FirebaseStorageFileConfigCore,
   FirebaseStorageLocation,
-  FirebaseStorageLocations,
 } from "./file/types";

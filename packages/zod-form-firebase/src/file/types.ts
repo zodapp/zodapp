@@ -11,21 +11,20 @@ import type {
  * Firebase Storageのロケーション設定
  */
 export type FirebaseStorageLocation = {
-  bucket?: string; // オプション、省略時はデフォルトバケット
-  parentPath: string; // ファイルを保存するディレクトリパス
+  bucket?: string;
+  parentPath: string;
 };
-
-/**
- * ロケーション群（storageLocationIdをキーとする）
- */
-export type FirebaseStorageLocations = Record<string, FirebaseStorageLocation>;
 
 /**
  * Firebase Storage用ファイル設定（type除外版）
  * 実装固有のフィールドのみ定義
+ *
+ * contextId は resolverContext のどの部分を使うかの識別子。
+ * getLocation は resolverContext を受けて保存先を決定する。
  */
 export type FirebaseStorageFileConfigCore = BaseFileConfigCore & {
-  storageLocationId: string; // locationsのキーと対応
+  contextId: string;
+  getLocation: (context: Record<string, unknown>) => FirebaseStorageLocation;
 };
 
 /**

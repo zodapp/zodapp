@@ -24,6 +24,7 @@ type AutoSearchProps<T extends z.ZodObject<z.ZodRawShape>> = {
   externalKeyResolvers?: ExternalKeyResolvers;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
+  resolverContext?: unknown;
 };
 
 const AutoSearchInner = <T extends z.ZodObject<z.ZodRawShape>>({
@@ -35,6 +36,7 @@ const AutoSearchInner = <T extends z.ZodObject<z.ZodRawShape>>({
   externalKeyResolvers,
   fileResolvers,
   mediaResolvers,
+  resolverContext,
 }: AutoSearchProps<T>) => {
   const initialValues = useMemo(
     () => (defaultValues ?? {}) as z.input<T>,
@@ -76,6 +78,7 @@ const AutoSearchInner = <T extends z.ZodObject<z.ZodRawShape>>({
         externalKeyResolvers={externalKeyResolvers}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
+        resolverContext={resolverContext}
       >
         <FormProvider form={form}>
           <ValidatePrecedingFieldsProvider>

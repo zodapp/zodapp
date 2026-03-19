@@ -41,14 +41,15 @@ export type BaseExternalKeyActionParams = Record<string, unknown>;
 
 /**
  * 外部キー action 設定の基底型。
- * actionId は app 側が解釈し、context も runtime で注入される。
+ * contextId は resolverContext のどの部分を使うかの識別子。
+ * getActionParams は resolverContext を受けて action params を返す。
  */
 export type BaseExternalKeyActionConfig<
-  TActionId extends string = string,
+  TContextId extends string = string,
   TContext = unknown,
   TParams extends BaseExternalKeyActionParams = BaseExternalKeyActionParams,
 > = {
-  actionId: TActionId;
+  contextId: TContextId;
   getActionParams: (value: string, context: TContext) => TParams;
 };
 
@@ -61,7 +62,10 @@ export type ExternalKeyResolverEntry<
   TConfig = unknown,
 > = {
   type: TType;
-  resolver: (config: TConfig & { type: TType }) => ExternalKeyResolverResult;
+  resolver: (
+    config: TConfig & { type: TType },
+    resolverContext: unknown,
+  ) => ExternalKeyResolverResult;
 };
 
 /**

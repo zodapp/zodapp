@@ -10,7 +10,7 @@ export const createMockFileResolver = <TType extends string = "mock">({
   type = "mock" as TType,
 }: { type?: TType } = {}): FileResolverEntry<TType, BaseFileConfigCore> => ({
   type,
-  resolver: () => ({
+  resolver: (_config, _resolverContext) => ({
     upload: async (file: File) => {
       return new Promise((resolve) => {
         const reader = new FileReader();
