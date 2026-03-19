@@ -94,6 +94,11 @@ const TasksPage = () => {
     [storeKey],
   );
 
+  const resolverContext = useMemo(
+    () => ({ workspace: { workspaceId } }),
+    [workspaceId],
+  );
+
   // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離
   const { fetchCondition, clientFilter } = useMemo(() => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
@@ -265,6 +270,8 @@ const TasksPage = () => {
           schema={searchFilterSchema}
           onChange={handleSearchChange}
           defaultValues={search.q}
+          externalKeyResolvers={externalKeyResolvers}
+          resolverContext={resolverContext}
           showPreview={true}
         />
       </Box>
@@ -301,6 +308,7 @@ const TasksPage = () => {
           submitLabel="作成"
           defaultValues={tasksCollection.onInit?.()}
           externalKeyResolvers={externalKeyResolvers}
+          resolverContext={resolverContext}
           showPreview={true}
         />
       </Modal>

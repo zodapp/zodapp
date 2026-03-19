@@ -6,6 +6,7 @@ import type {
   FileResolverEntry,
   FileResolverResult,
 } from "@zodapp/zod-form/file/types";
+import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   FirebaseStorageFileConfig,
   FirebaseStorageFileConfigCore,
@@ -18,8 +19,8 @@ type Storage = firebase.storage.Storage;
 /**
  * Firebase Storage用のファイルResolverEntryを生成する
  *
- * resolverContext は ZodFormContextProvider 経由で resolver(config, resolverContext) の
- * 第2引数として渡される。保存先は fileConfig.getLocation(resolverContext) で決定される。
+ * resolverContext は RegisteredResolverContext（Partial<RegisteredResolverContextMap>）を受け、
+ * config.contextId に対応する slice を取り出して getLocation に渡す。
  *
  * @param type - ResolverのID（デフォルト: "firebaseStorage"）
  * @param storage - Firebase Storageインスタンス
@@ -37,11 +38,12 @@ export function createFirebaseStorageResolver<
     type,
     resolver: (
       config: FirebaseStorageFileConfig<TType>,
-      resolverContext: unknown,
+      resolverContext: RegisteredResolverContext,
     ): FileResolverResult => {
-      const location = config.getLocation(
-        resolverContext as Record<string, unknown>,
-      );
+      const ctx = ((resolverContext as Record<string, unknown>)[
+        config.contextId
+      ] ?? {}) as Record<string, unknown>;
+      const location = config.getLocation(ctx);
 
       return {
         upload: async (file: File): Promise<{ url: string }> => {

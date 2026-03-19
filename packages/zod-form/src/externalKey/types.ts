@@ -2,6 +2,8 @@
  * 外部キー解決のための共通型定義
  */
 
+import type { RegisteredResolverContext } from "../resolverContext/types";
+
 /** ResolverのID（"firestore"など） */
 export type ResolverId = string;
 
@@ -56,6 +58,9 @@ export type BaseExternalKeyActionConfig<
 /**
  * Resolver Entry（配列登録用）
  * typeをResolver側で持つことで、登録キーとconfig.typeの一致を構造的に保証
+ *
+ * resolverContext は RegisteredResolverContext（Partial<RegisteredResolverContextMap>）を受け、
+ * resolver 内部で config.contextId に対応する slice を取り出して使用する。
  */
 export type ExternalKeyResolverEntry<
   TType extends ResolverId,
@@ -64,7 +69,7 @@ export type ExternalKeyResolverEntry<
   type: TType;
   resolver: (
     config: TConfig & { type: TType },
-    resolverContext: unknown,
+    resolverContext: RegisteredResolverContext,
   ) => ExternalKeyResolverResult;
 };
 

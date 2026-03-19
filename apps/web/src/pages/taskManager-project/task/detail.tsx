@@ -59,6 +59,11 @@ const TaskDetailPage = () => {
     [storeKey],
   );
 
+  const resolverContext = useMemo(
+    () => ({ workspace: { workspaceId } }),
+    [workspaceId],
+  );
+
   const [task, setTask] = useState<z.infer<
     typeof tasksCollection.updateSchema
   > | null>(null);
@@ -178,6 +183,7 @@ const TaskDetailPage = () => {
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             externalKeyResolvers={externalKeyResolvers}
+            resolverContext={resolverContext}
             showPreview={true}
           />
         </Card>

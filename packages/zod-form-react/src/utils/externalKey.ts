@@ -82,8 +82,9 @@ export const useExternalKeyOptions = (
   resolverResultRef.current = resolverResult;
 
   const configType = config.type;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const contextId = (config as any).contextId as string | undefined;
+  const contextId = "contextId" in config
+    ? (config as { contextId: string }).contextId
+    : undefined;
   const { resolverContext } = useZodFormContext();
 
   // subscribeしてoptionsを取得
@@ -131,7 +132,7 @@ export const useExternalKeyAction = (
       value,
       actionConfig,
       newTab,
-      resolverContext,
+      resolverContext: resolverContext ?? {},
     });
   }, [actionConfig, externalKeyActionResolver, newTab, value, resolverContext]);
 };

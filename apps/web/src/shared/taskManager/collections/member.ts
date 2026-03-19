@@ -41,10 +41,20 @@ const memberDataSchema = z
     email: z
       .email("有効なメールアドレスを入力してください")
       .register(zf.string.registry, { label: "メールアドレス" }),
-    avatarUrl: zf
-      .string()
-      .url()
-      .register(zf.string.registry, { label: "アバターURL" })
+
+    avatarImage: zf
+      .file()
+      .register(zf.file.registry, {
+        label: "アバター画像",
+        fileConfig: {
+          type: "firebaseStorage",
+          contextId: "workspace",
+          getLocation: (context) => ({
+            parentPath: `workspaces/${context.workspaceId}/avatars`,
+          }),
+          mimeTypes: ["image/*"],
+        },
+      })
       .optional(),
 
     // 権限

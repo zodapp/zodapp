@@ -9,6 +9,7 @@ import {
   useZodForm,
 } from "@zodapp/zod-form-mantine";
 import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
+import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type { MediaResolvers } from "@zodapp/zod-form-react";
 import type { z } from "zod";
 import debounce from "lodash/debounce";
@@ -24,7 +25,7 @@ type AutoSearchProps<T extends z.ZodObject<z.ZodRawShape>> = {
   externalKeyResolvers?: ExternalKeyResolvers;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
-  resolverContext?: unknown;
+  resolverContext?: RegisteredResolverContext;
 };
 
 const AutoSearchInner = <T extends z.ZodObject<z.ZodRawShape>>({

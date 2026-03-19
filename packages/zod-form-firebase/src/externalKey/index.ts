@@ -6,6 +6,7 @@ import type {
   ExternalKeyResolverEntry,
   ExternalKeyOptionsHandler,
 } from "@zodapp/zod-form/externalKey/types";
+import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   FirestoreExternalKeyConfig,
   FirestoreExternalKeyConfigCore,
@@ -25,8 +26,8 @@ type Firestore = firebase.firestore.Firestore;
  * キャッシュはquerySyncに委譲する。querySyncは内部でsubscriptionCacheを使用しており、
  * 同じ{ collectionIdentityParams, queryParams }に対してFirestore subscriptionを共有する。
  *
- * resolverContext は ZodFormContextProvider 経由で resolver(config, resolverContext) の
- * 第2引数として渡される。
+ * resolverContext は RegisteredResolverContext（Partial<RegisteredResolverContextMap>）を受け、
+ * config.contextId に対応する slice を取り出して getQuery に渡す。
  *
  * @param type - ResolverのID（デフォルト: "firestore"）
  * @param db - Firestoreインスタンス
@@ -44,10 +45,13 @@ export function createFirestoreResolver<TType extends string = "firestore">({
     type,
     resolver: (
       config: FirestoreExternalKeyConfig<TType>,
-      resolverContext: unknown,
+      resolverContext: RegisteredResolverContext,
     ) => {
-      const ctx = resolverContext as Record<string, unknown>;
-      const { labelField, labelFormatter, valueField } = config.reference.config;
+      const ctx = ((resolverContext as Record<string, unknown>)[
+        config.contextId
+      ] ?? {}) as Record<string, unknown>;
+      const { labelField, labelFormatter, valueField } =
+        config.reference.config;
       const resolvedValueField =
         valueField ?? config.reference.collection.documentKey;
 
@@ -64,7 +68,8 @@ export function createFirestoreResolver<TType extends string = "firestore">({
 
       const resolved = config.getQuery("", ctx);
       const collectionIdentityKeys =
-        config.reference.collection.collectionIdentityKeys as readonly string[];
+        config.reference.collection
+          .collectionIdentityKeys as readonly string[];
       const identityParams = Object.fromEntries(
         collectionIdentityKeys
           .filter((key) => key in ctx)

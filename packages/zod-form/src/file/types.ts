@@ -2,6 +2,8 @@
  * ファイル解決のための共通型定義
  */
 
+import type { RegisteredResolverContext } from "../resolverContext/types";
+
 /** ResolverのID（"firebaseStorage"など） */
 export type ResolverId = string;
 
@@ -56,7 +58,7 @@ export type FileResolverEntry<
   type: TType;
   resolver: (
     config: TConfig & { type: TType },
-    resolverContext: unknown,
+    resolverContext: RegisteredResolverContext,
   ) => FileResolverResult;
 };
 

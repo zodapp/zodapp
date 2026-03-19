@@ -13,6 +13,7 @@ import type {
   FileResolverResult,
   BaseFileConfig,
 } from "@zodapp/zod-form/file/types";
+import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type { MediaResolvers } from "../media/types";
 import { basicMediaResolvers } from "../mediaResolvers";
 
@@ -46,7 +47,7 @@ export type BaseExternalKeyActionResolver<
   value: string;
   actionConfig: TActionConfig;
   newTab?: boolean;
-  resolverContext: unknown;
+  resolverContext: RegisteredResolverContext;
 }) => ExternalKeyActionWrapper | undefined;
 
 export type ExternalKeyActionResolver =
@@ -64,8 +65,8 @@ type ZodFormContextType = {
   timezone: string;
   /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
   onFieldChange?: (fieldPath: string, value: unknown) => void;
-  /** resolver 共通の runtime context（teamId 等のページ依存値） */
-  resolverContext?: unknown;
+  /** resolver 共通の runtime context（contextId ごとの namespaced map） */
+  resolverContext?: RegisteredResolverContext;
 };
 
 /** ブラウザのローカルタイムゾーンを取得 */
@@ -116,8 +117,8 @@ export const ZodFormContextProvider = ({
   timezone?: string;
   /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
   onFieldChange?: (fieldPath: string, value: unknown) => void;
-  /** resolver 共通の runtime context（teamId 等のページ依存値） */
-  resolverContext?: unknown;
+  /** resolver 共通の runtime context（contextId ごとの namespaced map） */
+  resolverContext?: RegisteredResolverContext;
   children: React.ReactNode;
   merge?: boolean;
 } & (
@@ -202,7 +203,7 @@ export const useExternalKeyResolver = <
     );
   }
 
-  return entry.resolver(config, resolverContext);
+  return entry.resolver(config, resolverContext ?? {});
 };
 
 /**
@@ -237,7 +238,7 @@ export const useFileResolver = <
     );
   }
 
-  return entry.resolver(config, resolverContext);
+  return entry.resolver(config, resolverContext ?? {});
 };
 
 /**
@@ -251,11 +252,23 @@ export const useMediaResolvers = (): MediaResolvers => {
 
 /**
  * resolver 共通の runtime context を取得するフック
+ *
+ * contextId を指定すると対応する slice を返す。
+ * 省略すると全体の RegisteredResolverContext を返す。
  */
-export const useResolverContext = <T = unknown>(): T | undefined => {
+export function useResolverContext(): RegisteredResolverContext | undefined;
+export function useResolverContext<
+  TId extends string,
+>(
+  contextId: TId,
+): (RegisteredResolverContext extends Record<TId, infer V> ? V : unknown) | undefined;
+export function useResolverContext(contextId?: string) {
   const { resolverContext } = useZodFormContext();
-  return resolverContext as T | undefined;
-};
+  if (contextId === undefined) {
+    return resolverContext;
+  }
+  return resolverContext?.[contextId as keyof typeof resolverContext];
+}
 
 /**
  * onFieldChangeコールバックを取得するフック

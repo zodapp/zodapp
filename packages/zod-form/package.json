@@ -25,7 +25,9 @@
     "./externalKey": "./src/externalKey/index.ts",
     "./externalKey/types": "./src/externalKey/types.ts",
     "./file": "./src/file/index.ts",
-    "./file/types": "./src/file/types.ts"
+    "./file/types": "./src/file/types.ts",
+    "./resolverContext": "./src/resolverContext/index.ts",
+    "./resolverContext/types": "./src/resolverContext/types.ts"
   },
   "scripts": {
     "lint": "eslint .",
