@@ -529,12 +529,7 @@ export const collectionConfig = <
     IntrinsicSchema,
     CreateOmitKeys
   >,
-): CollectionConfig<
-  Path,
-  FieldKeys,
-  IntrinsicSchema,
-  CreateOmitKeys
-> => {
+): CollectionConfig<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys> => {
   return {
     ...getCollectionConfigBare(config),
     ...config,
@@ -740,17 +735,10 @@ export type CollectionConfig<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   IntrinsicSchema extends z.ZodObject<any>,
   CreateOmitKeys extends string = never,
-> = CollectionDefinition<
-  Path,
-  FieldKeys,
-  IntrinsicSchema,
-  CreateOmitKeys
-> &
-  CollectionConfigMethods<
-    Path,
-    FieldKeys,
-    IntrinsicSchema,
-    CreateOmitKeys
-  >;
+> = CollectionDefinition<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys> &
+  CollectionConfigMethods<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys>;
 
-export type { CollectionConfigBase, LooseCollectionConfigBase } from "./baseTypes";
+export type {
+  CollectionConfigBase,
+  LooseCollectionConfigBase,
+} from "./baseTypes";

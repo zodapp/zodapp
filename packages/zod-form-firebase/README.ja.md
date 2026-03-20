@@ -26,7 +26,10 @@ pnpm add @zodapp/zod-form-firebase
 ### 1) resolver を用意して Context に渡す
 
 ```tsx
-import { createFirestoreResolver, createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
+import {
+  createFirestoreResolver,
+  createFirebaseStorageResolver,
+} from "@zodapp/zod-form-firebase";
 import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
 import { ZodFormContextProvider } from "@zodapp/zod-form-react";
 
@@ -158,7 +161,7 @@ createFirestoreResolver({
       where: [],
     },
   },
-})
+});
 ```
 
 ## API（抜粋）
@@ -176,4 +179,3 @@ createFirestoreResolver({
 ## ライセンス
 
 MIT（[`LICENSE`](../../LICENSE)）
-

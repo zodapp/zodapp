@@ -31,12 +31,11 @@ type DataOfCollection<TCollection extends LooseCollectionConfigBase> =
       : Record<string, unknown>
     : Record<string, unknown>;
 
-export type CollectionReference<
-  TCollection extends LooseCollectionConfigBase,
-> = {
-  readonly collection: TCollection;
-  readonly config: CollectionReferenceConfig<DataOfCollection<TCollection>>;
-};
+export type CollectionReference<TCollection extends LooseCollectionConfigBase> =
+  {
+    readonly collection: TCollection;
+    readonly config: CollectionReferenceConfig<DataOfCollection<TCollection>>;
+  };
 
 export interface CollectionReferenceBase {
   readonly collection: CollectionConfigBase;
@@ -55,9 +54,10 @@ export interface LooseCollectionReferenceBase {
  */
 export type CollectionFromReference<
   TReference extends LooseCollectionReferenceBase,
-> = TReference extends CollectionReference<infer TCollection>
-  ? TCollection
-  : TReference["collection"];
+> =
+  TReference extends CollectionReference<infer TCollection>
+    ? TCollection
+    : TReference["collection"];
 
 export const createCollectionReference = <
   const TCollection extends LooseCollectionConfigBase,

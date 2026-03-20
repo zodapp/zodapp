@@ -424,7 +424,9 @@ describe("collectionConfig", () => {
         CollectionReference<typeof testCollection>
       >;
 
-      expectTypeOf<ExtractedCollection>().toEqualTypeOf<typeof testCollection>();
+      expectTypeOf<ExtractedCollection>().toEqualTypeOf<
+        typeof testCollection
+      >();
       expectTypeOf<ExtractedCollectionFromGeneric>().toEqualTypeOf<
         typeof testCollection
       >();
@@ -758,9 +760,7 @@ describe("collectionConfig", () => {
       });
       void noFieldKeys;
 
-      type DocumentPath = z.infer<
-        (typeof noFieldKeys)["documentPathSchema"]
-      >;
+      type DocumentPath = z.infer<(typeof noFieldKeys)["documentPathSchema"]>;
       type CollectionPath = z.infer<
         (typeof noFieldKeys)["collectionPathSchema"]
       >;
@@ -828,12 +828,7 @@ describe("collectionConfig", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodObject<any>,
         CreateOmitKeys extends string = never,
-      >() => CollectionConfig<
-        Path,
-        FieldKeys,
-        IntrinsicSchema,
-        CreateOmitKeys
-      >;
+      >() => CollectionConfig<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys>;
 
       expectTypeOf<CollectionConfigFn>().toEqualTypeOf<CollectionConfigBareFn>();
     });
@@ -903,10 +898,7 @@ describe("autoQuery helpers", () => {
     });
 
     it("should contain multiple nonPath keys", () => {
-      expect(multiNonPathCollection.nonPathKeys).toEqual([
-        "teamId",
-        "orgId",
-      ]);
+      expect(multiNonPathCollection.nonPathKeys).toEqual(["teamId", "orgId"]);
     });
   });
 

@@ -118,10 +118,7 @@ export function createUseGrowingList(firestore: Firestore) {
       }),
       [queryKey],
     );
-    const normalizedStreamQuery = useMemo(
-      () => streamQuery,
-      [streamQueryKey],
-    );
+    const normalizedStreamQuery = useMemo(() => streamQuery, [streamQueryKey]);
 
     useEffect(() => {
       if (stableCollectionIdentity === undefined) {

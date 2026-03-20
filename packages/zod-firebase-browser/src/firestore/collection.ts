@@ -116,8 +116,10 @@ const convertForFirestoreWrite = (
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const collectionAccessorCache =
-  hierarchicalWeakCache<CollectionAccessorCacheKeys, unknown>();
+const collectionAccessorCache = hierarchicalWeakCache<
+  CollectionAccessorCacheKeys,
+  unknown
+>();
 
 /**
  * getAccessor の戻り値型
@@ -194,8 +196,9 @@ const getAccessorCached = <TConfig extends CollectionConfigBase>(
   config: TConfig,
   storeKey: AccessorStoreKey,
 ): CollectionAccessorResult<TConfig> => {
-  const accessor = collectionAccessorCache.getOrCreate([db, storeKey, config], () =>
-    getAccessorInternal(db, config),
+  const accessor = collectionAccessorCache.getOrCreate(
+    [db, storeKey, config],
+    () => getAccessorInternal(db, config),
   );
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return accessor as CollectionAccessorResult<TConfig>;
@@ -226,7 +229,9 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     const segments = config.path.split("/").filter(Boolean);
     const name = segments[segments.length - 2];
     if (!name || name.startsWith(":")) {
-      throw new Error(`Invalid collection config path for collection group: ${config.path}`);
+      throw new Error(
+        `Invalid collection config path for collection group: ${config.path}`,
+      );
     }
     return name;
   })();
@@ -253,7 +258,8 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       },
     }),
     retentionTime: 10 * 1000, // 10 seconds
-    serializer: (params: EffectiveQuerySubscriptionParams) => stableStringify(params),
+    serializer: (params: EffectiveQuerySubscriptionParams) =>
+      stableStringify(params),
   });
   const querySnapshotSubscriptionCache = subscriptionCache({
     generator: ({
@@ -275,7 +281,8 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       },
     }),
     retentionTime: 10 * 1000, // 10 seconds
-    serializer: (params: EffectiveQuerySubscriptionParams) => stableStringify(params),
+    serializer: (params: EffectiveQuerySubscriptionParams) =>
+      stableStringify(params),
   });
   const docSubscriptionCache = subscriptionCache({
     generator: (docIdentityParams: DocIdentityParams) => ({
@@ -325,7 +332,9 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     }
     return data;
   };
-  const getDocIdentityFromSnapshot = (doc: DocumentSnapshot): DocIdentityParams => {
+  const getDocIdentityFromSnapshot = (
+    doc: DocumentSnapshot,
+  ): DocIdentityParams => {
     const pathParams = config.parseDocumentPath(doc.ref.path);
     if (!pathParams) {
       throw new Error(`Failed to parse document path: ${doc.ref.path}`);
@@ -343,7 +352,9 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       }
       identityParams[key] = (data as Record<string, unknown>)[key];
     }
-    return config.documentIdentitySchema.parse(identityParams) as DocIdentityParams;
+    return config.documentIdentitySchema.parse(
+      identityParams,
+    ) as DocIdentityParams;
   };
   const collectionGroupDocToData = (doc: DocumentSnapshot) => {
     return docToData(doc, getDocIdentityFromSnapshot(doc));
@@ -421,7 +432,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         collectionIdentityParams,
       );
       const collectionRef = db.collection(collectionPath);
-      const query = queryBuilder({ ...effectiveQuery, ...extractCursorOptions(queryOptions) })(collectionRef);
+      const query = queryBuilder({
+        ...effectiveQuery,
+        ...extractCursorOptions(queryOptions),
+      })(collectionRef);
       const docs = await query.get();
       return docs.docs.map((doc) =>
         docToDataSafe(doc, collectionIdentityParams),
@@ -440,7 +454,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         collectionIdentityParams,
       );
       const collectionRef = db.collection(collectionPath);
-      const query = queryBuilder({ ...effectiveQuery, ...extractCursorOptions(queryOptions) })(collectionRef);
+      const query = queryBuilder({
+        ...effectiveQuery,
+        ...extractCursorOptions(queryOptions),
+      })(collectionRef);
       const docs = await query.get();
       return docs.docs;
     },
@@ -450,7 +467,9 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       const docs = await query.get();
       return docs.docs.map((doc) => collectionGroupDocToDataSafe(doc));
     },
-    collectionGroupQuerySnapshot: async (queryOptions?: AccessorLevelQueryOptions) => {
+    collectionGroupQuerySnapshot: async (
+      queryOptions?: AccessorLevelQueryOptions,
+    ) => {
       const collectionRef = db.collectionGroup(collectionGroupName);
       const query = queryBuilder(queryOptions)(collectionRef);
       const docs = await query.get();

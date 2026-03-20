@@ -47,8 +47,9 @@ const getMutationsAccessorCached = <
   config: { collection: TCollection; mutations: TMutations },
   storeKey: AccessorStoreKey,
 ): MutationsAccessorResult<TCollection, TMutations> => {
-  const accessor = mutationAccessorCache.getOrCreate([db, storeKey, config], () =>
-    getMutationsAccessorInternal(db, config, storeKey),
+  const accessor = mutationAccessorCache.getOrCreate(
+    [db, storeKey, config],
+    () => getMutationsAccessorInternal(db, config, storeKey),
   );
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return accessor as MutationsAccessorResult<TCollection, TMutations>;

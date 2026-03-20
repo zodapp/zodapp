@@ -14,7 +14,10 @@
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
-  "keywords": ["cache", "utilities"],
+  "keywords": [
+    "cache",
+    "utilities"
+  ],
   "publishConfig": {
     "access": "public"
   },

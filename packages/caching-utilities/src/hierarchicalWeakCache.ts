@@ -26,10 +26,7 @@ function assertKeys(keys: readonly object[]): void {
   }
   for (const key of keys) {
     if (
-      !(
-        (typeof key === "object" && key !== null) ||
-        typeof key === "function"
-      )
+      !((typeof key === "object" && key !== null) || typeof key === "function")
     ) {
       throw new Error("hierarchicalWeakCache keys must be objects");
     }
@@ -78,7 +75,8 @@ export function hierarchicalWeakCache<
 
     for (let index = 1; index < keys.length; index++) {
       const key = keys[index]!;
-      let children: WeakMap<object, CacheNode<Value>> | undefined = node.children;
+      let children: WeakMap<object, CacheNode<Value>> | undefined =
+        node.children;
       if (!children) {
         children = new WeakMap<object, CacheNode<Value>>();
         node.children = children;

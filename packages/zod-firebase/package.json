@@ -14,7 +14,11 @@
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
-  "keywords": ["zod", "firebase", "validation"],
+  "keywords": [
+    "zod",
+    "firebase",
+    "validation"
+  ],
   "publishConfig": {
     "access": "public"
   },

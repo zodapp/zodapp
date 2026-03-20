@@ -17,7 +17,9 @@ export type CollectionGroupListState<T> = {
   error?: Error;
 };
 
-export type UseCollectionGroupListOptions<TConfig extends CollectionConfigBase> = {
+export type UseCollectionGroupListOptions<
+  TConfig extends CollectionConfigBase,
+> = {
   storeKey: AccessorStoreKey;
   collection: TConfig;
   query?: QueryOptions;
@@ -85,7 +87,9 @@ export function createUseCollectionGroupList(firestore: Firestore) {
 
     const loadPage = useCallback(
       async (reset: boolean) => {
-        const generation = reset ? generationRef.current + 1 : generationRef.current;
+        const generation = reset
+          ? generationRef.current + 1
+          : generationRef.current;
         if (reset) {
           generationRef.current = generation;
         }
@@ -101,15 +105,19 @@ export function createUseCollectionGroupList(firestore: Firestore) {
             where: queryRef.current?.where,
             orderBy: queryRef.current?.orderBy,
             limit: pageSize,
-            startAfter: reset ? undefined : lastDocRef.current ?? undefined,
+            startAfter: reset ? undefined : (lastDocRef.current ?? undefined),
           });
 
           if (generationRef.current !== generation) {
             return;
           }
 
-          lastDocRef.current = (docs[docs.length - 1] as QueryDocumentSnapshot | undefined) ?? null;
-          const nextItems = docs.map((doc) => accessor.collectionGroupDocToDataSafe(doc));
+          lastDocRef.current =
+            (docs[docs.length - 1] as QueryDocumentSnapshot | undefined) ??
+            null;
+          const nextItems = docs.map((doc) =>
+            accessor.collectionGroupDocToDataSafe(doc),
+          );
           const filteredItems = clientFilterRef.current
             ? nextItems.filter(clientFilterRef.current)
             : nextItems;
@@ -118,7 +126,9 @@ export function createUseCollectionGroupList(firestore: Firestore) {
             items: reset ? filteredItems : [...prev.items, ...filteredItems],
             isLoading: false,
             hasMore: docs.length === pageSize,
-            filteredCount: reset ? filteredItems.length : prev.filteredCount + filteredItems.length,
+            filteredCount: reset
+              ? filteredItems.length
+              : prev.filteredCount + filteredItems.length,
             scannedCount: reset ? docs.length : prev.scannedCount + docs.length,
             error: undefined,
           }));

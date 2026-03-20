@@ -510,15 +510,15 @@ const testCollection = collectionConfig({
 
 ### Identity（識別キー）系スキーマ
 
-| スキーマ名                     | 含まれるキー                             | 説明                                           |
-| ------------------------------ | ---------------------------------------- | ---------------------------------------------- |
-| **`documentPathSchema`**       | pathKeys（collectionKeys + docKey）      | パスを構成する全キー                           |
-| **`collectionPathSchema`**     | collectionKeys                           | docKey を除いた documentPathKeys              |
-| **`documentKeySchema`**        | docKey のみ                              | 最後の `:paramName`                           |
-| **`nonPathKeySchema`**         | nonPathKeys のみ                         | path 外の追加キー（空なら `z.unknown()`）      |
-| **`documentIdentitySchema`**   | documentPathKeys + nonPathKeys           | ドキュメントを一意に識別する全キー             |
-| **`collectionIdentitySchema`** | collectionKeys + nonPathKeys             | コレクションを一意に識別するキー               |
-| **`collectionKeySchema`**      | collectionKeys                           | `collectionPathSchema` のエイリアス            |
+| スキーマ名                     | 含まれるキー                        | 説明                                      |
+| ------------------------------ | ----------------------------------- | ----------------------------------------- |
+| **`documentPathSchema`**       | pathKeys（collectionKeys + docKey） | パスを構成する全キー                      |
+| **`collectionPathSchema`**     | collectionKeys                      | docKey を除いた documentPathKeys          |
+| **`documentKeySchema`**        | docKey のみ                         | 最後の `:paramName`                       |
+| **`nonPathKeySchema`**         | nonPathKeys のみ                    | path 外の追加キー（空なら `z.unknown()`） |
+| **`documentIdentitySchema`**   | documentPathKeys + nonPathKeys      | ドキュメントを一意に識別する全キー        |
+| **`collectionIdentitySchema`** | collectionKeys + nonPathKeys        | コレクションを一意に識別するキー          |
+| **`collectionKeySchema`**      | collectionKeys                      | `collectionPathSchema` のエイリアス       |
 
 上記の例での各スキーマの `z.infer` 結果:
 
@@ -551,13 +551,13 @@ type CollectionKey = z.infer<typeof testCollection.collectionKeySchema>;
 
 ### データ（ドキュメント本体）系スキーマ
 
-| スキーマ名         | 構成ルール                                                              | 説明                         |
-| ------------------ | ----------------------------------------------------------------------- | ---------------------------- |
-| **`schema`**       | 入力そのまま                                                            | ユーザ指定の intrinsicSchema |
-| **`dataSchema`**   | `schema` + documentIdentityKeys（必須）                                 | 読み取り時の完全なデータ型   |
-| **`updateSchema`** | `schema` + documentIdentityKeys（fieldKeys は必須、その他 optional）     | 更新用フォーム向け           |
-| **`storeSchema`**  | `schema` − documentPathKeys + fieldKeys（必須）                          | Firestore に保存する形       |
-| **`createSchema`** | `schema` − documentIdentityKeys − createOmitKeys                         | 新規作成フォーム向け         |
+| スキーマ名         | 構成ルール                                                           | 説明                         |
+| ------------------ | -------------------------------------------------------------------- | ---------------------------- |
+| **`schema`**       | 入力そのまま                                                         | ユーザ指定の intrinsicSchema |
+| **`dataSchema`**   | `schema` + documentIdentityKeys（必須）                              | 読み取り時の完全なデータ型   |
+| **`updateSchema`** | `schema` + documentIdentityKeys（fieldKeys は必須、その他 optional） | 更新用フォーム向け           |
+| **`storeSchema`**  | `schema` − documentPathKeys + fieldKeys（必須）                      | Firestore に保存する形       |
+| **`createSchema`** | `schema` − documentIdentityKeys − createOmitKeys                     | 新規作成フォーム向け         |
 
 上記の例での各スキーマの `z.infer` 結果:
 
@@ -648,20 +648,20 @@ tasks.parseDocumentPath("/invalid/path");
 
 ### キー情報
 
-| プロパティ                  | 型                  | 説明                               |
-| --------------------------- | ------------------- | ---------------------------------- |
-| `documentIdentityKeys`       | `readonly string[]` | `documentPathKeys + nonPathKeys`    |
-| `collectionIdentityKeys`    | `readonly string[]` | `collectionPathKeys + nonPathKeys` |
-| `fieldKeys`                 | `readonly string[]` | 入力した fieldKeys                 |
+| プロパティ               | 型                  | 説明                               |
+| ------------------------ | ------------------- | ---------------------------------- |
+| `documentIdentityKeys`   | `readonly string[]` | `documentPathKeys + nonPathKeys`   |
+| `collectionIdentityKeys` | `readonly string[]` | `collectionPathKeys + nonPathKeys` |
+| `fieldKeys`              | `readonly string[]` | 入力した fieldKeys                 |
 
 ### ライフサイクル系ユーティリティ
 
-| プロパティ                                    | 型                                  | 説明                                                             |
-| --------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------- |
-| `onInit`                                      | `(() => Partial<...>) \| undefined` | 入力した onInit                                                  |
-| `beforeGenerate(documentIdentity, inputData)` | `(identity, data) => data`          | create 時の前処理（`onCreate` → `onWrite` → fieldKeys 注入）     |
-| `beforeWrite(documentIdentity, data)`         | `(identity, data) => data`          | update 時の前処理（`onWrite` → fieldKeys 注入）                  |
-| `checkNonPathKeys(data, identityParams)`       | `(data, params) => boolean`         | data 内の nonPathKeys が identityParams と一致するか検証          |
+| プロパティ                                    | 型                                  | 説明                                                         |
+| --------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| `onInit`                                      | `(() => Partial<...>) \| undefined` | 入力した onInit                                              |
+| `beforeGenerate(documentIdentity, inputData)` | `(identity, data) => data`          | create 時の前処理（`onCreate` → `onWrite` → fieldKeys 注入） |
+| `beforeWrite(documentIdentity, data)`         | `(identity, data) => data`          | update 時の前処理（`onWrite` → fieldKeys 注入）              |
+| `checkNonPathKeys(data, identityParams)`      | `(data, params) => boolean`         | data 内の nonPathKeys が identityParams と一致するか検証     |
 
 ---
 

@@ -59,7 +59,10 @@ describe("hierarchicalWeakCache", () => {
   });
 
   it("空配列キーはすべての API で拒否する", () => {
-    const cache = hierarchicalWeakCache<readonly [object, ...object[]], object>();
+    const cache = hierarchicalWeakCache<
+      readonly [object, ...object[]],
+      object
+    >();
     const emptyKeys = [] as unknown as readonly [object, ...object[]];
 
     expect(() => cache.get(emptyKeys)).toThrow(

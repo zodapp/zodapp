@@ -1,7 +1,4 @@
-export {
-  collectionConfig,
-  getCollectionConfigBare,
-} from "./collection";
+export { collectionConfig, getCollectionConfigBare } from "./collection";
 export type {
   BrandedCollectionConfig,
   CollectionDefinition,
@@ -10,10 +7,7 @@ export type {
   CollectionConfigBase,
   LooseCollectionConfigBase,
 } from "./collection";
-export {
-  createCollectionQueries,
-  resolveScopedQueryOptions,
-} from "./query";
+export { createCollectionQueries, resolveScopedQueryOptions } from "./query";
 export { createCollectionMutations } from "./mutation";
 export { createCollectionReference } from "./reference";
 export type {

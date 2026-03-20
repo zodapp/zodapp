@@ -76,12 +76,14 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     expectTypeOf(taskAccessor.collectionGroupQuery).returns.toEqualTypeOf<
       Promise<Task[]>
     >();
-    expectTypeOf(taskAccessor.collectionGroupQuerySnapshot).returns.toEqualTypeOf<
-      Promise<firebase.firestore.DocumentSnapshot[]>
-    >();
+    expectTypeOf(
+      taskAccessor.collectionGroupQuerySnapshot,
+    ).returns.toEqualTypeOf<Promise<firebase.firestore.DocumentSnapshot[]>>();
 
     type ActiveQueryArgs = Parameters<(typeof taskQueries.queries)["active"]>;
-    type ByStatusQueryArgs = Parameters<(typeof taskQueries.queries)["byStatus"]>;
+    type ByStatusQueryArgs = Parameters<
+      (typeof taskQueries.queries)["byStatus"]
+    >;
     type SetDueDateTail = Tail<
       Parameters<typeof taskMutationsAccessor.setDueDate>
     >;
@@ -90,10 +92,12 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     expectTypeOf<ByStatusQueryArgs>().toEqualTypeOf<[TaskStatus]>();
     expectTypeOf<SetDueDateTail>().toEqualTypeOf<[Date]>();
 
-    expectTypeOf<ReturnType<(typeof taskQueries.queries)["active"]>>()
-      .toMatchTypeOf<QueryOptions>();
-    expectTypeOf<ReturnType<(typeof taskQueries.queries)["byStatus"]>>()
-      .toMatchTypeOf<QueryOptions>();
+    expectTypeOf<
+      ReturnType<(typeof taskQueries.queries)["active"]>
+    >().toMatchTypeOf<QueryOptions>();
+    expectTypeOf<
+      ReturnType<(typeof taskQueries.queries)["byStatus"]>
+    >().toMatchTypeOf<QueryOptions>();
   });
 
   it("異常系: bound mutation の引数が違うと型エラーになる（@ts-expect-error）", () => {
@@ -197,7 +201,9 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
     type QuerySecondArg = Parameters<typeof _taskAccessor.query>[1];
-    type QuerySnapshotSecondArg = Parameters<typeof _taskAccessor.querySnapshot>[1];
+    type QuerySnapshotSecondArg = Parameters<
+      typeof _taskAccessor.querySnapshot
+    >[1];
 
     expectTypeOf<QuerySecondArg>().toEqualTypeOf<
       AccessorLevelQueryOptions | undefined
@@ -213,7 +219,9 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
     type CGQArg = Parameters<typeof _taskAccessor.collectionGroupQuery>[0];
-    type CGQSArg = Parameters<typeof _taskAccessor.collectionGroupQuerySnapshot>[0];
+    type CGQSArg = Parameters<
+      typeof _taskAccessor.collectionGroupQuerySnapshot
+    >[0];
 
     expectTypeOf<CGQArg>().toEqualTypeOf<
       AccessorLevelQueryOptions | undefined

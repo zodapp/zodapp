@@ -101,7 +101,10 @@ const convertForFirestoreWrite = (
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const collectionAccessorDbCache = new WeakMap<Firestore, WeakMap<CollectionConfigBase, unknown>>();
+const collectionAccessorDbCache = new WeakMap<
+  Firestore,
+  WeakMap<CollectionConfigBase, unknown>
+>();
 
 /**
  * getAccessor の戻り値型
@@ -227,7 +230,8 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       },
     }),
     retentionTime: 10 * 1000, // 10 seconds
-    serializer: (params: EffectiveQuerySubscriptionParams) => stableStringify(params),
+    serializer: (params: EffectiveQuerySubscriptionParams) =>
+      stableStringify(params),
   });
   const querySnapshotSubscriptionCache = subscriptionCache({
     generator: ({
@@ -249,7 +253,8 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       },
     }),
     retentionTime: 10 * 1000, // 10 seconds
-    serializer: (params: EffectiveQuerySubscriptionParams) => stableStringify(params),
+    serializer: (params: EffectiveQuerySubscriptionParams) =>
+      stableStringify(params),
   });
   const docSubscriptionCache = subscriptionCache({
     generator: (docIdentityParams: DocIdentityParams) => ({
@@ -276,7 +281,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       return null;
     }
     if (
-      !config.checkNonPathKeys(data as Record<string, unknown>, docIdentityParams)
+      !config.checkNonPathKeys(
+        data as Record<string, unknown>,
+        docIdentityParams,
+      )
     ) {
       throw new Error("Non-path identity keys do not match");
     }
@@ -362,7 +370,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         collectionIdentityParams,
       );
       const collectionRef = db.collection(collectionPath);
-      const query = queryBuilder({ ...effectiveQuery, ...extractCursorOptions(queryOptions) })(collectionRef);
+      const query = queryBuilder({
+        ...effectiveQuery,
+        ...extractCursorOptions(queryOptions),
+      })(collectionRef);
       const docs = await query.get();
       return docs.docs.map((doc) =>
         docToDataSafe(doc, collectionIdentityParams),
@@ -381,7 +392,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         collectionIdentityParams,
       );
       const collectionRef = db.collection(collectionPath);
-      const query = queryBuilder({ ...effectiveQuery, ...extractCursorOptions(queryOptions) })(collectionRef);
+      const query = queryBuilder({
+        ...effectiveQuery,
+        ...extractCursorOptions(queryOptions),
+      })(collectionRef);
       const docs = await query.get();
       return docs.docs;
     },

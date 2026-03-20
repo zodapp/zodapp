@@ -32,7 +32,10 @@ type MutationsAccessorResult<
   TMutations extends MutationRecord,
 > = BoundMutations<TCollection, TMutations>;
 
-const mutationAccessorDbCache = new WeakMap<Firestore, WeakMap<object, unknown>>();
+const mutationAccessorDbCache = new WeakMap<
+  Firestore,
+  WeakMap<object, unknown>
+>();
 
 const getMutationsAccessorCached = <
   TCollection extends CollectionConfigBase,

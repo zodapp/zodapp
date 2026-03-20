@@ -49,7 +49,10 @@ const tasks = collectionConfig({
 
 const accessor = getAccessor(db, tasks);
 
-await accessor.createDoc({ workspaceId: "ws1" }, { title: "hello", done: false });
+await accessor.createDoc(
+  { workspaceId: "ws1" },
+  { title: "hello", done: false },
+);
 ```
 
 ## `getAccessor()` の戻り値（メソッド一覧）
@@ -108,4 +111,3 @@ queryBuilder({
 ## ライセンス
 
 MIT（[`LICENSE`](../../LICENSE)）
-

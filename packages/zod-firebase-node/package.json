@@ -14,7 +14,12 @@
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
-  "keywords": ["zod", "firebase", "node", "admin"],
+  "keywords": [
+    "zod",
+    "firebase",
+    "node",
+    "admin"
+  ],
   "publishConfig": {
     "access": "public"
   },

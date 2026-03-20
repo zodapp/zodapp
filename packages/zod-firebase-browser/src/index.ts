@@ -1,8 +1,4 @@
-export {
-  getAccessor,
-  getMutationsAccessor,
-  queryBuilder,
-} from "./firestore";
+export { getAccessor, getMutationsAccessor, queryBuilder } from "./firestore";
 export type { AccessorStoreKey, AccessorLevelQueryOptions } from "./firestore";
 export {
   type GrowingListState,
