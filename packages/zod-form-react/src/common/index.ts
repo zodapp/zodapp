@@ -16,6 +16,7 @@ export {
   type ExternalKeyActionWrapper,
   type BaseExternalKeyActionResolver,
   type ExternalKeyActionResolver,
+  type CollectionReferenceActionEntry,
 } from "./context";
 export { useExternalKeyAction } from "../utils/externalKey";
 export {

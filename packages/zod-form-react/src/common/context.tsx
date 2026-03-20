@@ -18,6 +18,29 @@ import type { MediaResolvers } from "../media/types";
 import { basicMediaResolvers } from "../mediaResolvers";
 
 /**
+ * CollectionReference をキーにした action 登録の 1 エントリ。
+ * reference の参照同一性で lookup する。
+ *
+ * reference は object identity で比較されるため、
+ * createCollectionReference() で生成した singleton を渡すこと。
+ */
+export type CollectionReferenceActionEntry = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reference: object;
+  action: RegisteredExternalKeyActionConfig;
+};
+
+type CollectionReferenceActionMap = ReadonlyMap<
+  object,
+  RegisteredExternalKeyActionConfig
+>;
+
+const toCollectionReferenceActionMap = (
+  entries: readonly CollectionReferenceActionEntry[],
+): CollectionReferenceActionMap =>
+  new Map(entries.map(({ reference, action }) => [reference, action] as const));
+
+/**
  * 動的ローダ（Dynamic loader）の型。
  *
  * コンポーネント定義 `{ component }` もしくはその Promise を返します。
@@ -67,6 +90,8 @@ type ZodFormContextType = {
   onFieldChange?: (fieldPath: string, value: unknown) => void;
   /** resolver 共通の runtime context（contextId ごとの namespaced map） */
   resolverContext?: RegisteredResolverContext;
+  /** CollectionReference をキーにした default action の Map */
+  collectionReferenceActionMap?: CollectionReferenceActionMap;
 };
 
 /** ブラウザのローカルタイムゾーンを取得 */
@@ -104,6 +129,7 @@ export const ZodFormContextProvider = ({
   timezone,
   onFieldChange,
   resolverContext,
+  collectionReferenceActions,
   children,
   merge,
 }: {
@@ -119,6 +145,8 @@ export const ZodFormContextProvider = ({
   onFieldChange?: (fieldPath: string, value: unknown) => void;
   /** resolver 共通の runtime context（contextId ごとの namespaced map） */
   resolverContext?: RegisteredResolverContext;
+  /** CollectionReference をキーにした default action 配列 */
+  collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
   children: React.ReactNode;
   merge?: boolean;
 } & (
@@ -129,6 +157,19 @@ export const ZodFormContextProvider = ({
     }
 )) => {
   const parentContext = React.useContext(ZodFormContext);
+
+  const collectionReferenceActionMap = useMemo(() => {
+    const parentMap = parentContext.collectionReferenceActionMap;
+    if (!collectionReferenceActions?.length) {
+      return parentMap;
+    }
+    const ownMap = toCollectionReferenceActionMap(collectionReferenceActions);
+    if (!merge || !parentMap?.size) {
+      return ownMap;
+    }
+    return new Map([...parentMap.entries(), ...ownMap.entries()]);
+  }, [collectionReferenceActions, merge, parentContext.collectionReferenceActionMap]);
+
   const mergedContext = {
     componentLibrary: merge
       ? {
@@ -147,6 +188,7 @@ export const ZodFormContextProvider = ({
     timezone: timezone ?? parentContext.timezone,
     onFieldChange: onFieldChange ?? parentContext.onFieldChange,
     resolverContext: resolverContext ?? parentContext.resolverContext,
+    collectionReferenceActionMap,
   };
   return (
     <ZodFormContext.Provider value={mergedContext}>

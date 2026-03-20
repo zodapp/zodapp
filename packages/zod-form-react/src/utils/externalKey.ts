@@ -110,6 +110,8 @@ export const useExternalKeyOptions = (
 /**
  * ExternalKey の現在値に対する action wrapper を取得する hook。
  * 値・schema meta・runtime resolver の3点が揃ったときだけ wrapper を返す。
+ *
+ * 解決順: field explicit > collectionReferenceActionMap > none
  */
 export const useExternalKeyAction = (
   schema: ExternalKeySchema,
@@ -117,22 +119,45 @@ export const useExternalKeyAction = (
   newTab?: boolean,
 ): ExternalKeyActionWrapper | undefined => {
   const meta = getMeta(schema, "externalKey");
-  const { externalKeyActionResolver, resolverContext } = useZodFormContext();
+  const {
+    externalKeyActionResolver,
+    resolverContext,
+    collectionReferenceActionMap,
+  } = useZodFormContext();
 
-  const actionConfig = meta?.externalKeyActionConfig as
+  const explicitActionConfig = meta?.externalKeyActionConfig as
     | RegisteredExternalKeyActionConfig
     | undefined;
 
+  const externalKeyConfig = meta?.externalKeyConfig;
+  const resolvedConfig = useMemo(
+    () => (externalKeyConfig ? resolveConfig(externalKeyConfig) : undefined),
+    [externalKeyConfig],
+  );
+
+  const referenceActionConfig = useMemo(() => {
+    if (explicitActionConfig || !collectionReferenceActionMap || !resolvedConfig) {
+      return undefined;
+    }
+    if ("reference" in resolvedConfig) {
+      const ref = (resolvedConfig as { reference: object }).reference;
+      return collectionReferenceActionMap.get(ref);
+    }
+    return undefined;
+  }, [explicitActionConfig, collectionReferenceActionMap, resolvedConfig]);
+
+  const resolvedActionConfig = explicitActionConfig ?? referenceActionConfig;
+
   return useMemo(() => {
-    if (!value || !actionConfig || !externalKeyActionResolver) {
+    if (!value || !resolvedActionConfig || !externalKeyActionResolver) {
       return undefined;
     }
 
     return externalKeyActionResolver({
       value,
-      actionConfig,
+      actionConfig: resolvedActionConfig,
       newTab,
       resolverContext: resolverContext ?? {},
     });
-  }, [actionConfig, externalKeyActionResolver, newTab, value, resolverContext]);
+  }, [resolvedActionConfig, externalKeyActionResolver, newTab, value, resolverContext]);
 };
