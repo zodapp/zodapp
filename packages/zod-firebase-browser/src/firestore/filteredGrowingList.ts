@@ -94,6 +94,22 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
   const filteredList = new BTree<Key, _DataType>(undefined, sortFn);
   const idToFilteredItem = new Map<string, _DataType>();
 
+  // items snapshot cache
+  let itemsSnapshot: _DataType[] = [];
+  let itemsDirty = true;
+
+  const getItemsSnapshot = (): _DataType[] => {
+    if (itemsDirty) {
+      itemsSnapshot = Array.from(filteredList.values());
+      itemsDirty = false;
+    }
+    return itemsSnapshot;
+  };
+
+  const markItemsDirty = () => {
+    itemsDirty = true;
+  };
+
   let sourceState: GrowingListState<_DataType> = {
     items: [],
     count: 0,
@@ -108,7 +124,7 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
 
   const getState = (): FilteredGrowingListState<_DataType> => {
     return {
-      items: Array.from(filteredList.values()),
+      items: getItemsSnapshot(),
       count: filteredList.size,
       hasMore: sourceState.hasMore,
       fetchState: fetchState ?? sourceState.fetchState,
@@ -138,7 +154,6 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
     const passes = !filterFn || filterFn(item);
 
     if (passes) {
-      // 既存のエントリがあれば削除（キーが変わった場合の二重登録を防止）
       const existingItem = idToFilteredItem.get(docId);
       if (existingItem) {
         const oldKeys = getKeys(existingItem);
@@ -146,14 +161,15 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
       }
       filteredList.set(itemKeys, item);
       idToFilteredItem.set(docId, item);
+      markItemsDirty();
       return true;
     } else {
-      // フィルタを通過しなかった場合、既存のエントリがあれば削除
       const existingItem = idToFilteredItem.get(docId);
       if (existingItem) {
         const oldKeys = getKeys(existingItem);
         filteredList.delete(oldKeys);
         idToFilteredItem.delete(docId);
+        markItemsDirty();
       }
       return false;
     }
@@ -165,38 +181,49 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
       const oldKeys = getKeys(existingItem);
       filteredList.delete(oldKeys);
       idToFilteredItem.delete(docId);
+      markItemsDirty();
     }
   };
 
-  // ソースの状態変更を購読
+  const applyItemChangeEvent = (event: ItemChangeEvent<_DataType>) => {
+    switch (event.type) {
+      case "add":
+      case "update": {
+        const added = applyFilterToItem(event.docId, event.item);
+        if (fetchState) {
+          fetchState.scannedCount++;
+          if (added) {
+            fetchState.filteredCount++;
+          }
+        }
+        break;
+      }
+      case "remove":
+        removeFilteredItem(event.docId);
+        break;
+    }
+  };
+
+  // ソースの状態変更を購読（fetch バッチ完了ごとに publish される）
   const unsubscribeSource = source.subscribe((state) => {
     sourceState = state;
-    // fetchStateの更新とfetchMore再帰のトリガーはここでは行わない
-    // （onItemChangeで処理）
     notifyListeners();
   });
 
-  // ソースのアイテム変更を購読（効率的なフィルタリング）
+  // stream 由来の per-item 変更を購読（即時 publish）
   const unsubscribeItemChange = source.onItemChange(
     (event: ItemChangeEvent<_DataType>) => {
-      switch (event.type) {
-        case "add":
-        case "update": {
-          const added = applyFilterToItem(event.docId, event.item);
-          // fetchState中なら再帰判定のためにカウントを更新
-          if (fetchState) {
-            fetchState.scannedCount++;
-            if (added) {
-              fetchState.filteredCount++;
-            }
-          }
-          break;
-        }
-        case "remove":
-          removeFilteredItem(event.docId);
-          break;
-      }
+      applyItemChangeEvent(event);
       notifyListeners();
+    },
+  );
+
+  // fetch 由来の batch 変更を購読（フィルタ更新のみ、publish は source.subscribe に任せる）
+  const unsubscribeItemChangeBatch = source.onItemChangeBatch(
+    (events: ItemChangeEvent<_DataType>[]) => {
+      for (const event of events) {
+        applyItemChangeEvent(event);
+      }
     },
   );
 
@@ -260,6 +287,7 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
     filterFn = _filterFn;
     filteredList.clear();
     idToFilteredItem.clear();
+    markItemsDirty();
 
     // ソースの全データにフィルタを再適用
     source.getState().items.forEach((item) => {
@@ -293,6 +321,7 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
     dispose: () => {
       unsubscribeSource();
       unsubscribeItemChange();
+      unsubscribeItemChangeBatch();
       source.release();
       listeners.clear();
     },

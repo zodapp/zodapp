@@ -116,6 +116,22 @@ export const createIntrinsicGrowingList = <
   let lastItemTime: Date | undefined = undefined;
   let lastError: Error | undefined = undefined;
 
+  // items snapshot cache
+  let itemsSnapshot: _DataType[] = [];
+  let itemsDirty = true;
+
+  const getItemsSnapshot = (): _DataType[] => {
+    if (itemsDirty) {
+      itemsSnapshot = Array.from(list.values());
+      itemsDirty = false;
+    }
+    return itemsSnapshot;
+  };
+
+  const markItemsDirty = () => {
+    itemsDirty = true;
+  };
+
   // pause/resume 用の状態
   let pausedAt: Date | undefined = undefined;
   let pauseTimer: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -128,7 +144,7 @@ export const createIntrinsicGrowingList = <
 
   const getState = (): GrowingListState<_DataType> => {
     return {
-      items: Array.from(list.values()),
+      items: getItemsSnapshot(),
       count: list.size,
       hasMore,
       fetchState: isFetching
@@ -158,6 +174,17 @@ export const createIntrinsicGrowingList = <
     });
   };
 
+  const itemChangeBatchListeners = new Set<
+    (events: ItemChangeEvent<_DataType>[]) => void
+  >();
+
+  const notifyItemChangeBatch = (events: ItemChangeEvent<_DataType>[]) => {
+    if (events.length === 0) return;
+    itemChangeBatchListeners.forEach((listener) => {
+      listener(events);
+    });
+  };
+
   const ensureHasMoreForNextPage = (key: Key) => {
     if (hasMore || !hasFetchedOnce) {
       return;
@@ -171,12 +198,14 @@ export const createIntrinsicGrowingList = <
     // }
   };
 
-  // アイテムを追加/更新し、イベントを発火
-  const setItem = (docId: string, data: _DataType) => {
+  // BTree / Map のみ更新し、イベントは返す（発火しない）
+  const upsertItem = (
+    docId: string,
+    data: _DataType,
+  ): ItemChangeEvent<_DataType> => {
     const existingData = idToDoc.get(docId);
     const isUpdate = existingData !== undefined;
 
-    // 既存エントリがあれば先に削除（キーが変わった場合の二重登録を防止）
     if (existingData) {
       const oldKeys = getKeys(existingData);
       list.delete(oldKeys);
@@ -186,25 +215,33 @@ export const createIntrinsicGrowingList = <
     const itemKeys = getKeys(data);
     list.set(itemKeys, data);
     ensureHasMoreForNextPage(itemKeys);
+    markItemsDirty();
 
-    // イベント発火
-    if (isUpdate) {
-      notifyItemChange({ type: "update", docId, item: data });
-    } else {
-      notifyItemChange({ type: "add", docId, item: data });
-    }
+    return isUpdate
+      ? { type: "update", docId, item: data }
+      : { type: "add", docId, item: data };
   };
 
-  const removeItem = (docId: string) => {
-    // 古いデータから古いキーを計算して削除
+  const deleteItem = (docId: string): ItemChangeEvent<_DataType> | null => {
     const oldData = idToDoc.get(docId);
     if (oldData) {
       const oldKeys = getKeys(oldData);
       list.delete(oldKeys);
       idToDoc.delete(docId);
-      // イベント発火
-      notifyItemChange({ type: "remove", docId });
+      markItemsDirty();
+      return { type: "remove", docId };
     }
+    return null;
+  };
+
+  // BTree 更新 + イベント発火を行うヘルパー（stream 向け）
+  const setItem = (docId: string, data: _DataType) => {
+    notifyItemChange(upsertItem(docId, data));
+  };
+
+  const removeItem = (docId: string) => {
+    const event = deleteItem(docId);
+    if (event) notifyItemChange(event);
   };
 
   // upstream ストリームを開始する
@@ -309,11 +346,13 @@ export const createIntrinsicGrowingList = <
         lastCursorKey = docs[docs.length - 1]!;
       }
       hasMore = docs.length === PAGE_SIZE;
+      const events: ItemChangeEvent<_DataType>[] = [];
       docs.forEach((doc) => {
         const data = accessor.docToDataSafe(doc, collectionIdentityParams);
         const docId = doc.id;
-        setItem(docId, data);
+        events.push(upsertItem(docId, data));
       });
+      notifyItemChangeBatch(events);
       const lastData =
         lastCursorKey &&
         accessor.docToDataSafe(lastCursorKey, collectionIdentityParams);
@@ -368,6 +407,14 @@ export const createIntrinsicGrowingList = <
         itemChangeListeners.delete(listener);
       };
     },
+    onItemChangeBatch: (
+      listener: (events: ItemChangeEvent<_DataType>[]) => void,
+    ) => {
+      itemChangeBatchListeners.add(listener);
+      return () => {
+        itemChangeBatchListeners.delete(listener);
+      };
+    },
     getState,
     fetchMore: () => {
       startFetch();
@@ -380,6 +427,7 @@ export const createIntrinsicGrowingList = <
       }
       listeners.clear();
       itemChangeListeners.clear();
+      itemChangeBatchListeners.clear();
     },
   };
 };
