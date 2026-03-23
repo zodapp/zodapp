@@ -68,7 +68,7 @@ export const createFilteredGrowingList = <TConfig extends CollectionConfigBase>(
   initialFilterFn?: (item: z.infer<TConfig["dataSchema"]>) => boolean,
 ) => {
   // 一回のユーザリクエスト(fetchMore)で取得できるデータの上限
-  const SCANNED_LIMIT = 100;
+  const SCANNED_LIMIT = 500;
   // 一回のユーザリクエスト(fetchMore)でこれを超えたら取得を停止するデータ数
   const FILTERED_LIMIT = 10;
 

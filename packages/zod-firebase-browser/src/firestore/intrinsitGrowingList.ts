@@ -94,7 +94,7 @@ export const createIntrinsicGrowingList = <
     streamQuery,
   });
   // 一回のget取得できるデータの上限
-  const PAGE_SIZE = 50;
+  const PAGE_SIZE = 200;
 
   type _DataType = z.infer<TConfig["dataSchema"]>;
   type Key = unknown[];
