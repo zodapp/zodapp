@@ -6,7 +6,10 @@ import type {
   FileResolverEntry,
   FileResolverResult,
 } from "@zodapp/zod-form/file/types";
-import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
+import {
+  getRequiredResolverContextSlice,
+  type RegisteredResolverContext,
+} from "@zodapp/zod-form/resolverContext";
 import type {
   FirebaseStorageFileConfig,
   FirebaseStorageFileConfigCore,
@@ -21,6 +24,7 @@ type Storage = firebase.storage.Storage;
  *
  * resolverContext は RegisteredResolverContext（Partial<RegisteredResolverContextMap>）を受け、
  * config.contextId に対応する slice を取り出して getLocation に渡す。
+ * 必須 slice が存在しない場合はエラーとする。
  *
  * @param type - ResolverのID（デフォルト: "firebaseStorage"）
  * @param storage - Firebase Storageインスタンス
@@ -40,9 +44,9 @@ export function createFirebaseStorageResolver<
       config: FirebaseStorageFileConfig<TType>,
       resolverContext: RegisteredResolverContext,
     ): FileResolverResult => {
-      const ctx = ((resolverContext as Record<string, unknown>)[
-        config.contextId
-      ] ?? {}) as Record<string, unknown>;
+      const ctx = getRequiredResolverContextSlice<
+        Parameters<typeof config.getLocation>[0]
+      >(resolverContext, config.contextId);
       const location = config.getLocation(ctx);
 
       return {

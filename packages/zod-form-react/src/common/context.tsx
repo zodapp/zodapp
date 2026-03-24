@@ -1,6 +1,6 @@
 import React, { createContext, useMemo } from "react";
 import type { ZodForm } from "../utils/type";
-import { getMeta } from "@zodapp/zod-form";
+import { getMeta, getResolverContextSlice } from "@zodapp/zod-form";
 import type {
   ExternalKeyResolvers,
   ExternalKeyResolverResult,
@@ -13,7 +13,10 @@ import type {
   FileResolverResult,
   BaseFileConfig,
 } from "@zodapp/zod-form/file/types";
-import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
+import type {
+  RegisteredResolverContext,
+  RegisteredResolverContextMap,
+} from "@zodapp/zod-form/resolverContext/types";
 import type { MediaResolvers } from "../media/types";
 import { basicMediaResolvers } from "../mediaResolvers";
 
@@ -295,22 +298,40 @@ export const useMediaResolvers = (): MediaResolvers => {
 /**
  * resolver 共通の runtime context を取得するフック
  *
- * contextId を指定すると対応する slice を返す。
- * 省略すると全体の RegisteredResolverContext を返す。
+ * contextId を指定したときだけ対応する slice を返す。
+ * 省略時は undefined を返し、resolverContext 全体は暗黙に渡さない。
  */
-export function useResolverContext(): RegisteredResolverContext | undefined;
+export function useResolverContext(): undefined;
 export function useResolverContext<
   TId extends string,
 >(
   contextId: TId,
-): (RegisteredResolverContext extends Record<TId, infer V> ? V : unknown) | undefined;
+): (
+  TId extends keyof RegisteredResolverContextMap
+    ? RegisteredResolverContextMap[TId]
+    : unknown
+) | undefined;
+export function useResolverContext<
+  TId extends string,
+>(
+  contextId: TId | undefined,
+): (
+  TId extends keyof RegisteredResolverContextMap
+    ? RegisteredResolverContextMap[TId]
+    : unknown
+) | undefined;
 export function useResolverContext(contextId?: string) {
   const { resolverContext } = useZodFormContext();
-  if (contextId === undefined) {
-    return resolverContext;
-  }
-  return resolverContext?.[contextId as keyof typeof resolverContext];
+  return getResolverContextSlice(resolverContext, contextId);
 }
+
+/**
+ * resolverContext 全体を明示的に取得するフック
+ */
+export const useAllResolverContext = () => {
+  const { resolverContext } = useZodFormContext();
+  return resolverContext;
+};
 
 /**
  * onFieldChangeコールバックを取得するフック

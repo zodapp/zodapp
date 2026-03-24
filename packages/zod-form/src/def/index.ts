@@ -25,6 +25,10 @@ import type {
   RegisteredExternalKeyActionConfig,
 } from "../externalKey/types";
 import type { FileConfig, RegisteredFileConfig } from "../file/types";
+import type {
+  RegisteredResolverContextId,
+  RegisteredResolverContextMap,
+} from "../resolverContext/types";
 
 /**
  * zod-form 系で共通に使う schema meta の定義（Zod スキーマ）。
@@ -87,6 +91,25 @@ export type ComputedValue =
     };
 
 const computedValueSchema = z.custom<ComputedValue>();
+
+type ComputedMetaWithoutContext<TResult, TParent = any> = {
+  contextId?: undefined;
+  compute: (parent: TParent) => TResult;
+};
+
+type ComputedMetaWithContext<TResult, TParent = any> = {
+  [K in RegisteredResolverContextId]: {
+    contextId: K;
+    compute: (parent: TParent, context: RegisteredResolverContextMap[K]) => TResult;
+  };
+}[RegisteredResolverContextId];
+
+export type ComputedMetaDef<TResult, TParent = any> =
+  z.infer<typeof zodExtendableCommonDefSchema> &
+    (
+      | ComputedMetaWithoutContext<TResult, TParent>
+      | ComputedMetaWithContext<TResult, TParent>
+    );
 
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
@@ -160,15 +183,18 @@ const date = extendCustom(
 );
 
 // computed: 親オブジェクトを受け取り ComputedValue を返す
+// contextId を指定すると compute(parent, context) の形で resolverContext slice が渡される
+// contextId を省略すると context は渡されない
 const computed = extendCustom(
   z.never,
   "computed",
   zodExtendableCommonDefSchema.extend({
+    contextId: z.custom<RegisteredResolverContextId>().optional(),
     compute: z.function({
-      input: [z.any()],
+      input: [z.any(), z.any().optional()],
       output: computedValueSchema,
     }),
-  }),
+  }) as z.ZodType<ComputedMetaDef<ComputedValue>>,
   schemaType<z.ZodType>(),
 );
 

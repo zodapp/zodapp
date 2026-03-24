@@ -6,7 +6,10 @@ import type {
   ExternalKeyResolverEntry,
   ExternalKeyOptionsHandler,
 } from "@zodapp/zod-form/externalKey/types";
-import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
+import {
+  getRequiredResolverContextSlice,
+  type RegisteredResolverContext,
+} from "@zodapp/zod-form/resolverContext";
 import type {
   FirestoreExternalKeyConfig,
   FirestoreExternalKeyConfigCore,
@@ -28,6 +31,7 @@ type Firestore = firebase.firestore.Firestore;
  *
  * resolverContext は RegisteredResolverContext（Partial<RegisteredResolverContextMap>）を受け、
  * config.contextId に対応する slice を取り出して getQuery に渡す。
+ * 必須 slice が存在しない場合はエラーとする。
  *
  * @param type - ResolverのID（デフォルト: "firestore"）
  * @param db - Firestoreインスタンス
@@ -47,9 +51,9 @@ export function createFirestoreResolver<TType extends string = "firestore">({
       config: FirestoreExternalKeyConfig<TType>,
       resolverContext: RegisteredResolverContext,
     ) => {
-      const ctx = ((resolverContext as Record<string, unknown>)[
-        config.contextId
-      ] ?? {}) as Record<string, unknown>;
+      const ctx = getRequiredResolverContextSlice<
+        Parameters<typeof config.getQuery>[1]
+      >(resolverContext, config.contextId);
       const { labelField, labelFormatter, valueField } =
         config.reference.config;
       const resolvedValueField =

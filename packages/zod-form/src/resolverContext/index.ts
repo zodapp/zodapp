@@ -8,3 +8,8 @@ export type {
   RegisteredResolverContextId,
   RegisteredResolverContext,
 } from "./types";
+
+export {
+  getResolverContextSlice,
+  getRequiredResolverContextSlice,
+} from "./runtime";
