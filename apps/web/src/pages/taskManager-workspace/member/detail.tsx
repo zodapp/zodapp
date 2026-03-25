@@ -12,7 +12,8 @@ import { useParams, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
-import { firestore } from "@repo/firebase";
+import { firestore, storage } from "@repo/firebase";
+import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { useStoreKey } from "../../../shared/auth";
 
 import { membersCollection } from "../../../shared/taskManager/collections/member";
@@ -30,6 +31,14 @@ const MemberDetailPage = () => {
   });
   const navigate = useNavigate();
   const storeKey = useStoreKey();
+  const fileResolvers = useMemo(
+    () => [createFirebaseStorageResolver({ storage })],
+    [],
+  );
+  const resolverContext = useMemo(
+    () => ({ workspace: { workspaceId } }),
+    [workspaceId],
+  );
 
   const accessor = useMemo(
     () => getAccessor(firestore, membersCollection, storeKey),
@@ -99,6 +108,8 @@ const MemberDetailPage = () => {
             onCancel={handleCancel}
             isLoading={isLoading}
             submitLabel="更新"
+            fileResolvers={fileResolvers}
+            resolverContext={resolverContext}
             showPreview={true}
           />
         </Card>

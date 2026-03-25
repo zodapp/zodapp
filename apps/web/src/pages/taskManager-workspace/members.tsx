@@ -14,9 +14,10 @@ import { IconPlus } from "@tabler/icons-react";
 import { useParams } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
-import { firestore } from "@repo/firebase";
+import { firestore, storage } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
 import { AutoTable } from "../../components/AutoTable";
+import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 
 import type { z } from "zod";
 
@@ -44,6 +45,14 @@ const MembersPage = () => {
   });
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
   const storeKey = useStoreKey();
+  const fileResolvers = useMemo(
+    () => [createFirebaseStorageResolver({ storage })],
+    [],
+  );
+  const resolverContext = useMemo(
+    () => ({ workspace: { workspaceId } }),
+    [workspaceId],
+  );
 
   // accessor を取得
   const memberAccessor = useMemo(
@@ -131,6 +140,8 @@ const MembersPage = () => {
           onCancel={closeModal}
           isLoading={isSubmitting}
           submitLabel="追加"
+          fileResolvers={fileResolvers}
+          resolverContext={resolverContext}
           showPreview={true}
         />
       </Modal>
