@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ActionIcon, Affix, Transition } from '@mantine/core';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import type { AutoTableHandle } from './AutoTable';
@@ -11,6 +11,9 @@ const DEFAULT_SCROLL_FAB_SIZE_PX = 44;
 const DEFAULT_AFFIX_BOTTOM_PX = 24;
 const DEFAULT_AFFIX_RIGHT_PX = 24;
 const DEFAULT_TRANSITION_DURATION_MS = 150;
+const SCROLL_FAB_SHADOW = '0 10px 24px rgba(15, 23, 42, 0.18)';
+const SCROLL_FAB_OUTLINE = '0 0 0 3px rgba(255, 255, 255, 0.96)';
+const SCROLL_FAB_HALO = '0 0 16px 8px rgba(255, 255, 255, 0.72)';
 
 export type UseAutoTableScrollOptions = {
   itemCount: number;
@@ -80,6 +83,20 @@ function AutoTableScrollFab({
   affixRightPx,
   transitionDurationMs
 }: AutoTableScrollFabProps) {
+  const fabStackStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  };
+
+  const fabSlotStyle: CSSProperties = {
+    minHeight: `${sizePx}px`
+  };
+
+  const fabActionIconStyle: CSSProperties = {
+    boxShadow: `${SCROLL_FAB_OUTLINE}, ${SCROLL_FAB_HALO}, ${SCROLL_FAB_SHADOW}`
+  };
+
   return (
     <Affix position={{ bottom: affixBottomPx, right: affixRightPx }}>
       <Transition
@@ -88,16 +105,15 @@ function AutoTableScrollFab({
         duration={transitionDurationMs}
       >
         {(transitionStyles) => (
-          <div
-            style={{ ...transitionStyles, display: 'flex', flexDirection: 'column', gap: '8px' }}
-          >
-            <div style={{ minHeight: `${sizePx}px` }}>
+          <div style={{ ...transitionStyles, ...fabStackStyle }}>
+            <div style={fabSlotStyle}>
               {showScrollToTop ? (
                 <ActionIcon
                   size="xl"
                   radius="xl"
                   variant="filled"
                   color="var(--mantine-color-primary-filled)"
+                  style={fabActionIconStyle}
                   aria-label="一覧の先頭へ移動"
                   onClick={onScrollToTop}
                 >
@@ -105,7 +121,7 @@ function AutoTableScrollFab({
                 </ActionIcon>
               ) : null}
             </div>
-            <div style={{ minHeight: `${sizePx}px` }}>
+            <div style={fabSlotStyle}>
               {showScrollToBottom ? (
                 <ActionIcon
                   size="xl"
@@ -113,6 +129,7 @@ function AutoTableScrollFab({
                   variant="filled"
                   aria-label="一覧の末尾へ移動"
                   color="var(--mantine-color-primary-filled)"
+                  style={fabActionIconStyle}
                   onClick={onScrollToBottom}
                 >
                   <IconChevronDown size={20} />
