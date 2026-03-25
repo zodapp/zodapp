@@ -1,25 +1,26 @@
 import {
   Title,
   Container,
-  Button,
   Group,
   Modal,
   Box,
   Menu,
   ActionIcon,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
   IconPlus,
-  IconDots,
+  IconDotsVertical,
   IconDownload,
   IconUpload,
   IconSeeding,
+  IconSettings,
 } from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
-import { AutoTable } from "../../components/AutoTable";
 import { createMingoFilter } from "../../components/mingoQuery";
+import { createActionSchema } from "../../components/createActionSchema";
 
 import { z } from "zod";
 
@@ -30,9 +31,13 @@ import {
 } from "../../shared/taskManager/collections/task";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
-import { AutoForm } from "../../components/AutoForm";
-import { AutoSearch } from "../../components/AutoSearch";
-import { FetchMore } from "../../components/FetchMore";
+import { AutoForm, AutoSearch } from "@zodapp/zod-form-widget/form";
+import { FetchMore } from "@zodapp/zod-form-widget/feedback";
+import {
+  AutoTable,
+  useAutoTableScroll,
+  useTableSettingDrawer,
+} from "@zodapp/zod-form-widget/table";
 import { taskDetailRoute } from "./task/detail.route";
 import { tasksRoute, searchFilterSchema } from "./tasks.route";
 import { populateSeed } from "./seed";
@@ -46,20 +51,9 @@ import pageCode from "./tasks.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/task.ts?raw";
 import { zf } from "@zodapp/zod-form";
 
-// テーブル表示用スキーマ
-const taskTableSchema = tasksCollection.dataSchema
-  .extend({}) // registerは破壊的なのでcopyしてからregisterする
-  .register(zf.object.registry, {
-    properties: [
-      "title",
-      "status",
-      "priority",
-      "dueAt",
-      "createdAt",
-      "updatedAt",
-      "expired",
-    ],
-  });
+const TASK_TABLE_STORAGE_KEY = "tableSetting-task";
+
+type TaskData = z.infer<typeof tasksCollection.dataSchema>;
 
 const TasksPage = () => {
   const { workspaceId, projectId } = useParams({
@@ -73,12 +67,37 @@ const TasksPage = () => {
   });
   const storeKey = useStoreKey();
 
+  const taskTableSchema = useMemo(
+    () =>
+      tasksCollection.dataSchema
+        .extend({
+          _action: createActionSchema<TaskData>({
+            getParams: (item) => ({
+              to: taskDetailRoute.to,
+              params: { workspaceId, projectId, taskId: item.taskId },
+            }),
+          }),
+        })
+        .register(zf.object.registry, {
+          properties: [
+            "title",
+            "status",
+            "priority",
+            "dueAt",
+            "createdAt",
+            "updatedAt",
+            "expired",
+            "_action",
+          ],
+        }),
+    [workspaceId, projectId],
+  );
+
   const collectionIdentity = useMemo(
     () => ({ workspaceId, projectId }),
     [workspaceId, projectId],
   );
 
-  // CRUD accessor を取得
   const taskAccessor = useMemo(
     () => getAccessor(firestore, tasksCollection, storeKey),
     [storeKey],
@@ -99,7 +118,6 @@ const TasksPage = () => {
     [workspaceId],
   );
 
-  // search.q を status（サーバーサイド）とそれ以外（クライアントフィルタ）に分離
   const { fetchCondition, clientFilter } = useMemo(() => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
     const activeQuery = taskQueries.queries.active();
@@ -107,7 +125,9 @@ const TasksPage = () => {
     const fetchCondition: WhereParams[] = [...(activeQuery.where ?? [])];
     const { status, ...rest } = q;
     if (status) {
-      fetchCondition.push(...(taskQueries.queries.byStatus(status).where ?? []));
+      fetchCondition.push(
+        ...(taskQueries.queries.byStatus(status).where ?? []),
+      );
     }
     return {
       fetchCondition,
@@ -176,15 +196,6 @@ const TasksPage = () => {
     [navigate, search],
   );
 
-  const getActionParams = useCallback(
-    (item: z.infer<typeof tasksCollection.dataSchema>) => ({
-      to: taskDetailRoute.to,
-      params: { workspaceId, projectId, taskId: item.taskId },
-    }),
-    [workspaceId, projectId],
-  );
-
-  // Export: 全件取得してCSVエクスポート（プレビューは現在表示中のデータ）
   const fetchAllTasks = useCallback(
     () => taskAccessor.query(collectionIdentity),
     [taskAccessor, collectionIdentity],
@@ -197,7 +208,6 @@ const TasksPage = () => {
     filename: `tasks-${projectId}.csv`,
   });
 
-  // Import: CSVからタスクを一括インポート
   const handleImport = useCallback(
     async (rows: z.infer<typeof tasksCollection.createSchema>[]) => {
       for (const row of rows) {
@@ -212,8 +222,38 @@ const TasksPage = () => {
     onImport: handleImport,
   });
 
+  const {
+    open: openTableSetting,
+    modal: tableSettingDrawer,
+    isPreviewing,
+  } = useTableSettingDrawer({
+    schema: taskTableSchema,
+    storageKey: TASK_TABLE_STORAGE_KEY,
+  });
+
+  const {
+    scrollParent,
+    scrollParentRef,
+    tableRef,
+    bottomAnchorRef,
+    handleFetchMore,
+    scrollFab,
+  } = useAutoTableScroll({
+    itemCount: tasks.length,
+    isLoading,
+    fetchMore,
+  });
+
   return (
-    <Container size="lg">
+    <Container
+      size="lg"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100dvh - 60px - var(--mantine-spacing-md) * 2)",
+        overflow: "hidden",
+      }}
+    >
       <Group justify="space-between" mb="lg">
         <Title order={2}>タスク一覧</Title>
         <Group>
@@ -221,16 +261,26 @@ const TasksPage = () => {
             pageCode={pageCode}
             collectionCode={collectionCode}
           />
-          <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
-            新規作成
-          </Button>
+          <Tooltip label="新規作成">
+            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+              <IconPlus size={20} />
+            </ActionIcon>
+          </Tooltip>
           <Menu shadow="md" width={200} position="bottom-end">
             <Menu.Target>
               <ActionIcon variant="subtle" size="lg">
-                <IconDots size={20} />
+                <IconDotsVertical size={20} />
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Label>テーブル</Menu.Label>
+              <Menu.Item
+                leftSection={<IconSettings size={16} />}
+                onClick={openTableSetting}
+              >
+                列設定
+              </Menu.Item>
+              <Menu.Divider />
               <Menu.Label>データ操作</Menu.Label>
               <Menu.Item
                 leftSection={<IconDownload size={16} />}
@@ -276,23 +326,39 @@ const TasksPage = () => {
         />
       </Box>
 
-      <AutoTable
-        schema={taskTableSchema}
-        data={tasks}
-        keyField="taskId"
-        actionParams={getActionParams}
-      />
+      <div
+        ref={scrollParentRef}
+        style={{ overflow: "auto", flex: 1, minHeight: 0 }}
+      >
+        <AutoTable
+          ref={tableRef}
+          schema={taskTableSchema}
+          data={tasks}
+          keyField="taskId"
+          sortable={false}
+          storageKey={TASK_TABLE_STORAGE_KEY}
+          isPreviewing={isPreviewing}
+          externalKeyResolvers={externalKeyResolvers}
+          resolverContext={resolverContext}
+          scrollParent={scrollParent}
+          virtualizeThreshold={50}
+        />
+        <div style={{ position: "sticky", left: 0, paddingBottom: "8px" }}>
+          <FetchMore
+            isLoading={isLoading}
+            hasMore={hasMore}
+            fetchMore={handleFetchMore}
+            scannedCount={scannedCount}
+            filteredCount={filteredCount}
+            itemCount={tasks.length}
+            emptyWithMoreMessage="フィルタ条件に一致するタスクが見つかりませんでした"
+            emptyNoMoreMessage="タスクがありません。新規作成してください。"
+          />
+        </div>
+        <div ref={bottomAnchorRef} />
+      </div>
 
-      <FetchMore
-        isLoading={isLoading}
-        hasMore={hasMore}
-        fetchMore={fetchMore}
-        scannedCount={scannedCount}
-        filteredCount={filteredCount}
-        itemCount={tasks.length}
-        emptyWithMoreMessage="フィルタ条件に一致するタスクが見つかりませんでした"
-        emptyNoMoreMessage="タスクがありません。新規作成してください。"
-      />
+      {scrollFab}
 
       <Modal
         opened={modalOpened}
@@ -315,6 +381,7 @@ const TasksPage = () => {
 
       {exportModal}
       {importModal}
+      {tableSettingDrawer}
     </Container>
   );
 };

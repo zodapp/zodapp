@@ -4,18 +4,23 @@ import {
   Container,
   Card,
   Group,
-  Button,
   Stack,
   Loader,
   Center,
+  Menu,
+  ActionIcon,
 } from "@mantine/core";
-import { IconTrash, IconArchive } from "@tabler/icons-react";
+import { IconDotsVertical, IconArchive } from "@tabler/icons-react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { z } from "zod";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
 import { useStoreKey } from "../../../shared/auth";
+import {
+  DeleteMenuItem,
+  useDeleteModal,
+} from "@zodapp/zod-form-widget/feedback";
 
 import {
   getAccessor,
@@ -32,6 +37,7 @@ import { CodeViewerModal } from "../../../components/CodeViewerModal";
 
 import pageCode from "./detail.tsx?raw";
 import collectionCode from "../../../shared/taskManager/collections/task.ts?raw";
+
 const TaskDetailPage = () => {
   const { workspaceId, projectId, taskId } = useParams({
     from: taskDetailRoute.id,
@@ -39,7 +45,6 @@ const TaskDetailPage = () => {
   const navigate = useNavigate();
   const storeKey = useStoreKey();
 
-  // CRUD accessor / mutation accessor を使用
   const accessor = useMemo(
     () => getAccessor(firestore, tasksCollection, storeKey),
     [storeKey],
@@ -79,37 +84,30 @@ const TaskDetailPage = () => {
     return () => unsubscribe();
   }, [accessor, workspaceId, projectId, taskId]);
 
-  const handleDelete = useCallback(async () => {
-    if (!confirm("このタスクを削除しますか？")) return;
-    setIsLoading(true);
-    try {
+  const { open: openDelete, modal: deleteModal } = useDeleteModal({
+    title: "タスクを削除",
+    message: "このタスクを削除しますか？この操作は元に戻せません。",
+    onDelete: async () => {
       await mutationsAccessor.softDelete({ workspaceId, projectId, taskId });
       navigate({
         to: tasksRoute.to,
         params: { workspaceId, projectId },
       });
-    } catch (error) {
-      console.error("Failed to delete task:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [mutationsAccessor, taskId, navigate, workspaceId, projectId]);
+    },
+  });
 
-  const handleArchive = useCallback(async () => {
-    if (!confirm("このタスクをアーカイブしますか？")) return;
-    setIsLoading(true);
-    try {
+  const { open: openArchive, modal: archiveModal } = useDeleteModal({
+    title: "タスクをアーカイブ",
+    message: "このタスクをアーカイブしますか？",
+    confirmLabel: "アーカイブする",
+    onDelete: async () => {
       await mutationsAccessor.archive({ workspaceId, projectId, taskId });
       navigate({
         to: tasksRoute.to,
         params: { workspaceId, projectId },
       });
-    } catch (error) {
-      console.error("Failed to archive task:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [mutationsAccessor, taskId, navigate, workspaceId, projectId]);
+    },
+  });
 
   const handleSubmit = useCallback(
     async (data: z.infer<typeof tasksCollection.updateSchema>) => {
@@ -153,22 +151,23 @@ const TaskDetailPage = () => {
             pageCode={pageCode}
             collectionCode={collectionCode}
           />
-          <Button
-            variant="light"
-            color="yellow"
-            leftSection={<IconArchive size={16} />}
-            onClick={handleArchive}
-          >
-            アーカイブ
-          </Button>
-          <Button
-            variant="light"
-            color="red"
-            leftSection={<IconTrash size={16} />}
-            onClick={handleDelete}
-          >
-            削除
-          </Button>
+          <Menu position="bottom-end" shadow="md">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconArchive size={16} />}
+                onClick={openArchive}
+              >
+                アーカイブ
+              </Menu.Item>
+              <Menu.Divider />
+              <DeleteMenuItem label="タスクを削除" onClick={openDelete} />
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
 
@@ -188,6 +187,8 @@ const TaskDetailPage = () => {
           />
         </Card>
       </Stack>
+      {deleteModal}
+      {archiveModal}
     </Container>
   );
 };

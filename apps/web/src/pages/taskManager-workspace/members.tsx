@@ -2,12 +2,13 @@ import {
   Title,
   Text,
   Container,
-  Button,
   Group,
   Modal,
   Loader,
   Center,
   Paper,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
@@ -16,10 +17,11 @@ import { useState, useCallback, useMemo } from "react";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore, storage } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
-import { AutoTable } from "../../components/AutoTable";
+import { AutoTable } from "@zodapp/zod-form-widget/table";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
+import { createActionSchema } from "../../components/createActionSchema";
 
-import type { z } from "zod";
+import { z } from "zod";
 
 import { useList } from "../../shared/taskManager/hooks";
 import { membersCollection } from "../../shared/taskManager/collections/member";
@@ -32,17 +34,37 @@ import pageCode from "./members.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/member.ts?raw";
 import { zf } from "@zodapp/zod-form";
 
-// テーブル表示用スキーマ
-const memberTableSchema = membersCollection.dataSchema
-  .extend({}) // registerは破壊的なのでcopyしてからregisterする
-  .register(zf.object.registry, {
-    properties: ["displayName", "email", "role", "createdAt", "updatedAt"],
-  });
+type MemberData = z.infer<typeof membersCollection.dataSchema>;
 
 const MembersPage = () => {
   const { workspaceId } = useParams({
     from: membersRoute.id,
   });
+
+  const memberTableSchema = useMemo(
+    () =>
+      membersCollection.dataSchema
+        .extend({
+          _action: createActionSchema<MemberData>({
+            getParams: (item) => ({
+              to: memberDetailRoute.to,
+              params: { workspaceId, memberId: item.memberId },
+            }),
+          }),
+        })
+        .register(zf.object.registry, {
+          properties: [
+            "displayName",
+            "email",
+            "role",
+            "createdAt",
+            "updatedAt",
+            "_action",
+          ],
+        }),
+    [workspaceId],
+  );
+
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
   const storeKey = useStoreKey();
   const fileResolvers = useMemo(
@@ -71,14 +93,6 @@ const MembersPage = () => {
     useDisclosure(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getActionParams = useCallback(
-    (item: z.infer<typeof membersCollection.dataSchema>) => ({
-      to: memberDetailRoute.to,
-      params: { workspaceId, memberId: item.memberId },
-    }),
-    [workspaceId],
-  );
-
   const handleCreate = useCallback(
     async (data: z.infer<typeof membersCollection.createSchema>) => {
       setIsSubmitting(true);
@@ -103,9 +117,11 @@ const MembersPage = () => {
             pageCode={pageCode}
             collectionCode={collectionCode}
           />
-          <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
-            新規追加
-          </Button>
+          <Tooltip label="新規追加">
+            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+              <IconPlus size={20} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
 
@@ -113,7 +129,6 @@ const MembersPage = () => {
         schema={memberTableSchema}
         data={members}
         keyField="memberId"
-        actionParams={getActionParams}
       />
       {!isLoading && members.length === 0 && (
         <Paper p="xl" withBorder mt="sm">

@@ -2,23 +2,36 @@ import {
   Title,
   Text,
   Container,
-  Button,
   Group,
   Modal,
   Box,
   Loader,
   Center,
   Paper,
+  Menu,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconDotsVertical,
+  IconDownload,
+  IconUpload,
+  IconSettings,
+} from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
-import { AutoTable } from "../../components/AutoTable";
+import {
+  AutoTable,
+  useTableSettingDrawer,
+} from "@zodapp/zod-form-widget/table";
 import { createMingoFilter } from "../../components/mingoQuery";
+import { createActionSchema } from "../../components/createActionSchema";
+import { useExportModal, useImportModal } from "../../components/TabularModal";
 
 import { z } from "zod";
 
@@ -37,12 +50,9 @@ import pageCode from "./projects.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/project.ts?raw";
 import { zf } from "@zodapp/zod-form";
 
-// テーブル表示用スキーマ
-const projectTableSchema = projectsCollection.dataSchema
-  .extend({}) // registerは破壊的なのでcopyしてからregisterする
-  .register(zf.object.registry, {
-    properties: ["name", "description", "status", "createdAt"],
-  });
+const PROJECT_TABLE_STORAGE_KEY = "tableSetting-project";
+
+type ProjectData = z.infer<typeof projectsCollection.dataSchema>;
 
 const ProjectsPage = () => {
   const { workspaceId } = useParams({
@@ -54,6 +64,29 @@ const ProjectsPage = () => {
   const navigate = useNavigate({
     from: projectsRoute.id,
   });
+
+  const projectTableSchema = useMemo(
+    () =>
+      projectsCollection.dataSchema
+        .extend({
+          _action: createActionSchema<ProjectData>({
+            getParams: (item) => ({
+              to: tasksRoute.to,
+              params: { workspaceId, projectId: item.projectId },
+            }),
+          }),
+        })
+        .register(zf.object.registry, {
+          properties: [
+            "name",
+            "description",
+            "status",
+            "createdAt",
+            "_action",
+          ],
+        }),
+    [workspaceId],
+  );
 
   const collectionIdentity = useMemo(() => ({ workspaceId }), [workspaceId]);
   const storeKey = useStoreKey();
@@ -94,14 +127,6 @@ const ProjectsPage = () => {
     [navigate, search],
   );
 
-  const getActionParams = useCallback(
-    (item: z.infer<typeof projectsCollection.dataSchema>) => ({
-      to: tasksRoute.to,
-      params: { workspaceId, projectId: item.projectId },
-    }),
-    [workspaceId],
-  );
-
   const handleCreate = useCallback(
     async (data: z.infer<typeof projectsCollection.createSchema>) => {
       setIsSubmitting(true);
@@ -117,6 +142,41 @@ const ProjectsPage = () => {
     [projectAccessor, workspaceId, closeModal],
   );
 
+  const fetchAllProjects = useCallback(
+    () => projectAccessor.query(collectionIdentity),
+    [projectAccessor, collectionIdentity],
+  );
+
+  const { open: openExport, modal: exportModal } = useExportModal({
+    schema: projectsCollection.dataSchema,
+    data: projects,
+    fetchAll: fetchAllProjects,
+    filename: `projects-${workspaceId}.csv`,
+  });
+
+  const handleImport = useCallback(
+    async (rows: z.infer<typeof projectsCollection.createSchema>[]) => {
+      for (const row of rows) {
+        await projectAccessor.createDoc(collectionIdentity, row);
+      }
+    },
+    [projectAccessor, collectionIdentity],
+  );
+
+  const { open: openImport, modal: importModal } = useImportModal({
+    schema: projectsCollection.createSchema,
+    onImport: handleImport,
+  });
+
+  const {
+    open: openTableSetting,
+    modal: tableSettingDrawer,
+    isPreviewing,
+  } = useTableSettingDrawer({
+    schema: projectTableSchema,
+    storageKey: PROJECT_TABLE_STORAGE_KEY,
+  });
+
   return (
     <Container size="lg">
       <Group justify="space-between" mb="lg">
@@ -126,9 +186,41 @@ const ProjectsPage = () => {
             pageCode={pageCode}
             collectionCode={collectionCode}
           />
-          <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
-            新規作成
-          </Button>
+          <Tooltip label="新規作成">
+            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+              <IconPlus size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Menu shadow="md" width={200} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>テーブル</Menu.Label>
+              <Menu.Item
+                leftSection={<IconSettings size={16} />}
+                onClick={openTableSetting}
+              >
+                列設定
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Label>データ操作</Menu.Label>
+              <Menu.Item
+                leftSection={<IconDownload size={16} />}
+                onClick={openExport}
+              >
+                CSVエクスポート
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconUpload size={16} />}
+                onClick={openImport}
+              >
+                CSVインポート
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
 
@@ -154,7 +246,8 @@ const ProjectsPage = () => {
         schema={projectTableSchema}
         data={projects}
         keyField="projectId"
-        actionParams={getActionParams}
+        storageKey={PROJECT_TABLE_STORAGE_KEY}
+        isPreviewing={isPreviewing}
       />
 
       {!isLoading && projects.length === 0 && (
@@ -188,6 +281,10 @@ const ProjectsPage = () => {
           showPreview={true}
         />
       </Modal>
+
+      {exportModal}
+      {importModal}
+      {tableSettingDrawer}
     </Container>
   );
 };

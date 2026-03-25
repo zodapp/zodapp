@@ -2,37 +2,34 @@ import {
   Title,
   Text,
   Container,
-  Button,
   Group,
   Modal,
   Loader,
   Center,
   Paper,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPlus } from "@tabler/icons-react";
-import { useState, useCallback } from "react";
-import { AutoTable } from "../../components/AutoTable";
+import { useCallback, useMemo } from "react";
+import { AutoTable } from "@zodapp/zod-form-widget/table";
 
-import type { z } from "zod";
+import { z } from "zod";
 
 import { workspacesCollection } from "../../shared/taskManager/collections";
-import { AutoForm } from "../../components/AutoForm";
 import { projectsRoute } from "../taskManager-workspace/projects.route";
 import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { createActionSchema } from "../../components/createActionSchema";
 import { useAuthContext } from "../../shared/auth";
 import { useUserWorkspaces } from "./utils/userWorkspace";
+import { WorkspaceCreate } from "./WorkspaceCreate";
 
 import pageCode from "./workspaces.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/workspace.ts?raw";
 import { zf } from "@zodapp/zod-form";
 
-// テーブル表示用スキーマ
-const workspaceTableSchema = workspacesCollection.dataSchema
-  .extend({}) // registerは破壊的なのでcopyしてからregisterする
-  .register(zf.object.registry, {
-    properties: ["name", "description", "createdAt"],
-  });
+type WorkspaceData = z.infer<typeof workspacesCollection.dataSchema>;
 
 const WorkspacesPage = () => {
   const { user } = useAuthContext();
@@ -45,47 +42,32 @@ const WorkspacesPage = () => {
     createWorkspaceWithOwner,
   } = useUserWorkspaces(userEmail);
 
-  const [modalOpened, { open: openModal, close: closeModal }] =
-    useDisclosure(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const getActionParams = useCallback(
-    (item: z.infer<typeof workspaceTableSchema>) => ({
-      to: projectsRoute.to,
-      params: { workspaceId: item.workspaceId },
-    }),
+  const workspaceTableSchema = useMemo(
+    () =>
+      workspacesCollection.dataSchema
+        .extend({
+          _action: createActionSchema<WorkspaceData>({
+            getParams: (item) => ({
+              to: projectsRoute.to,
+              params: { workspaceId: item.workspaceId },
+            }),
+          }),
+        })
+        .register(zf.object.registry, {
+          properties: ["name", "description", "createdAt", "_action"],
+        }),
     [],
   );
 
-  const handleCreate = useCallback(
-    async (data: z.infer<typeof workspacesCollection.createSchema>) => {
-      if (!userEmail || !user) {
-        console.error("User email is required");
-        return;
-      }
+  const [modalOpened, { open: openModal, close: closeModal }] =
+    useDisclosure(false);
 
-      setIsSubmitting(true);
-      try {
-        await createWorkspaceWithOwner(data, {
-          email: userEmail,
-          displayName: user.displayName || userEmail,
-        });
-
-        closeModal();
-        await fetchUserWorkspaces();
-      } catch (error) {
-        console.error("Failed to create workspace:", error);
-      } finally {
-        setIsSubmitting(false);
-      }
+  const handleCreated = useCallback(
+    async (_workspaceId: string) => {
+      closeModal();
+      await fetchUserWorkspaces();
     },
-    [
-      userEmail,
-      user,
-      closeModal,
-      fetchUserWorkspaces,
-      createWorkspaceWithOwner,
-    ],
+    [closeModal, fetchUserWorkspaces],
   );
 
   if (!userEmail) {
@@ -107,9 +89,11 @@ const WorkspacesPage = () => {
             pageCode={pageCode}
             collectionCode={collectionCode}
           />
-          <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
-            新規作成
-          </Button>
+          <Tooltip label="新規作成">
+            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+              <IconPlus size={20} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
 
@@ -117,7 +101,6 @@ const WorkspacesPage = () => {
         schema={workspaceTableSchema}
         data={workspaces}
         keyField="workspaceId"
-        actionParams={getActionParams}
       />
       {!isLoading && workspaces.length === 0 && (
         <Paper p="xl" withBorder mt="sm">
@@ -137,16 +120,12 @@ const WorkspacesPage = () => {
         title="新規ワークスペース作成"
         size="calc(100vw - 3rem)"
       >
-        <AutoForm
-          schema={workspacesCollection.createSchema}
-          onSubmit={handleCreate}
+        <WorkspaceCreate
+          userEmail={userEmail}
+          userDisplayName={user?.displayName || userEmail}
+          createWorkspaceWithOwner={createWorkspaceWithOwner}
+          onCreated={handleCreated}
           onCancel={closeModal}
-          isLoading={isSubmitting}
-          submitLabel="作成"
-          showPreview={true}
-          defaultValues={{
-            ownerId: userEmail,
-          }}
         />
       </Modal>
     </Container>
