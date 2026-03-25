@@ -44,7 +44,7 @@ import { AutoForm } from "../../components/AutoForm";
 import { AutoSearch } from "../../components/AutoSearch";
 import { projectsRoute, searchFilterSchema } from "./projects.route";
 import { tasksRoute } from "../taskManager-project/tasks.route";
-import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 
 import pageCode from "./projects.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/project.ts?raw";
@@ -177,15 +177,15 @@ const ProjectsPage = () => {
     storageKey: PROJECT_TABLE_STORAGE_KEY,
   });
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   return (
     <Container size="lg">
       <Group justify="space-between" mb="lg">
         <Title order={2}>プロジェクト一覧</Title>
         <Group>
-          <CodeViewerModal
-            pageCode={pageCode}
-            collectionCode={collectionCode}
-          />
+          {codeViewerTrigger}
           <Tooltip label="新規作成">
             <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
               <IconPlus size={20} />
@@ -282,6 +282,7 @@ const ProjectsPage = () => {
         />
       </Modal>
 
+      {codeViewerModal}
       {exportModal}
       {importModal}
       {tableSettingDrawer}

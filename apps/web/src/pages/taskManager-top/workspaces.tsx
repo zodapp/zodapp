@@ -27,7 +27,7 @@ import { z } from "zod";
 
 import { workspacesCollection } from "../../shared/taskManager/collections";
 import { projectsRoute } from "../taskManager-workspace/projects.route";
-import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { createActionSchema } from "../../components/createActionSchema";
 import { useAuthContext } from "../../shared/auth";
 import { useUserWorkspaces } from "./utils/userWorkspace";
@@ -78,6 +78,9 @@ const WorkspacesPage = () => {
     storageKey: WORKSPACE_TABLE_STORAGE_KEY,
   });
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
 
@@ -104,10 +107,7 @@ const WorkspacesPage = () => {
       <Group justify="space-between" mb="lg">
         <Title order={2}>ワークスペース一覧</Title>
         <Group>
-          <CodeViewerModal
-            pageCode={pageCode}
-            collectionCode={collectionCode}
-          />
+          {codeViewerTrigger}
           <Tooltip label="新規作成">
             <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
               <IconPlus size={20} />
@@ -166,6 +166,7 @@ const WorkspacesPage = () => {
         />
       </Modal>
 
+      {codeViewerModal}
       {tableSettingDrawer}
     </Container>
   );

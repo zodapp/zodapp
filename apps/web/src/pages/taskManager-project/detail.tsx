@@ -19,7 +19,7 @@ import { projectsCollection } from "../../shared/taskManager/collections/project
 import { AutoForm } from "../../components/AutoForm";
 import { projectDetailRoute } from "./detail.route";
 import { projectsRoute } from "../taskManager-workspace/projects.route";
-import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 
 import pageCode from "./detail.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/project.ts?raw";
@@ -65,6 +65,9 @@ const ProjectDetailPage = () => {
     [accessor, workspaceId, projectId, navigate],
   );
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   const handleCancel = useCallback(() => {
     navigate({
       to: projectsRoute.to,
@@ -84,7 +87,7 @@ const ProjectDetailPage = () => {
     <Container size="lg">
       <Group justify="space-between" mb="lg">
         <Title order={2}>プロジェクト詳細</Title>
-        <CodeViewerModal pageCode={pageCode} collectionCode={collectionCode} />
+        {codeViewerTrigger}
       </Group>
 
       <Stack gap="lg">
@@ -101,6 +104,7 @@ const ProjectDetailPage = () => {
           />
         </Card>
       </Stack>
+      {codeViewerModal}
     </Container>
   );
 };

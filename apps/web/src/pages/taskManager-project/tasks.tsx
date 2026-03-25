@@ -43,7 +43,7 @@ import { tasksRoute, searchFilterSchema } from "./tasks.route";
 import { populateSeed } from "./seed";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
-import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { useExportModal, useImportModal } from "../../components/TabularModal";
 import { useStoreKey } from "../../shared/auth";
 
@@ -244,6 +244,9 @@ const TasksPage = () => {
     fetchMore,
   });
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   return (
     <Container
       size="lg"
@@ -257,10 +260,7 @@ const TasksPage = () => {
       <Group justify="space-between" mb="lg">
         <Title order={2}>タスク一覧</Title>
         <Group>
-          <CodeViewerModal
-            pageCode={pageCode}
-            collectionCode={collectionCode}
-          />
+          {codeViewerTrigger}
           <Tooltip label="新規作成">
             <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
               <IconPlus size={20} />
@@ -379,6 +379,7 @@ const TasksPage = () => {
         />
       </Modal>
 
+      {codeViewerModal}
       {exportModal}
       {importModal}
       {tableSettingDrawer}

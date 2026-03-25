@@ -22,7 +22,7 @@ import { workspacesRoute } from "../taskManager-top/workspaces.route";
 
 import pageCode from "./detail.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/workspace.ts?raw";
-import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 
 const WorkspaceDetailPage = () => {
   const { workspaceId } = useParams({
@@ -64,6 +64,9 @@ const WorkspaceDetailPage = () => {
     [accessor, workspaceId, navigate],
   );
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   const handleCancel = useCallback(() => {
     navigate({
       to: workspacesRoute.to,
@@ -82,7 +85,7 @@ const WorkspaceDetailPage = () => {
     <Container size="lg">
       <Group justify="space-between" mb="lg">
         <Title order={2}>ワークスペース詳細</Title>
-        <CodeViewerModal pageCode={pageCode} collectionCode={collectionCode} />
+        {codeViewerTrigger}
       </Group>
 
       <Stack gap="lg">
@@ -99,6 +102,7 @@ const WorkspaceDetailPage = () => {
           />
         </Card>
       </Stack>
+      {codeViewerModal}
     </Container>
   );
 };

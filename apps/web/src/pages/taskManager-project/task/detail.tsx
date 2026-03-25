@@ -33,7 +33,7 @@ import {
 import { AutoForm } from "../../../components/AutoForm";
 import { taskDetailRoute } from "./detail.route";
 import { tasksRoute } from "../tasks.route";
-import { CodeViewerModal } from "../../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
 
 import pageCode from "./detail.tsx?raw";
 import collectionCode from "../../../shared/taskManager/collections/task.ts?raw";
@@ -127,6 +127,9 @@ const TaskDetailPage = () => {
     [accessor, taskId, navigate, workspaceId, projectId],
   );
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   const handleCancel = useCallback(() => {
     navigate({
       to: tasksRoute.to,
@@ -147,10 +150,7 @@ const TaskDetailPage = () => {
       <Group justify="space-between" mb="lg">
         <Title order={2}>タスク詳細</Title>
         <Group>
-          <CodeViewerModal
-            pageCode={pageCode}
-            collectionCode={collectionCode}
-          />
+          {codeViewerTrigger}
           <Menu position="bottom-end" shadow="md">
             <Menu.Target>
               <ActionIcon variant="subtle" size="lg">
@@ -187,6 +187,7 @@ const TaskDetailPage = () => {
           />
         </Card>
       </Stack>
+      {codeViewerModal}
       {deleteModal}
       {archiveModal}
     </Container>

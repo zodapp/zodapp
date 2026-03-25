@@ -27,7 +27,7 @@ import { membersCollection } from "../../../shared/taskManager/collections/membe
 import { AutoForm } from "../../../components/AutoForm";
 import { memberDetailRoute } from "./detail.route";
 import { membersRoute } from "../members.route";
-import { CodeViewerModal } from "../../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
 
 import pageCode from "./detail.tsx?raw";
 import collectionCode from "../../../shared/taskManager/collections/member.ts?raw";
@@ -93,6 +93,9 @@ const MemberDetailPage = () => {
     },
   });
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   const handleCancel = useCallback(() => {
     navigate({
       to: membersRoute.to,
@@ -113,7 +116,7 @@ const MemberDetailPage = () => {
       <Group justify="space-between" mb="lg">
         <Title order={2}>メンバー詳細</Title>
         <Group>
-          <CodeViewerModal pageCode={pageCode} collectionCode={collectionCode} />
+          {codeViewerTrigger}
           <Menu position="bottom-end" shadow="md">
             <Menu.Target>
               <ActionIcon variant="subtle" size="lg">
@@ -145,6 +148,7 @@ const MemberDetailPage = () => {
           />
         </Card>
       </Stack>
+      {codeViewerModal}
       {deleteModal}
     </Container>
   );

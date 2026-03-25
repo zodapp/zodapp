@@ -39,7 +39,7 @@ import { membersCollection } from "../../shared/taskManager/collections/member";
 import { AutoForm } from "../../components/AutoForm";
 import { membersRoute } from "./members.route";
 import { memberDetailRoute } from "./member/detail.route";
-import { CodeViewerModal } from "../../components/CodeViewerModal";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 
 import pageCode from "./members.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/member.ts?raw";
@@ -156,15 +156,15 @@ const MembersPage = () => {
     storageKey: MEMBER_TABLE_STORAGE_KEY,
   });
 
+  const { trigger: codeViewerTrigger, modal: codeViewerModal } =
+    useCodeViewerModal({ pageCode, collectionCode });
+
   return (
     <Container size="lg">
       <Group justify="space-between" mb="lg">
         <Title order={2}>メンバー一覧</Title>
         <Group>
-          <CodeViewerModal
-            pageCode={pageCode}
-            collectionCode={collectionCode}
-          />
+          {codeViewerTrigger}
           <Tooltip label="新規追加">
             <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
               <IconPlus size={20} />
@@ -241,6 +241,7 @@ const MembersPage = () => {
         />
       </Modal>
 
+      {codeViewerModal}
       {exportModal}
       {importModal}
       {tableSettingDrawer}
