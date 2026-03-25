@@ -9,17 +9,28 @@ import {
   Paper,
   ActionIcon,
   Tooltip,
+  Menu,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconDotsVertical,
+  IconDownload,
+  IconUpload,
+  IconSettings,
+} from "@tabler/icons-react";
 import { useParams } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore, storage } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
-import { AutoTable } from "@zodapp/zod-form-widget/table";
+import {
+  AutoTable,
+  useTableSettingDrawer,
+} from "@zodapp/zod-form-widget/table";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { createActionSchema } from "../../components/createActionSchema";
+import { useExportModal, useImportModal } from "../../components/TabularModal";
 
 import { z } from "zod";
 
@@ -33,6 +44,8 @@ import { CodeViewerModal } from "../../components/CodeViewerModal";
 import pageCode from "./members.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/member.ts?raw";
 import { zf } from "@zodapp/zod-form";
+
+const MEMBER_TABLE_STORAGE_KEY = "tableSetting-member";
 
 type MemberData = z.infer<typeof membersCollection.dataSchema>;
 
@@ -108,6 +121,41 @@ const MembersPage = () => {
     [memberAccessor, workspaceId, closeModal],
   );
 
+  const fetchAllMembers = useCallback(
+    () => memberAccessor.query(collectionIdentity),
+    [memberAccessor, collectionIdentity],
+  );
+
+  const { open: openExport, modal: exportModal } = useExportModal({
+    schema: membersCollection.dataSchema,
+    data: members,
+    fetchAll: fetchAllMembers,
+    filename: `members-${workspaceId}.csv`,
+  });
+
+  const handleImport = useCallback(
+    async (rows: z.infer<typeof membersCollection.createSchema>[]) => {
+      for (const row of rows) {
+        await memberAccessor.createDoc(collectionIdentity, row);
+      }
+    },
+    [memberAccessor, collectionIdentity],
+  );
+
+  const { open: openImport, modal: importModal } = useImportModal({
+    schema: membersCollection.createSchema,
+    onImport: handleImport,
+  });
+
+  const {
+    open: openTableSetting,
+    modal: tableSettingDrawer,
+    isPreviewing,
+  } = useTableSettingDrawer({
+    schema: memberTableSchema,
+    storageKey: MEMBER_TABLE_STORAGE_KEY,
+  });
+
   return (
     <Container size="lg">
       <Group justify="space-between" mb="lg">
@@ -122,6 +170,36 @@ const MembersPage = () => {
               <IconPlus size={20} />
             </ActionIcon>
           </Tooltip>
+          <Menu shadow="md" width={200} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>テーブル</Menu.Label>
+              <Menu.Item
+                leftSection={<IconSettings size={16} />}
+                onClick={openTableSetting}
+              >
+                列設定
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Label>データ操作</Menu.Label>
+              <Menu.Item
+                leftSection={<IconDownload size={16} />}
+                onClick={openExport}
+              >
+                CSVエクスポート
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconUpload size={16} />}
+                onClick={openImport}
+              >
+                CSVインポート
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
 
@@ -129,6 +207,8 @@ const MembersPage = () => {
         schema={memberTableSchema}
         data={members}
         keyField="memberId"
+        storageKey={MEMBER_TABLE_STORAGE_KEY}
+        isPreviewing={isPreviewing}
       />
       {!isLoading && members.length === 0 && (
         <Paper p="xl" withBorder mt="sm">
@@ -160,6 +240,10 @@ const MembersPage = () => {
           showPreview={true}
         />
       </Modal>
+
+      {exportModal}
+      {importModal}
+      {tableSettingDrawer}
     </Container>
   );
 };

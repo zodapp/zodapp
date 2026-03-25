@@ -9,11 +9,19 @@ import {
   Paper,
   ActionIcon,
   Tooltip,
+  Menu,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlus } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconDotsVertical,
+  IconSettings,
+} from "@tabler/icons-react";
 import { useCallback, useMemo } from "react";
-import { AutoTable } from "@zodapp/zod-form-widget/table";
+import {
+  AutoTable,
+  useTableSettingDrawer,
+} from "@zodapp/zod-form-widget/table";
 
 import { z } from "zod";
 
@@ -28,6 +36,8 @@ import { WorkspaceCreate } from "./WorkspaceCreate";
 import pageCode from "./workspaces.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/workspace.ts?raw";
 import { zf } from "@zodapp/zod-form";
+
+const WORKSPACE_TABLE_STORAGE_KEY = "tableSetting-workspace";
 
 type WorkspaceData = z.infer<typeof workspacesCollection.dataSchema>;
 
@@ -58,6 +68,15 @@ const WorkspacesPage = () => {
         }),
     [],
   );
+
+  const {
+    open: openTableSetting,
+    modal: tableSettingDrawer,
+    isPreviewing,
+  } = useTableSettingDrawer({
+    schema: workspaceTableSchema,
+    storageKey: WORKSPACE_TABLE_STORAGE_KEY,
+  });
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -94,6 +113,22 @@ const WorkspacesPage = () => {
               <IconPlus size={20} />
             </ActionIcon>
           </Tooltip>
+          <Menu shadow="md" width={200} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>テーブル</Menu.Label>
+              <Menu.Item
+                leftSection={<IconSettings size={16} />}
+                onClick={openTableSetting}
+              >
+                列設定
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </Group>
 
@@ -101,6 +136,8 @@ const WorkspacesPage = () => {
         schema={workspaceTableSchema}
         data={workspaces}
         keyField="workspaceId"
+        storageKey={WORKSPACE_TABLE_STORAGE_KEY}
+        isPreviewing={isPreviewing}
       />
       {!isLoading && workspaces.length === 0 && (
         <Paper p="xl" withBorder mt="sm">
@@ -128,6 +165,8 @@ const WorkspacesPage = () => {
           onCancel={closeModal}
         />
       </Modal>
+
+      {tableSettingDrawer}
     </Container>
   );
 };

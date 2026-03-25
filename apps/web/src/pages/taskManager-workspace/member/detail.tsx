@@ -7,7 +7,10 @@ import {
   Loader,
   Center,
   Group,
+  Menu,
+  ActionIcon,
 } from "@mantine/core";
+import { IconDotsVertical } from "@tabler/icons-react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { z } from "zod";
@@ -15,6 +18,10 @@ import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore, storage } from "@repo/firebase";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { useStoreKey } from "../../../shared/auth";
+import {
+  DeleteMenuItem,
+  useDeleteModal,
+} from "@zodapp/zod-form-widget/feedback";
 
 import { membersCollection } from "../../../shared/taskManager/collections/member";
 import { AutoForm } from "../../../components/AutoForm";
@@ -74,6 +81,18 @@ const MemberDetailPage = () => {
     [accessor, workspaceId, memberId, navigate],
   );
 
+  const { open: openDelete, modal: deleteModal } = useDeleteModal({
+    title: "メンバーを削除",
+    message: "このメンバーを削除しますか？この操作は元に戻せません。",
+    onDelete: async () => {
+      await accessor.deleteDoc({ workspaceId, memberId });
+      navigate({
+        to: membersRoute.to,
+        params: { workspaceId },
+      });
+    },
+  });
+
   const handleCancel = useCallback(() => {
     navigate({
       to: membersRoute.to,
@@ -93,7 +112,19 @@ const MemberDetailPage = () => {
     <Container size="lg">
       <Group justify="space-between" mb="lg">
         <Title order={2}>メンバー詳細</Title>
-        <CodeViewerModal pageCode={pageCode} collectionCode={collectionCode} />
+        <Group>
+          <CodeViewerModal pageCode={pageCode} collectionCode={collectionCode} />
+          <Menu position="bottom-end" shadow="md">
+            <Menu.Target>
+              <ActionIcon variant="subtle" size="lg">
+                <IconDotsVertical size={20} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <DeleteMenuItem label="メンバーを削除" onClick={openDelete} />
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
       </Group>
 
       <Stack gap="lg">
@@ -114,6 +145,7 @@ const MemberDetailPage = () => {
           />
         </Card>
       </Stack>
+      {deleteModal}
     </Container>
   );
 };

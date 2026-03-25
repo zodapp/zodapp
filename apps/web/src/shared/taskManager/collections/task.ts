@@ -76,7 +76,10 @@ const taskDataSchema = z
     // ラベル（タグ）
     labels: zf
       .array(zf.string().register(zf.string.registry, { label: "ラベル" }))
-      .register(zf.array.registry, { label: "ラベル" })
+      .register(zf.array.registry, {
+        label: "ラベル",
+        uiType: "multipleString",
+      })
       .default([]),
 
     // 担当・期限（membersCollectionを外部キーとして参照）
@@ -171,7 +174,7 @@ export const tasksCollection = collectionConfig({
   path: "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId" as const,
   fieldKeys: [] as const,
   schema: taskDataSchema,
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
+  createOmitKeys: ["createdAt", "updatedAt", "archivedAt", "expired"] as const,
 
   // create時のみ自動設定
   onCreate: () => ({ createdAt: new Date() }),
