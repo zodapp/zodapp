@@ -19,7 +19,12 @@ type UnionSchema = z.ZodUnion<[z.ZodTypeAny, ...z.ZodTypeAny[]]>;
 
 const normalizeValue = (schema: z.ZodTypeAny, value: unknown) => {
   const parsed = schema.safeParse(value);
-  return parsed.success ? parsed.data : getDefaultValue(schema);
+  if (parsed.success) return parsed.data;
+  try {
+    return getDefaultValue(schema);
+  } catch {
+    return undefined;
+  }
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -30,6 +35,49 @@ const isDiscriminatedUnion = (
   schema: z.ZodUnion,
 ): schema is z.ZodDiscriminatedUnion => {
   return (schema.def as $ZodDiscriminatedUnionDef).discriminator !== undefined;
+};
+
+/**
+ * discriminatedUnion の arm から、指定した discriminator の literal 値を解決する。
+ * arm が ZodObject なら shape から直接取り、arm 自体が nested discriminatedUnion なら
+ * 全 leaf を traverse して一意な値であることを検証する。
+ */
+const resolveArmDiscriminatorValue = (
+  armSchema: z.ZodTypeAny,
+  discriminator: string,
+): string => {
+  if (armSchema instanceof z.ZodObject) {
+    const field = (armSchema as z.ZodObject<z.ZodRawShape>).shape[
+      discriminator
+    ];
+    if (!(field instanceof z.ZodLiteral) || typeof field.value !== "string") {
+      throw new Error(
+        `discriminatedUnion arm must have a string literal for "${discriminator}"`,
+      );
+    }
+    return field.value;
+  }
+
+  if (
+    armSchema instanceof z.ZodUnion &&
+    isDiscriminatedUnion(armSchema as z.ZodUnion)
+  ) {
+    const innerOptions = armSchema.def.options as z.ZodTypeAny[];
+    const values = innerOptions.map((child) =>
+      resolveArmDiscriminatorValue(child, discriminator),
+    );
+    const unique = [...new Set(values)];
+    if (unique.length !== 1) {
+      throw new Error(
+        `nested discriminatedUnion arm must resolve exactly one value for "${discriminator}", got: ${unique.join(", ")}`,
+      );
+    }
+    return unique[0]!;
+  }
+
+  throw new Error(
+    `unsupported discriminatedUnion arm schema type for discriminator "${discriminator}"`,
+  );
 };
 
 type schemaProfile = {
@@ -69,11 +117,10 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
       const discriminator = schema.def.discriminator;
       const profileMap = new Map(
         optionSchemas.map((optionSchema, index) => {
-          const _optionSchema = optionSchema as z.ZodObject<z.ZodRawShape>;
-          const discriminatorSchema = _optionSchema.shape[
-            discriminator
-          ] as z.ZodLiteral<string>;
-          const key = discriminatorSchema.value;
+          const key = resolveArmDiscriminatorValue(
+            optionSchema,
+            discriminator,
+          );
           return [
             key,
             {
@@ -273,10 +320,15 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
         const currentValue = fieldPath
           ? field.api.form.getFieldValue(fieldPath)
           : field.api.form.state.values;
-        const defaults =
-          profile.schema && isRecord(getDefaultValue(profile.schema))
-            ? (getDefaultValue(profile.schema) as Record<string, unknown>)
-            : {};
+        let defaults: Record<string, unknown> = {};
+        if (profile.schema) {
+          try {
+            const dv = getDefaultValue(profile.schema);
+            if (isRecord(dv)) defaults = dv as Record<string, unknown>;
+          } catch {
+            // nested discriminatedUnion など、デフォルト値を生成できない schema はスキップ
+          }
+        }
         const nextValue = {
           ...defaults,
           ...(isRecord(currentValue) ? currentValue : {}),
