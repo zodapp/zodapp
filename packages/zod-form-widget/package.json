@@ -1,0 +1,61 @@
+{
+  "name": "@zodapp/zod-form-widget",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reusable UI widgets for zod-form (AutoTable, AutoForm, TabularModal, etc.)",
+  "author": "zodapp",
+  "license": "MIT",
+  "sideEffects": [
+    "*.css",
+    "./src/i18n/zod-errormap.ja.ts"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./table": "./src/table/index.ts",
+    "./tabular": "./src/tabular/index.ts",
+    "./form": "./src/form/index.ts",
+    "./feedback": "./src/feedback/index.ts",
+    "./i18n/ja": "./src/i18n/zod-errormap.ja.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@tabler/icons-react": "^3.36.1",
+    "@zodapp/zod-form": "workspace:*",
+    "@zodapp/zod-form-mantine": "workspace:*",
+    "@zodapp/zod-form-react": "workspace:*",
+    "@zodapp/zod-tabular": "workspace:*",
+    "lodash": "^4.17.21",
+    "react-virtuoso": "^4.18.3",
+    "zod": "^4.1.13"
+  },
+  "peerDependencies": {
+    "@mantine/core": "^8.2.7",
+    "@mantine/hooks": "^8.2.7",
+    "@tanstack/react-form": "^1.27.7",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^22.19.7",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.34.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.2"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -1,0 +1,99 @@
+.table {
+  table-layout: fixed;
+  --table-vertical-spacing: 5px;
+  --table-horizontal-spacing: 5px;
+}
+
+.stickyHeaderRow {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  z-index: 10;
+}
+
+.headerCell {
+  text-align: center;
+  background-color: white;
+}
+
+.previewHeaderCell {
+  scroll-margin: 8px;
+}
+
+.previewSelectable {
+  box-shadow: inset -2px 0 0 0 rgba(0, 0, 0, 0.15);
+}
+
+.previewSelectable[data-resizing='true'] {
+  box-shadow: inset -2px 0 0 0 var(--mantine-primary-color-filled);
+}
+
+.previewSelectable[data-focused='true'] {
+  background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 12%, transparent);
+}
+
+.previewContent {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 2px 4px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.sortButton span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sortButton[data-sorted='true'] {
+  font-weight: 600;
+  color: var(--mantine-primary-color-filled);
+}
+
+.sortIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.sortIcon[data-sorted='true'] {
+  color: var(--mantine-primary-color-filled);
+}
+
+.alignLeft {
+  text-align: left;
+}
+
+.alignCenter {
+  text-align: center;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.actionLinkContent {
+  display: inline-flex;
+  text-decoration: none;
+}

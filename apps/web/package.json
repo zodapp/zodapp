@@ -34,6 +34,7 @@
     "@zodapp/zod-firebase": "workspace:*",
     "@zodapp/zod-firebase-browser": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
+    "@zodapp/zod-form-widget": "workspace:*",
     "@zodapp/zod-form-firebase": "workspace:*",
     "@zodapp/zod-form-mantine": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",
