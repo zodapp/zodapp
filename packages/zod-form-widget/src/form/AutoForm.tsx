@@ -19,7 +19,7 @@ import type { z } from 'zod';
 
 type AutoFormProps<T extends z.ZodTypeAny> = {
   schema: T;
-  defaultValues?: Partial<z.input<T>>;
+  defaultValues?: z.input<T> | Partial<z.input<T>>;
   onSubmit?: (data: z.output<T>) => void;
   onCancel?: (data: z.input<T>) => void;
   isLoading?: boolean;
