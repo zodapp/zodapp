@@ -31,7 +31,12 @@ import {
 } from "@zodapp/zod-form-widget/table";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
-import { useExportModal, useImportModal } from "../../components/TabularModal";
+import {
+  useExportModal,
+  useImportModal,
+} from "@zodapp/zod-form-widget/tabular";
+import type { ListQuerySpec } from "../../shared/taskManager/listQuerySpec";
+import { useExportFetchAll } from "../../shared/taskManager/exportFetch";
 
 import { z } from "zod";
 
@@ -77,13 +82,7 @@ const ProjectsPage = () => {
           }),
         })
         .register(zf.object.registry, {
-          properties: [
-            "name",
-            "description",
-            "status",
-            "createdAt",
-            "_action",
-          ],
+          properties: ["name", "description", "status", "createdAt", "_action"],
         }),
     [workspaceId],
   );
@@ -97,19 +96,20 @@ const ProjectsPage = () => {
     [storeKey],
   );
 
-  // クライアントサイドフィルタ
-  const clientFilter = useMemo(() => createMingoFilter(search.q), [search.q]);
+  const projectListSpec = useMemo<ListQuerySpec<typeof projectsCollection>>(
+    () => ({
+      collection: projectsCollection,
+      collectionIdentity,
+      query: {
+        ...projectQueries.queries.active(),
+        orderBy: [{ field: "createdAt", direction: "desc" as const }],
+      },
+      clientFilter: createMingoFilter(search.q),
+    }),
+    [collectionIdentity, search.q],
+  );
 
-  // サーバからのデータ取得 + クライアントフィルタ
-  const { items: projects, isLoading } = useList({
-    collection: projectsCollection,
-    collectionIdentity,
-    query: {
-      ...projectQueries.queries.active(),
-      orderBy: [{ field: "createdAt", direction: "desc" }],
-    },
-    clientFilter,
-  });
+  const { items: projects, isLoading } = useList(projectListSpec);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -142,10 +142,7 @@ const ProjectsPage = () => {
     [projectAccessor, workspaceId, closeModal],
   );
 
-  const fetchAllProjects = useCallback(
-    () => projectAccessor.query(collectionIdentity),
-    [projectAccessor, collectionIdentity],
-  );
+  const fetchAllProjects = useExportFetchAll(projectListSpec);
 
   const { open: openExport, modal: exportModal } = useExportModal({
     schema: projectsCollection.dataSchema,
@@ -187,7 +184,12 @@ const ProjectsPage = () => {
         <Group>
           {codeViewerTrigger}
           <Tooltip label="新規作成">
-            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+            <ActionIcon
+              variant="filled"
+              size="lg"
+              radius="xl"
+              onClick={openModal}
+            >
               <IconPlus size={20} />
             </ActionIcon>
           </Tooltip>
@@ -253,7 +255,7 @@ const ProjectsPage = () => {
       {!isLoading && projects.length === 0 && (
         <Paper p="xl" withBorder mt="sm">
           <Text c="dimmed" ta="center">
-            {clientFilter
+            {projectListSpec.clientFilter
               ? "フィルタ条件に一致するプロジェクトが見つかりませんでした"
               : "プロジェクトがありません。新規作成してください。"}
           </Text>

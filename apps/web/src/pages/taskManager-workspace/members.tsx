@@ -30,7 +30,12 @@ import {
 } from "@zodapp/zod-form-widget/table";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { createActionSchema } from "../../components/createActionSchema";
-import { useExportModal, useImportModal } from "../../components/TabularModal";
+import {
+  useExportModal,
+  useImportModal,
+} from "@zodapp/zod-form-widget/tabular";
+import { useExportFetchAll } from "../../shared/taskManager/exportFetch";
+import type { ListQuerySpec } from "../../shared/taskManager/listQuerySpec";
 
 import { z } from "zod";
 
@@ -94,13 +99,18 @@ const MembersPage = () => {
     () => getAccessor(firestore, membersCollection, storeKey),
     [storeKey],
   );
-  const { items: members, isLoading } = useList({
-    collection: membersCollection,
-    collectionIdentity,
-    query: {
-      orderBy: [{ field: "createdAt", direction: "desc" }],
-    },
-  });
+  const memberListSpec = useMemo<ListQuerySpec<typeof membersCollection>>(
+    () => ({
+      collection: membersCollection,
+      collectionIdentity,
+      query: {
+        orderBy: [{ field: "createdAt", direction: "desc" as const }],
+      },
+    }),
+    [collectionIdentity],
+  );
+
+  const { items: members, isLoading } = useList(memberListSpec);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -121,10 +131,7 @@ const MembersPage = () => {
     [memberAccessor, workspaceId, closeModal],
   );
 
-  const fetchAllMembers = useCallback(
-    () => memberAccessor.query(collectionIdentity),
-    [memberAccessor, collectionIdentity],
-  );
+  const fetchAllMembers = useExportFetchAll(memberListSpec);
 
   const { open: openExport, modal: exportModal } = useExportModal({
     schema: membersCollection.dataSchema,
@@ -166,7 +173,12 @@ const MembersPage = () => {
         <Group>
           {codeViewerTrigger}
           <Tooltip label="新規追加">
-            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+            <ActionIcon
+              variant="filled"
+              size="lg"
+              radius="xl"
+              onClick={openModal}
+            >
               <IconPlus size={20} />
             </ActionIcon>
           </Tooltip>

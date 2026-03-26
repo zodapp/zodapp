@@ -44,8 +44,13 @@ import { populateSeed } from "./seed";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
 import { useCodeViewerModal } from "../../components/useCodeViewerModal";
-import { useExportModal, useImportModal } from "../../components/TabularModal";
+import {
+  useExportModal,
+  useImportModal,
+} from "@zodapp/zod-form-widget/tabular";
 import { useStoreKey } from "../../shared/auth";
+import type { GrowingListQuerySpec } from "../../shared/taskManager/listQuerySpec";
+import { useExportFetchAll } from "../../shared/taskManager/exportFetch";
 
 import pageCode from "./tasks.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/task.ts?raw";
@@ -118,7 +123,7 @@ const TasksPage = () => {
     [workspaceId],
   );
 
-  const { fetchCondition, clientFilter } = useMemo(() => {
+  const taskListSpec = useMemo<GrowingListQuerySpec<typeof tasksCollection>>(() => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
     const activeQuery = taskQueries.queries.active();
 
@@ -130,10 +135,15 @@ const TasksPage = () => {
       );
     }
     return {
-      fetchCondition,
+      collection: tasksCollection,
+      collectionIdentity,
+      query: {
+        where: fetchCondition,
+        orderBy: [{ field: "createdAt", direction: "desc" as const }],
+      },
       clientFilter: createMingoFilter(rest),
     };
-  }, [search.q]);
+  }, [collectionIdentity, search.q]);
 
   const {
     items: tasks,
@@ -143,14 +153,8 @@ const TasksPage = () => {
     filteredCount,
     scannedCount,
   } = useGrowingList({
-    collection: tasksCollection,
-    collectionIdentity,
-    query: {
-      where: fetchCondition,
-      orderBy: [{ field: "createdAt", direction: "desc" as const }],
-    },
+    ...taskListSpec,
     streamField: "updatedAt",
-    clientFilter,
   });
 
   const [modalOpened, { open: openModal, close: closeModal }] =
@@ -196,10 +200,7 @@ const TasksPage = () => {
     [navigate, search],
   );
 
-  const fetchAllTasks = useCallback(
-    () => taskAccessor.query(collectionIdentity),
-    [taskAccessor, collectionIdentity],
-  );
+  const fetchAllTasks = useExportFetchAll(taskListSpec);
 
   const { open: openExport, modal: exportModal } = useExportModal({
     schema: tasksCollection.dataSchema,
@@ -262,7 +263,12 @@ const TasksPage = () => {
         <Group>
           {codeViewerTrigger}
           <Tooltip label="新規作成">
-            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+            <ActionIcon
+              variant="filled"
+              size="lg"
+              radius="xl"
+              onClick={openModal}
+            >
               <IconPlus size={20} />
             </ActionIcon>
           </Tooltip>
