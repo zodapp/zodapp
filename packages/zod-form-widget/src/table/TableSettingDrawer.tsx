@@ -1,27 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ActionIcon, Button, Drawer, Group, NumberInput, Select } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { getMetaReact } from '@zodapp/zod-form-react';
-import { IconCircleMinus, IconCirclePlus } from '@tabler/icons-react';
-import { z } from 'zod';
-import { COLUMN_FOCUS_ZONE_CLASS } from './AutoTable';
-import { type ColumnEntry, getUnwrappedMeta } from './table-types';
-import { useSessionStorageState, useLocalStorageState } from './useStorageState';
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  ActionIcon,
+  Button,
+  Drawer,
+  Group,
+  NumberInput,
+  Select,
+} from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
+import { getMetaReact } from "@zodapp/zod-form-react";
+import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
+import { z } from "zod";
+import { COLUMN_FOCUS_ZONE_CLASS } from "./AutoTable";
+import { type ColumnEntry, getUnwrappedMeta } from "./table-types";
+import { useMemoryState, useLocalStorageState } from "./useStorageState";
 import {
   DndContext,
   closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent
-} from '@dnd-kit/core';
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   horizontalListSortingStrategy,
   useSortable,
-  arrayMove
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const DEFAULT_WIDTH = 140;
 
@@ -44,9 +51,9 @@ let nextId = 0;
 const generateId = () => `col_${Date.now()}_${nextId++}`;
 
 const createEmptyColumn = (): ColumnEntry => ({
-  fieldName: '',
+  fieldName: "",
   width: String(DEFAULT_WIDTH),
-  id: generateId()
+  id: generateId(),
 });
 
 const ensureIds = (columns: ColumnEntry[]): ColumnEntry[] =>
@@ -106,17 +113,28 @@ function SortableColumn({
   onAddAfterLast,
   isFocused,
   onFocusColumn,
-  onBlurColumn
+  onBlurColumn,
 }: SortableColumnProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: col.id
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: col.id,
   });
 
   const elRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isFocused && elRef.current) {
-      elRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      elRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
     }
   }, [isFocused]);
 
@@ -131,23 +149,23 @@ function SortableColumn({
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
-        position: 'relative',
-        boxSizing: 'border-box',
-        padding: '24px 12px 2px',
-        scrollMargin: '8px'
+        position: "relative",
+        boxSizing: "border-box",
+        padding: "24px 12px 2px",
+        scrollMargin: "8px",
       }}
       onMouseDown={() => onFocusColumn(col.id)}
     >
       <div
         style={{
-          position: 'absolute',
+          position: "absolute",
           top: 10,
           left: -2,
           right: -2,
           bottom: -4,
           borderRadius: 4,
-          border: `2px solid ${isFocused ? 'var(--mantine-primary-color-filled)' : 'transparent'}`,
-          pointerEvents: 'none'
+          border: `2px solid ${isFocused ? "var(--mantine-primary-color-filled)" : "transparent"}`,
+          pointerEvents: "none",
         }}
       />
       {canRemove && (
@@ -156,13 +174,13 @@ function SortableColumn({
           variant="light"
           color="#63687C"
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'white',
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "white",
             zIndex: 2,
-            outline: 'none'
+            outline: "none",
           }}
           onClick={() => onRemove(col.id)}
         >
@@ -175,13 +193,13 @@ function SortableColumn({
         variant="light"
         color="#63687C"
         style={{
-          position: 'absolute',
-          top: '50%',
+          position: "absolute",
+          top: "50%",
           left: 0,
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: 'white',
+          transform: "translate(-50%, -50%)",
+          backgroundColor: "white",
           zIndex: 3,
-          outline: 'none'
+          outline: "none",
         }}
         onClick={() => onAdd(col.id)}
       >
@@ -194,13 +212,13 @@ function SortableColumn({
           variant="light"
           color="#63687C"
           style={{
-            position: 'absolute',
-            top: '50%',
+            position: "absolute",
+            top: "50%",
             right: 0,
-            transform: 'translate(50%, -50%)',
-            backgroundColor: 'white',
+            transform: "translate(50%, -50%)",
+            backgroundColor: "white",
             zIndex: 3,
-            outline: 'none'
+            outline: "none",
           }}
           onClick={onAddAfterLast}
         >
@@ -212,18 +230,19 @@ function SortableColumn({
         {...attributes}
         {...listeners}
         style={{
-          cursor: isDragging ? 'grabbing' : 'grab',
-          width: '100%',
+          cursor: isDragging ? "grabbing" : "grab",
+          width: "100%",
           height: 12,
-          backgroundImage: 'radial-gradient(circle, #63687C 1.5px, transparent 1.5px)',
-          backgroundSize: '6px 6px',
-          backgroundRepeat: 'space',
+          backgroundImage:
+            "radial-gradient(circle, #63687C 1.5px, transparent 1.5px)",
+          backgroundSize: "6px 6px",
+          backgroundRepeat: "space",
           borderRadius: 4,
           marginBottom: 8,
-          userSelect: 'none'
+          userSelect: "none",
         }}
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <Select
           value={col.fieldName || null}
           data={fieldOptions}
@@ -233,7 +252,7 @@ function SortableColumn({
           allowDeselect
           clearable
           size="xs"
-          comboboxProps={{ width: 200, position: 'bottom-start' }}
+          comboboxProps={{ width: 200, position: "bottom-start" }}
         />
         <NumberInput
           placeholder="幅"
@@ -253,7 +272,7 @@ function SortableColumn({
 export function useTableSettingDrawer({
   schema,
   storageKey,
-  extraFieldOptions
+  extraFieldOptions,
 }: UseTableSettingDrawerProps) {
   const [opened, { open, close }] = useDisclosure(false);
 
@@ -261,24 +280,23 @@ export function useTableSettingDrawer({
   const persistKey = storageKey;
 
   const fieldOptions = useMemo(() => {
-    const schemaOptions: { value: string; label: string; group?: string }[] = Object.keys(
-      schema.shape
-    )
-      .filter((key) => {
-        if (key.startsWith('__')) return false;
-        const fieldSchema = schema.shape[key] as z.ZodTypeAny;
-        const fieldMeta = getUnwrappedMeta(fieldSchema);
-        if (fieldMeta?.typeName === 'hidden') return false;
-        return true;
-      })
-      .map((key) => {
-        const fieldSchema = schema.shape[key] as z.ZodTypeAny;
-        const fieldMeta = getUnwrappedMeta(fieldSchema);
-        return {
-          value: key,
-          label: fieldMeta?.label ?? key
-        };
-      });
+    const schemaOptions: { value: string; label: string; group?: string }[] =
+      Object.keys(schema.shape)
+        .filter((key) => {
+          if (key.startsWith("__")) return false;
+          const fieldSchema = schema.shape[key] as z.ZodTypeAny;
+          const fieldMeta = getUnwrappedMeta(fieldSchema);
+          if (fieldMeta?.typeName === "hidden") return false;
+          return true;
+        })
+        .map((key) => {
+          const fieldSchema = schema.shape[key] as z.ZodTypeAny;
+          const fieldMeta = getUnwrappedMeta(fieldSchema);
+          return {
+            value: key,
+            label: fieldMeta?.label ?? key,
+          };
+        });
 
     if (!extraFieldOptions?.length) return schemaOptions;
     return [...schemaOptions, ...extraFieldOptions];
@@ -302,7 +320,7 @@ export function useTableSettingDrawer({
   }, [schema, extraFieldOptions]);
 
   const schemaDefaultColumns = useMemo<ColumnEntry[]>(() => {
-    const tableMeta = getMetaReact(schema, 'object');
+    const tableMeta = getMetaReact(schema, "object");
     const properties = tableMeta?.properties;
     const order: string[] = properties ?? Object.keys(schema.shape);
 
@@ -310,26 +328,27 @@ export function useTableSettingDrawer({
       const fieldSchema = schema.shape[propertyName] as z.ZodTypeAny;
       if (!fieldSchema) return [];
       const fieldMeta = getUnwrappedMeta(fieldSchema);
-      if (fieldMeta?.hidden || fieldMeta?.tags?.includes('hidden')) return [];
-      if (propertyName.startsWith('__')) return [];
+      if (fieldMeta?.hidden || fieldMeta?.tags?.includes("hidden")) return [];
+      if (propertyName.startsWith("__")) return [];
       const width = fieldMeta?.width ?? DEFAULT_WIDTH;
-      return [{ fieldName: propertyName, width: String(width), id: propertyName }];
+      return [
+        { fieldName: propertyName, width: String(width), id: propertyName },
+      ];
     });
   }, [schema]);
 
-  const [persistedColumns, setPersistedColumns] = useLocalStorageState<ColumnEntry[] | null>(
-    persistKey,
-    null
-  );
+  const [persistedColumns, setPersistedColumns] = useLocalStorageState<
+    ColumnEntry[] | null
+  >(persistKey, null);
 
   type SessionStorageData = {
     columns: ColumnEntry[] | null;
     focusedColumnId?: string;
   };
   const emptySession: SessionStorageData = { columns: null };
-  const [sessionData, setSessionData] = useSessionStorageState<SessionStorageData>(
+  const [sessionData, setSessionData] = useMemoryState<SessionStorageData>(
     previewKey,
-    emptySession
+    emptySession,
   );
 
   const previewColumns = sessionData.columns;
@@ -339,7 +358,7 @@ export function useTableSettingDrawer({
     (columnId: string) => {
       setSessionData((prev) => ({ ...prev, focusedColumnId: columnId }));
     },
-    [setSessionData]
+    [setSessionData],
   );
 
   const clearFocusedColumnId = useCallback(() => {
@@ -347,13 +366,19 @@ export function useTableSettingDrawer({
   }, [setSessionData]);
 
   const setPreviewColumns = useCallback(
-    (value: ColumnEntry[] | null | ((prev: ColumnEntry[] | null) => ColumnEntry[] | null)) => {
+    (
+      value:
+        | ColumnEntry[]
+        | null
+        | ((prev: ColumnEntry[] | null) => ColumnEntry[] | null),
+    ) => {
       setSessionData((prev) => {
-        const nextColumns = typeof value === 'function' ? value(prev.columns) : value;
+        const nextColumns =
+          typeof value === "function" ? value(prev.columns) : value;
         return { ...prev, columns: nextColumns };
       });
     },
-    [setSessionData]
+    [setSessionData],
   );
 
   const isPreviewing = opened;
@@ -385,11 +410,13 @@ export function useTableSettingDrawer({
     setSessionData((prev) => ({ ...prev, columns: null }));
   }, [setSessionData]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
 
   const resolvePreview = useCallback(
     (prev: ColumnEntry[] | null) => ensureIds(prev ?? schemaDefaultColumns),
-    [schemaDefaultColumns]
+    [schemaDefaultColumns],
   );
 
   const handleDragEnd = useCallback(
@@ -405,7 +432,7 @@ export function useTableSettingDrawer({
       });
       setFocusedColumnId(String(active.id));
     },
-    [setPreviewColumns, resolvePreview, setFocusedColumnId]
+    [setPreviewColumns, resolvePreview, setFocusedColumnId],
   );
 
   const handleFieldChange = useCallback(
@@ -415,27 +442,27 @@ export function useTableSettingDrawer({
           col.id === id
             ? {
                 ...col,
-                fieldName: newFieldName ?? '',
+                fieldName: newFieldName ?? "",
                 width: newFieldName
                   ? (defaultWidthByField[newFieldName] ?? String(DEFAULT_WIDTH))
-                  : String(DEFAULT_WIDTH)
+                  : String(DEFAULT_WIDTH),
               }
-            : col
-        )
+            : col,
+        ),
       );
     },
-    [setPreviewColumns, resolvePreview, defaultWidthByField]
+    [setPreviewColumns, resolvePreview, defaultWidthByField],
   );
 
   const handleWidthChange = useCallback(
     (id: string, newWidth: string | number) => {
       setPreviewColumns((prev) =>
         resolvePreview(prev).map((col) =>
-          col.id === id ? { ...col, width: String(newWidth || '') } : col
-        )
+          col.id === id ? { ...col, width: String(newWidth || "") } : col,
+        ),
       );
     },
-    [setPreviewColumns, resolvePreview]
+    [setPreviewColumns, resolvePreview],
   );
 
   const handleAdd = useCallback(
@@ -451,7 +478,7 @@ export function useTableSettingDrawer({
       });
       setFocusedColumnId(newCol.id);
     },
-    [setPreviewColumns, resolvePreview, setFocusedColumnId]
+    [setPreviewColumns, resolvePreview, setFocusedColumnId],
   );
 
   const handleRemove = useCallback(
@@ -462,7 +489,7 @@ export function useTableSettingDrawer({
         return cols.filter((col) => col.id !== id);
       });
     },
-    [setPreviewColumns, resolvePreview]
+    [setPreviewColumns, resolvePreview],
   );
 
   const handleAddAfterLast = useCallback(() => {
@@ -471,7 +498,10 @@ export function useTableSettingDrawer({
     setFocusedColumnId(newCol.id);
   }, [setPreviewColumns, resolvePreview, setFocusedColumnId]);
 
-  const columnIds = useMemo(() => activeColumns.map((c) => c.id), [activeColumns]);
+  const columnIds = useMemo(
+    () => activeColumns.map((c) => c.id),
+    [activeColumns],
+  );
 
   const modal = (
     <Drawer
@@ -485,24 +515,34 @@ export function useTableSettingDrawer({
       trapFocus={false}
       styles={{
         inner: {
-          pointerEvents: 'none'
+          pointerEvents: "none",
         },
         content: {
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          pointerEvents: 'auto'
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          pointerEvents: "auto",
         },
         body: {
           flex: 1,
-          overflow: 'hidden'
-        }
+          overflow: "hidden",
+        },
       }}
     >
-      <div className={COLUMN_FOCUS_ZONE_CLASS} style={{ overflowX: 'auto', padding: '0 15px 4px' }}>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-            <div style={{ display: 'flex' }}>
+      <div
+        className={COLUMN_FOCUS_ZONE_CLASS}
+        style={{ overflowX: "auto", padding: "0 15px 4px" }}
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={columnIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div style={{ display: "flex" }}>
               {activeColumns.map((col, index) => (
                 <SortableColumn
                   key={col.id}

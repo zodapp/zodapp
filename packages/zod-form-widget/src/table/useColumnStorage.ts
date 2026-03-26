@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
-import type { ColumnEntry } from './table-types';
-import { useLocalStorageState, useSessionStorageState } from './useStorageState';
+import { useCallback } from "react";
+import type { ColumnEntry } from "./table-types";
+import { useLocalStorageState, useMemoryState } from "./useStorageState";
 
 type SessionStorageData = {
   columns: ColumnEntry[] | null;
@@ -8,7 +8,10 @@ type SessionStorageData = {
 };
 
 type SetPreviewColumns = (
-  value: ColumnEntry[] | null | ((prev: ColumnEntry[] | null) => ColumnEntry[] | null)
+  value:
+    | ColumnEntry[]
+    | null
+    | ((prev: ColumnEntry[] | null) => ColumnEntry[] | null),
 ) => void;
 
 type UseColumnStorageResult = {
@@ -22,32 +25,36 @@ const EMPTY_SESSION: SessionStorageData = { columns: null };
 
 export function useColumnStorage(
   storageKey: string | undefined,
-  isPreviewing: boolean
+  isPreviewing: boolean,
 ): UseColumnStorageResult {
-  const persistKey = storageKey ?? '';
-  const previewKey = storageKey ? `${storageKey}-preview` : '';
-  const [persistedColumns] = useLocalStorageState<ColumnEntry[] | null>(persistKey, null);
-  const [sessionData, setSessionData] = useSessionStorageState<SessionStorageData>(
+  const persistKey = storageKey ?? "";
+  const previewKey = storageKey ? `${storageKey}-preview` : "";
+  const [persistedColumns] = useLocalStorageState<ColumnEntry[] | null>(
+    persistKey,
+    null,
+  );
+  const [sessionData, setSessionData] = useMemoryState<SessionStorageData>(
     previewKey,
-    EMPTY_SESSION
+    EMPTY_SESSION,
   );
 
   const setPreviewColumns: SetPreviewColumns = useCallback(
     (value) => {
       setSessionData((prev) => {
         const prevColumns = prev.columns;
-        const nextColumns = typeof value === 'function' ? value(prevColumns) : value;
+        const nextColumns =
+          typeof value === "function" ? value(prevColumns) : value;
         return { ...prev, columns: nextColumns };
       });
     },
-    [setSessionData]
+    [setSessionData],
   );
 
   const setFocusedColumnId = useCallback(
     (columnId: string | undefined) => {
       setSessionData((prev) => ({ ...prev, focusedColumnId: columnId }));
     },
-    [setSessionData]
+    [setSessionData],
   );
 
   const noopSetPreviewColumns: SetPreviewColumns = useCallback(() => {}, []);
@@ -58,13 +65,13 @@ export function useColumnStorage(
       columns: null,
       setPreviewColumns: noopSetPreviewColumns,
       focusedColumnId: undefined,
-      setFocusedColumnId: noopSetFocusedColumnId
+      setFocusedColumnId: noopSetFocusedColumnId,
     };
 
   return {
     columns: isPreviewing ? sessionData.columns : persistedColumns,
     setPreviewColumns,
     focusedColumnId: sessionData.focusedColumnId,
-    setFocusedColumnId
+    setFocusedColumnId,
   };
 }
