@@ -17,7 +17,7 @@ import type {
 } from '@zodapp/zod-form-react';
 import type { z } from 'zod';
 
-type AutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
+type AutoFormProps<T extends z.ZodTypeAny> = {
   schema: T;
   defaultValues?: Partial<z.input<T>>;
   onSubmit?: (data: z.output<T>) => void;
@@ -35,7 +35,7 @@ type AutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   readOnly?: boolean;
 };
 
-const AutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
+const AutoFormInner = <T extends z.ZodTypeAny>({
   schema,
   defaultValues,
   onSubmit,

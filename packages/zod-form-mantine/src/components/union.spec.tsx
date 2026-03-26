@@ -365,3 +365,151 @@ describe("UnionComponent discriminatedUnion regression", () => {
     });
   });
 });
+
+describe("UnionComponent top-level discriminatedUnion", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupDomMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const topLevelSchema = z
+    .discriminatedUnion("type", [
+      z
+        .object({
+          phoneNumber: zf
+            .string()
+            .register(zf.string.registry, { label: "電話番号" }),
+          type: zf
+            .literal("proxy")
+            .register(zf.literal.registry, { hidden: true }),
+          url: zf.string().register(zf.string.registry, { label: "URL" }),
+        })
+        .register(zf.object.registry, { label: "プロキシ" }),
+      z
+        .object({
+          phoneNumber: zf
+            .string()
+            .register(zf.string.registry, { label: "電話番号" }),
+          type: zf
+            .literal("scenario")
+            .register(zf.literal.registry, { hidden: true }),
+          scenarioId: zf
+            .string()
+            .register(zf.string.registry, { label: "シナリオID" }),
+        })
+        .register(zf.object.registry, { label: "シナリオ" }),
+    ])
+    .register(zf.union.registry, {
+      label: "発信先タイプ",
+      selectorLabel: "タイプ",
+    });
+
+  const renderTopLevel = (defaultValues: z.input<typeof topLevelSchema>) => {
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues,
+        validators: {
+          onChange: topLevelSchema,
+          onBlur: topLevelSchema,
+          onSubmit: topLevelSchema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Dynamic fieldPath="" schema={topLevelSchema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+  };
+
+  it("renders top-level discriminatedUnion and can switch discriminator", async () => {
+    renderTopLevel({
+      type: "proxy",
+      phoneNumber: "09011112222",
+      url: "https://example.com",
+    });
+
+    const beforeHidden = document.querySelector(
+      'input[type="hidden"]',
+    ) as HTMLInputElement | null;
+    expect(beforeHidden?.value).toBe("proxy");
+
+    await openAndSelect("シナリオ");
+
+    await waitFor(() => {
+      const afterHidden = document.querySelector(
+        'input[type="hidden"]',
+      ) as HTMLInputElement | null;
+      expect(afterHidden?.value).toBe("scenario");
+
+      const selectInput = document.querySelector(
+        "input.mantine-Select-input",
+      ) as HTMLInputElement | null;
+      expect(selectInput?.value).toBe("シナリオ");
+    });
+  });
+
+  it("keeps common field value after switching discriminator at top level", async () => {
+    renderTopLevel({
+      type: "proxy",
+      phoneNumber: "09011112222",
+      url: "https://example.com",
+    });
+
+    expect(await screen.findByDisplayValue("09011112222")).toBeTruthy();
+    await openAndSelect("シナリオ");
+
+    await waitFor(() => {
+      const hidden = document.querySelector(
+        'input[type="hidden"]',
+      ) as HTMLInputElement | null;
+      expect(hidden?.value).toBe("scenario");
+    });
+
+    expect(await screen.findByDisplayValue("09011112222")).toBeTruthy();
+    const selectInput = document.querySelector(
+      "input.mantine-Select-input",
+    ) as HTMLInputElement | null;
+    expect(selectInput?.value).toBe("シナリオ");
+  });
+
+  it("allows editing common field after switching discriminator at top level", async () => {
+    renderTopLevel({
+      type: "proxy",
+      phoneNumber: "09011112222",
+      url: "https://example.com",
+    });
+
+    await openAndSelect("シナリオ");
+
+    const phoneInput = await screen.findByDisplayValue("09011112222");
+    fireEvent.change(phoneInput, { target: { value: "08099990000" } });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("08099990000")).toBeTruthy();
+    });
+  });
+});

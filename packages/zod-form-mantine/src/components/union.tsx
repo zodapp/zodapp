@@ -9,6 +9,7 @@ import {
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
+  useFormValues,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -87,23 +88,123 @@ type schemaProfile = {
   index: number;
 };
 
-const UnionComponent = wrapComponent(function UnionComponentImplement({
+/**
+ * root/nested で異なるフォーム値の取得・更新方法を抽象化する。
+ *
+ * root (fieldPath === ""): フォーム全体の値を直接扱う
+ * nested (fieldPath !== ""): 特定フィールドパスを通じて値を扱う
+ */
+type ValueAccessor = {
+  getValue: () => unknown;
+  setValue: (next: unknown, opts?: { dontValidate?: boolean }) => void;
+  toAbsolutePath: (relative: readonly string[]) => string;
+};
+
+const useValueAccessor = (
+  fieldPath: string,
+  field: ZodFormInternalProps<UnionSchema>["field"],
+): ValueAccessor => {
+  const isRoot = fieldPath === "";
+
+  return useMemo((): ValueAccessor => {
+    if (isRoot) {
+      return {
+        getValue: () => field.api.form.state.values,
+        setValue: (next, opts) => {
+          if (opts?.dontValidate) {
+            const current = field.api.form.state.values;
+            const merged = isRecord(current) && isRecord(next)
+              ? { ...current, ...next }
+              : next;
+            Object.entries(merged as Record<string, unknown>).forEach(
+              ([key, val]) => {
+                field.api.form.setFieldValue(key, val as never, {
+                  dontValidate: true,
+                });
+              },
+            );
+          } else {
+            field.api.handleChange(next);
+          }
+        },
+        toAbsolutePath: (relative) =>
+          relative.filter(Boolean).join("."),
+      };
+    }
+
+    return {
+      getValue: () => field.api.form.getFieldValue(fieldPath),
+      setValue: (next, opts) => {
+        if (opts?.dontValidate) {
+          field.api.form.setFieldValue(fieldPath, next as never, {
+            dontValidate: true,
+          });
+        } else {
+          field.api.handleChange(next);
+        }
+      },
+      toAbsolutePath: (relative) =>
+        [fieldPath, ...relative].filter(Boolean).join("."),
+    };
+  }, [isRoot, fieldPath, field.api]);
+};
+
+/**
+ * root 用: useFormValues で購読してフォーム全体の値をリアクティブに取得する。
+ */
+const UnionRootValueProvider = React.memo(function UnionRootValueProvider({
+  children,
+}: {
+  children: (formValue: unknown) => React.ReactNode;
+}) {
+  const formValues = useFormValues();
+  return <>{children(formValues)}</>;
+});
+
+/**
+ * nested 用: field.api からフィールド値を取得する（wrapComponent の購読で十分）。
+ */
+const UnionNestedValueProvider = React.memo(function UnionNestedValueProvider({
+  fieldPath,
+  field,
+  children,
+}: {
+  fieldPath: string;
+  field: ZodFormInternalProps<UnionSchema>["field"];
+  children: (formValue: unknown) => React.ReactNode;
+}) {
+  const formValue = field.api.form.getFieldValue(fieldPath);
+  return <>{children(formValue)}</>;
+});
+
+/**
+ * Union の本体ロジック。root/nested 共通で使う。
+ */
+const UnionBody = React.memo(function UnionBody({
   fieldPath,
   schema,
   required,
   readOnly,
-  label: labelFromParent,
+  label,
+  selectorLabel,
   field,
-  error, // eslint-disable-line @typescript-eslint/no-unused-vars
-}: ZodFormInternalProps<UnionSchema>) {
+  error,
+  formValue,
+  accessor,
+}: {
+  fieldPath: string;
+  schema: UnionSchema;
+  required: boolean | undefined;
+  readOnly: boolean | undefined;
+  label: string | undefined;
+  selectorLabel: string | undefined;
+  field: ZodFormInternalProps<UnionSchema>["field"];
+  error: ZodFormInternalProps<UnionSchema>["error"];
+  formValue: unknown;
+  accessor: ValueAccessor;
+}) {
   const { loadingComponent: LoadingComponent } = useZodFormContext();
-
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta, selectorLabel } = getMeta(schema) ?? {};
-  const label = labelFromParent ?? labelFromMeta;
-  const formValue = fieldPath
-    ? field.api.form.getFieldValue(fieldPath)
-    : field.api.form.state.values;
 
   const compiledOptions: {
     profiles: schemaProfile[];
@@ -251,17 +352,15 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
       ? unionError.errors?.[selectedProfile.index]
       : undefined;
 
-  // 非判別 union のときだけ invalid_union を再配布
   useEffect(() => {
     const redistributeIssues = (issues: any[] | undefined) => {
       const touched = new Set<string>();
 
       issues?.forEach((iss) => {
-        const absPath = [
-          ...(fieldPath ? [fieldPath] : []),
-          ...((iss.path ?? []) as string[]),
-        ].filter(Boolean);
-        const name = absPath.join(".");
+        const name = accessor.toAbsolutePath(
+          (iss.path ?? []) as string[],
+        );
+        if (!name) return;
         touched.add(name);
 
         field.api.form.setFieldMeta(name, (meta: any) => {
@@ -272,7 +371,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
             meta.errors[0]?.message === iss.message &&
             meta.errors[0]?.type === iss.code
           ) {
-            return meta; // 変化なしならスキップ
+            return meta;
           }
           return {
             ...meta,
@@ -282,7 +381,6 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
         });
       });
 
-      // 触っていないものを掃除
       prevInjectedRef.current
         .filter((p) => !touched.has(p))
         .forEach((p) =>
@@ -299,7 +397,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     redistributeIssues(optionIssues);
 
     return () => redistributeIssues(undefined);
-  }, [optionIssues, fieldPath, field.api.form]);
+  }, [optionIssues, accessor, field.api.form]);
 
   const handleSelect = useCallback(
     (id: string | null) => {
@@ -313,13 +411,9 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
           return;
         }
       }
-      // discriminatedUnion は全体再正規化を避け、discriminator フィールドのみ直接更新する。
-      // 既存データを保持したまま discriminator だけ差し替える（strip 前提）。
       if (compiledOptions.hasDiscriminator && compiledOptions.discriminator) {
         setSelectedDiscriminator(profile.value);
-        const currentValue = fieldPath
-          ? field.api.form.getFieldValue(fieldPath)
-          : field.api.form.state.values;
+        const currentValue = accessor.getValue();
         let defaults: Record<string, unknown> = {};
         if (profile.schema) {
           try {
@@ -335,22 +429,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
           [compiledOptions.discriminator]: profile.value,
         };
 
-        if (fieldPath) {
-          field.api.form.setFieldValue(fieldPath, nextValue as never, {
-            dontValidate: true,
-          });
-          return;
-        }
-
-        const fallbackValue = isRecord(field.value)
-          ? {
-              ...field.value,
-              [compiledOptions.discriminator]: profile.value,
-            }
-          : {
-              [compiledOptions.discriminator]: profile.value,
-            };
-        field.onChange(fallbackValue ?? undefined);
+        accessor.setValue(nextValue, { dontValidate: true });
         return;
       }
 
@@ -359,7 +438,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
         : undefined;
       field.onChange(normalized ?? undefined);
     },
-    [field, compiledOptions, fieldPath, formValue],
+    [field, compiledOptions, formValue, accessor],
   );
   return (
     <Fieldset legend={label || undefined} mt={10}>
@@ -410,6 +489,53 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
         </div>
       )}
     </Fieldset>
+  );
+});
+
+/**
+ * UnionComponent: root/nested で購読元を分岐し、共通の UnionBody に委譲する。
+ *
+ * root (fieldPath === ""): useFormValues でフォーム全体を購読
+ * nested: wrapComponent 内の useZodField 購読で十分
+ */
+const UnionComponent = wrapComponent(function UnionComponentImplement({
+  fieldPath,
+  schema,
+  required,
+  readOnly,
+  label: labelFromParent,
+  field,
+  error, // eslint-disable-line @typescript-eslint/no-unused-vars
+}: ZodFormInternalProps<UnionSchema>) {
+  const { label: labelFromMeta, selectorLabel } = getMeta(schema) ?? {};
+  const label = labelFromParent ?? labelFromMeta;
+  const isRoot = fieldPath === "";
+  const accessor = useValueAccessor(fieldPath, field);
+
+  const commonProps = {
+    fieldPath,
+    schema,
+    required,
+    readOnly,
+    label,
+    selectorLabel,
+    field,
+    error,
+    accessor,
+  };
+
+  if (isRoot) {
+    return (
+      <UnionRootValueProvider>
+        {(formValue) => <UnionBody {...commonProps} formValue={formValue} />}
+      </UnionRootValueProvider>
+    );
+  }
+
+  return (
+    <UnionNestedValueProvider fieldPath={fieldPath} field={field}>
+      {(formValue) => <UnionBody {...commonProps} formValue={formValue} />}
+    </UnionNestedValueProvider>
   );
 });
 

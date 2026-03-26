@@ -4,6 +4,7 @@ import * as date from "./date";
 import * as enumSelect from "./enumSelect";
 import * as union from "./union";
 import * as discriminatedUnion from "./discriminatedUnion";
+import * as discriminatedUnionAsTopLevel from "./discriminatedUnionAsTopLevel";
 import * as arrayFields from "./arrayFields";
 import * as nestedObject from "./nestedObject";
 import * as refineValidation from "./refineValidation";
@@ -22,6 +23,7 @@ import dateCode from "./date.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
 import unionCode from "./union.ts?raw";
 import discriminatedUnionCode from "./discriminatedUnion.ts?raw";
+import discriminatedUnionAsTopLevelCode from "./discriminatedUnionAsTopLevel.ts?raw";
 import arrayFieldsCode from "./arrayFields.ts?raw";
 import nestedObjectCode from "./nestedObject.ts?raw";
 import refineValidationCode from "./refineValidation.ts?raw";
@@ -41,6 +43,7 @@ export const formSchemas = {
   [arrayFields.formId]: arrayFields,
   [readOnly.formId]: readOnly,
   [discriminatedUnion.formId]: discriminatedUnion,
+  [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
   [computed.formId]: computed,
   [union.formId]: union,
   [nestedObject.formId]: nestedObject,
@@ -62,6 +65,7 @@ export const formCodes = {
   [readOnly.formId]: readOnlyCode,
   [union.formId]: unionCode,
   [discriminatedUnion.formId]: discriminatedUnionCode,
+  [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevelCode,
   [nestedObject.formId]: nestedObjectCode,
   [refineValidation.formId]: refineValidationCode,
   [recursiveData.formId]: recursiveDataCode,
