@@ -2,7 +2,7 @@ import { getMetaReact } from '@zodapp/zod-form-react';
 import { z } from 'zod';
 
 export type ColumnEntry = {
-  fieldName?: string;
+  fieldPath?: string;
   width: string;
   id: string;
 };

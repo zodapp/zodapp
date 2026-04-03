@@ -226,6 +226,7 @@ const zf = {
   array: extendArray(
     zodExtendableCommonDefSchema.extend({
       discriminator: z.string().optional(),
+      displayLength: z.number().optional(),
     }),
   ),
   tuple: extendTuple(zodExtendableCommonDefSchema),

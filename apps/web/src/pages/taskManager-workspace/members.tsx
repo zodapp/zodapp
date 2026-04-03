@@ -28,6 +28,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { createActionSchema } from "../../components/createActionSchema";
 import {
@@ -154,14 +155,15 @@ const MembersPage = () => {
     onImport: handleImport,
   });
 
-  const {
-    open: openTableSetting,
-    modal: tableSettingDrawer,
-    isPreviewing,
-  } = useTableSettingDrawer({
-    schema: memberTableSchema,
+  const controller = useLocalColumnSettings({
     storageKey: MEMBER_TABLE_STORAGE_KEY,
+    schema: memberTableSchema,
   });
+
+  const { open: openTableSetting, modal: tableSettingDrawer } =
+    useTableSettingDrawer({
+      controller,
+    });
 
   const { trigger: codeViewerTrigger, modal: codeViewerModal } =
     useCodeViewerModal({ pageCode, collectionCode });
@@ -216,11 +218,9 @@ const MembersPage = () => {
       </Group>
 
       <AutoTable
-        schema={memberTableSchema}
         data={members}
         keyField="memberId"
-        storageKey={MEMBER_TABLE_STORAGE_KEY}
-        isPreviewing={isPreviewing}
+        controller={controller}
       />
       {!isLoading && members.length === 0 && (
         <Paper p="xl" withBorder mt="sm">

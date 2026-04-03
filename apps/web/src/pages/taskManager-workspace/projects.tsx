@@ -29,6 +29,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
 import {
@@ -165,14 +166,15 @@ const ProjectsPage = () => {
     onImport: handleImport,
   });
 
-  const {
-    open: openTableSetting,
-    modal: tableSettingDrawer,
-    isPreviewing,
-  } = useTableSettingDrawer({
-    schema: projectTableSchema,
+  const controller = useLocalColumnSettings({
     storageKey: PROJECT_TABLE_STORAGE_KEY,
+    schema: projectTableSchema,
   });
+
+  const { open: openTableSetting, modal: tableSettingDrawer } =
+    useTableSettingDrawer({
+      controller,
+    });
 
   const { trigger: codeViewerTrigger, modal: codeViewerModal } =
     useCodeViewerModal({ pageCode, collectionCode });
@@ -245,11 +247,9 @@ const ProjectsPage = () => {
       </Box>
 
       <AutoTable
-        schema={projectTableSchema}
         data={projects}
         keyField="projectId"
-        storageKey={PROJECT_TABLE_STORAGE_KEY}
-        isPreviewing={isPreviewing}
+        controller={controller}
       />
 
       {!isLoading && projects.length === 0 && (

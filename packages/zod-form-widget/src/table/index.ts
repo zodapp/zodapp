@@ -11,9 +11,20 @@ export type {
 } from "./useAutoTableScroll";
 export { useTableSettingDrawer } from "./TableSettingDrawer";
 export type { ExtraFieldOption } from "./TableSettingDrawer";
-export { useColumnStorage } from "./useColumnStorage";
+export { useColumnSettingsController } from "./column-settings-controller";
+export type {
+  ColumnSettingScope,
+  ColumnSettingRef,
+  ColumnSettingData,
+  ColumnSettingPersistence,
+  ColumnSettingsController,
+  SetPreviewColumns,
+  UseColumnSettingsControllerProps,
+} from "./column-settings-controller";
 export { getUnwrappedMeta } from "./table-types";
 export type { ColumnEntry } from "./table-types";
+export { extractSchemaColumns } from "./extract-schema-columns";
+export type { SchemaColumnDef } from "./extract-schema-columns";
 export {
   useStorageState,
   useLocalStorageState,

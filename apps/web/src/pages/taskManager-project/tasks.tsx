@@ -38,6 +38,7 @@ import {
   useAutoTableScroll,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { taskDetailRoute } from "./task/detail.route";
 import { tasksRoute, searchFilterSchema } from "./tasks.route";
 import { populateSeed } from "./seed";
@@ -223,13 +224,17 @@ const TasksPage = () => {
     onImport: handleImport,
   });
 
+  const controller = useLocalColumnSettings({
+    storageKey: TASK_TABLE_STORAGE_KEY,
+    schema: taskTableSchema,
+  });
+
   const {
     open: openTableSetting,
     modal: tableSettingDrawer,
     isPreviewing,
   } = useTableSettingDrawer({
-    schema: taskTableSchema,
-    storageKey: TASK_TABLE_STORAGE_KEY,
+    controller,
   });
 
   const {
@@ -338,12 +343,10 @@ const TasksPage = () => {
       >
         <AutoTable
           ref={tableRef}
-          schema={taskTableSchema}
           data={tasks}
           keyField="taskId"
           sortable={false}
-          storageKey={TASK_TABLE_STORAGE_KEY}
-          isPreviewing={isPreviewing}
+          controller={controller}
           externalKeyResolvers={externalKeyResolvers}
           resolverContext={resolverContext}
           scrollParent={scrollParent}

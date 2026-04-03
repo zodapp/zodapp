@@ -22,6 +22,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 
 import { z } from "zod";
 
@@ -69,14 +70,15 @@ const WorkspacesPage = () => {
     [],
   );
 
-  const {
-    open: openTableSetting,
-    modal: tableSettingDrawer,
-    isPreviewing,
-  } = useTableSettingDrawer({
-    schema: workspaceTableSchema,
+  const controller = useLocalColumnSettings({
     storageKey: WORKSPACE_TABLE_STORAGE_KEY,
+    schema: workspaceTableSchema,
   });
+
+  const { open: openTableSetting, modal: tableSettingDrawer } =
+    useTableSettingDrawer({
+      controller,
+    });
 
   const { trigger: codeViewerTrigger, modal: codeViewerModal } =
     useCodeViewerModal({ pageCode, collectionCode });
@@ -133,11 +135,9 @@ const WorkspacesPage = () => {
       </Group>
 
       <AutoTable
-        schema={workspaceTableSchema}
         data={workspaces}
         keyField="workspaceId"
-        storageKey={WORKSPACE_TABLE_STORAGE_KEY}
-        isPreviewing={isPreviewing}
+        controller={controller}
       />
       {!isLoading && workspaces.length === 0 && (
         <Paper p="xl" withBorder mt="sm">

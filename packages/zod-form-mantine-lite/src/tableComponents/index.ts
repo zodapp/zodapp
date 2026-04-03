@@ -12,6 +12,7 @@ export { component as ObjectComponent } from "./object.js";
 export { component as ComputedComponent } from "./computed.js";
 export { component as DerivedComponent } from "./derived.js";
 export { component as ExternalKeyComponent } from "./externalKey.js";
+export { component as LiteralComponent } from "./literal.js";
 
 // Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
 export const tableComponentLibrary: ComponentLibrary = {
@@ -21,6 +22,7 @@ export const tableComponentLibrary: ComponentLibrary = {
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,
   enum_badge: (() => import("./enum.js")) as DynamicZodFormDef,
+  literal: (() => import("./literal.js")) as DynamicZodFormDef,
   date: (() => import("./date.js")) as DynamicZodFormDef,
   array: (() => import("./array.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,

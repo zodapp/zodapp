@@ -7,13 +7,11 @@ import {
   NumberInput,
   Select,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
-import { getMetaReact } from "@zodapp/zod-form-react";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
-import { z } from "zod";
 import { COLUMN_FOCUS_ZONE_CLASS } from "./AutoTable";
-import { type ColumnEntry, getUnwrappedMeta } from "./table-types";
-import { useMemoryState, useLocalStorageState } from "./useStorageState";
+import { type ColumnEntry } from "./table-types";
+import { extractSchemaColumns } from "./extract-schema-columns";
+import type { ColumnSettingsController } from "./column-settings-controller";
 import {
   DndContext,
   closestCenter,
@@ -42,8 +40,7 @@ export type ExtraFieldOption = {
 };
 
 interface UseTableSettingDrawerProps {
-  schema: z.ZodObject<z.ZodRawShape>;
-  storageKey: string;
+  controller: ColumnSettingsController;
   extraFieldOptions?: ExtraFieldOption[];
 }
 
@@ -51,7 +48,7 @@ let nextId = 0;
 const generateId = () => `col_${Date.now()}_${nextId++}`;
 
 const createEmptyColumn = (): ColumnEntry => ({
-  fieldName: "",
+  fieldPath: "",
   width: String(DEFAULT_WIDTH),
   id: generateId(),
 });
@@ -244,7 +241,7 @@ function SortableColumn({
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <Select
-          value={col.fieldName || null}
+          value={col.fieldPath || null}
           data={fieldOptions}
           onChange={(next) => onFieldChange(col.id, next)}
           onFocus={() => onFocusColumn(col.id)}
@@ -270,46 +267,47 @@ function SortableColumn({
 }
 
 export function useTableSettingDrawer({
-  schema,
-  storageKey,
+  controller,
   extraFieldOptions,
 }: UseTableSettingDrawerProps) {
-  const [opened, { open, close }] = useDisclosure(false);
+  const {
+    schema,
+    defaultFieldPaths,
+    previewColumns,
+    focusedColumnId,
+    isPreviewing,
+    canSave,
+    isSaving,
+    openPreview,
+    closePreview,
+    setPreviewColumns,
+    setFocusedColumnId,
+    savePreview,
+    resetPreviewToDefault,
+  } = controller;
 
-  const previewKey = `${storageKey}-preview`;
-  const persistKey = storageKey;
+  const schemaColumns = useMemo(
+    () => extractSchemaColumns(schema, defaultFieldPaths ? { defaultFieldPaths } : undefined),
+    [schema, defaultFieldPaths],
+  );
 
   const fieldOptions = useMemo(() => {
     const schemaOptions: { value: string; label: string; group?: string }[] =
-      Object.keys(schema.shape)
-        .filter((key) => {
-          if (key.startsWith("__")) return false;
-          const fieldSchema = schema.shape[key] as z.ZodTypeAny;
-          const fieldMeta = getUnwrappedMeta(fieldSchema);
-          if (fieldMeta?.typeName === "hidden") return false;
-          return true;
-        })
-        .map((key) => {
-          const fieldSchema = schema.shape[key] as z.ZodTypeAny;
-          const fieldMeta = getUnwrappedMeta(fieldSchema);
-          return {
-            value: key,
-            label: fieldMeta?.label ?? key,
-          };
-        });
+      schemaColumns.map((col) => ({
+        value: col.fieldPath,
+        label: col.label,
+      }));
 
     if (!extraFieldOptions?.length) return schemaOptions;
     return [...schemaOptions, ...extraFieldOptions];
-  }, [schema, extraFieldOptions]);
+  }, [schemaColumns, extraFieldOptions]);
 
   const selectData = useMemo(() => toSelectData(fieldOptions), [fieldOptions]);
 
   const defaultWidthByField = useMemo(() => {
     const acc: Record<string, string> = {};
-    for (const key of Object.keys(schema.shape)) {
-      const fieldSchema = schema.shape[key] as z.ZodTypeAny;
-      const fieldMeta = getUnwrappedMeta(fieldSchema);
-      acc[key] = String(fieldMeta?.width ?? DEFAULT_WIDTH);
+    for (const col of schemaColumns) {
+      acc[col.fieldPath] = String(col.meta.width ?? DEFAULT_WIDTH);
     }
     if (extraFieldOptions) {
       for (const opt of extraFieldOptions) {
@@ -317,98 +315,44 @@ export function useTableSettingDrawer({
       }
     }
     return acc;
-  }, [schema, extraFieldOptions]);
+  }, [schemaColumns, extraFieldOptions]);
 
-  const schemaDefaultColumns = useMemo<ColumnEntry[]>(() => {
-    const tableMeta = getMetaReact(schema, "object");
-    const properties = tableMeta?.properties;
-    const order: string[] = properties ?? Object.keys(schema.shape);
-
-    return order.flatMap((propertyName) => {
-      const fieldSchema = schema.shape[propertyName] as z.ZodTypeAny;
-      if (!fieldSchema) return [];
-      const fieldMeta = getUnwrappedMeta(fieldSchema);
-      if (fieldMeta?.hidden || fieldMeta?.tags?.includes("hidden")) return [];
-      if (propertyName.startsWith("__")) return [];
-      const width = fieldMeta?.width ?? DEFAULT_WIDTH;
-      return [
-        { fieldName: propertyName, width: String(width), id: propertyName },
-      ];
-    });
-  }, [schema]);
-
-  const [persistedColumns, setPersistedColumns] = useLocalStorageState<
-    ColumnEntry[] | null
-  >(persistKey, null);
-
-  type SessionStorageData = {
-    columns: ColumnEntry[] | null;
-    focusedColumnId?: string;
-  };
-  const emptySession: SessionStorageData = { columns: null };
-  const [sessionData, setSessionData] = useMemoryState<SessionStorageData>(
-    previewKey,
-    emptySession,
+  const schemaDefaultColumns = useMemo<ColumnEntry[]>(
+    () =>
+      schemaColumns
+        .filter((col) => col.isDefault)
+        .map((col) => ({
+          fieldPath: col.fieldPath,
+          width: String(col.meta.width ?? DEFAULT_WIDTH),
+          id: col.fieldPath,
+        })),
+    [schemaColumns],
   );
-
-  const previewColumns = sessionData.columns;
-  const focusedColumnId = sessionData.focusedColumnId;
-
-  const setFocusedColumnId = useCallback(
-    (columnId: string) => {
-      setSessionData((prev) => ({ ...prev, focusedColumnId: columnId }));
-    },
-    [setSessionData],
-  );
-
-  const clearFocusedColumnId = useCallback(() => {
-    setSessionData((prev) => ({ ...prev, focusedColumnId: undefined }));
-  }, [setSessionData]);
-
-  const setPreviewColumns = useCallback(
-    (
-      value:
-        | ColumnEntry[]
-        | null
-        | ((prev: ColumnEntry[] | null) => ColumnEntry[] | null),
-    ) => {
-      setSessionData((prev) => {
-        const nextColumns =
-          typeof value === "function" ? value(prev.columns) : value;
-        return { ...prev, columns: nextColumns };
-      });
-    },
-    [setSessionData],
-  );
-
-  const isPreviewing = opened;
 
   const activeColumns = useMemo(() => {
-    const source = isPreviewing
-      ? (previewColumns ?? schemaDefaultColumns)
-      : (persistedColumns ?? schemaDefaultColumns);
+    const source = previewColumns ?? schemaDefaultColumns;
     return ensureIds(source);
-  }, [isPreviewing, previewColumns, persistedColumns, schemaDefaultColumns]);
+  }, [previewColumns, schemaDefaultColumns]);
+
+  const clearFocusedColumnId = useCallback(() => {
+    setFocusedColumnId(undefined);
+  }, [setFocusedColumnId]);
 
   const handleOpen = useCallback(() => {
-    setPreviewColumns(persistedColumns);
-    open();
-  }, [setPreviewColumns, persistedColumns, open]);
+    openPreview();
+  }, [openPreview]);
 
   const handleSave = useCallback(() => {
-    setPersistedColumns(previewColumns);
-    setSessionData(emptySession);
-    close();
-  }, [setPersistedColumns, setSessionData, previewColumns, close]);
+    void savePreview();
+  }, [savePreview]);
 
   const handleClose = useCallback(() => {
-    setSessionData(emptySession);
-    close();
-  }, [setSessionData, close]);
+    closePreview();
+  }, [closePreview]);
 
   const handleReset = useCallback(() => {
-    setSessionData((prev) => ({ ...prev, columns: null }));
-  }, [setSessionData]);
+    resetPreviewToDefault();
+  }, [resetPreviewToDefault]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -436,15 +380,15 @@ export function useTableSettingDrawer({
   );
 
   const handleFieldChange = useCallback(
-    (id: string, newFieldName: string | null) => {
+    (id: string, newFieldPath: string | null) => {
       setPreviewColumns((prev) =>
         resolvePreview(prev).map((col) =>
           col.id === id
             ? {
                 ...col,
-                fieldName: newFieldName ?? "",
-                width: newFieldName
-                  ? (defaultWidthByField[newFieldName] ?? String(DEFAULT_WIDTH))
+                fieldPath: newFieldPath ?? "",
+                width: newFieldPath
+                  ? (defaultWidthByField[newFieldPath] ?? String(DEFAULT_WIDTH))
                   : String(DEFAULT_WIDTH),
               }
             : col,
@@ -505,7 +449,7 @@ export function useTableSettingDrawer({
 
   const modal = (
     <Drawer
-      opened={opened}
+      opened={isPreviewing}
       onClose={handleClose}
       title="テーブル設定"
       position="bottom"
@@ -571,7 +515,12 @@ export function useTableSettingDrawer({
         <Button size="xs" variant="default" onClick={handleClose}>
           破棄
         </Button>
-        <Button size="xs" onClick={handleSave}>
+        <Button
+          size="xs"
+          onClick={handleSave}
+          disabled={!canSave}
+          loading={isSaving}
+        >
           保存
         </Button>
       </Group>

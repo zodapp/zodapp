@@ -20,7 +20,6 @@ import {
   IconChevronUp,
   IconSelector,
 } from "@tabler/icons-react";
-import { getMetaReact } from "@zodapp/zod-form-react";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import {
   ZodFormContextProvider,
@@ -31,8 +30,12 @@ import {
 import type { ExternalKeyActionResolver } from "@zodapp/zod-form-mantine";
 import type { CollectionReferenceActionEntry } from "@zodapp/zod-form-react";
 import { z } from "zod";
-import { useColumnStorage } from "./useColumnStorage";
+import type {
+  ColumnSettingsController,
+  SetPreviewColumns,
+} from "./column-settings-controller";
 import { type ColumnEntry, getUnwrappedMeta } from "./table-types";
+import { extractSchemaColumns, type SchemaColumnDef } from "./extract-schema-columns";
 import styles from "./AutoTable.module.css";
 
 export type CellAlign = "left" | "center" | "right";
@@ -48,15 +51,8 @@ type AutoTableField = {
   label: string;
 };
 
-type SetPreviewColumns = (
-  value:
-    | ColumnEntry[]
-    | null
-    | ((prev: ColumnEntry[] | null) => ColumnEntry[] | null),
-) => void;
-
 type OrderEntry = {
-  fieldName: string;
+  fieldPath: string;
   key: string;
   widthOverride?: number;
   isEmpty?: boolean;
@@ -93,18 +89,18 @@ const SORTABLE_FIELD_TYPES = new Set([
   "boolean",
 ]);
 
-type AutoTableProps<T extends z.ZodObject<z.ZodRawShape>> = {
-  schema: T;
-  data: Array<z.infer<T>>;
+type AutoTableProps = {
+  /** @deprecated controller.schema を使用してください */
+  schema?: z.ZodTypeAny;
+  data: Array<Record<string, unknown>>;
   keyField: string;
+  controller?: ColumnSettingsController;
   externalKeyResolvers?: ExternalKeyResolvers;
   externalKeyActionResolver?: ExternalKeyActionResolver;
   resolverContext?: RegisteredResolverContext;
   collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
   sortable?: boolean;
   defaultSortState?: SortState | null;
-  storageKey?: string;
-  isPreviewing?: boolean;
   scrollParent?: HTMLElement | null;
   virtualizeThreshold?: number;
   onScrollStateChange?: (state: AutoTableScrollState) => void;
@@ -122,29 +118,6 @@ const getNestedValue = (
     if (cur == null || typeof cur !== "object") return undefined;
     return (cur as Record<string, unknown>)[key];
   }, obj);
-};
-
-const resolveRecordChildSchema = (
-  shape: z.ZodRawShape,
-  fieldName: string,
-): { schema: z.ZodTypeAny; label: string } | undefined => {
-  const dotIndex = fieldName.indexOf(".");
-  if (dotIndex === -1) return undefined;
-  const parentKey = fieldName.slice(0, dotIndex);
-  const childKey = fieldName.slice(dotIndex + 1);
-  const parentSchema = shape[parentKey] as z.ZodTypeAny | undefined;
-  if (!parentSchema) return undefined;
-  let inner: z.ZodTypeAny = parentSchema;
-  while (
-    inner instanceof z.ZodOptional ||
-    inner instanceof z.ZodNullable ||
-    inner instanceof z.ZodDefault
-  ) {
-    inner = inner.unwrap() as z.ZodTypeAny;
-  }
-  if (!(inner instanceof z.ZodRecord)) return undefined;
-  const valueSchema = inner.valueType as z.ZodTypeAny;
-  return { schema: valueSchema, label: childKey };
 };
 
 const DEFAULT_WIDTH = 140;
@@ -421,42 +394,43 @@ function useTableResize({
   return { tableRef, tableRefCallback };
 }
 
-function buildTableSchema<T extends z.ZodObject<z.ZodRawShape>>(
-  schema: T,
-): z.ZodObject<z.ZodRawShape> {
-  return schema;
-}
-
 function getOrderEntries(
-  schemaOrder: string[],
+  schemaColumns: SchemaColumnDef[],
   storageColumns: ColumnEntry[] | null,
   isPreviewing: boolean,
 ): OrderEntry[] {
   const storageDerived = storageColumns
     ? storageColumns
-        .filter((column) => column.fieldName || isPreviewing)
+        .filter((column) => column.fieldPath || isPreviewing)
         .map((column) => {
           const width = Number(column.width);
           return {
-            fieldName: column.fieldName ?? "",
+            fieldPath: column.fieldPath ?? "",
             key: column.id,
             widthOverride:
               !Number.isNaN(width) && width > 0 ? width : undefined,
-            isEmpty: !column.fieldName,
+            isEmpty: !column.fieldPath,
           };
         })
     : null;
 
   return (
     storageDerived ??
-    schemaOrder.map((fieldName) => ({ fieldName, key: fieldName }))
+    schemaColumns
+      .filter((col) => col.isDefault)
+      .map((col) => ({ fieldPath: col.fieldPath, key: col.fieldPath }))
   );
 }
 
 function buildFields(
-  tableSchema: z.ZodObject<z.ZodRawShape>,
+  schemaColumns: SchemaColumnDef[],
   orderEntries: OrderEntry[],
 ): AutoTableField[] {
+  const columnByPath = new Map<string, SchemaColumnDef>();
+  for (const col of schemaColumns) {
+    columnByPath.set(col.fieldPath, col);
+  }
+
   return orderEntries.flatMap((entry) => {
     if (entry.isEmpty) {
       return [
@@ -474,39 +448,24 @@ function buildFields(
       ];
     }
 
-    let fieldSchema = tableSchema.shape[entry.fieldName] as
-      | z.ZodTypeAny
-      | undefined;
-    let fieldMeta: ReturnType<typeof getUnwrappedMeta>;
+    const colDef = columnByPath.get(entry.fieldPath);
+    if (!colDef) return [];
 
-    if (!fieldSchema) {
-      const resolved = resolveRecordChildSchema(
-        tableSchema.shape,
-        entry.fieldName,
-      );
-      if (!resolved) return [];
-      fieldSchema = resolved.schema;
-      fieldMeta = { ...getUnwrappedMeta(fieldSchema), label: resolved.label };
-    } else {
-      fieldMeta = getUnwrappedMeta(fieldSchema);
-    }
-
-    if (fieldMeta.hidden || fieldMeta.tags?.includes("hidden")) return [];
-
-    const width = entry.widthOverride ?? fieldMeta.width ?? DEFAULT_WIDTH;
-    const align = (fieldMeta.align as CellAlign | undefined) ?? DEFAULT_ALIGN;
+    const { meta } = colDef;
+    const width = entry.widthOverride ?? meta.width ?? DEFAULT_WIDTH;
+    const align = (meta.align as CellAlign | undefined) ?? DEFAULT_ALIGN;
 
     return [
       {
         key: entry.key,
-        propertyName: entry.fieldName,
-        schema: fieldSchema,
-        meta: fieldMeta,
+        propertyName: entry.fieldPath,
+        schema: colDef.schema,
+        meta,
         width,
         align,
-        isSortTarget: isSortableFieldType(fieldMeta.schemaType),
+        isSortTarget: isSortableFieldType(meta.schemaType),
         isAction: false,
-        label: fieldMeta.label ?? entry.fieldName,
+        label: colDef.label,
       },
     ];
   });
@@ -517,43 +476,43 @@ const buildDefaultPreviewColumns = (fields: AutoTableField[]): ColumnEntry[] =>
     .filter((field) => !field.isAction)
     .map((field) => ({
       id: field.key,
-      fieldName: field.propertyName,
+      fieldPath: field.propertyName,
       width: String(field.width),
     }));
 
-type UseAutoTableModelProps<T extends z.ZodObject<z.ZodRawShape>> = {
-  schema: T;
-  data: Array<z.infer<T>>;
+type UseAutoTableModelProps = {
+  schema: z.ZodTypeAny;
+  data: Array<Record<string, unknown>>;
+  defaultFieldPaths?: string[];
   storageColumns: ColumnEntry[] | null;
   isPreviewing: boolean;
   sortable: boolean;
   sortState: SortState | null;
 };
 
-function useAutoTableModel<T extends z.ZodObject<z.ZodRawShape>>({
+function useAutoTableModel({
   schema,
   data,
+  defaultFieldPaths,
   storageColumns,
   isPreviewing,
   sortable,
   sortState,
-}: UseAutoTableModelProps<T>) {
+}: UseAutoTableModelProps) {
   const { fields, totalMinWidth } = useMemo(() => {
-    const tableSchema = buildTableSchema(schema);
-    const tableMeta = getMetaReact(tableSchema, "object");
-    const schemaOrder = tableMeta?.properties ?? Object.keys(tableSchema.shape);
+    const schemaColumns = extractSchemaColumns(schema, defaultFieldPaths ? { defaultFieldPaths } : undefined);
     const orderEntries = getOrderEntries(
-      schemaOrder,
+      schemaColumns,
       storageColumns,
       isPreviewing,
     );
-    const nextFields = buildFields(tableSchema, orderEntries);
+    const nextFields = buildFields(schemaColumns, orderEntries);
 
     return {
       fields: nextFields,
       totalMinWidth: nextFields.reduce((sum, field) => sum + field.width, 0),
     };
-  }, [isPreviewing, schema, storageColumns]);
+  }, [defaultFieldPaths, isPreviewing, schema, storageColumns]);
 
   const sortedData = useMemo(() => {
     if (!sortable || !sortState) return data;
@@ -1047,9 +1006,12 @@ function VirtualizedTableView({
   );
 }
 
-const AutoTableInner = <T extends z.ZodObject<z.ZodRawShape>>(
+const noopSetPreviewColumns: SetPreviewColumns = () => {};
+const noopSetFocusedColumnId = (_columnId: string | undefined) => {};
+
+const AutoTableInner = (
   {
-    schema,
+    schema: schemaProp,
     data,
     keyField,
     externalKeyResolvers,
@@ -1058,26 +1020,31 @@ const AutoTableInner = <T extends z.ZodObject<z.ZodRawShape>>(
     collectionReferenceActions,
     sortable = true,
     defaultSortState = null,
-    storageKey,
-    isPreviewing = false,
+    controller,
     scrollParent,
     virtualizeThreshold,
     onScrollStateChange,
-  }: AutoTableProps<T>,
+  }: AutoTableProps,
   ref: React.ForwardedRef<AutoTableHandle>,
 ) => {
+  const schema = controller?.schema ?? schemaProp;
+  if (!schema) throw new Error("AutoTable: either controller or schema prop is required");
+  const defaultFieldPaths = controller?.defaultFieldPaths;
+  const isPreviewing = controller?.isPreviewing ?? false;
+  const setPreviewColumns = controller?.setPreviewColumns ?? noopSetPreviewColumns;
+  const focusedColumnId = controller?.focusedColumnId;
+  const setFocusedColumnId = controller?.setFocusedColumnId ?? noopSetFocusedColumnId;
+  const storageColumns = isPreviewing
+    ? (controller?.previewColumns ?? null)
+    : (controller?.persistedColumns ?? null);
+
   const [sortState, setSortState] = useState<SortState | null>(
     defaultSortState,
   );
-  const {
-    columns: storageColumns,
-    setPreviewColumns,
-    focusedColumnId,
-    setFocusedColumnId,
-  } = useColumnStorage(storageKey, isPreviewing);
   const { fields, sortedData, totalMinWidth } = useAutoTableModel({
     schema,
     data,
+    defaultFieldPaths,
     storageColumns,
     isPreviewing,
     sortable,
@@ -1302,8 +1269,8 @@ const AutoTableInner = <T extends z.ZodObject<z.ZodRawShape>>(
   );
 };
 
-type AutoTableComponent = <T extends z.ZodObject<z.ZodRawShape>>(
-  props: AutoTableProps<T> & React.RefAttributes<AutoTableHandle>,
+type AutoTableComponent = (
+  props: AutoTableProps & React.RefAttributes<AutoTableHandle>,
 ) => React.ReactElement | null;
 
 const ForwardedAutoTable = forwardRef(AutoTableInner) as AutoTableComponent;
