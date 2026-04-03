@@ -102,7 +102,7 @@ function collectFromObject(
     const meta = getUnwrappedMeta(fieldSchema);
     const isDefault = parentIsDefault && (propertySet == null || propertySet.has(key));
 
-    if (meta.hidden || meta.tags?.includes("hidden")) continue;
+    if (meta.hidden || meta.typeName === "hidden" || meta.tags?.includes("hidden")) continue;
     if (key.startsWith("__")) continue;
     if (!meta.label) continue;
 
