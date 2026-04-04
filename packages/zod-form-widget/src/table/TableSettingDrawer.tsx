@@ -299,6 +299,7 @@ export function useTableSettingDrawer({
     defaultFieldPaths,
     columnSettings,
     currentColumnSetting,
+    persistedColumns,
     previewColumns,
     focusedColumnId,
     isPreviewing,
@@ -373,9 +374,9 @@ export function useTableSettingDrawer({
   );
 
   const activeColumns = useMemo(() => {
-    const source = previewColumns ?? schemaDefaultColumns;
+    const source = previewColumns ?? persistedColumns ?? schemaDefaultColumns;
     return ensureIds(source);
-  }, [previewColumns, schemaDefaultColumns]);
+  }, [previewColumns, persistedColumns, schemaDefaultColumns]);
 
   const clearFocusedColumnId = useCallback(() => {
     setFocusedColumnId(undefined);
@@ -517,15 +518,16 @@ export function useTableSettingDrawer({
     (value: string | null) => {
       if (!value) return;
       if (value === DEFAULT_PROFILE_ID) {
-        void selectColumnSetting(null);
+        if (!isDefaultSelected) void selectColumnSetting(null);
         return;
       }
+      if (value === currentColumnSetting?.id) return;
       const setting = columnSettings.find((s) => s.id === value);
       if (setting) {
         void selectColumnSetting(setting);
       }
     },
-    [columnSettings, selectColumnSetting],
+    [columnSettings, selectColumnSetting, isDefaultSelected, currentColumnSetting?.id],
   );
 
   // --- Save confirm modal ---
@@ -553,7 +555,9 @@ export function useTableSettingDrawer({
 
   const [saveAsOpened, saveAsHandlers] = useDisclosure(false);
   const [saveAsName, setSaveAsName] = useState("");
-  const [saveAsScope, setSaveAsScope] = useState<ColumnSettingScope | undefined>(defaultScopeValue);
+  const [saveAsScope, setSaveAsScope] = useState<
+    ColumnSettingScope | undefined
+  >(defaultScopeValue);
 
   const openSaveAs = useCallback(() => {
     setSaveAsName("");
