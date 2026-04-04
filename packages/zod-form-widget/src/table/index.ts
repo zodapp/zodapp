@@ -17,6 +17,7 @@ export {
 } from "./column-settings-controller";
 export type {
   ColumnSettingScope,
+  StorageScopeOption,
   ColumnSettingRef,
   ColumnSettingData,
   ColumnSettingPersistence,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionIcon,
+  Badge,
   Button,
   Drawer,
   Group,
@@ -11,16 +12,21 @@ import {
   Stack,
   Text,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
+import {
+  IconArrowBackUp,
+  IconCircleMinus,
+  IconCirclePlus,
+  IconTrash,
+} from "@tabler/icons-react";
 import { COLUMN_FOCUS_ZONE_CLASS } from "./AutoTable";
 import { type ColumnEntry } from "./table-types";
 import { extractSchemaColumns } from "./extract-schema-columns";
 import type {
   ColumnSettingsController,
   ColumnSettingScope,
-  ColumnSettingRef,
 } from "./column-settings-controller";
 import {
   DndContext,
@@ -92,20 +98,6 @@ const toSelectData = (options: FieldOptionWithGroup[]): SelectDataItem[] => {
   }
   return result;
 };
-
-// ---------------------------------------------------------------------------
-// Storage scope labels
-// ---------------------------------------------------------------------------
-
-const STORAGE_SCOPE_OPTIONS: {
-  value: ColumnSettingScope;
-  label: string;
-  disabled: boolean;
-}[] = [
-  { value: "team", label: "チーム共通", disabled: false },
-  { value: "user", label: "個人（未実装）", disabled: true },
-  { value: "local", label: "このブラウザ", disabled: false },
-];
 
 // ---------------------------------------------------------------------------
 // SortableColumn (unchanged)
@@ -314,17 +306,23 @@ export function useTableSettingDrawer({
     isSaving,
     hasDirtyPreview,
     hasProfileStore,
+    storageScopeOptions: scopeOptions,
     openPreview,
     closePreview,
     setPreviewColumns,
     setFocusedColumnId,
     savePreview,
     savePreviewAs,
-    duplicateCurrent,
     deleteCurrent,
     selectColumnSetting,
     discardPreview,
   } = controller;
+
+  const resolveScopeGroupLabel = useCallback(
+    (scope: ColumnSettingScope | undefined): string =>
+      scopeOptions.find((o) => o.value === scope)?.groupLabel ?? "その他",
+    [scopeOptions],
+  );
 
   // --- schema columns ---
   const schemaColumns = useMemo(
@@ -488,19 +486,30 @@ export function useTableSettingDrawer({
     [activeColumns],
   );
 
-  // --- Profile select data (with virtual "default" entry) ---
+  // --- Profile select data (with virtual "default" entry, grouped by scope) ---
   const DEFAULT_PROFILE_ID = "__default__";
 
-  const profileSelectData = useMemo(
-    () => [
-      { value: DEFAULT_PROFILE_ID, label: "デフォルト" },
-      ...columnSettings.map((s) => ({
-        value: s.id,
-        label: s.name || s.label || s.id,
-      })),
-    ],
-    [columnSettings],
-  );
+  const profileSelectData = useMemo(() => {
+    const groups = new Map<string, { value: string; label: string }[]>();
+    for (const s of columnSettings) {
+      const group = resolveScopeGroupLabel(s.type);
+      let items = groups.get(group);
+      if (!items) {
+        items = [];
+        groups.set(group, items);
+      }
+      items.push({ value: s.id, label: s.name || s.label || s.id });
+    }
+
+    const result: (
+      | { value: string; label: string }
+      | { group: string; items: { value: string; label: string }[] }
+    )[] = [{ value: DEFAULT_PROFILE_ID, label: "デフォルト" }];
+    for (const [group, items] of groups) {
+      result.push({ group, items });
+    }
+    return result;
+  }, [columnSettings, resolveScopeGroupLabel]);
 
   const isDefaultSelected = currentColumnSetting == null;
 
@@ -508,7 +517,7 @@ export function useTableSettingDrawer({
     (value: string | null) => {
       if (!value) return;
       if (value === DEFAULT_PROFILE_ID) {
-        void selectColumnSetting(null as unknown as ColumnSettingRef);
+        void selectColumnSetting(null);
         return;
       }
       const setting = columnSettings.find((s) => s.id === value);
@@ -536,48 +545,27 @@ export function useTableSettingDrawer({
     void savePreview();
   }, [saveConfirmHandlers, savePreview]);
 
-  // --- Save As / Duplicate modal ---
+  // --- Save As modal ---
+  const defaultScopeValue =
+    scopeOptions.find((o) => o.isDefault)?.value ??
+    scopeOptions.find((o) => !o.disabled)?.value ??
+    scopeOptions[0]?.value;
+
   const [saveAsOpened, saveAsHandlers] = useDisclosure(false);
   const [saveAsName, setSaveAsName] = useState("");
-  const [saveAsScope, setSaveAsScope] = useState<ColumnSettingScope>("team");
-  const [saveAsMode, setSaveAsMode] = useState<"saveAs" | "duplicate">(
-    "saveAs",
-  );
+  const [saveAsScope, setSaveAsScope] = useState<ColumnSettingScope | undefined>(defaultScopeValue);
 
   const openSaveAs = useCallback(() => {
     setSaveAsName("");
-    setSaveAsScope("team");
-    setSaveAsMode("saveAs");
+    setSaveAsScope(defaultScopeValue);
     saveAsHandlers.open();
-  }, [saveAsHandlers]);
-
-  const openDuplicate = useCallback(() => {
-    setSaveAsName(
-      currentColumnSetting
-        ? `${currentColumnSetting.name} のコピー`
-        : "デフォルト のコピー",
-    );
-    setSaveAsScope(currentColumnSetting?.type ?? "team");
-    setSaveAsMode("duplicate");
-    saveAsHandlers.open();
-  }, [saveAsHandlers, currentColumnSetting]);
+  }, [saveAsHandlers, defaultScopeValue]);
 
   const handleSaveAsConfirm = useCallback(() => {
-    if (!saveAsName.trim()) return;
+    if (!saveAsName.trim() || !saveAsScope) return;
     saveAsHandlers.close();
-    if (saveAsMode === "saveAs") {
-      void savePreviewAs(saveAsName.trim(), saveAsScope);
-    } else {
-      void duplicateCurrent(saveAsName.trim(), saveAsScope);
-    }
-  }, [
-    saveAsName,
-    saveAsScope,
-    saveAsMode,
-    saveAsHandlers,
-    savePreviewAs,
-    duplicateCurrent,
-  ]);
+    void savePreviewAs(saveAsName.trim(), saveAsScope);
+  }, [saveAsName, saveAsScope, saveAsHandlers, savePreviewAs]);
 
   // --- Delete confirm modal ---
   const [deleteConfirmOpened, deleteConfirmHandlers] = useDisclosure(false);
@@ -600,7 +588,7 @@ export function useTableSettingDrawer({
         onClose={handleClose}
         title="テーブル設定"
         position="bottom"
-        size={hasProfileStore ? "280px" : "240px"}
+        size="240px"
         withOverlay={false}
         lockScroll={false}
         trapFocus={false}
@@ -620,21 +608,81 @@ export function useTableSettingDrawer({
           },
         }}
       >
-        {hasProfileStore && (
-          <Group gap="xs" px="md" mb="xs">
-            <Select
+        <Group gap="xs" px="md" mb="xs" wrap="nowrap">
+          {hasProfileStore && (
+            <>
+              <Select
+                size="xs"
+                value={
+                  isDefaultSelected
+                    ? DEFAULT_PROFILE_ID
+                    : (currentColumnSetting?.id ?? null)
+                }
+                data={profileSelectData}
+                onChange={handleProfileSelect}
+                style={{ flex: 1, maxWidth: 240 }}
+              />
+              {!isDefaultSelected && currentColumnSetting && (
+                <Badge size="sm" variant="light" color="gray">
+                  {resolveScopeGroupLabel(currentColumnSetting.type)}
+                </Badge>
+              )}
+              {hasDirtyPreview && (
+                <>
+                  <Badge size="sm" variant="light" color="orange">
+                    編集中
+                  </Badge>
+                  <Tooltip label="編集を破棄" position="bottom" withArrow>
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      color="gray"
+                      onClick={handleDiscard}
+                    >
+                      <IconArrowBackUp size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                </>
+              )}
+              {!isDefaultSelected && currentColumnSetting?.deletable ? (
+                <Tooltip label="プロフィールを削除" position="bottom" withArrow>
+                  <ActionIcon
+                    size="sm"
+                    variant="subtle"
+                    color="red"
+                    onClick={handleDeleteClick}
+                    disabled={isSaving}
+                  >
+                    <IconTrash size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              ) : (
+                <Badge size="sm" variant="light" color="gray">
+                  読み込み専用
+                </Badge>
+              )}
+            </>
+          )}
+          <div style={{ flex: 1 }} />
+          {hasProfileStore && (
+            <Button
               size="xs"
-              value={
-                isDefaultSelected
-                  ? DEFAULT_PROFILE_ID
-                  : (currentColumnSetting?.id ?? null)
-              }
-              data={profileSelectData}
-              onChange={handleProfileSelect}
-              style={{ flex: 1, maxWidth: 240 }}
-            />
-          </Group>
-        )}
+              variant="default"
+              onClick={openSaveAs}
+              disabled={isSaving}
+            >
+              別名で保存
+            </Button>
+          )}
+          <Button
+            size="xs"
+            onClick={handleSaveClick}
+            disabled={!canSave || (hasProfileStore && isDefaultSelected)}
+            loading={isSaving}
+          >
+            上書き保存
+          </Button>
+        </Group>
 
         <div
           className={COLUMN_FOCUS_ZONE_CLASS}
@@ -671,56 +719,6 @@ export function useTableSettingDrawer({
             </SortableContext>
           </DndContext>
         </div>
-        <Group justify="flex-end" mt="sm" px="md">
-          {hasProfileStore && (
-            <>
-              <Button
-                size="xs"
-                variant="default"
-                onClick={handleDeleteClick}
-                disabled={
-                  isDefaultSelected ||
-                  !currentColumnSetting?.deletable ||
-                  isSaving
-                }
-              >
-                削除
-              </Button>
-              <Button
-                size="xs"
-                variant="default"
-                onClick={openDuplicate}
-                disabled={isSaving}
-              >
-                複製
-              </Button>
-              <Button
-                size="xs"
-                variant="default"
-                onClick={openSaveAs}
-                disabled={!hasDirtyPreview || isSaving}
-              >
-                名前を付けて保存
-              </Button>
-            </>
-          )}
-          <Button
-            size="xs"
-            variant="default"
-            onClick={handleDiscard}
-            disabled={!hasDirtyPreview}
-          >
-            破棄
-          </Button>
-          <Button
-            size="xs"
-            onClick={handleSaveClick}
-            disabled={!canSave || isDefaultSelected}
-            loading={isSaving}
-          >
-            保存
-          </Button>
-        </Group>
       </Drawer>
 
       {/* Save confirm modal */}
@@ -750,13 +748,11 @@ export function useTableSettingDrawer({
         </Stack>
       </Modal>
 
-      {/* Save As / Duplicate modal */}
+      {/* Save As modal */}
       <Modal
         opened={saveAsOpened}
         onClose={saveAsHandlers.close}
-        title={
-          saveAsMode === "saveAs" ? "名前を付けて保存" : "プロフィールの複製"
-        }
+        title="別名で保存"
         centered
         size="sm"
       >
@@ -774,7 +770,7 @@ export function useTableSettingDrawer({
             onChange={(v) => setSaveAsScope(v as ColumnSettingScope)}
           >
             <Stack gap="xs" mt={4}>
-              {STORAGE_SCOPE_OPTIONS.map((opt) => (
+              {scopeOptions.map((opt) => (
                 <Radio
                   key={opt.value}
                   value={opt.value}
@@ -798,7 +794,7 @@ export function useTableSettingDrawer({
               disabled={!saveAsName.trim()}
               loading={isSaving}
             >
-              {saveAsMode === "saveAs" ? "保存" : "複製"}
+              保存
             </Button>
           </Group>
         </Stack>
@@ -839,5 +835,12 @@ export function useTableSettingDrawer({
     </>
   );
 
-  return { open: handleOpen, close: handleClose, modal, isPreviewing, hasDirtyPreview, focusedColumnId };
+  return {
+    open: handleOpen,
+    close: handleClose,
+    modal,
+    isPreviewing,
+    hasDirtyPreview,
+    focusedColumnId,
+  };
 }

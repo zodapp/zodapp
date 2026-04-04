@@ -4,6 +4,14 @@ import type { ColumnEntry } from "./table-types";
 
 export type ColumnSettingScope = "team" | "user" | "local";
 
+export type StorageScopeOption = {
+  value: ColumnSettingScope;
+  label: string;
+  groupLabel: string;
+  disabled?: boolean;
+  isDefault?: boolean;
+};
+
 export type ColumnSettingRef = {
   type: ColumnSettingScope;
   id: string;
@@ -75,6 +83,7 @@ export type ColumnSettingsController<T extends z.ZodTypeAny = z.ZodTypeAny> = {
   canSave: boolean;
   hasDirtyPreview: boolean;
   hasProfileStore: boolean;
+  storageScopeOptions: StorageScopeOption[];
   openPreview: () => void;
   closePreview: () => void;
   setPreviewColumns: SetPreviewColumns;
@@ -84,10 +93,6 @@ export type ColumnSettingsController<T extends z.ZodTypeAny = z.ZodTypeAny> = {
   reloadColumnSettings: () => Promise<void>;
   savePreview: () => Promise<void>;
   savePreviewAs: (
-    name: string,
-    targetType: ColumnSettingScope,
-  ) => Promise<void>;
-  duplicateCurrent: (
     name: string,
     targetType: ColumnSettingScope,
   ) => Promise<void>;
@@ -113,6 +118,7 @@ export type UseColumnSettingsProfileControllerProps<T extends z.ZodTypeAny = z.Z
   defaultFieldPaths?: string[];
   initialSettingId?: string | null;
   profilePersistence: ColumnSettingProfilePersistence;
+  storageScopeOptions?: StorageScopeOption[];
 };
 
 // ---------------------------------------------------------------------------
@@ -250,6 +256,7 @@ export function useColumnSettingsController<T extends z.ZodTypeAny = z.ZodTypeAn
       canSave,
       hasDirtyPreview,
       hasProfileStore: false,
+      storageScopeOptions: [],
       openPreview,
       closePreview,
       setPreviewColumns,
@@ -259,7 +266,6 @@ export function useColumnSettingsController<T extends z.ZodTypeAny = z.ZodTypeAn
       reloadColumnSettings: noop,
       savePreview,
       savePreviewAs: noopWithArgs,
-      duplicateCurrent: noopWithArgs,
       renameCurrent: noop,
       deleteCurrent: noop,
       discardPreview,
@@ -300,7 +306,9 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
   defaultFieldPaths,
   initialSettingId,
   profilePersistence,
+  storageScopeOptions: storageScopeOptionsProp,
 }: UseColumnSettingsProfileControllerProps<T>): ColumnSettingsController<T> {
+  const storageScopeOptions = storageScopeOptionsProp ?? [];
   const [columnSettings, setColumnSettings] = useState<ColumnSettingRef[]>([]);
   const [currentColumnSetting, setCurrentColumnSetting] =
     useState<ColumnSettingRef | null>(null);
@@ -415,28 +423,6 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
     async (name: string, targetType: ColumnSettingScope) => {
       setIsSaving(true);
       try {
-        const created = await persistenceRef.current.createColumnSetting({
-          type: targetType,
-          name,
-          columns: previewColumns,
-        });
-        const list = await loadList();
-        setColumnSettings(list);
-        setCurrentColumnSetting(created);
-        setPersistedColumns(previewColumns);
-        setPreviewColumnsRaw(null);
-        setFocusedColumnId(undefined);
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [previewColumns, loadList],
-  );
-
-  const duplicateCurrent = useCallback(
-    async (name: string, targetType: ColumnSettingScope) => {
-      setIsSaving(true);
-      try {
         const sourceColumns = previewColumns ?? persistedColumns;
         const created = await persistenceRef.current.createColumnSetting({
           type: targetType,
@@ -448,6 +434,7 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
         setCurrentColumnSetting(created);
         setPersistedColumns(sourceColumns);
         setPreviewColumnsRaw(null);
+        setFocusedColumnId(undefined);
       } finally {
         setIsSaving(false);
       }
@@ -521,6 +508,7 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
       canSave,
       hasDirtyPreview,
       hasProfileStore: true,
+      storageScopeOptions,
       openPreview,
       closePreview,
       setPreviewColumns,
@@ -530,7 +518,6 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
       reloadColumnSettings,
       savePreview,
       savePreviewAs,
-      duplicateCurrent,
       renameCurrent,
       deleteCurrent,
       discardPreview,
@@ -549,6 +536,7 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
       isSaving,
       canSave,
       hasDirtyPreview,
+      storageScopeOptions,
       openPreview,
       closePreview,
       setPreviewColumns,
@@ -558,7 +546,6 @@ export function useColumnSettingsProfileController<T extends z.ZodTypeAny = z.Zo
       reloadColumnSettings,
       savePreview,
       savePreviewAs,
-      duplicateCurrent,
       renameCurrent,
       deleteCurrent,
       discardPreview,
