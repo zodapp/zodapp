@@ -24,7 +24,9 @@ export function useLocalColumnSettings<T extends z.ZodTypeAny = z.ZodTypeAny>({
     () => ({
       type: "local" as const,
       id: storageKey,
+      name: "このブラウザ",
       writable: true,
+      deletable: false,
       label: "このブラウザ",
     }),
     [storageKey],

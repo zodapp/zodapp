@@ -1034,7 +1034,8 @@ const AutoTableInner = (
   const setPreviewColumns = controller?.setPreviewColumns ?? noopSetPreviewColumns;
   const focusedColumnId = controller?.focusedColumnId;
   const setFocusedColumnId = controller?.setFocusedColumnId ?? noopSetFocusedColumnId;
-  const storageColumns = isPreviewing
+  const hasDirtyPreview = controller?.hasDirtyPreview ?? false;
+  const storageColumns = hasDirtyPreview
     ? (controller?.previewColumns ?? null)
     : (controller?.persistedColumns ?? null);
 

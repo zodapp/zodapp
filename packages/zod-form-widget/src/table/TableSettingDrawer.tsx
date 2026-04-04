@@ -1,17 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionIcon,
   Button,
   Drawer,
   Group,
+  Modal,
   NumberInput,
+  Radio,
   Select,
+  Stack,
+  Text,
+  TextInput,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import { COLUMN_FOCUS_ZONE_CLASS } from "./AutoTable";
 import { type ColumnEntry } from "./table-types";
 import { extractSchemaColumns } from "./extract-schema-columns";
-import type { ColumnSettingsController } from "./column-settings-controller";
+import type {
+  ColumnSettingsController,
+  ColumnSettingScope,
+  ColumnSettingRef,
+} from "./column-settings-controller";
 import {
   DndContext,
   closestCenter,
@@ -82,6 +92,24 @@ const toSelectData = (options: FieldOptionWithGroup[]): SelectDataItem[] => {
   }
   return result;
 };
+
+// ---------------------------------------------------------------------------
+// Storage scope labels
+// ---------------------------------------------------------------------------
+
+const STORAGE_SCOPE_OPTIONS: {
+  value: ColumnSettingScope;
+  label: string;
+  disabled: boolean;
+}[] = [
+  { value: "team", label: "チーム共通", disabled: false },
+  { value: "user", label: "個人（未実装）", disabled: true },
+  { value: "local", label: "このブラウザ", disabled: false },
+];
+
+// ---------------------------------------------------------------------------
+// SortableColumn (unchanged)
+// ---------------------------------------------------------------------------
 
 interface SortableColumnProps {
   col: ColumnEntry;
@@ -266,6 +294,10 @@ function SortableColumn({
   );
 }
 
+// ---------------------------------------------------------------------------
+// useTableSettingDrawer
+// ---------------------------------------------------------------------------
+
 export function useTableSettingDrawer({
   controller,
   extraFieldOptions,
@@ -273,21 +305,34 @@ export function useTableSettingDrawer({
   const {
     schema,
     defaultFieldPaths,
+    columnSettings,
+    currentColumnSetting,
     previewColumns,
     focusedColumnId,
     isPreviewing,
     canSave,
     isSaving,
+    hasDirtyPreview,
+    hasProfileStore,
     openPreview,
     closePreview,
     setPreviewColumns,
     setFocusedColumnId,
     savePreview,
-    resetPreviewToDefault,
+    savePreviewAs,
+    duplicateCurrent,
+    deleteCurrent,
+    selectColumnSetting,
+    discardPreview,
   } = controller;
 
+  // --- schema columns ---
   const schemaColumns = useMemo(
-    () => extractSchemaColumns(schema, defaultFieldPaths ? { defaultFieldPaths } : undefined),
+    () =>
+      extractSchemaColumns(
+        schema,
+        defaultFieldPaths ? { defaultFieldPaths } : undefined,
+      ),
     [schema, defaultFieldPaths],
   );
 
@@ -342,17 +387,13 @@ export function useTableSettingDrawer({
     openPreview();
   }, [openPreview]);
 
-  const handleSave = useCallback(() => {
-    void savePreview();
-  }, [savePreview]);
-
   const handleClose = useCallback(() => {
     closePreview();
   }, [closePreview]);
 
-  const handleReset = useCallback(() => {
-    resetPreviewToDefault();
-  }, [resetPreviewToDefault]);
+  const handleDiscard = useCallback(() => {
+    discardPreview();
+  }, [discardPreview]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -447,85 +488,356 @@ export function useTableSettingDrawer({
     [activeColumns],
   );
 
-  const modal = (
-    <Drawer
-      opened={isPreviewing}
-      onClose={handleClose}
-      title="テーブル設定"
-      position="bottom"
-      size="240px"
-      withOverlay={false}
-      lockScroll={false}
-      trapFocus={false}
-      styles={{
-        inner: {
-          pointerEvents: "none",
-        },
-        content: {
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          pointerEvents: "auto",
-        },
-        body: {
-          flex: 1,
-          overflow: "hidden",
-        },
-      }}
-    >
-      <div
-        className={COLUMN_FOCUS_ZONE_CLASS}
-        style={{ overflowX: "auto", padding: "0 15px 4px" }}
-      >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={columnIds}
-            strategy={horizontalListSortingStrategy}
-          >
-            <div style={{ display: "flex" }}>
-              {activeColumns.map((col, index) => (
-                <SortableColumn
-                  key={col.id}
-                  col={col}
-                  fieldOptions={selectData}
-                  onFieldChange={handleFieldChange}
-                  onWidthChange={handleWidthChange}
-                  onAdd={handleAdd}
-                  onRemove={handleRemove}
-                  canRemove={activeColumns.length > 1}
-                  isLast={index === activeColumns.length - 1}
-                  onAddAfterLast={handleAddAfterLast}
-                  isFocused={col.id === focusedColumnId}
-                  onFocusColumn={setFocusedColumnId}
-                  onBlurColumn={clearFocusedColumnId}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      </div>
-      <Group justify="flex-end" mt="sm" px="md">
-        <Button size="xs" variant="default" onClick={handleReset}>
-          初期設定に戻す
-        </Button>
-        <Button size="xs" variant="default" onClick={handleClose}>
-          破棄
-        </Button>
-        <Button
-          size="xs"
-          onClick={handleSave}
-          disabled={!canSave}
-          loading={isSaving}
-        >
-          保存
-        </Button>
-      </Group>
-    </Drawer>
+  // --- Profile select data (with virtual "default" entry) ---
+  const DEFAULT_PROFILE_ID = "__default__";
+
+  const profileSelectData = useMemo(
+    () => [
+      { value: DEFAULT_PROFILE_ID, label: "デフォルト" },
+      ...columnSettings.map((s) => ({
+        value: s.id,
+        label: s.name || s.label || s.id,
+      })),
+    ],
+    [columnSettings],
   );
 
-  return { open: handleOpen, modal, isPreviewing, focusedColumnId };
+  const isDefaultSelected = currentColumnSetting == null;
+
+  const handleProfileSelect = useCallback(
+    (value: string | null) => {
+      if (!value) return;
+      if (value === DEFAULT_PROFILE_ID) {
+        void selectColumnSetting(null as unknown as ColumnSettingRef);
+        return;
+      }
+      const setting = columnSettings.find((s) => s.id === value);
+      if (setting) {
+        void selectColumnSetting(setting);
+      }
+    },
+    [columnSettings, selectColumnSetting],
+  );
+
+  // --- Save confirm modal ---
+  const [saveConfirmOpened, saveConfirmHandlers] = useDisclosure(false);
+
+  const handleSaveClick = useCallback(() => {
+    if (!currentColumnSetting) return;
+    if (hasProfileStore) {
+      saveConfirmHandlers.open();
+    } else {
+      void savePreview();
+    }
+  }, [currentColumnSetting, hasProfileStore, saveConfirmHandlers, savePreview]);
+
+  const handleSaveConfirm = useCallback(() => {
+    saveConfirmHandlers.close();
+    void savePreview();
+  }, [saveConfirmHandlers, savePreview]);
+
+  // --- Save As / Duplicate modal ---
+  const [saveAsOpened, saveAsHandlers] = useDisclosure(false);
+  const [saveAsName, setSaveAsName] = useState("");
+  const [saveAsScope, setSaveAsScope] = useState<ColumnSettingScope>("team");
+  const [saveAsMode, setSaveAsMode] = useState<"saveAs" | "duplicate">(
+    "saveAs",
+  );
+
+  const openSaveAs = useCallback(() => {
+    setSaveAsName("");
+    setSaveAsScope("team");
+    setSaveAsMode("saveAs");
+    saveAsHandlers.open();
+  }, [saveAsHandlers]);
+
+  const openDuplicate = useCallback(() => {
+    setSaveAsName(
+      currentColumnSetting
+        ? `${currentColumnSetting.name} のコピー`
+        : "デフォルト のコピー",
+    );
+    setSaveAsScope(currentColumnSetting?.type ?? "team");
+    setSaveAsMode("duplicate");
+    saveAsHandlers.open();
+  }, [saveAsHandlers, currentColumnSetting]);
+
+  const handleSaveAsConfirm = useCallback(() => {
+    if (!saveAsName.trim()) return;
+    saveAsHandlers.close();
+    if (saveAsMode === "saveAs") {
+      void savePreviewAs(saveAsName.trim(), saveAsScope);
+    } else {
+      void duplicateCurrent(saveAsName.trim(), saveAsScope);
+    }
+  }, [
+    saveAsName,
+    saveAsScope,
+    saveAsMode,
+    saveAsHandlers,
+    savePreviewAs,
+    duplicateCurrent,
+  ]);
+
+  // --- Delete confirm modal ---
+  const [deleteConfirmOpened, deleteConfirmHandlers] = useDisclosure(false);
+
+  const handleDeleteClick = useCallback(() => {
+    deleteConfirmHandlers.open();
+  }, [deleteConfirmHandlers]);
+
+  const handleDeleteConfirm = useCallback(() => {
+    deleteConfirmHandlers.close();
+    void deleteCurrent();
+  }, [deleteConfirmHandlers, deleteCurrent]);
+
+  // --- Drawer ---
+
+  const modal = (
+    <>
+      <Drawer
+        opened={isPreviewing}
+        onClose={handleClose}
+        title="テーブル設定"
+        position="bottom"
+        size={hasProfileStore ? "280px" : "240px"}
+        withOverlay={false}
+        lockScroll={false}
+        trapFocus={false}
+        styles={{
+          inner: {
+            pointerEvents: "none",
+          },
+          content: {
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            pointerEvents: "auto",
+          },
+          body: {
+            flex: 1,
+            overflow: "hidden",
+          },
+        }}
+      >
+        {hasProfileStore && (
+          <Group gap="xs" px="md" mb="xs">
+            <Select
+              size="xs"
+              value={
+                isDefaultSelected
+                  ? DEFAULT_PROFILE_ID
+                  : (currentColumnSetting?.id ?? null)
+              }
+              data={profileSelectData}
+              onChange={handleProfileSelect}
+              style={{ flex: 1, maxWidth: 240 }}
+            />
+          </Group>
+        )}
+
+        <div
+          className={COLUMN_FOCUS_ZONE_CLASS}
+          style={{ overflowX: "auto", padding: "0 15px 4px" }}
+        >
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={columnIds}
+              strategy={horizontalListSortingStrategy}
+            >
+              <div style={{ display: "flex" }}>
+                {activeColumns.map((col, index) => (
+                  <SortableColumn
+                    key={col.id}
+                    col={col}
+                    fieldOptions={selectData}
+                    onFieldChange={handleFieldChange}
+                    onWidthChange={handleWidthChange}
+                    onAdd={handleAdd}
+                    onRemove={handleRemove}
+                    canRemove={activeColumns.length > 1}
+                    isLast={index === activeColumns.length - 1}
+                    onAddAfterLast={handleAddAfterLast}
+                    isFocused={col.id === focusedColumnId}
+                    onFocusColumn={setFocusedColumnId}
+                    onBlurColumn={clearFocusedColumnId}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </div>
+        <Group justify="flex-end" mt="sm" px="md">
+          {hasProfileStore && (
+            <>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={handleDeleteClick}
+                disabled={
+                  isDefaultSelected ||
+                  !currentColumnSetting?.deletable ||
+                  isSaving
+                }
+              >
+                削除
+              </Button>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={openDuplicate}
+                disabled={isSaving}
+              >
+                複製
+              </Button>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={openSaveAs}
+                disabled={!hasDirtyPreview || isSaving}
+              >
+                名前を付けて保存
+              </Button>
+            </>
+          )}
+          <Button
+            size="xs"
+            variant="default"
+            onClick={handleDiscard}
+            disabled={!hasDirtyPreview}
+          >
+            破棄
+          </Button>
+          <Button
+            size="xs"
+            onClick={handleSaveClick}
+            disabled={!canSave || isDefaultSelected}
+            loading={isSaving}
+          >
+            保存
+          </Button>
+        </Group>
+      </Drawer>
+
+      {/* Save confirm modal */}
+      <Modal
+        opened={saveConfirmOpened}
+        onClose={saveConfirmHandlers.close}
+        title="保存の確認"
+        centered
+        size="sm"
+      >
+        <Stack>
+          <Text size="sm">
+            「{currentColumnSetting?.name}」に上書き保存しますか？
+          </Text>
+          <Group justify="flex-end">
+            <Button
+              size="xs"
+              variant="default"
+              onClick={saveConfirmHandlers.close}
+            >
+              キャンセル
+            </Button>
+            <Button size="xs" onClick={handleSaveConfirm} loading={isSaving}>
+              上書き保存
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Save As / Duplicate modal */}
+      <Modal
+        opened={saveAsOpened}
+        onClose={saveAsHandlers.close}
+        title={
+          saveAsMode === "saveAs" ? "名前を付けて保存" : "プロフィールの複製"
+        }
+        centered
+        size="sm"
+      >
+        <Stack>
+          <TextInput
+            label="プロフィール名"
+            placeholder="名前を入力"
+            value={saveAsName}
+            onChange={(e) => setSaveAsName(e.currentTarget.value)}
+            size="sm"
+          />
+          <Radio.Group
+            label="保存先"
+            value={saveAsScope}
+            onChange={(v) => setSaveAsScope(v as ColumnSettingScope)}
+          >
+            <Stack gap="xs" mt={4}>
+              {STORAGE_SCOPE_OPTIONS.map((opt) => (
+                <Radio
+                  key={opt.value}
+                  value={opt.value}
+                  label={opt.label}
+                  disabled={opt.disabled}
+                  size="sm"
+                  style={{
+                    "--radio-color": "var(--mantine-primary-color-filled)",
+                  }}
+                />
+              ))}
+            </Stack>
+          </Radio.Group>
+          <Group justify="flex-end">
+            <Button size="xs" variant="default" onClick={saveAsHandlers.close}>
+              キャンセル
+            </Button>
+            <Button
+              size="xs"
+              onClick={handleSaveAsConfirm}
+              disabled={!saveAsName.trim()}
+              loading={isSaving}
+            >
+              {saveAsMode === "saveAs" ? "保存" : "複製"}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Delete confirm modal */}
+      <Modal
+        opened={deleteConfirmOpened}
+        onClose={deleteConfirmHandlers.close}
+        title="削除の確認"
+        centered
+        size="sm"
+      >
+        <Stack>
+          <Text size="sm">
+            「{currentColumnSetting?.name}
+            」を削除しますか？この操作は取り消せません。
+          </Text>
+          <Group justify="flex-end">
+            <Button
+              size="xs"
+              variant="default"
+              onClick={deleteConfirmHandlers.close}
+            >
+              キャンセル
+            </Button>
+            <Button
+              size="xs"
+              color="red"
+              onClick={handleDeleteConfirm}
+              loading={isSaving}
+            >
+              削除
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
+  );
+
+  return { open: handleOpen, close: handleClose, modal, isPreviewing, hasDirtyPreview, focusedColumnId };
 }
