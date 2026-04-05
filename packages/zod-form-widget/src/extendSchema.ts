@@ -303,15 +303,12 @@ export function extendSchemaSafe<
 >(
   schema: S,
   options: ExtendSchemaOptions<Before, After> = {},
-): z.ZodType<z.output<S>, z.input<S>> {
+): S {
   const before = (options.before ?? EMPTY_SHAPE) as Before;
   const after = (options.after ?? EMPTY_SHAPE) as After;
 
   assertNoNewKeys(schema, before, "before");
   assertNoNewKeys(schema, after, "after");
 
-  return extendSchema(schema, options) as unknown as z.ZodType<
-    z.output<S>,
-    z.input<S>
-  >;
+  return extendSchema(schema, options) as unknown as S;
 }

@@ -50,7 +50,9 @@ describe("extendSchema", () => {
       },
     });
 
-    expectTypeOf<z.output<typeof extendedObject>>().toEqualTypeOf<{
+    expectTypeOf(
+      {} as z.output<typeof extendedObject>,
+    ).branded.toEqualTypeOf<{
       id: string;
       name: string;
       age: number;
@@ -88,9 +90,7 @@ describe("extendSchemaSafe", () => {
       },
     });
 
-    expectTypeOf<z.output<typeof safeObjectWithAction>>().toEqualTypeOf<
-      z.output<typeof objectSchema>
-    >();
+    expectTypeOf(safeObjectWithAction).toEqualTypeOf(objectSchema);
 
     expect(
       safeObjectWithAction.safeParse({
@@ -116,9 +116,7 @@ describe("extendSchemaSafe", () => {
       },
     });
 
-    expectTypeOf<z.output<typeof safeIntersection>>().toEqualTypeOf<
-      z.output<typeof intersectionSchema>
-    >();
+    expectTypeOf(safeIntersection).toEqualTypeOf(intersectionSchema);
 
     expect(
       safeIntersection.safeParse({
@@ -146,9 +144,7 @@ describe("extendSchemaSafe", () => {
       },
     });
 
-    expectTypeOf<z.output<typeof safeUnion>>().toEqualTypeOf<
-      z.output<typeof unionSchema>
-    >();
+    expectTypeOf(safeUnion).toEqualTypeOf(unionSchema);
 
     expect(
       safeUnion.safeParse({
@@ -176,9 +172,9 @@ describe("extendSchemaSafe", () => {
       },
     });
 
-    expectTypeOf<z.output<typeof safeDiscriminatedUnion>>().toEqualTypeOf<
-      z.output<typeof discriminatedUnionSchema>
-    >();
+    expectTypeOf(safeDiscriminatedUnion).toEqualTypeOf(
+      discriminatedUnionSchema,
+    );
 
     expect(
       safeDiscriminatedUnion.safeParse({
@@ -206,9 +202,9 @@ describe("extendSchemaSafe", () => {
       },
     });
 
-    expectTypeOf<
-      z.output<typeof partialUnionExtended>["onlyA"]
-    >().toEqualTypeOf<string>();
+    expectTypeOf(
+      {} as z.output<typeof partialUnionExtended>["onlyA"],
+    ).toEqualTypeOf("" as string);
 
     expect(
       partialUnionExtended.safeParse({
