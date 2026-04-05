@@ -399,8 +399,9 @@ export function useTableSettingDrawer({
   );
 
   const resolvePreview = useCallback(
-    (prev: ColumnEntry[] | null) => ensureIds(prev ?? schemaDefaultColumns),
-    [schemaDefaultColumns],
+    (prev: ColumnEntry[] | null) =>
+      ensureIds(prev ?? persistedColumns ?? schemaDefaultColumns),
+    [persistedColumns, schemaDefaultColumns],
   );
 
   const handleDragEnd = useCallback(
@@ -678,14 +679,17 @@ export function useTableSettingDrawer({
               別名で保存
             </Button>
           )}
-          <Button
-            size="xs"
-            onClick={handleSaveClick}
-            disabled={!canSave || (hasProfileStore && isDefaultSelected)}
-            loading={isSaving}
-          >
-            上書き保存
-          </Button>
+          {(!hasProfileStore ||
+            (!isDefaultSelected && currentColumnSetting?.writable)) && (
+            <Button
+              size="xs"
+              onClick={handleSaveClick}
+              disabled={!canSave}
+              loading={isSaving}
+            >
+              上書き保存
+            </Button>
+          )}
         </Group>
 
         <div
@@ -735,7 +739,8 @@ export function useTableSettingDrawer({
       >
         <Stack>
           <Text size="sm">
-            「{currentColumnSetting?.name}」に上書き保存しますか？
+            {resolveScopeGroupLabel(currentColumnSetting?.type)}の設定「
+            {currentColumnSetting?.name}」に上書き保存しますか？
           </Text>
           <Group justify="flex-end">
             <Button
@@ -814,7 +819,8 @@ export function useTableSettingDrawer({
       >
         <Stack>
           <Text size="sm">
-            「{currentColumnSetting?.name}
+            {resolveScopeGroupLabel(currentColumnSetting?.type)}の設定「
+            {currentColumnSetting?.name}
             」を削除しますか？この操作は取り消せません。
           </Text>
           <Group justify="flex-end">
