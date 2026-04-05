@@ -87,6 +87,20 @@ export function compileSchema(schema: z.ZodType): CompiledSchema {
         }
       }
       result = { kind: "object", fields: merged };
+    } else if (base instanceof z.ZodIntersection) {
+      const left = compile(base._def.left as z.ZodType);
+      const right = compile(base._def.right as z.ZodType);
+      if (left.kind === "object" && right.kind === "object") {
+        const merged = new Map(left.fields);
+        for (const [key, entry] of right.fields) {
+          if (!merged.has(key)) {
+            merged.set(key, entry);
+          }
+        }
+        result = { kind: "object", fields: merged };
+      } else {
+        result = { kind: "leaf", zodTypeName: typeName };
+      }
     } else if (base instanceof z.ZodUnion) {
       const controlId = allocControlId();
       const options = (base as z.ZodUnion).options as z.ZodType[];

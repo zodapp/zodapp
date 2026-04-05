@@ -28,6 +28,18 @@ const memberCreateSchema = membersCollection.createSchema
   .omit({ avatarImage: true })
   .register(zf.object.registry, {});
 
+const workspaceStepSchema = z
+  .object({ workspace: workspacesCollection.createSchema })
+  .register(zf.object.registry, {});
+
+const memberStepSchema = z
+  .object({
+    members: z
+      .array(memberCreateSchema)
+      .register(zf.array.registry, { label: "追加メンバー" }),
+  })
+  .register(zf.object.registry, {});
+
 const workspaceCreateDraftSchema = z
   .object({
     workspace: workspacesCollection.createSchema,
@@ -37,25 +49,9 @@ const workspaceCreateDraftSchema = z
   })
   .register(zf.object.registry, {});
 
-const workspaceStepSchema = workspaceCreateDraftSchema
-  .extend({})
-  .register(zf.object.registry, {
-    properties: ["workspace"],
-  }) satisfies z.ZodType<z.infer<typeof workspaceCreateDraftSchema>>;
-
-const memberStepSchema = workspaceCreateDraftSchema
-  .extend({})
-  .register(zf.object.registry, {
-    properties: ["members"],
-  }) satisfies z.ZodType<z.infer<typeof workspaceCreateDraftSchema>>;
-
-const confirmStepSchema = workspaceCreateDraftSchema
-  .extend({})
-  .register(zf.object.registry, {
-    properties: ["workspace", "members"],
-  }) satisfies z.ZodType<z.infer<typeof workspaceCreateDraftSchema>>;
-
 type Draft = z.infer<typeof workspaceCreateDraftSchema>;
+type WorkspaceStepData = z.infer<typeof workspaceStepSchema>;
+type MemberStepData = z.infer<typeof memberStepSchema>;
 type MemberInputMode = "direct" | "file";
 
 type Props = {
@@ -91,13 +87,13 @@ export function WorkspaceCreate({
     [storeKey],
   );
 
-  const handleWorkspaceSubmit = useCallback((value: Draft) => {
-    setDraft(value);
+  const handleWorkspaceSubmit = useCallback((value: WorkspaceStepData) => {
+    setDraft((prev) => ({ ...prev, workspace: value.workspace }));
     setActiveStep(1);
   }, []);
 
-  const handleMemberSubmit = useCallback((value: Draft) => {
-    setDraft(value);
+  const handleMemberSubmit = useCallback((value: MemberStepData) => {
+    setDraft((prev) => ({ ...prev, members: value.members }));
     setActiveStep(2);
   }, []);
 
@@ -173,7 +169,7 @@ export function WorkspaceCreate({
               defaultValues={draft}
               onSubmit={handleMemberSubmit}
               onCancel={(value) => {
-                setDraft(value as Draft);
+                setDraft((prev) => ({ ...prev, members: (value as MemberStepData).members }));
                 setActiveStep(0);
               }}
               cancelLabel="戻る"
@@ -211,7 +207,7 @@ export function WorkspaceCreate({
             内容を確認して「作成」を押すと、ワークスペースとメンバーをまとめて登録します。
           </Text>
           <AutoForm
-            schema={confirmStepSchema}
+            schema={workspaceCreateDraftSchema}
             defaultValues={draft}
             readOnly
           />

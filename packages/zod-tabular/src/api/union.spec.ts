@@ -89,3 +89,59 @@ describe("union handling", () => {
     });
   });
 });
+
+describe("intersection handling", () => {
+  describe("object & object intersection", () => {
+    const left = z.object({ a: z.string(), b: z.number() });
+    const right = z.object({ c: z.boolean() });
+    const schema = z.intersection(left, right);
+    const rawData = [
+      { a: "hello", b: 1, c: true },
+      { a: "world", b: 2, c: false },
+    ];
+
+    it("round-trips object-object intersection", () => {
+      const table = toTable(schema, rawData);
+      expect(table[0]).toHaveLength(3);
+      expect(fromTable(schema, table)).toEqual(rawData);
+    });
+
+    it("produces correct headers for merged fields", () => {
+      const table = toTable(schema, rawData);
+      const headers = table[0]!.map(String);
+      expect(headers).toContain("a");
+      expect(headers).toContain("b");
+      expect(headers).toContain("c");
+    });
+  });
+
+  describe("nested object & object intersection", () => {
+    const schema = z.object({
+      info: z.intersection(
+        z.object({ name: z.string() }),
+        z.object({ age: z.number() }),
+      ),
+    });
+    const rawData = [{ info: { name: "Alice", age: 30 } }];
+
+    it("round-trips nested intersection", () => {
+      const table = toTable(schema, rawData);
+      expect(fromTable(schema, table)).toEqual(rawData);
+    });
+  });
+
+  describe("top-level intersection with overlapping keys", () => {
+    const left = z.object({ x: z.string(), shared: z.string() });
+    const right = z.object({ y: z.number(), shared: z.string() });
+    const schema = z.intersection(left, right);
+    const rawData = [{ x: "a", y: 1, shared: "common" }];
+
+    it("deduplicates overlapping keys (left wins)", () => {
+      const table = toTable(schema, rawData);
+      const headers = table[0]!.map(String);
+      const sharedCount = headers.filter((h) => h === "shared").length;
+      expect(sharedCount).toBe(1);
+      expect(fromTable(schema, table)).toEqual(rawData);
+    });
+  });
+});
