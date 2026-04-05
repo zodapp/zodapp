@@ -196,7 +196,7 @@ const UnionBody = React.memo(function UnionBody({
   schema: UnionSchema;
   required: boolean | undefined;
   readOnly: boolean | undefined;
-  label: string | undefined;
+  label: string | false | undefined;
   selectorLabel: string | undefined;
   field: ZodFormInternalProps<UnionSchema>["field"];
   error: ZodFormInternalProps<UnionSchema>["error"];

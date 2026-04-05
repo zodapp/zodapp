@@ -3,14 +3,15 @@ import { ZodFormProps } from "@zodapp/zod-form-react";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 
-type LiteralSchema = z.ZodLiteral<z.Primitive>;
+type LiteralValue = string | number | bigint | boolean | null | undefined;
+type LiteralSchema = z.ZodLiteral<LiteralValue>;
 
 const LiteralComponent = ({
   schema,
   defaultValue,
 }: ZodFormProps<LiteralSchema>) => {
   const meta = getMeta(schema, "literal");
-  const value = defaultValue as z.Primitive | undefined;
+  const value = defaultValue as LiteralValue | undefined;
 
   if (value === undefined || value === null) {
     return null;

@@ -230,7 +230,9 @@ function collectColumns(
   }
 
   if (inner instanceof z.ZodArray) {
-    collectFromArray(inner, schema, prefixKeys, prefixKeys.at(-1) ?? "", result, isDefault);
+    const currentKey =
+      prefixKeys.length > 0 ? prefixKeys[prefixKeys.length - 1] ?? "" : "";
+    collectFromArray(inner, schema, prefixKeys, currentKey, result, isDefault);
     return;
   }
 }

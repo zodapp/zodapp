@@ -11,6 +11,13 @@ import { formSchemas, formCodes, defaultFormId, type FormId } from "./schemas";
 import "@mantine/code-highlight/styles.css";
 import { createMockFileResolver } from "@zodapp/zod-form";
 
+type FormDef = (typeof formSchemas)[FormId];
+type ReactiveFormDef = Extract<FormDef, { reactive: true }>;
+
+const isReactiveFormDef = (
+  formDef: FormDef,
+): formDef is ReactiveFormDef => "reactive" in formDef && formDef.reactive === true;
+
 const FormPage = () => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -24,8 +31,8 @@ const FormPageInner = () => {
   const formId = (rawFormId as FormId) ?? defaultFormId;
 
   const formDef = formSchemas[formId];
-  const { schema, defaultValues, title, description } = formDef;
-  const isReactive = "reactive" in formDef && formDef.reactive === true;
+  const { title, description } = formDef;
+  const isReactive = isReactiveFormDef(formDef);
 
   // ファイルフォーム用のresolver
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
@@ -49,15 +56,15 @@ const FormPageInner = () => {
           <Suspense fallback={<div>Loading form...</div>}>
             {isReactive ? (
               <ReactiveAutoForm
-                schema={schema}
-                defaultValues={defaultValues}
+                schema={formDef.schema}
+                defaultValues={formDef.defaultValues}
                 key={formId}
                 showPreview={true}
               />
             ) : (
               <AutoForm
-                schema={schema}
-                defaultValues={defaultValues}
+                schema={formDef.schema}
+                defaultValues={formDef.defaultValues}
                 key={formId}
                 fileResolvers={fileResolvers}
                 showPreview={true}

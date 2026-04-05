@@ -4,3 +4,4 @@ export * from './form';
 export * from './feedback';
 export { extendSchema, extendSchemaSafe } from './extendSchema';
 export type { ExtendSchemaOptions } from './extendSchema';
+export { hideSchemaFields } from './hideSchemaFields';
