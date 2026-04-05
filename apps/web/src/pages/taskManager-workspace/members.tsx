@@ -28,6 +28,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { createActionSchema } from "../../components/createActionSchema";
@@ -49,9 +50,16 @@ import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 
 import pageCode from "./members.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/member.ts?raw";
-import { zf } from "@zodapp/zod-form";
 
 const MEMBER_TABLE_STORAGE_KEY = "tableSetting-member";
+const MEMBER_TABLE_DEFAULT_FIELD_PATHS = [
+  "displayName",
+  "email",
+  "role",
+  "createdAt",
+  "updatedAt",
+  "_action",
+];
 
 type MemberData = z.infer<typeof membersCollection.dataSchema>;
 
@@ -62,25 +70,16 @@ const MembersPage = () => {
 
   const memberTableSchema = useMemo(
     () =>
-      membersCollection.dataSchema
-        .extend({
+      extendSchemaSafe(membersCollection.dataSchema, {
+        after: {
           _action: createActionSchema<MemberData>({
             getParams: (item) => ({
               to: memberDetailRoute.to,
               params: { workspaceId, memberId: item.memberId },
             }),
           }),
-        })
-        .register(zf.object.registry, {
-          properties: [
-            "displayName",
-            "email",
-            "role",
-            "createdAt",
-            "updatedAt",
-            "_action",
-          ],
-        }),
+        },
+      }),
     [workspaceId],
   );
 
@@ -158,6 +157,7 @@ const MembersPage = () => {
   const controller = useLocalColumnSettings({
     storageKey: MEMBER_TABLE_STORAGE_KEY,
     schema: memberTableSchema,
+    defaultFieldPaths: MEMBER_TABLE_DEFAULT_FIELD_PATHS,
   });
 
   const { open: openTableSetting, modal: tableSettingDrawer } =
@@ -217,11 +217,7 @@ const MembersPage = () => {
         </Group>
       </Group>
 
-      <AutoTable
-        data={members}
-        keyField="memberId"
-        controller={controller}
-      />
+      <AutoTable data={members} keyField="memberId" controller={controller} />
       {!isLoading && members.length === 0 && (
         <Paper p="xl" withBorder mt="sm">
           <Text c="dimmed" ta="center">

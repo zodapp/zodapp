@@ -12,16 +12,13 @@ import {
   Menu,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import {
-  IconPlus,
-  IconDotsVertical,
-  IconSettings,
-} from "@tabler/icons-react";
+import { IconPlus, IconDotsVertical, IconSettings } from "@tabler/icons-react";
 import { useCallback, useMemo } from "react";
 import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 
 import { z } from "zod";
@@ -36,9 +33,14 @@ import { WorkspaceCreate } from "./WorkspaceCreate";
 
 import pageCode from "./workspaces.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/workspace.ts?raw";
-import { zf } from "@zodapp/zod-form";
 
 const WORKSPACE_TABLE_STORAGE_KEY = "tableSetting-workspace";
+const WORKSPACE_TABLE_DEFAULT_FIELD_PATHS = [
+  "name",
+  "description",
+  "createdAt",
+  "_action",
+];
 
 type WorkspaceData = z.infer<typeof workspacesCollection.dataSchema>;
 
@@ -55,24 +57,23 @@ const WorkspacesPage = () => {
 
   const workspaceTableSchema = useMemo(
     () =>
-      workspacesCollection.dataSchema
-        .extend({
+      extendSchemaSafe(workspacesCollection.dataSchema, {
+        after: {
           _action: createActionSchema<WorkspaceData>({
             getParams: (item) => ({
               to: projectsRoute.to,
               params: { workspaceId: item.workspaceId },
             }),
           }),
-        })
-        .register(zf.object.registry, {
-          properties: ["name", "description", "createdAt", "_action"],
-        }),
+        },
+      }),
     [],
   );
 
   const controller = useLocalColumnSettings({
     storageKey: WORKSPACE_TABLE_STORAGE_KEY,
     schema: workspaceTableSchema,
+    defaultFieldPaths: WORKSPACE_TABLE_DEFAULT_FIELD_PATHS,
   });
 
   const { open: openTableSetting, modal: tableSettingDrawer } =
@@ -111,7 +112,12 @@ const WorkspacesPage = () => {
         <Group>
           {codeViewerTrigger}
           <Tooltip label="新規作成">
-            <ActionIcon variant="filled" size="lg" radius="xl" onClick={openModal}>
+            <ActionIcon
+              variant="filled"
+              size="lg"
+              radius="xl"
+              onClick={openModal}
+            >
               <IconPlus size={20} />
             </ActionIcon>
           </Tooltip>

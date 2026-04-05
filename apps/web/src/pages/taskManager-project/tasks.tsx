@@ -33,6 +33,7 @@ import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
 import { AutoForm, AutoSearch } from "@zodapp/zod-form-widget/form";
 import { FetchMore } from "@zodapp/zod-form-widget/feedback";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import {
   AutoTable,
   useAutoTableScroll,
@@ -55,9 +56,18 @@ import { useExportFetchAll } from "../../shared/taskManager/exportFetch";
 
 import pageCode from "./tasks.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/task.ts?raw";
-import { zf } from "@zodapp/zod-form";
 
 const TASK_TABLE_STORAGE_KEY = "tableSetting-task";
+const TASK_TABLE_DEFAULT_FIELD_PATHS = [
+  "title",
+  "status",
+  "priority",
+  "dueAt",
+  "createdAt",
+  "updatedAt",
+  "expired",
+  "_action",
+];
 
 type TaskData = z.infer<typeof tasksCollection.dataSchema>;
 
@@ -75,27 +85,16 @@ const TasksPage = () => {
 
   const taskTableSchema = useMemo(
     () =>
-      tasksCollection.dataSchema
-        .extend({
+      extendSchemaSafe(tasksCollection.dataSchema, {
+        after: {
           _action: createActionSchema<TaskData>({
             getParams: (item) => ({
               to: taskDetailRoute.to,
               params: { workspaceId, projectId, taskId: item.taskId },
             }),
           }),
-        })
-        .register(zf.object.registry, {
-          properties: [
-            "title",
-            "status",
-            "priority",
-            "dueAt",
-            "createdAt",
-            "updatedAt",
-            "expired",
-            "_action",
-          ],
-        }),
+        },
+      }),
     [workspaceId, projectId],
   );
 
@@ -124,7 +123,9 @@ const TasksPage = () => {
     [workspaceId],
   );
 
-  const taskListSpec = useMemo<GrowingListQuerySpec<typeof tasksCollection>>(() => {
+  const taskListSpec = useMemo<
+    GrowingListQuerySpec<typeof tasksCollection>
+  >(() => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
     const activeQuery = taskQueries.queries.active();
 
@@ -227,15 +228,13 @@ const TasksPage = () => {
   const controller = useLocalColumnSettings({
     storageKey: TASK_TABLE_STORAGE_KEY,
     schema: taskTableSchema,
+    defaultFieldPaths: TASK_TABLE_DEFAULT_FIELD_PATHS,
   });
 
-  const {
-    open: openTableSetting,
-    modal: tableSettingDrawer,
-    isPreviewing,
-  } = useTableSettingDrawer({
-    controller,
-  });
+  const { open: openTableSetting, modal: tableSettingDrawer } =
+    useTableSettingDrawer({
+      controller,
+    });
 
   const {
     scrollParent,

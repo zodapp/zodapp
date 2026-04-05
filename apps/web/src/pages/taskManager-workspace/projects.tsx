@@ -29,6 +29,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
@@ -54,9 +55,15 @@ import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 
 import pageCode from "./projects.tsx?raw";
 import collectionCode from "../../shared/taskManager/collections/project.ts?raw";
-import { zf } from "@zodapp/zod-form";
 
 const PROJECT_TABLE_STORAGE_KEY = "tableSetting-project";
+const PROJECT_TABLE_DEFAULT_FIELD_PATHS = [
+  "name",
+  "description",
+  "status",
+  "createdAt",
+  "_action",
+];
 
 type ProjectData = z.infer<typeof projectsCollection.dataSchema>;
 
@@ -73,18 +80,16 @@ const ProjectsPage = () => {
 
   const projectTableSchema = useMemo(
     () =>
-      projectsCollection.dataSchema
-        .extend({
+      extendSchemaSafe(projectsCollection.dataSchema, {
+        after: {
           _action: createActionSchema<ProjectData>({
             getParams: (item) => ({
               to: tasksRoute.to,
               params: { workspaceId, projectId: item.projectId },
             }),
           }),
-        })
-        .register(zf.object.registry, {
-          properties: ["name", "description", "status", "createdAt", "_action"],
-        }),
+        },
+      }),
     [workspaceId],
   );
 
@@ -169,6 +174,7 @@ const ProjectsPage = () => {
   const controller = useLocalColumnSettings({
     storageKey: PROJECT_TABLE_STORAGE_KEY,
     schema: projectTableSchema,
+    defaultFieldPaths: PROJECT_TABLE_DEFAULT_FIELD_PATHS,
   });
 
   const { open: openTableSetting, modal: tableSettingDrawer } =
@@ -246,11 +252,7 @@ const ProjectsPage = () => {
         />
       </Box>
 
-      <AutoTable
-        data={projects}
-        keyField="projectId"
-        controller={controller}
-      />
+      <AutoTable data={projects} keyField="projectId" controller={controller} />
 
       {!isLoading && projects.length === 0 && (
         <Paper p="xl" withBorder mt="sm">
