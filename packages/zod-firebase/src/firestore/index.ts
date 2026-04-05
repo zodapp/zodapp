@@ -7,6 +7,13 @@ export type {
   CollectionConfigBase,
   LooseCollectionConfigBase,
 } from "./collection";
+export type {
+  DocumentKeyFromPath,
+  CollectionPathKeyFromPath,
+  DocumentPathKeyFromPath,
+  DocumentPathParamsFromPath,
+  CollectionPathParamsFromPath,
+} from "./pathUtil";
 export { createCollectionQueries, resolveScopedQueryOptions } from "./query";
 export { createCollectionMutations } from "./mutation";
 export { createCollectionReference } from "./reference";
