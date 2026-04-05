@@ -244,6 +244,12 @@ const collectArmKeySets = (schema: z.ZodTypeAny): Array<Set<string>> => {
   return [new Set<string>()];
 };
 
+const isNeverBased = (schema: z.ZodRawShape[string] | undefined): boolean => {
+  if (!schema) return false;
+  const { inner } = unwrapSchema(schema as z.ZodTypeAny);
+  return inner instanceof z.ZodNever;
+};
+
 const assertNoNewKeys = (
   schema: z.ZodTypeAny,
   extra: z.ZodRawShape,
@@ -255,7 +261,9 @@ const assertNoNewKeys = (
   const armKeySets = collectArmKeySets(schema);
 
   for (const [index, armKeys] of armKeySets.entries()) {
-    const unknownKeys = extraKeys.filter((key) => !armKeys.has(key));
+    const unknownKeys = extraKeys.filter(
+      (key) => !armKeys.has(key) && !isNeverBased(extra[key]),
+    );
     if (unknownKeys.length === 0) continue;
 
     throw new Error(
