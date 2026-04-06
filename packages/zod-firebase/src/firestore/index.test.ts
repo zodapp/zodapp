@@ -881,20 +881,17 @@ describe("collectionConfig", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodTypeAny,
         CreateExcludedShape extends z.ZodRawShape = {},
-        CreateOmitKeys extends string = never,
       > = CollectionDefinition<
         Path,
         FieldKeys,
         IntrinsicSchema,
-        CreateExcludedShape,
-        CreateOmitKeys
+        CreateExcludedShape
       > &
         CollectionConfigMethods<
           Path,
           FieldKeys,
           IntrinsicSchema,
-          CreateExcludedShape,
-          CreateOmitKeys
+          CreateExcludedShape
         >;
 
       type CollectionConfigBareFn = <
@@ -903,13 +900,11 @@ describe("collectionConfig", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodTypeAny,
         CreateExcludedShape extends z.ZodRawShape = {},
-        CreateOmitKeys extends string = never,
       >() => CollectionConfigBare<
         Path,
         FieldKeys,
         IntrinsicSchema,
-        CreateExcludedShape,
-        CreateOmitKeys
+        CreateExcludedShape
       >;
 
       type CollectionConfigFn = <
@@ -918,13 +913,11 @@ describe("collectionConfig", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         IntrinsicSchema extends z.ZodTypeAny,
         CreateExcludedShape extends z.ZodRawShape = {},
-        CreateOmitKeys extends string = never,
       >() => CollectionConfig<
         Path,
         FieldKeys,
         IntrinsicSchema,
-        CreateExcludedShape,
-        CreateOmitKeys
+        CreateExcludedShape
       >;
 
       expectTypeOf<CollectionConfigFn>().toEqualTypeOf<CollectionConfigBareFn>();

@@ -180,10 +180,6 @@ export const projects = collectionConfig({
 // dataSchema / updateSchema / storeSchema では createdAt, updatedAt がそのまま追加される
 ```
 
-### `createOmitKeys`（非推奨）
-
-旧仕様との移行用に残っていますが、`schema` からフィールドを削除する挙動はしません。新規定義では `createExcludedSchema` を使ってください。
-
 ### `onInit`（任意）
 
 **型**: `() => Partial<z.infer<schema>>`

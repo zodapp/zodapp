@@ -63,16 +63,18 @@ export interface CollectionConfigBase {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly checkNonPathKeys: (
     data: Record<string, unknown>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     identityParams: any,
   ) => boolean;
 
   // CollectionDefinition から引き継ぐプロパティ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly schema: z.ZodType<any>;
-  readonly createOmitKeys?: readonly string[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onCreateId?: (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     collectionIdentity: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     inputData: any,
   ) => string | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,16 +144,18 @@ export interface LooseCollectionConfigBase {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly checkNonPathKeys: (
     data: Record<string, unknown>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     identityParams: any,
   ) => boolean;
 
   // CollectionDefinition から引き継ぐプロパティ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly schema: any;
-  readonly createOmitKeys?: readonly string[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onCreateId?: (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     collectionIdentity: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     inputData: any,
   ) => string | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

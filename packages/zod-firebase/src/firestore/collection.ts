@@ -1,13 +1,6 @@
 import {
-  cloneSchema,
-  getMeta,
   hideSchemaFields,
-  replaceDiscriminatedUnionOptions,
-  replaceIntersectionSides,
-  replaceObjectShape,
-  replaceUnionOptions,
-  unwrapSchema,
-  zf,
+  type AnyZodObject,
 } from "@zodapp/zod-form";
 import {
   CollectionPathKeyFromPath,
@@ -17,10 +10,11 @@ import {
   DocumentPathKeyFromPath,
   DocumentPathParamsFromPath,
 } from "./pathUtil";
+import {
+  mergeSchemaRecursively,
+  stripKeysRecursively,
+} from "./utils/schemaTransform";
 import { z } from "zod";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyZodObject = z.ZodObject<any>;
 type EmptyShape = Record<never, z.ZodTypeAny>;
 
 /**
@@ -61,16 +55,11 @@ export type CollectionDefinition<
   FieldKeys extends string = never,
   IntrinsicSchema extends z.ZodTypeAny = z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape = EmptyShape,
-  CreateOmitKeys extends string = never,
 > = {
   path: Path;
   fieldKeys?: readonly FieldKeys[];
   schema: IntrinsicSchema;
   createExcludedSchema?: z.ZodObject<CreateExcludedShape>;
-  /**
-   * @deprecated `createExcludedSchema` を使ってください。
-   */
-  createOmitKeys?: readonly CreateOmitKeys[];
   onInit?: () => Partial<z.infer<IntrinsicSchema>>;
   onCreateId?: (
     collectionIdentity: CollectionIdentity<Path, FieldKeys>,
@@ -147,261 +136,23 @@ type StoreTypeFor<
   SafeMappedType<NonPathKeysOf<Path, FieldKeys>, string> &
   AsIsObjectTypeOf<CreateExcludedShape>;
 
-type MergeMode = "appendOptional" | "appendRequired" | "appendAsIs";
-
 const EMPTY_OBJECT_SCHEMA = z.object({});
-
-const isEmptyShape = (shape: z.ZodRawShape) => Object.keys(shape).length === 0;
-
-const pickShapeKeys = (
-  shape: z.ZodRawShape,
-  keys: readonly string[],
-): z.ZodRawShape =>
-  Object.fromEntries(
-    keys
-      .filter((key) => key in shape)
-      .map((key) => [key, shape[key] as z.ZodTypeAny]),
-  ) as z.ZodRawShape;
-
-const omitShapeKeys = (
-  shape: z.ZodRawShape,
-  keys: readonly string[],
-): z.ZodRawShape => {
-  const keySet = new Set(keys);
-  return Object.fromEntries(
-    Object.entries(shape).filter(([key]) => !keySet.has(key)),
-  ) as z.ZodRawShape;
-};
-
-const hiddenString = (optional = false) =>
-  (optional ? z.string().optional() : z.string()).register(
-    zf.hidden.registry,
-    {},
-  );
-
-const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
-  if (!schema) return hiddenString();
-  if (!(schema instanceof z.ZodOptional)) return schema;
-
-  const inner = schema.unwrap() as z.ZodTypeAny;
-  const optionalMeta = getMeta(schema as z.ZodTypeAny);
-  const isHidden =
-    optionalMeta?.typeName === "hidden" || optionalMeta?.hidden;
-  const cloned = cloneSchema(inner);
-  if (isHidden) {
-    cloned.register(zf.hidden.registry, {
-      ...(optionalMeta?.label ? { label: optionalMeta.label } : {}),
-    });
-  }
-  return cloned;
-};
-
-const materializeOptionalField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
-  if (!schema) return hiddenString(true);
-  if (schema instanceof z.ZodOptional) return schema;
-
-  const label = getMeta(schema as z.ZodTypeAny)?.label;
-  const optional = schema.optional();
-  optional.register(zf.hidden.registry, {
-    ...(label ? { label } : {}),
-  });
-  return optional;
-};
-
-const mergeSchemaRecursively = (
-  base: z.ZodTypeAny,
-  delta: AnyZodObject,
-  mode: MergeMode,
-  contextLabel: string,
-  preferExistingOnOverlap = false,
-): z.ZodTypeAny => {
-  if (isEmptyShape(delta.shape)) return base;
-
-  const { inner, rewrap } = unwrapSchema(base);
-
-  if (inner instanceof z.ZodObject) {
-    const nextShape = Object.fromEntries(
-      Object.entries(delta.shape).map(([key, schema]) => {
-        const sourceSchema =
-          preferExistingOnOverlap && inner.shape[key]
-            ? (inner.shape[key] as z.ZodTypeAny)
-            : (schema as z.ZodTypeAny);
-        return [
-          key,
-          mode === "appendOptional"
-            ? materializeOptionalField(sourceSchema)
-            : mode === "appendRequired"
-              ? materializeRequiredField(sourceSchema)
-              : sourceSchema,
-        ];
-      }),
-    ) as z.ZodRawShape;
-    const mergedShape = {
-      ...inner.shape,
-      ...nextShape,
-    };
-    return rewrap(
-      replaceObjectShape(inner as AnyZodObject, mergedShape, {
-        properties: Object.keys(mergedShape),
-      }),
-    );
-  }
-
-  if (inner instanceof z.ZodDiscriminatedUnion) {
-    const nextOptions = Array.from(
-      inner.options as readonly AnyZodObject[],
-    ).map((option) =>
-      mergeSchemaRecursively(
-        option,
-        delta,
-        mode,
-        contextLabel,
-        preferExistingOnOverlap,
-      ),
-    ) as [AnyZodObject, AnyZodObject, ...AnyZodObject[]];
-    return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
-  }
-
-  if (inner instanceof z.ZodUnion) {
-    const nextOptions = Array.from(inner.options as readonly z.ZodTypeAny[]).map(
-      (option) =>
-        mergeSchemaRecursively(
-          option,
-          delta,
-          mode,
-          contextLabel,
-          preferExistingOnOverlap,
-        ),
-    ) as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]];
-    return rewrap(replaceUnionOptions(inner, nextOptions));
-  }
-
-  if (inner instanceof z.ZodIntersection) {
-    const left = mergeSchemaRecursively(
-      inner._def.left as z.ZodTypeAny,
-      delta,
-      mode,
-      contextLabel,
-      preferExistingOnOverlap,
-    );
-    const right = mergeSchemaRecursively(
-      inner._def.right as z.ZodTypeAny,
-      delta,
-      mode,
-      contextLabel,
-      preferExistingOnOverlap,
-    );
-    return rewrap(replaceIntersectionSides(inner, left, right));
-  }
-
-  throw new Error(
-    `[collectionConfig] ${contextLabel} only supports ZodObject, ZodUnion, ` +
-      `ZodDiscriminatedUnion, ZodIntersection, and their wrappers.`,
-  );
-};
-
-const stripKeysRecursively = (
-  schema: z.ZodTypeAny,
-  keys: readonly string[],
-  contextLabel: string,
-): z.ZodTypeAny => {
-  if (keys.length === 0) return schema;
-
-  const { inner, rewrap } = unwrapSchema(schema);
-
-  if (inner instanceof z.ZodObject) {
-    const nextShape = omitShapeKeys(inner.shape, keys);
-    return rewrap(
-      replaceObjectShape(inner as AnyZodObject, nextShape, {
-        properties: Object.keys(nextShape),
-      }),
-    );
-  }
-
-  if (inner instanceof z.ZodDiscriminatedUnion) {
-    const nextOptions = Array.from(
-      inner.options as readonly AnyZodObject[],
-    ).map((option) => stripKeysRecursively(option, keys, contextLabel)) as [
-      AnyZodObject,
-      AnyZodObject,
-      ...AnyZodObject[],
-    ];
-    return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
-  }
-
-  if (inner instanceof z.ZodUnion) {
-    const nextOptions = Array.from(inner.options as readonly z.ZodTypeAny[]).map(
-      (option) => stripKeysRecursively(option, keys, contextLabel),
-    ) as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]];
-    return rewrap(replaceUnionOptions(inner, nextOptions));
-  }
-
-  if (inner instanceof z.ZodIntersection) {
-    const left = stripKeysRecursively(
-      inner._def.left as z.ZodTypeAny,
-      keys,
-      contextLabel,
-    );
-    const right = stripKeysRecursively(
-      inner._def.right as z.ZodTypeAny,
-      keys,
-      contextLabel,
-    );
-    return rewrap(replaceIntersectionSides(inner, left, right));
-  }
-
-  throw new Error(
-    `[collectionConfig] ${contextLabel} only supports ZodObject, ZodUnion, ` +
-      `ZodDiscriminatedUnion, ZodIntersection, and their wrappers.`,
-  );
-};
-
-const pickLegacyCreateExcludedSchema = (
-  schema: z.ZodTypeAny,
-  keys: readonly string[],
-  pathLabel: string,
-): AnyZodObject => {
-  if (keys.length === 0) return EMPTY_OBJECT_SCHEMA;
-
-  const { inner } = unwrapSchema(schema);
-  if (!(inner instanceof z.ZodObject)) {
-    throw new Error(
-      `[collectionConfig] createOmitKeys requires top-level schema to be ZodObject ${pathLabel}. ` +
-        `Use createExcludedSchema when schema is union/intersection based.`,
-    );
-  }
-
-  for (const key of keys) {
-    if (!(key in inner.shape)) {
-      throw new Error(
-        `[collectionConfig] createOmitKey "${key}" must be a key of schema ${pathLabel}`,
-      );
-    }
-  }
-
-  return z.object(pickShapeKeys(inner.shape, keys));
-};
-
 
 export const getCollectionConfigBare = <
   Path extends string,
   FieldKeys extends string,
   IntrinsicSchema extends z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape = EmptyShape,
-  CreateOmitKeys extends string = never,
 >(
   config: CollectionDefinition<
     Path,
     FieldKeys,
     IntrinsicSchema,
-    CreateExcludedShape,
-    CreateOmitKeys
+    CreateExcludedShape
   >,
 ) => {
   const pathUtils = compilePath(config.path);
   const fieldKeys = (config.fieldKeys ?? []) as readonly FieldKeys[];
-  const createOmitKeys = (config.createOmitKeys ??
-    []) as readonly CreateOmitKeys[];
   const nonPathKeys = fieldKeys.filter(
     (key) => !(pathUtils.documentPathKeys as readonly string[]).includes(key),
   ) as unknown as readonly NonPathKeysOf<Path, FieldKeys>[];
@@ -414,8 +165,6 @@ export const getCollectionConfigBare = <
     ...pathUtils.collectionPathKeys,
     ...nonPathKeys,
   ] as readonly CollectionIdentityKeys<Path, FieldKeys>[];
-
-  const pathLabel = `(path: "${config.path}")`;
 
   const nonPathKeySchema = (
     nonPathKeys.length === 0
@@ -445,16 +194,8 @@ export const getCollectionConfigBare = <
     [K in DocumentIdentityKey<Path, FieldKeys>]: z.ZodString;
   }>;
 
-  const legacyCreateExcludedSchema = pickLegacyCreateExcludedSchema(
-    config.schema,
-    createOmitKeys,
-    pathLabel,
-  );
-  const effectiveCreateExcludedSchema = mergeSchemaRecursively(
-    legacyCreateExcludedSchema,
-    config.createExcludedSchema ?? EMPTY_OBJECT_SCHEMA,
-    "appendAsIs",
-    "createExcludedSchema merge",
+  const effectiveCreateExcludedSchema = (
+    config.createExcludedSchema ?? EMPTY_OBJECT_SCHEMA
   ) as AnyZodObject;
 
   const intrinsicSchema = config.schema;
@@ -642,21 +383,18 @@ export const collectionConfig = <
   const FieldKeys extends string,
   const IntrinsicSchema extends z.ZodTypeAny,
   const CreateExcludedShape extends z.ZodRawShape = EmptyShape,
-  const CreateOmitKeys extends string = never,
 >(
   config: CollectionDefinition<
     Path,
     FieldKeys,
     IntrinsicSchema,
-    CreateExcludedShape,
-    CreateOmitKeys
+    CreateExcludedShape
   >,
 ): CollectionConfig<
   Path,
   FieldKeys,
   IntrinsicSchema,
-  CreateExcludedShape,
-  CreateOmitKeys
+  CreateExcludedShape
 > => {
   return {
     ...getCollectionConfigBare(config),
@@ -702,7 +440,6 @@ export type CollectionConfigMethods<
   FieldKeys extends string,
   IntrinsicSchema extends z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape = EmptyShape,
-  CreateOmitKeys extends string = never,
 > = {
   readonly documentPathKeys: readonly DocumentPathKeyFromPath<Path>[];
   readonly documentKey: DocumentKeyFromPath<Path>;
@@ -788,7 +525,6 @@ export type CollectionConfigMethods<
   >[];
   readonly fieldKeys: readonly FieldKeys[];
   readonly nonPathKeys: readonly NonPathKeysOf<Path, FieldKeys>[];
-  readonly createOmitKeys?: readonly CreateOmitKeys[];
 };
 
 export type CollectionConfig<
@@ -796,20 +532,17 @@ export type CollectionConfig<
   FieldKeys extends string,
   IntrinsicSchema extends z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape = EmptyShape,
-  CreateOmitKeys extends string = never,
 > = CollectionDefinition<
   Path,
   FieldKeys,
   IntrinsicSchema,
-  CreateExcludedShape,
-  CreateOmitKeys
+  CreateExcludedShape
 > &
   CollectionConfigMethods<
     Path,
     FieldKeys,
     IntrinsicSchema,
-    CreateExcludedShape,
-    CreateOmitKeys
+    CreateExcludedShape
   >;
 
 export type {
