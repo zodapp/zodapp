@@ -9,13 +9,15 @@ import { z } from "zod";
 export interface CollectionConfigBase {
   // スキーマ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly dataSchema: z.ZodObject<any>;
+  readonly dataSchema: z.ZodType<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly storeSchema: z.ZodObject<any>;
+  readonly storeSchema: z.ZodType<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly updateSchema: z.ZodObject<any>;
+  readonly updateSchema: z.ZodType<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly createSchema: z.ZodObject<any>;
+  readonly createSchema: z.ZodType<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly createExcludedSchema?: z.ZodObject<any>;
 
   // Identity スキーマ（単体 / path / identity）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,7 +68,7 @@ export interface CollectionConfigBase {
 
   // CollectionDefinition から引き継ぐプロパティ
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly schema: z.ZodObject<any>;
+  readonly schema: z.ZodType<any>;
   readonly createOmitKeys?: readonly string[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onCreateId?: (

@@ -56,8 +56,14 @@ const projectDataSchema = z
 export const projectsCollection = collectionConfig({
   path: "/workspaces/:workspaceId/projects/:projectId" as const,
   fieldKeys: [] as const,
-  schema: projectDataSchema,
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
+  schema: projectDataSchema.omit({
+    createdAt: true,
+    updatedAt: true,
+  }),
+  createExcludedSchema: projectDataSchema.pick({
+    createdAt: true,
+    updatedAt: true,
+  }),
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
   onInit: () => ({ status: "active" as const }),

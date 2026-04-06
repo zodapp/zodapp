@@ -95,19 +95,17 @@ export const tasks = collectionConfig({
 
 ### `schema`（必須）
 
-**型**: `z.ZodObject<any>`
+**型**: `z.ZodType`
 
 ドキュメント本体のスキーマ（intrinsicSchema）。これを起点に `dataSchema` / `createSchema` / `updateSchema` / `storeSchema` が自動生成されます。
 
-documentIdentityKeys（pathKeys + nonPathKeys）と同名のフィールドを含めることもできます。派生スキーマの生成時には documentIdentityKeys が自動的にマージ・除外されるため、衝突の心配はありません。
+トップレベルでは `ZodObject` / `ZodUnion` / `ZodDiscriminatedUnion` / `ZodIntersection` と、それらをラップした wrapper をサポートします。
 
 ```ts
 const taskSchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   status: z.enum(["todo", "doing", "done"]).default("todo"),
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional(),
 });
 
 export const tasks = collectionConfig({
@@ -147,31 +145,44 @@ export const users = collectionConfig({
 
 > fieldKeys のうち nonPathKeys が空の場合、`nonPathKeySchema` は `z.unknown()` になります。
 
-### `createOmitKeys`（任意）
+### identity key の自動 hidden 化
 
-**型**: `readonly string[]`
+identity key（`path` と `fieldKeys` から決まる `documentIdentityKeys`）は、`dataSchema` / `updateSchema` / `storeSchema` に自動追加されます。
 
-`createSchema` から除外するフィールド名の配列。`onCreate` / `onWrite` で自動生成されるフィールド（タイムスタンプ等）を指定します。
+- intrinsic `schema` に同名キーがある場合: validation と label などの meta を保持したまま hidden 化されます
+- intrinsic `schema` に同名キーがない場合: `string + hidden` が自動補完されます
+- hidden 化は runtime/UI メタの変更であり、TypeScript の型には影響しません
+- `createSchema` には identity key は追加されません
 
-`createSchema` は documentIdentityKeys と `createOmitKeys` の両方を除外したスキーマになります。これにより、フォームの新規作成画面でユーザーが入力する必要のないフィールドが自動的に除外されます。
+ID をテーブル等で表示したい場合は、application 側の表示 schema（`extendSchemaSafe` 等）で明示的に復元してください。
+
+### `createExcludedSchema`（任意）
+
+**型**: `z.ZodObject<...>`
+
+create 以外でだけ追加したいフィールドの schema 断片です。optional / nullable / default などの定義は application 側の schema をそのまま保持します。`onCreate` / `onWrite` で自動設定するフィールド（タイムスタンプ等）をここへ置きます。
 
 ```ts
 export const projects = collectionConfig({
   path: "workspaces/:workspaceId/projects/:projectId",
   schema: z.object({
     name: z.string(),
+  }),
+  createExcludedSchema: z.object({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
   }),
-  // createdAt, updatedAt は onCreate/onWrite で自動設定するので createSchema から除外
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
 });
 
 // createSchema: { name: string }
-//   ↑ workspaceId, projectId（documentIdentityKeys）と createdAt, updatedAt（createOmitKeys）が除外される
+// dataSchema / updateSchema / storeSchema では createdAt, updatedAt がそのまま追加される
 ```
+
+### `createOmitKeys`（非推奨）
+
+旧仕様との移行用に残っていますが、`schema` からフィールドを削除する挙動はしません。新規定義では `createExcludedSchema` を使ってください。
 
 ### `onInit`（任意）
 
@@ -236,10 +247,11 @@ export const tasks = collectionConfig({
   path: "workspaces/:workspaceId/tasks/:taskId",
   schema: z.object({
     title: z.string(),
+  }),
+  createExcludedSchema: z.object({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
   }),
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
   // create 時のみ createdAt を設定
   onCreate: (documentIdentity, data) => ({ createdAt: new Date() }),
   onWrite: (documentIdentity, data) => ({ updatedAt: new Date() }),
@@ -278,9 +290,10 @@ export const projects = collectionConfig({
   path: "workspaces/:workspaceId/projects/:projectId",
   schema: z.object({
     name: z.string(),
+  }),
+  createExcludedSchema: z.object({
     updatedAt: z.date().optional(),
   }),
-  createOmitKeys: ["updatedAt"] as const,
   // create/update 両方で updatedAt を更新
   onWrite: () => ({ updatedAt: new Date() }),
 });
@@ -493,10 +506,11 @@ const testCollection = collectionConfig({
   schema: z.object({
     name: z.string(),
     email: z.email(),
+  }),
+  createExcludedSchema: z.object({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
   }),
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
 });
 
 // documentPathKeys: ["teamId", "userId"]
@@ -554,10 +568,10 @@ type CollectionKey = z.infer<typeof testCollection.collectionKeySchema>;
 | スキーマ名         | 構成ルール                                                           | 説明                         |
 | ------------------ | -------------------------------------------------------------------- | ---------------------------- |
 | **`schema`**       | 入力そのまま                                                         | ユーザ指定の intrinsicSchema |
-| **`dataSchema`**   | `schema` + documentIdentityKeys（必須）                              | 読み取り時の完全なデータ型   |
-| **`updateSchema`** | `schema` + documentIdentityKeys（fieldKeys は必須、その他 optional） | 更新用フォーム向け           |
-| **`storeSchema`**  | `schema` − documentPathKeys + fieldKeys（必須）                      | Firestore に保存する形       |
-| **`createSchema`** | `schema` − documentIdentityKeys − createOmitKeys                     | 新規作成フォーム向け         |
+| **`dataSchema`**   | `schema` + identity/document keys（必須） + createExcluded（as-is）  | 読み取り時の完全なデータ型   |
+| **`updateSchema`** | `schema` + identity/document keys（optional） + createExcluded（as-is） | 更新用フォーム向け |
+| **`storeSchema`**  | `schema` + nonPathKeys + createExcluded（as-is）                    | Firestore に保存する形 |
+| **`createSchema`** | `schema` そのまま                                                    | 新規作成フォーム向け         |
 
 上記の例での各スキーマの `z.infer` 結果:
 
@@ -575,9 +589,9 @@ type Data = z.infer<typeof testCollection.dataSchema>;
 
 type Update = z.infer<typeof testCollection.updateSchema>;
 // => {
-//   teamId: string;       // fieldKeys に含まれるので必須
-//   userId?: string;     // pathKey だが fieldKeys ではないので optional
-//   groupId: string;     // nonPathKey は常に必須（fieldKeys）
+//   teamId?: string;     // identityKey は混入を許容するため optional
+//   userId?: string;     // identityKey は混入を許容するため optional
+//   groupId?: string;    // fieldKeys も update では optional
 //   name: string;
 //   email: string;
 //   createdAt?: Date;
@@ -601,7 +615,8 @@ type Create = z.infer<typeof testCollection.createSchema>;
 //   name: string;
 //   email: string;
 // }
-// ※ documentIdentityKeys (teamId, userId, groupId) と createOmitKeys (createdAt, updatedAt) が除外される
+// ※ createSchema は intrinsic schema をそのまま使う。
+//   identity/createExcluded に置いたフィールドはここには追加されない
 ```
 
 ---
@@ -681,10 +696,11 @@ export const workspaces = collectionConfig({
     name: z.string().min(1),
     description: z.string().optional(),
     ownerId: z.string(),
+  }),
+  createExcludedSchema: z.object({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
   }),
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
 });
@@ -701,10 +717,11 @@ export const members = collectionConfig({
     displayName: z.string().min(1),
     email: z.string().email(),
     role: z.enum(["owner", "admin", "member", "viewer"]),
+  }),
+  createExcludedSchema: z.object({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
   }),
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
   // docId に email を使用
   onCreateId: (_collectionIdentity, inputData) => inputData.email,
   onCreate: () => ({ createdAt: new Date() }),
@@ -731,12 +748,13 @@ export const tasks = collectionConfig({
     assigneeId: z.string().optional(),
     labels: z.array(z.string()).default([]),
     dueAt: z.date().optional(),
+    deletedAt: z.date().nullable().optional(),
+  }),
+  createExcludedSchema: z.object({
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
-    deletedAt: z.date().nullable().optional(),
     archivedAt: z.date().optional(),
   }),
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
   onInit: () => ({

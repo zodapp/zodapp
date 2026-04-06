@@ -173,8 +173,18 @@ const taskDataSchema = z
 export const tasksCollection = collectionConfig({
   path: "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId" as const,
   fieldKeys: [] as const,
-  schema: taskDataSchema,
-  createOmitKeys: ["createdAt", "updatedAt", "archivedAt", "expired"] as const,
+  schema: taskDataSchema.omit({
+    createdAt: true,
+    updatedAt: true,
+    archivedAt: true,
+    expired: true,
+  }),
+  createExcludedSchema: taskDataSchema.pick({
+    createdAt: true,
+    updatedAt: true,
+    archivedAt: true,
+    expired: true,
+  }),
 
   // create時のみ自動設定
   onCreate: () => ({ createdAt: new Date() }),

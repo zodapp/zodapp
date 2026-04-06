@@ -20,14 +20,13 @@ describe("collectionConfig", () => {
     path: "/teams/:teamId/users/:userId" as const,
     fieldKeys: ["groupId"] as const,
     schema: z.object({
-      userId: z.string(),
-      teamId: z.string(),
       name: z.string(),
       email: z.email(),
+    }),
+    createExcludedSchema: z.object({
       createdAt: z.date().optional(),
       updatedAt: z.date().optional(),
     }),
-    createOmitKeys: ["createdAt", "updatedAt"] as const,
     onCreate: () => ({ createdAt: new Date() }),
     onWrite: () => ({ updatedAt: new Date() }),
   });
@@ -136,6 +135,8 @@ describe("collectionConfig", () => {
         groupId: "group-789",
         name: "John Doe",
         email: "john@example.com",
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
       };
 
       // このテストはTypeScript の型チェックのためのものです
@@ -243,6 +244,8 @@ describe("collectionConfig", () => {
         groupId: "group-789",
         name: "John Doe",
         email: "john@example.com",
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
       };
 
       const result = testCollection.dataSchema.parse(data);
@@ -273,27 +276,60 @@ describe("collectionConfig", () => {
       ).toThrow();
     });
 
-    it("should have updateSchema with fieldKeys (required) and other documentIdentityKeys (optional)", () => {
+    it("should keep createExcludedSchema optionality as-is", () => {
+      const result = testCollection.dataSchema.parse({
+        userId: "123",
+        teamId: "456",
+        groupId: "group-789",
+        name: "John Doe",
+        email: "john@example.com",
+      });
+      expect(result.createdAt).toBeUndefined();
+      expect(result.updatedAt).toBeUndefined();
+
+      const updated = testCollection.updateSchema.parse({
+        name: "John Doe",
+        email: "john@example.com",
+        groupId: "group-789",
+      });
+      expect(updated.createdAt).toBeUndefined();
+      expect(updated.updatedAt).toBeUndefined();
+
+      const stored = testCollection.storeSchema.parse({
+        groupId: "group-789",
+        name: "John Doe",
+        email: "john@example.com",
+      });
+      expect(stored.createdAt).toBeUndefined();
+      expect(stored.updatedAt).toBeUndefined();
+    });
+
+    it("should have updateSchema with identity keys and fieldKeys optional", () => {
       const data = {
         name: "John Doe",
         email: "john@example.com",
-        groupId: "group-789", // fieldKeys（nonPathKeys）は必須
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
       };
 
       const result = testCollection.updateSchema.parse(data);
       expect(result).toEqual(data);
 
-      // groupId なしは NG
-      expect(() =>
+      // fieldKeys / identityKeys がなくても OK
+      expect(
         testCollection.updateSchema.parse({
           name: "John Doe",
           email: "john@example.com",
         }),
-      ).toThrow();
+      ).toEqual({
+        name: "John Doe",
+        email: "john@example.com",
+      });
 
       // documentIdentityKeys ありでも OK
       const dataWithIdentity = {
         ...data,
+        groupId: "group-789",
         userId: "123",
         teamId: "456",
       };
@@ -302,11 +338,13 @@ describe("collectionConfig", () => {
       expect(resultWithIdentity).toEqual(dataWithIdentity);
     });
 
-    it("should have storeSchema without documentPathKeys but with fieldKeys (required)", () => {
+    it("should have storeSchema without documentPathKeys but with fieldKeys/createExcluded (required)", () => {
       const data = {
         groupId: "group-789",
         name: "John Doe",
         email: "john@example.com",
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-01"),
       };
 
       const result = testCollection.storeSchema.parse(data);
@@ -321,7 +359,7 @@ describe("collectionConfig", () => {
       ).toThrow();
     });
 
-    it("should have createSchema without documentIdentityKeys and createOmitKeys", () => {
+    it("should have createSchema based only on intrinsic schema", () => {
       const data = {
         name: "John Doe",
         email: "john@example.com",
@@ -330,14 +368,43 @@ describe("collectionConfig", () => {
       const result = testCollection.createSchema.parse(data);
       expect(result).toEqual(data);
 
-      // createSchema には userId, teamId, groupId, createdAt, updatedAt が含まれない
-      // （パース結果の型で確認）
+      // createSchema には intrinsic schema にない追加項目は現れない
       const resultKeys = Object.keys(result);
       expect(resultKeys).not.toContain("userId");
       expect(resultKeys).not.toContain("teamId");
       expect(resultKeys).not.toContain("groupId");
       expect(resultKeys).not.toContain("createdAt");
       expect(resultKeys).not.toContain("updatedAt");
+    });
+
+    it("should auto-hide identity keys while preserving intrinsic validation", () => {
+      const withIntrinsicIdentity = collectionConfig({
+        path: "/teams/:teamId/users/:userId" as const,
+        fieldKeys: [] as const,
+        schema: z.object({
+          userId: z.string().min(1),
+          name: z.string(),
+        }),
+      });
+
+      const parsed = withIntrinsicIdentity.updateSchema.parse({
+        teamId: "team-1",
+        userId: "user-1",
+        name: "Alice",
+      });
+      expect(parsed).toEqual({
+        teamId: "team-1",
+        userId: "user-1",
+        name: "Alice",
+      });
+
+      expect(() =>
+        withIntrinsicIdentity.dataSchema.parse({
+          teamId: "t1",
+          userId: "",
+          name: "Alice",
+        }),
+      ).toThrow();
     });
   });
 
@@ -717,7 +784,7 @@ describe("collectionConfig", () => {
       expectTypeOf<CollectionKey>().toEqualTypeOf<{ teamId: string }>();
 
       // --- 派生スキーマ ---
-      expectTypeOf<Data>().toEqualTypeOf<{
+      type ExpectedData = {
         userId: string;
         teamId: string;
         groupId: string;
@@ -725,27 +792,45 @@ describe("collectionConfig", () => {
         email: string;
         createdAt?: Date | undefined;
         updatedAt?: Date | undefined;
-      }>();
-      expectTypeOf<Update>().toEqualTypeOf<{
+      };
+      type ExpectedUpdate = {
         userId?: string | undefined;
         teamId?: string | undefined;
-        groupId: string; // fieldKeys（nonPathKeys）は必須
+        groupId?: string | undefined;
         name: string;
         email: string;
         createdAt?: Date | undefined;
         updatedAt?: Date | undefined;
-      }>();
-      expectTypeOf<Store>().toEqualTypeOf<{
+      };
+      type ExpectedStore = {
         groupId: string;
         name: string;
         email: string;
         createdAt?: Date | undefined;
         updatedAt?: Date | undefined;
-      }>();
-      expectTypeOf<Create>().toEqualTypeOf<{
+      };
+      type ExpectedCreate = {
         name: string;
         email: string;
-      }>();
+      };
+
+      const dataActualToExpected: ExpectedData = {} as Data;
+      const dataExpectedToActual: Data = {} as ExpectedData;
+      const updateActualToExpected: ExpectedUpdate = {} as Update;
+      const updateExpectedToActual: Update = {} as ExpectedUpdate;
+      const storeActualToExpected: ExpectedStore = {} as Store;
+      const storeExpectedToActual: Store = {} as ExpectedStore;
+      const createActualToExpected: ExpectedCreate = {} as Create;
+      const createExpectedToActual: Create = {} as ExpectedCreate;
+
+      void dataActualToExpected;
+      void dataExpectedToActual;
+      void updateActualToExpected;
+      void updateExpectedToActual;
+      void storeActualToExpected;
+      void storeExpectedToActual;
+      void createActualToExpected;
+      void createExpectedToActual;
     });
 
     it("fieldKeys なし: nonPathKeySchema / identity schemas の z.infer が期待通り", () => {
@@ -794,18 +879,21 @@ describe("collectionConfig", () => {
         Path extends string,
         FieldKeys extends string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        IntrinsicSchema extends z.ZodObject<any>,
+        IntrinsicSchema extends z.ZodTypeAny,
+        CreateExcludedShape extends z.ZodRawShape = {},
         CreateOmitKeys extends string = never,
       > = CollectionDefinition<
         Path,
         FieldKeys,
         IntrinsicSchema,
+        CreateExcludedShape,
         CreateOmitKeys
       > &
         CollectionConfigMethods<
           Path,
           FieldKeys,
           IntrinsicSchema,
+          CreateExcludedShape,
           CreateOmitKeys
         >;
 
@@ -813,12 +901,14 @@ describe("collectionConfig", () => {
         const Path extends string,
         const FieldKeys extends string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        IntrinsicSchema extends z.ZodObject<any>,
+        IntrinsicSchema extends z.ZodTypeAny,
+        CreateExcludedShape extends z.ZodRawShape = {},
         CreateOmitKeys extends string = never,
       >() => CollectionConfigBare<
         Path,
         FieldKeys,
         IntrinsicSchema,
+        CreateExcludedShape,
         CreateOmitKeys
       >;
 
@@ -826,9 +916,16 @@ describe("collectionConfig", () => {
         const Path extends string,
         const FieldKeys extends string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        IntrinsicSchema extends z.ZodObject<any>,
+        IntrinsicSchema extends z.ZodTypeAny,
+        CreateExcludedShape extends z.ZodRawShape = {},
         CreateOmitKeys extends string = never,
-      >() => CollectionConfig<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys>;
+      >() => CollectionConfig<
+        Path,
+        FieldKeys,
+        IntrinsicSchema,
+        CreateExcludedShape,
+        CreateOmitKeys
+      >;
 
       expectTypeOf<CollectionConfigFn>().toEqualTypeOf<CollectionConfigBareFn>();
     });
@@ -1116,6 +1213,91 @@ describe("autoQuery helpers", () => {
       expect(result.where?.[0]?.field).toBe("teamId");
       expect(result.where?.[1]?.field).toBe("orgId");
       expect(result.where?.[2]?.field).toBe("title");
+    });
+  });
+
+  describe("union / discriminatedUnion / intersection schema 対応", () => {
+    it("should support discriminatedUnion schema with identity auto-merge", () => {
+      const unionCollection = collectionConfig({
+        path: "/items/:itemId" as const,
+        fieldKeys: [] as const,
+        schema: z.discriminatedUnion("kind", [
+          z.object({ kind: z.literal("a"), value: z.string() }),
+          z.object({ kind: z.literal("b"), count: z.number() }),
+        ]),
+      });
+
+      const dataA = unionCollection.dataSchema.parse({
+        itemId: "i1",
+        kind: "a",
+        value: "hello",
+      });
+      expect(dataA).toEqual({ itemId: "i1", kind: "a", value: "hello" });
+
+      const dataB = unionCollection.dataSchema.parse({
+        itemId: "i2",
+        kind: "b",
+        count: 42,
+      });
+      expect(dataB).toEqual({ itemId: "i2", kind: "b", count: 42 });
+
+      expect(() =>
+        unionCollection.dataSchema.parse({ kind: "a", value: "hello" }),
+      ).toThrow();
+    });
+
+    it("should support plain union schema with identity auto-merge", () => {
+      const plainUnion = collectionConfig({
+        path: "/docs/:docId" as const,
+        fieldKeys: [] as const,
+        schema: z.union([
+          z.object({ type: z.literal("text"), body: z.string() }),
+          z.object({ type: z.literal("image"), url: z.string() }),
+        ]),
+      });
+
+      const parsed = plainUnion.dataSchema.parse({
+        docId: "d1",
+        type: "text",
+        body: "hello",
+      });
+      expect(parsed).toEqual({ docId: "d1", type: "text", body: "hello" });
+    });
+
+    it("should support intersection schema with identity auto-merge", () => {
+      const intersectionCollection = collectionConfig({
+        path: "/entries/:entryId" as const,
+        fieldKeys: [] as const,
+        schema: z.intersection(
+          z.object({ title: z.string() }),
+          z.object({ priority: z.number() }),
+        ),
+      });
+
+      const parsed = intersectionCollection.dataSchema.parse({
+        entryId: "e1",
+        title: "task",
+        priority: 1,
+      });
+      expect(parsed).toEqual({ entryId: "e1", title: "task", priority: 1 });
+    });
+
+    it("should strip identity keys from storeSchema for union", () => {
+      const unionStore = collectionConfig({
+        path: "/teams/:teamId/items/:itemId" as const,
+        fieldKeys: ["teamId"] as const,
+        schema: z.discriminatedUnion("kind", [
+          z.object({ kind: z.literal("a"), value: z.string() }),
+          z.object({ kind: z.literal("b"), count: z.number() }),
+        ]),
+      });
+
+      const stored = unionStore.storeSchema.parse({
+        teamId: "t1",
+        kind: "a",
+        value: "hello",
+      });
+      expect(stored).toEqual({ teamId: "t1", kind: "a", value: "hello" });
     });
   });
 });

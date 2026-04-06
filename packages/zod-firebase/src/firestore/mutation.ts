@@ -8,17 +8,17 @@ import type {
  * mutation 関数の型
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type MutationFn<DataSchema extends z.ZodObject<any>> = (
+export type MutationFn<DataSchema extends z.ZodType<any>> = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ...args: any[]
 ) => Partial<z.infer<DataSchema>>;
 
 type SchemaFromCollection<TCollection extends LooseCollectionConfigBase> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TCollection["schema"] extends z.ZodObject<any>
-    ? TCollection["schema"]
+  TCollection["storeSchema"] extends z.ZodType<any>
+    ? TCollection["storeSchema"]
     : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      z.ZodObject<any>;
+      z.ZodType<any>;
 
 export type CollectionMutations<
   TCollection extends LooseCollectionConfigBase,
@@ -34,13 +34,13 @@ export type CollectionMutations<
 export interface CollectionMutationsBase {
   readonly collection: CollectionConfigBase;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly mutations: Record<string, MutationFn<z.ZodObject<any>>>;
+  readonly mutations: Record<string, MutationFn<z.ZodType<any>>>;
 }
 
 export interface LooseCollectionMutationsBase {
   readonly collection: LooseCollectionConfigBase;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly mutations: Record<string, MutationFn<z.ZodObject<any>>>;
+  readonly mutations: Record<string, MutationFn<z.ZodType<any>>>;
 }
 
 export const createCollectionMutations = <

@@ -27,10 +27,11 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
       status: taskStatusSchema,
       dueAt: z.date().optional(),
       deletedAt: z.date().nullable().optional(),
+    }),
+    createExcludedSchema: z.object({
       createdAt: z.date().optional(),
       updatedAt: z.date().optional(),
     }),
-    createOmitKeys: ["createdAt", "updatedAt"] as const,
   });
 
   const taskMutations = createCollectionMutations(tasksCollection, {
@@ -137,7 +138,6 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
       schema: z.object({
         name: z.string(),
       }),
-      createOmitKeys: [] as const,
     });
     const bareQueries = createCollectionQueries(bareCollection, {});
     const bareMutations = createCollectionMutations(bareCollection, {});

@@ -27,8 +27,14 @@ const workspaceDataSchema = z
 export const workspacesCollection = collectionConfig({
   path: "/workspaces/:workspaceId" as const,
   fieldKeys: [] as const,
-  schema: workspaceDataSchema,
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
+  schema: workspaceDataSchema.omit({
+    createdAt: true,
+    updatedAt: true,
+  }),
+  createExcludedSchema: workspaceDataSchema.pick({
+    createdAt: true,
+    updatedAt: true,
+  }),
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
 });

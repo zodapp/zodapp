@@ -1,15 +1,3 @@
-import { z } from "zod";
-import { zf, getMeta } from "@zodapp/zod-form";
-
-/**
- * Zodスキーマを公開APIのみでcloneする。
- * .describe() は常に新しいインスタンスを返す性質を利用。
- * as stringすることで、in/keysの挙動が変わるが、zodの実装コートでは、in/keysは使ってないので問題ない。
- */
-function cloneSchema<T extends z.ZodType>(schema: T): T {
-  return schema.describe(schema.description as string);
-}
-
 import {
   CollectionPathKeyFromPath,
   CollectionPathParamsFromPath,
@@ -18,6 +6,20 @@ import {
   DocumentPathKeyFromPath,
   DocumentPathParamsFromPath,
 } from "./pathUtil";
+import { getMeta, zf, hideSchemaFields } from "@zodapp/zod-form";
+import { z } from "zod";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyZodObject = z.ZodObject<any>;
+type EmptyShape = Record<never, z.ZodTypeAny>;
+
+/**
+ * Zodスキーマを公開APIのみでcloneする。
+ * .describe() は常に新しいインスタンスを返す性質を利用。
+ */
+function cloneSchema<T extends z.ZodTypeAny>(schema: T): T {
+  return schema.describe(schema.description as string);
+}
 
 /**
  * CollectionConfig のブランドシンボル
@@ -27,19 +29,17 @@ declare const CollectionConfigBrand: unique symbol;
 
 /**
  * ブランド付き CollectionConfig の型
- * CollectionReference.config などで collectionConfig() の戻り値のみを受け入れるために使用
+ * collectionConfig() の戻り値のみを受け入れるために使用
  */
 export type BrandedCollectionConfig = {
   readonly [CollectionConfigBrand]: true;
 };
 
-// NonPathKeys: fieldKeys のうち path に含まれないキー
 type NonPathKeysOf<Path extends string, FieldKeys extends string> = Exclude<
   FieldKeys,
   DocumentPathKeyFromPath<Path>
 >;
 
-// DocumentIdentityKeys の型（documentPathKeys + nonPathKeys）
 type DocumentIdentityKey<Path extends string, FieldKeys extends string> =
   | DocumentPathKeyFromPath<Path>
   | NonPathKeysOf<Path, FieldKeys>;
@@ -47,125 +47,49 @@ type DocumentIdentityKey<Path extends string, FieldKeys extends string> =
 type DocumentIdentity<Path extends string, FieldKeys extends string> = {
   [K in DocumentIdentityKey<Path, FieldKeys>]: string;
 };
-/** collectionIdentity（collectionPathKeys + nonPathKeys）: コレクションを一意に識別するキー群 */
+
 type CollectionIdentity<
   Path extends string,
   FieldKeys extends string,
 > = CollectionPathParamsFromPath<Path> &
   Record<NonPathKeysOf<Path, FieldKeys>, string>;
 
-/**
- * `collectionConfig()` に渡すコレクション定義（入力型）。
- *
- * この定義から、次の派生スキーマ・ヘルパーが生成されます。
- * - `documentIdentitySchema` / `collectionIdentitySchema`
- * - `dataSchema` / `updateSchema` / `storeSchema` / `createSchema`
- *
- * 用語:
- * - **pathKeys**: `path` テンプレート中の `:teamId` のようなプレースホルダ名
- * - **fieldKeys**: Firestore ドキュメントの field として保持する identity keys
- *   - **nonPathKeys**: fieldKeys のうち path に含まれないキー
- *   - **pathFieldKeys**: fieldKeys のうち path に含まれるキー（pathKeys を field にも永続化する用途）
- */
 export type CollectionDefinition<
   Path extends string,
   FieldKeys extends string = never,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any> = z.ZodObject<any>,
+  IntrinsicSchema extends z.ZodTypeAny = z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape = EmptyShape,
   CreateOmitKeys extends string = never,
 > = {
-  /**
-   * Firestore のドキュメントパスのテンプレート。
-   *
-   * 例: `"/teams/:teamId/users/:userId"`
-   * - `:teamId`は、documentPathKeys, collectionPathKeysの両方に入ります
-   * - `:userId`は、documentPathKeysに入ります。
-   */
   path: Path;
-  /**
-   * Firestore ドキュメントの field として保持する identity keys。
-   *
-   * - path に含まれないキーは **nonPathKeys** として document/collection の識別に使われます
-   *   （`documentIdentitySchema` / `collectionIdentitySchema` に必須で追加）
-   * - path に含まれるキーは **pathFieldKeys** として、通常は除外される pathKeys を
-   *   ドキュメント field にも永続化します（collectionGroup 検索等で有用）
-   * - `storeSchema` / `updateSchema` で必須フィールドとして残ります
-   * - `beforeGenerate` / `beforeWrite` 実行時に identityParams から自動注入されます
-   */
   fieldKeys?: readonly FieldKeys[];
-  /**
-   * ベースとなる Zod スキーマ。
-   *
-   * identity 系キー（pathKeys / fieldKeys）を含めても OK ですが、派生スキーマ生成時に
-   * required/optional の調整や除外（storeSchema/createSchema）が行われます。
-   */
   schema: IntrinsicSchema;
+  createExcludedSchema?: z.ZodObject<CreateExcludedShape>;
   /**
-   * create 時の入力（createSchema）から除外するキー。
-   *
-   * 典型例: `createdAt` / `updatedAt` など（`onCreate` / `onWrite` で自動設定するフィールド）
-   * - schema に存在しないキーが指定された場合はランタイムチェックで検出されます
+   * @deprecated `createExcludedSchema` を使ってください。
    */
   createOmitKeys?: readonly CreateOmitKeys[];
-  /**
-   * フォーム初期化用のデフォルト値を返すコールバック（任意）。
-   *
-   * - ユーザーが編集前に上書き可能な初期値として使う想定
-   * - ユーティリティとして提供するのみで、zof-firebase-*系では利用していません。
-   */
   onInit?: () => Partial<z.infer<IntrinsicSchema>>;
-  /**
-   * create 時の docId を決定します（任意）。
-   *
-   * - `string` を返す: その値を docId として使用
-   * - `undefined` を返す/未設定: ランダムIDを採用
-   */
   onCreateId?: (
     collectionIdentity: CollectionIdentity<Path, FieldKeys>,
     inputData: z.infer<IntrinsicSchema>,
   ) => string | undefined;
-  /**
-   * create の直前に呼ばれるフック（任意）。
-   *
-   * - `documentIdentity`（pathKeys + nonPathKeys）と `inputData` を受け取ります
-   * - 返した Partial は入力データにマージされます（例: `createdAt` の自動設定）
-   */
   onCreate?: (
     documentIdentity: DocumentIdentity<Path, FieldKeys>,
     inputData: z.infer<IntrinsicSchema>,
-  ) => Partial<z.infer<IntrinsicSchema>> | void;
-  /**
-   * create/update 共通で呼ばれるフック（任意）。
-   *
-   * - `documentIdentity` と（書き込み対象の）`data` を受け取ります
-   * - 返した Partial はデータにマージされます（例: `updatedAt` の自動設定）
-   */
+  ) => Partial<Record<string, unknown>> | void;
   onWrite?: (
     documentIdentity: DocumentIdentity<Path, FieldKeys>,
-    data: z.infer<IntrinsicSchema>,
-  ) => Partial<z.infer<IntrinsicSchema>> | void;
+    data: Partial<Record<string, unknown>>,
+  ) => Partial<Record<string, unknown>> | void;
 };
 
 type CollectionIdentityKeys<Path extends string, FieldKeys extends string> =
   | CollectionPathKeyFromPath<Path>
   | NonPathKeysOf<Path, FieldKeys>;
 
-/**
- * any 型を検出するユーティリティ型
- * any & 1 = any となり、0 extends any は true になることを利用
- */
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
-/**
- * any/never の場合は unknown（intersectionで無視される）を返す安全な Mapped Type
- *
- * - SafeMappedType<never, V> = unknown
- * - SafeMappedType<any, V> = unknown（インデックスシグネチャを避けるため）
- * - SafeMappedType<"foo" | "bar", V> = { foo: V; bar: V }
- *
- * unknown は intersection の identity element（A & unknown = A）なので、
- * {} よりも意図が明確で ESLint の ban-types にも引っかからない
- */
 type SafeMappedType<Keys extends string, Value> =
   IsAny<Keys> extends true
     ? unknown
@@ -173,36 +97,402 @@ type SafeMappedType<Keys extends string, Value> =
       ? unknown
       : { [K in Keys]: Value };
 
+type SafeOptionalMappedType<Keys extends string, Value> =
+  IsAny<Keys> extends true
+    ? unknown
+    : [Keys] extends [never]
+      ? unknown
+      : { [K in Keys]?: Value };
+
 type NonPathKeySchemaFor<Path extends string, FieldKeys extends string> = [
   NonPathKeysOf<Path, FieldKeys>,
 ] extends [never]
   ? z.ZodUnknown
   : z.ZodObject<{ [K in NonPathKeysOf<Path, FieldKeys>]: z.ZodString }>;
 
-/**
- * Zodネイティブメソッド用の型定義
- * .extend() の引数に型アサーションすることで、結果の型が自動推論される
- */
-type IdentityKeyShapeRequired<Keys extends string> = SafeMappedType<
-  Keys,
-  z.ZodString
->;
-type IdentityKeyShapeOptional<Keys extends string> = SafeMappedType<
-  Keys,
-  z.ZodOptional<z.ZodString>
->;
+type AsIsObjectTypeOf<Shape extends z.ZodRawShape> = [keyof Shape] extends [never]
+  ? unknown
+  : z.infer<z.ZodObject<Shape>>;
+
+type DataTypeFor<
+  Path extends string,
+  FieldKeys extends string,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape,
+> = z.infer<IntrinsicSchema> &
+  SafeMappedType<DocumentIdentityKey<Path, FieldKeys>, string> &
+  AsIsObjectTypeOf<CreateExcludedShape>;
+
+type UpdateTypeFor<
+  Path extends string,
+  FieldKeys extends string,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape,
+> = z.infer<IntrinsicSchema> &
+  SafeOptionalMappedType<
+    Exclude<DocumentIdentityKey<Path, FieldKeys>, FieldKeys>,
+    string
+  > &
+  SafeOptionalMappedType<FieldKeys, string> &
+  AsIsObjectTypeOf<CreateExcludedShape>;
+
+type StoreTypeFor<
+  Path extends string,
+  FieldKeys extends string,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape,
+> = z.infer<IntrinsicSchema> &
+  SafeMappedType<NonPathKeysOf<Path, FieldKeys>, string> &
+  AsIsObjectTypeOf<CreateExcludedShape>;
+
+type Wrapper =
+  | { kind: "optional" }
+  | { kind: "nullable" }
+  | { kind: "default"; defaultValue: unknown };
+
+type MergeMode = "appendOptional" | "appendRequired" | "appendAsIs";
+
+const EMPTY_OBJECT_SCHEMA = z.object({});
+
+const isEmptyShape = (shape: z.ZodRawShape) => Object.keys(shape).length === 0;
+
+const pickShapeKeys = (
+  shape: z.ZodRawShape,
+  keys: readonly string[],
+): z.ZodRawShape =>
+  Object.fromEntries(
+    keys
+      .filter((key) => key in shape)
+      .map((key) => [key, shape[key] as z.ZodTypeAny]),
+  ) as z.ZodRawShape;
+
+const omitShapeKeys = (
+  shape: z.ZodRawShape,
+  keys: readonly string[],
+): z.ZodRawShape => {
+  const keySet = new Set(keys);
+  return Object.fromEntries(
+    Object.entries(shape).filter(([key]) => !keySet.has(key)),
+  ) as z.ZodRawShape;
+};
+
+const normalizeWrapper = (schema: z.ZodTypeAny) => {
+  const wrappers: Wrapper[] = [];
+  let current = schema;
+
+  while (true) {
+    if (current instanceof z.ZodOptional) {
+      wrappers.push({ kind: "optional" });
+      current = current.unwrap() as z.ZodTypeAny;
+      continue;
+    }
+    if (current instanceof z.ZodNullable) {
+      wrappers.push({ kind: "nullable" });
+      current = current.unwrap() as z.ZodTypeAny;
+      continue;
+    }
+    if (current instanceof z.ZodDefault) {
+      wrappers.push({
+        kind: "default",
+        defaultValue: (current._def as { defaultValue: unknown }).defaultValue,
+      });
+      current = current.unwrap() as z.ZodTypeAny;
+      continue;
+    }
+    break;
+  }
+
+  const rewrap = (
+    next: z.ZodTypeAny,
+    options: { preserveOptional?: boolean } = {},
+  ) =>
+    wrappers.reduceRight<z.ZodTypeAny>((acc, wrapper) => {
+      if (wrapper.kind === "optional") {
+        return options.preserveOptional === false ? acc : acc.optional();
+      }
+      if (wrapper.kind === "nullable") return acc.nullable();
+      return acc.default(wrapper.defaultValue as never);
+    }, next);
+
+  return { inner: current, rewrap };
+};
+
+const rebuildObjectSchema = (
+  schema: AnyZodObject,
+  nextShape: z.ZodRawShape,
+): AnyZodObject => {
+  let nextObject = z.object(nextShape);
+  if (schema.description !== undefined) {
+    nextObject = nextObject.describe(schema.description);
+  }
+
+  const objectMeta = getMeta(schema, "object");
+  if (objectMeta) {
+    nextObject = nextObject.register(zf.object.registry as never, {
+      ...(objectMeta as Record<string, unknown>),
+      properties: Object.keys(nextShape),
+    } as never);
+  }
+  return nextObject;
+};
+
+const replaceUnionOptions = (
+  schema: z.ZodTypeAny,
+  nextOptions: [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
+) => {
+  let nextUnion = z.union(nextOptions);
+  if (schema.description !== undefined) {
+    nextUnion = nextUnion.describe(schema.description);
+  }
+  const unionMeta = getMeta(schema, "union");
+  if (unionMeta) {
+    nextUnion = nextUnion.register(zf.union.registry as never, unionMeta as never);
+  }
+  return nextUnion;
+};
+
+const replaceDiscriminatedUnionOptions = (
+  schema: z.ZodTypeAny,
+  nextOptions: [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
+) => {
+  const discriminator = (
+    schema as unknown as { _def: { discriminator: string } }
+  )._def.discriminator;
+  let nextUnion = z.discriminatedUnion(discriminator, nextOptions);
+  if (schema.description !== undefined) {
+    nextUnion = nextUnion.describe(schema.description);
+  }
+  return nextUnion;
+};
+
+const replaceIntersectionSides = (
+  schema: z.ZodTypeAny,
+  left: z.ZodTypeAny,
+  right: z.ZodTypeAny,
+) => {
+  let nextIntersection = z.intersection(left, right);
+  if (schema.description !== undefined) {
+    nextIntersection = nextIntersection.describe(schema.description);
+  }
+  return nextIntersection;
+};
+
+const hiddenString = (optional = false) =>
+  (optional ? z.string().optional() : z.string()).register(
+    zf.hidden.registry,
+    {},
+  );
+
+const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
+  if (!schema) return hiddenString();
+  if (!(schema instanceof z.ZodOptional)) return schema;
+
+  const inner = schema.unwrap() as z.ZodTypeAny;
+  const optionalMeta = getMeta(schema as z.ZodTypeAny);
+  const isHidden =
+    optionalMeta?.typeName === "hidden" || optionalMeta?.hidden;
+  const cloned = cloneSchema(inner);
+  if (isHidden) {
+    cloned.register(zf.hidden.registry, {
+      ...(optionalMeta?.label ? { label: optionalMeta.label } : {}),
+    });
+  }
+  return cloned;
+};
+
+const materializeOptionalField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
+  if (!schema) return hiddenString(true);
+  if (schema instanceof z.ZodOptional) return schema;
+
+  const label = getMeta(schema as z.ZodTypeAny)?.label;
+  const optional = schema.optional();
+  optional.register(zf.hidden.registry, {
+    ...(label ? { label } : {}),
+  });
+  return optional;
+};
+
+const mergeSchemaRecursively = (
+  base: z.ZodTypeAny,
+  delta: AnyZodObject,
+  mode: MergeMode,
+  contextLabel: string,
+  preferExistingOnOverlap = false,
+): z.ZodTypeAny => {
+  if (isEmptyShape(delta.shape)) return base;
+
+  const { inner, rewrap } = normalizeWrapper(base);
+
+  if (inner instanceof z.ZodObject) {
+    const nextShape = Object.fromEntries(
+      Object.entries(delta.shape).map(([key, schema]) => {
+        const sourceSchema =
+          preferExistingOnOverlap && inner.shape[key]
+            ? (inner.shape[key] as z.ZodTypeAny)
+            : (schema as z.ZodTypeAny);
+        return [
+          key,
+          mode === "appendOptional"
+            ? materializeOptionalField(sourceSchema)
+            : mode === "appendRequired"
+              ? materializeRequiredField(sourceSchema)
+              : sourceSchema,
+        ];
+      }),
+    ) as z.ZodRawShape;
+    return rewrap(
+      rebuildObjectSchema(inner as AnyZodObject, {
+        ...inner.shape,
+        ...nextShape,
+      }),
+    );
+  }
+
+  if (inner instanceof z.ZodDiscriminatedUnion) {
+    const nextOptions = Array.from(
+      inner.options as readonly AnyZodObject[],
+    ).map((option) =>
+      mergeSchemaRecursively(
+        option,
+        delta,
+        mode,
+        contextLabel,
+        preferExistingOnOverlap,
+      ),
+    ) as [AnyZodObject, AnyZodObject, ...AnyZodObject[]];
+    return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
+  }
+
+  if (inner instanceof z.ZodUnion) {
+    const nextOptions = Array.from(inner.options as readonly z.ZodTypeAny[]).map(
+      (option) =>
+        mergeSchemaRecursively(
+          option,
+          delta,
+          mode,
+          contextLabel,
+          preferExistingOnOverlap,
+        ),
+    ) as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]];
+    return rewrap(replaceUnionOptions(inner, nextOptions));
+  }
+
+  if (inner instanceof z.ZodIntersection) {
+    const left = mergeSchemaRecursively(
+      inner._def.left as z.ZodTypeAny,
+      delta,
+      mode,
+      contextLabel,
+      preferExistingOnOverlap,
+    );
+    const right = mergeSchemaRecursively(
+      inner._def.right as z.ZodTypeAny,
+      delta,
+      mode,
+      contextLabel,
+      preferExistingOnOverlap,
+    );
+    return rewrap(replaceIntersectionSides(inner, left, right));
+  }
+
+  throw new Error(
+    `[collectionConfig] ${contextLabel} only supports ZodObject, ZodUnion, ` +
+      `ZodDiscriminatedUnion, ZodIntersection, and their wrappers.`,
+  );
+};
+
+const stripKeysRecursively = (
+  schema: z.ZodTypeAny,
+  keys: readonly string[],
+  contextLabel: string,
+): z.ZodTypeAny => {
+  if (keys.length === 0) return schema;
+
+  const { inner, rewrap } = normalizeWrapper(schema);
+
+  if (inner instanceof z.ZodObject) {
+    return rewrap(
+      rebuildObjectSchema(inner as AnyZodObject, omitShapeKeys(inner.shape, keys)),
+    );
+  }
+
+  if (inner instanceof z.ZodDiscriminatedUnion) {
+    const nextOptions = Array.from(
+      inner.options as readonly AnyZodObject[],
+    ).map((option) => stripKeysRecursively(option, keys, contextLabel)) as [
+      AnyZodObject,
+      AnyZodObject,
+      ...AnyZodObject[],
+    ];
+    return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
+  }
+
+  if (inner instanceof z.ZodUnion) {
+    const nextOptions = Array.from(inner.options as readonly z.ZodTypeAny[]).map(
+      (option) => stripKeysRecursively(option, keys, contextLabel),
+    ) as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]];
+    return rewrap(replaceUnionOptions(inner, nextOptions));
+  }
+
+  if (inner instanceof z.ZodIntersection) {
+    const left = stripKeysRecursively(
+      inner._def.left as z.ZodTypeAny,
+      keys,
+      contextLabel,
+    );
+    const right = stripKeysRecursively(
+      inner._def.right as z.ZodTypeAny,
+      keys,
+      contextLabel,
+    );
+    return rewrap(replaceIntersectionSides(inner, left, right));
+  }
+
+  throw new Error(
+    `[collectionConfig] ${contextLabel} only supports ZodObject, ZodUnion, ` +
+      `ZodDiscriminatedUnion, ZodIntersection, and their wrappers.`,
+  );
+};
+
+const pickLegacyCreateExcludedSchema = (
+  schema: z.ZodTypeAny,
+  keys: readonly string[],
+  pathLabel: string,
+): AnyZodObject => {
+  if (keys.length === 0) return EMPTY_OBJECT_SCHEMA;
+
+  const { inner } = normalizeWrapper(schema);
+  if (!(inner instanceof z.ZodObject)) {
+    throw new Error(
+      `[collectionConfig] createOmitKeys requires top-level schema to be ZodObject ${pathLabel}. ` +
+        `Use createExcludedSchema when schema is union/intersection based.`,
+    );
+  }
+
+  for (const key of keys) {
+    if (!(key in inner.shape)) {
+      throw new Error(
+        `[collectionConfig] createOmitKey "${key}" must be a key of schema ${pathLabel}`,
+      );
+    }
+  }
+
+  return z.object(pickShapeKeys(inner.shape, keys));
+};
+
 
 export const getCollectionConfigBare = <
   Path extends string,
   FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape = EmptyShape,
   CreateOmitKeys extends string = never,
 >(
   config: CollectionDefinition<
     Path,
     FieldKeys,
     IntrinsicSchema,
+    CreateExcludedShape,
     CreateOmitKeys
   >,
 ) => {
@@ -210,37 +500,21 @@ export const getCollectionConfigBare = <
   const fieldKeys = (config.fieldKeys ?? []) as readonly FieldKeys[];
   const createOmitKeys = (config.createOmitKeys ??
     []) as readonly CreateOmitKeys[];
-  // fieldKeys を path 由来と non-path に分解（内部用）
   const nonPathKeys = fieldKeys.filter(
-    (k) => !(pathUtils.documentPathKeys as readonly string[]).includes(k),
+    (key) => !(pathUtils.documentPathKeys as readonly string[]).includes(key),
   ) as unknown as readonly NonPathKeysOf<Path, FieldKeys>[];
 
-  // documentIdentityKeys = documentPathKeys + nonPathKeys
   const documentIdentityKeys = [
     ...pathUtils.documentPathKeys,
     ...nonPathKeys,
   ] as readonly DocumentIdentityKey<Path, FieldKeys>[];
-
-  // collectionIdentityKeys = collectionPathKeys + nonPathKeys
   const collectionIdentityKeys = [
     ...pathUtils.collectionPathKeys,
     ...nonPathKeys,
   ] as readonly CollectionIdentityKeys<Path, FieldKeys>[];
 
-  // --- バリデーション ---
   const pathLabel = `(path: "${config.path}")`;
-  for (const key of createOmitKeys) {
-    if (!(key in config.schema.shape)) {
-      throw new Error(
-        `[collectionConfig] createOmitKey "${key}" must be a key of schema ${pathLabel}`,
-      );
-    }
-  }
 
-  // --- Identity系スキーマ生成 ---
-  // documentPathSchema / collectionPathSchema は pathUtils から利用
-
-  // nonPathKeySchema: nonPathKeys のみ（空の場合は z.unknown）
   const nonPathKeySchema = (
     nonPathKeys.length === 0
       ? z.unknown()
@@ -251,13 +525,9 @@ export const getCollectionConfigBare = <
         )
   ) as NonPathKeySchemaFor<Path, FieldKeys>;
 
-  // collectionIdentitySchema: collectionPath + nonPathKeys（collection を一意に識別）
   const collectionIdentitySchema = (
     nonPathKeys.length > 0
-      ? pathUtils.collectionPathSchema.merge(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          nonPathKeySchema as z.ZodObject<any>,
-        )
+      ? pathUtils.collectionPathSchema.merge(nonPathKeySchema as AnyZodObject)
       : pathUtils.collectionPathSchema
   ) as z.ZodObject<{
     [K in
@@ -265,7 +535,6 @@ export const getCollectionConfigBare = <
       | NonPathKeysOf<Path, FieldKeys>]: z.ZodString;
   }>;
 
-  // documentIdentitySchema: documentPathKeys + nonPathKeys（doc を一意に識別）
   const documentIdentitySchema = z.object(
     Object.fromEntries(
       documentIdentityKeys.map((key: string) => [key, z.string()]),
@@ -274,167 +543,119 @@ export const getCollectionConfigBare = <
     [K in DocumentIdentityKey<Path, FieldKeys>]: z.ZodString;
   }>;
 
-  // --- 派生スキーマ生成 ---
-  const intrinsicSchema = config.schema;
+  const legacyCreateExcludedSchema = pickLegacyCreateExcludedSchema(
+    config.schema,
+    createOmitKeys,
+    pathLabel,
+  );
+  const effectiveCreateExcludedSchema = mergeSchemaRecursively(
+    legacyCreateExcludedSchema,
+    config.createExcludedSchema ?? EMPTY_OBJECT_SCHEMA,
+    "appendAsIs",
+    "createExcludedSchema merge",
+  ) as AnyZodObject;
 
-  // 派生スキーマの Shape 型定義
-  // Zodネイティブの .extend() を使うことで、z.infer が正しく型推論される
-  // NOTE:
-  // intrinsicSchema が identityKeys（例: userId/teamId）を含む場合、
-  // `IntrinsicSchema["shape"] & IdentityKeyShapeOptional<...>` は
-  // `ZodString & ZodOptional<ZodString>` のような衝突を起こし、z.infer が崩れることがある。
-  // そこで documentIdentityKeys を一旦 Omit してから上書きすることで、extend の実態と型を一致させる。
-  type AllIdentityKeys = DocumentIdentityKey<Path, FieldKeys>;
-  type DataSchemaShape = Omit<IntrinsicSchema["shape"], AllIdentityKeys> &
-    IdentityKeyShapeRequired<AllIdentityKeys>;
-  // UpdateSchemaShape: documentIdentityKeys は optional だが、fieldKeys は必須（データとして保持されるため）
-  type UpdateSchemaShape = Omit<IntrinsicSchema["shape"], AllIdentityKeys> &
-    IdentityKeyShapeOptional<Exclude<AllIdentityKeys, FieldKeys>> &
-    SafeMappedType<FieldKeys, z.ZodString>;
-  // StoreSchemaShape: documentPathKeys を除外し、fieldKeys は必須で残す
-  type StoreSchemaShape = Omit<
-    IntrinsicSchema["shape"],
-    DocumentPathKeyFromPath<Path>
-  > &
-    SafeMappedType<FieldKeys, z.ZodString>;
-  // CreateSchemaShape: documentIdentityKeys と createOmitKeys を除外（fieldKeys は注入されるので原則含めない）
-  type CreateSchemaShape = Omit<
-    IntrinsicSchema["shape"],
-    AllIdentityKeys | CreateOmitKeys
+  const intrinsicSchema = config.schema;
+  const fieldKeySchema = z.object(
+    Object.fromEntries(fieldKeys.map((key) => [key, z.string()])),
+  );
+
+  const dataSchemaBeforeHide = mergeSchemaRecursively(
+    intrinsicSchema,
+    documentIdentitySchema,
+    "appendRequired",
+    "dataSchema auto identity merge",
+    true,
+  );
+  const dataSchema = hideSchemaFields(dataSchemaBeforeHide, {
+    paths: documentIdentityKeys as unknown as string[],
+  }) as z.ZodType<
+    DataTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
   >;
 
-  // --- ヘルパー関数 ---
+  const dataSchemaWithCreateExcluded = mergeSchemaRecursively(
+    dataSchema,
+    effectiveCreateExcludedSchema,
+    "appendAsIs",
+    "dataSchema createExcluded merge",
+  ) as z.ZodType<
+    DataTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+  >;
 
-  /** shape から指定キーを除外した新しいオブジェクトを返す */
-  const removeKeysFromShape = (
-    shape: Record<string, z.ZodType>,
-    keys: readonly string[],
-  ): Record<string, z.ZodType> => {
-    const keysSet = new Set(keys);
-    return Object.fromEntries(
-      Object.entries(shape).filter(([k]) => !keysSet.has(k)),
-    );
-  };
-
-  /**
-   * shape[key] を required 化して返す。
-   * optional なら unwrap→clone し、hidden 登録と label を維持する。
-   * shape になければ intrinsicSchema.shape をフォールバック参照する。
-   * どちらにもなければ z.string() を hidden として返す。
-   */
-  const getRequiredField = (
-    shape: Record<string, z.ZodType>,
-    key: string,
-  ): z.ZodType => {
-    const schema = shape[key] ?? intrinsicSchema.shape[key];
-    if (!schema) return z.string().register(zf.hidden.registry, {});
-
-    if (!(schema instanceof z.ZodOptional)) return schema;
-
-    const inner = schema.unwrap() as z.ZodType;
-    const optionalMeta = getMeta(schema as z.ZodTypeAny);
-    const isHidden =
-      optionalMeta?.typeName === "hidden" || optionalMeta?.hidden;
-    const cloned = cloneSchema(inner);
-    if (isHidden) {
-      cloned.register(zf.hidden.registry, {
-        ...(optionalMeta?.label ? { label: optionalMeta.label } : {}),
-      });
-    }
-    // ここでlabelを維持する処理が必要かもしれない
-    return cloned;
-  };
-
-  /**
-   * shape[key] を optional 化して返す。
-   * identity key は常に hidden 扱いとし、元スキーマの label があれば保持する。
-   * shape になければ intrinsicSchema.shape をフォールバック参照する。
-   * どちらにもなければ z.string().optional() を hidden として返す。
-   */
-  const getOptionalField = (
-    shape: Record<string, z.ZodType>,
-    key: string,
-  ): z.ZodType => {
-    const schema = shape[key] ?? intrinsicSchema.shape[key];
-    if (!schema) return z.string().optional().register(zf.hidden.registry, {});
-
-    if (schema instanceof z.ZodOptional) return schema;
-
-    const label = getMeta(schema as z.ZodTypeAny)?.label;
-    const optional = schema.optional();
-    optional.register(zf.hidden.registry, {
-      ...(label ? { label } : {}),
-    });
-    return optional;
-  };
-
-  /** shape にキーを required で追加/上書き */
-  const addKeysRequired = (
-    shape: Record<string, z.ZodType>,
-    keys: readonly string[],
-  ): Record<string, z.ZodType> => ({
-    ...shape,
-    ...Object.fromEntries(keys.map((k) => [k, getRequiredField(shape, k)])),
-  });
-
-  /** shape にキーを optional で追加/上書き */
-  const addKeysOptional = (
-    shape: Record<string, z.ZodType>,
-    keys: readonly string[],
-  ): Record<string, z.ZodType> => ({
-    ...shape,
-    ...Object.fromEntries(keys.map((k) => [k, getOptionalField(shape, k)])),
-  });
-
-  // --- 派生スキーマ生成 ---
-
-  // dataSchema: intrinsicSchema に全 documentIdentityKeys を required で追加
-  const dataSchema = z.object(
-    addKeysRequired(intrinsicSchema.shape, documentIdentityKeys),
-  ) as z.ZodObject<DataSchemaShape>;
-
-  // updateSchema: intrinsicSchema の全 documentIdentityKeys を optional にし、fieldKeys だけ required に戻す
-  const updateSchema = z.object(
-    addKeysRequired(
-      addKeysOptional(intrinsicSchema.shape, documentIdentityKeys),
-      fieldKeys,
+  const updateSchemaBeforeHide = mergeSchemaRecursively(
+    mergeSchemaRecursively(
+      intrinsicSchema,
+      documentIdentitySchema,
+      "appendOptional",
+      "updateSchema auto identity merge",
+      true,
     ),
-  ) as z.ZodObject<UpdateSchemaShape>;
+    fieldKeySchema,
+    "appendOptional",
+    "updateSchema fieldKeys merge",
+    true,
+  );
+  const updateSchema = hideSchemaFields(updateSchemaBeforeHide, {
+    paths: documentIdentityKeys as unknown as string[],
+  }) as z.ZodType<
+    UpdateTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+  >;
 
-  // storeSchema: intrinsicSchema から documentPathKeys を除去し、fieldKeys を required で追加
-  const storeSchema = z.object(
-    addKeysRequired(
-      removeKeysFromShape(intrinsicSchema.shape, pathUtils.documentPathKeys),
-      fieldKeys,
+  const updateSchemaWithCreateExcluded = mergeSchemaRecursively(
+    updateSchema,
+    effectiveCreateExcludedSchema,
+    "appendAsIs",
+    "updateSchema createExcluded merge",
+  ) as z.ZodType<
+    UpdateTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+  >;
+
+  const storeSchemaWithFieldKeys = mergeSchemaRecursively(
+    stripKeysRecursively(
+      intrinsicSchema,
+      pathUtils.documentPathKeys.filter(
+        (key) => !(fieldKeys as readonly string[]).includes(key),
+      ),
+      "storeSchema strip",
     ),
-  ) as z.ZodObject<StoreSchemaShape>;
+    fieldKeySchema,
+    "appendRequired",
+    "storeSchema fieldKeys merge",
+    true,
+  );
 
-  // createSchema: intrinsicSchema から documentIdentityKeys と createOmitKeys を除去
-  const createSchema = z.object(
-    removeKeysFromShape(intrinsicSchema.shape, [
-      ...documentIdentityKeys,
-      ...createOmitKeys,
-    ]),
-  ) as z.ZodObject<CreateSchemaShape>;
+  const storeSchemaBeforeHide = mergeSchemaRecursively(
+    storeSchemaWithFieldKeys,
+    effectiveCreateExcludedSchema,
+    "appendAsIs",
+    "storeSchema createExcluded merge",
+  );
+  const identityKeysInStore = (fieldKeys as readonly string[]).filter(
+    (key) => documentIdentityKeys.includes(key as DocumentIdentityKey<Path, FieldKeys>),
+  );
+  const storeSchema = (
+    identityKeysInStore.length > 0
+      ? hideSchemaFields(storeSchemaBeforeHide, {
+          paths: identityKeysInStore,
+        })
+      : storeSchemaBeforeHide
+  ) as z.ZodType<
+    StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+  >;
+
+  const createSchema = intrinsicSchema as z.ZodType<z.infer<IntrinsicSchema>>;
 
   const response = {
     ...pathUtils,
-    // --- Identity系スキーマ ---
     nonPathKeySchema,
     documentIdentitySchema,
     collectionIdentitySchema,
     collectionKeySchema: pathUtils.collectionPathSchema,
-
-    // --- 派生スキーマ ---
-    dataSchema,
-    updateSchema,
+    dataSchema: dataSchemaWithCreateExcluded,
+    updateSchema: updateSchemaWithCreateExcluded,
     storeSchema,
     createSchema,
-
-    // --- onInit（フォーム用、accessorでは使わない） ---
     onInit: config.onInit,
-
-    // 新規作成前の処理（onCreate -> onWrite の順で適用し、fieldKeys を注入）。documentIdentity と inputData を渡す。
     beforeGenerate: <T>(
       documentIdentity: DocumentIdentity<Path, FieldKeys>,
       inputData: T,
@@ -450,10 +671,11 @@ export const getCollectionConfigBare = <
         ...afterOnCreate,
         ...(config.onWrite?.(
           documentIdentity,
-          afterOnCreate as z.infer<IntrinsicSchema>,
+          afterOnCreate as Partial<
+            StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+          >,
         ) ?? {}),
       };
-      // fieldKeys を documentIdentity から注入
       const fieldParams = Object.fromEntries(
         fieldKeys.map((key) => [
           key,
@@ -463,9 +685,11 @@ export const getCollectionConfigBare = <
       return {
         ...afterOnWrite,
         ...fieldParams,
-      } as T & Partial<z.infer<IntrinsicSchema>>;
+      } as T &
+        Partial<
+          StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+        >;
     },
-    // 書き込み前の処理（onWrite のみ適用し、fieldKeys を注入）。documentIdentity と data を渡す。
     beforeWrite: <T>(
       documentIdentity: DocumentIdentity<Path, FieldKeys>,
       data: T,
@@ -474,10 +698,11 @@ export const getCollectionConfigBare = <
         ...data,
         ...(config.onWrite?.(
           documentIdentity,
-          data as z.infer<IntrinsicSchema>,
+          data as Partial<
+            StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+          >,
         ) ?? {}),
       };
-      // fieldKeys を documentIdentity から注入
       const fieldParams = Object.fromEntries(
         fieldKeys.map((key) => [
           key,
@@ -487,9 +712,11 @@ export const getCollectionConfigBare = <
       return {
         ...afterOnWrite,
         ...fieldParams,
-      } as T & Partial<z.infer<IntrinsicSchema>>;
+      } as T &
+        Partial<
+          StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+        >;
     },
-
     checkNonPathKeys: (
       data: Record<string, unknown>,
       identityParams:
@@ -500,10 +727,7 @@ export const getCollectionConfigBare = <
         (key) => data[key] === (identityParams as Record<string, string>)[key],
       );
     },
-
-    // documentIdentityKeys = documentPathKeys + nonPathKeys
     documentIdentityKeys,
-    // collectionIdentityKeys = collectionPathKeys + nonPathKeys
     collectionIdentityKeys,
     fieldKeys,
     nonPathKeys,
@@ -511,25 +735,27 @@ export const getCollectionConfigBare = <
   return response;
 };
 
-/**
- * コレクション定義から、ブランド付きの `CollectionConfig` を生成します。
- *
- * `path` / `schema` / hooks などの入力定義を元に、identity スキーマや path ユーティリティ等の派生情報を付与します。
- */
 export const collectionConfig = <
   const Path extends string,
   const FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const IntrinsicSchema extends z.ZodObject<any>,
+  const IntrinsicSchema extends z.ZodTypeAny,
+  const CreateExcludedShape extends z.ZodRawShape = EmptyShape,
   const CreateOmitKeys extends string = never,
 >(
   config: CollectionDefinition<
     Path,
     FieldKeys,
     IntrinsicSchema,
+    CreateExcludedShape,
     CreateOmitKeys
   >,
-): CollectionConfig<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys> => {
+): CollectionConfig<
+  Path,
+  FieldKeys,
+  IntrinsicSchema,
+  CreateExcludedShape,
+  CreateOmitKeys
+> => {
   return {
     ...getCollectionConfigBare(config),
     ...config,
@@ -538,205 +764,151 @@ export const collectionConfig = <
 
 type PathKeyShape<Keys extends string> = { [K in Keys]: z.ZodString };
 
-type DataSchemaShapeFor<
+type DataSchemaTypeFor<
   Path extends string,
   FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
-> = Omit<IntrinsicSchema["shape"], DocumentIdentityKey<Path, FieldKeys>> &
-  IdentityKeyShapeRequired<DocumentIdentityKey<Path, FieldKeys>>;
-
-type UpdateSchemaShapeFor<
-  Path extends string,
-  FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
-> = Omit<IntrinsicSchema["shape"], DocumentIdentityKey<Path, FieldKeys>> &
-  IdentityKeyShapeOptional<
-    Exclude<DocumentIdentityKey<Path, FieldKeys>, FieldKeys>
-  > &
-  SafeMappedType<FieldKeys, z.ZodString>;
-
-type StoreSchemaShapeFor<
-  Path extends string,
-  FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
-> = Omit<IntrinsicSchema["shape"], DocumentPathKeyFromPath<Path>> &
-  SafeMappedType<FieldKeys, z.ZodString>;
-
-type CreateSchemaShapeFor<
-  Path extends string,
-  FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
-  CreateOmitKeys extends string,
-> = Omit<
-  IntrinsicSchema["shape"],
-  DocumentIdentityKey<Path, FieldKeys> | CreateOmitKeys
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape,
+> = z.ZodType<
+  DataTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
 >;
 
-/**
- * `collectionConfig()` が返すオブジェクトに付与されるメソッド/派生スキーマ群。
- *
- * パス生成・パース、identity 検証スキーマ、Firestore 書き込み前の前処理など、
- * コレクション定義から自動生成できるユーティリティをまとめた型です。
- */
+type UpdateSchemaTypeFor<
+  Path extends string,
+  FieldKeys extends string,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape,
+> = z.ZodType<
+  UpdateTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+>;
+
+type StoreSchemaTypeFor<
+  Path extends string,
+  FieldKeys extends string,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape,
+> = z.ZodType<
+  StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+>;
+
+type CreateSchemaTypeFor<IntrinsicSchema extends z.ZodTypeAny> = z.ZodType<
+  z.infer<IntrinsicSchema>
+>;
+
 export type CollectionConfigMethods<
   Path extends string,
   FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape = EmptyShape,
   CreateOmitKeys extends string = never,
 > = {
-  /** パスから抽出した全キー（collectionKeys + documentKey）。 */
   readonly documentPathKeys: readonly DocumentPathKeyFromPath<Path>[];
-  /** 最後のパスキー（docKey）。 */
   readonly documentKey: DocumentKeyFromPath<Path>;
-  /** documentKey を除いた pathKeys（collectionKeys）。 */
   readonly collectionKeys: readonly CollectionPathKeyFromPath<Path>[];
-  /** `collectionKeys` と同義の別名。 */
   readonly collectionPathKeys: readonly CollectionPathKeyFromPath<Path>[];
-  /**
-   * documentPathKeys（collectionKeys + documentKey）を検証する Zod スキーマ。
-   * 用途: `parseDocumentPath()` の戻り値検証や、パスパラメータの型導出。
-   */
   readonly documentPathSchema: z.ZodObject<
     PathKeyShape<DocumentPathKeyFromPath<Path>>
   >;
-  /**
-   * collectionKeys（documentKey を除いた pathKeys）を検証する Zod スキーマ。
-   * 用途: `buildCollectionPath()` 引数の型導出や、collection 単位の識別に利用。
-   */
   readonly collectionPathSchema: z.ZodObject<
     PathKeyShape<CollectionPathKeyFromPath<Path>>
   >;
-  /**
-   * ドキュメントパスを組み立てる。
-   * 先頭の `/` 有無はどちらでも動作。
-   */
   readonly buildDocumentPath: (
     params: DocumentPathParamsFromPath<Path>,
   ) => string;
-  /**
-   * コレクションパスを組み立てる。
-   * 先頭の `/` 有無はどちらでも動作。
-   */
   readonly buildCollectionPath: (
     params: CollectionPathParamsFromPath<Path>,
   ) => string;
-  /**
-   * ドキュメントパスをパースしてパラメータを返す。
-   * 不一致の場合は `null`。
-   */
   readonly parseDocumentPath: (
     path: string,
   ) => DocumentPathParamsFromPath<Path> | null;
-
-  /**
-   * documentKey（最後のパスキー）**だけ**を検証する Zod スキーマ。
-   * documentPathSchema との違い: pathKeys 全体ではなく、docKey 単体に限定。
-   * 用途: docKey のみを扱う UI/バリデーションや、外部キーの valueField など。
-   */
   readonly documentKeySchema: z.ZodObject<
     PathKeyShape<DocumentKeyFromPath<Path>>
   >;
-  /** nonPathKeys のみを検証する Zod スキーマ（空なら `z.unknown()`）。 */
   readonly nonPathKeySchema: NonPathKeySchemaFor<Path, FieldKeys>;
-  /** documentPathKeys + nonPathKeys を検証する Zod スキーマ。 */
   readonly documentIdentitySchema: z.ZodObject<
     PathKeyShape<DocumentIdentityKey<Path, FieldKeys>>
   >;
-  /** collectionKeys + nonPathKeys を検証する Zod スキーマ。 */
   readonly collectionIdentitySchema: z.ZodObject<
     PathKeyShape<
       CollectionPathKeyFromPath<Path> | NonPathKeysOf<Path, FieldKeys>
     >
   >;
-  /**
-   * collectionKeys を検証する Zod スキーマ（collectionPathSchema の別名）。
-   * 用途: collectionPathSchema と同じ（別名として提供）。
-   */
   readonly collectionKeySchema: z.ZodObject<
     PathKeyShape<CollectionPathKeyFromPath<Path>>
   >;
-
-  /** `schema` + documentIdentityKeys（必須）で構成される読み取り用スキーマ。 */
-  readonly dataSchema: z.ZodObject<
-    DataSchemaShapeFor<Path, FieldKeys, IntrinsicSchema>
+  readonly dataSchema: DataSchemaTypeFor<
+    Path,
+    FieldKeys,
+    IntrinsicSchema,
+    CreateExcludedShape
   >;
-  /** 更新用スキーマ（fieldKeys は必須、その他の documentIdentityKeys は optional）。 */
-  readonly updateSchema: z.ZodObject<
-    UpdateSchemaShapeFor<Path, FieldKeys, IntrinsicSchema>
+  readonly updateSchema: UpdateSchemaTypeFor<
+    Path,
+    FieldKeys,
+    IntrinsicSchema,
+    CreateExcludedShape
   >;
-  /** Firestore に保存する形のスキーマ（documentPathKeys を除外、fieldKeys は必須）。 */
-  readonly storeSchema: z.ZodObject<
-    StoreSchemaShapeFor<Path, FieldKeys, IntrinsicSchema>
+  readonly storeSchema: StoreSchemaTypeFor<
+    Path,
+    FieldKeys,
+    IntrinsicSchema,
+    CreateExcludedShape
   >;
-  /** 新規作成用スキーマ（documentIdentityKeys と createOmitKeys を除外）。 */
-  readonly createSchema: z.ZodObject<
-    CreateSchemaShapeFor<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys>
-  >;
-
-  /**
-   * フォーム初期化用のデフォルト値。
-   * フォーム用途のみ（Firestore accessor では使用されない）。
-   */
+  readonly createSchema: CreateSchemaTypeFor<IntrinsicSchema>;
   readonly onInit: (() => Partial<z.infer<IntrinsicSchema>>) | undefined;
-  /**
-   * create 直前の前処理（`onCreate` → `onWrite` → fieldKeys 注入）。
-   */
   readonly beforeGenerate: <T>(
     documentIdentity: DocumentIdentity<Path, FieldKeys>,
     inputData: T,
-  ) => T & Partial<z.infer<IntrinsicSchema>>;
-  /**
-   * update 直前の前処理（`onWrite` → fieldKeys 注入）。
-   */
+  ) => T &
+    Partial<
+      StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+    >;
   readonly beforeWrite: <T>(
     documentIdentity: DocumentIdentity<Path, FieldKeys>,
     data: T,
-  ) => T & Partial<z.infer<IntrinsicSchema>>;
-  /**
-   * data 内の nonPathKeys が identityParams と一致するか検証。
-   */
+  ) => T &
+    Partial<
+      StoreTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+    >;
   readonly checkNonPathKeys: (
     data: Record<string, unknown>,
     identityParams:
       | DocumentIdentity<Path, FieldKeys>
       | CollectionIdentity<Path, FieldKeys>,
   ) => boolean;
-
-  /** documentPathKeys + nonPathKeys の一覧（ドキュメント識別キーの完全セット）。 */
   readonly documentIdentityKeys: readonly DocumentIdentityKey<
     Path,
     FieldKeys
   >[];
-  /** collectionPathKeys + nonPathKeys の一覧（コレクション識別キーの完全セット）。 */
   readonly collectionIdentityKeys: readonly CollectionIdentityKeys<
     Path,
     FieldKeys
   >[];
-  /** 入力された fieldKeys（doc field として保持する keys）。 */
   readonly fieldKeys: readonly FieldKeys[];
-  /** fieldKeys のうち path に含まれない keys（autoQuery の対象）。 */
   readonly nonPathKeys: readonly NonPathKeysOf<Path, FieldKeys>[];
+  readonly createOmitKeys?: readonly CreateOmitKeys[];
 };
 
-/**
- * `collectionConfig()` が返す、ブランド付きのコレクション設定型。
- *
- * 入力の `CollectionDefinition` と、そこから生成される `CollectionConfigMethods` を合成した型です。
- * 実体は `collectionConfig()` の戻り値のみが満たすことを意図しています。
- */
 export type CollectionConfig<
   Path extends string,
   FieldKeys extends string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  IntrinsicSchema extends z.ZodObject<any>,
+  IntrinsicSchema extends z.ZodTypeAny,
+  CreateExcludedShape extends z.ZodRawShape = EmptyShape,
   CreateOmitKeys extends string = never,
-> = CollectionDefinition<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys> &
-  CollectionConfigMethods<Path, FieldKeys, IntrinsicSchema, CreateOmitKeys>;
+> = CollectionDefinition<
+  Path,
+  FieldKeys,
+  IntrinsicSchema,
+  CreateExcludedShape,
+  CreateOmitKeys
+> &
+  CollectionConfigMethods<
+    Path,
+    FieldKeys,
+    IntrinsicSchema,
+    CreateExcludedShape,
+    CreateOmitKeys
+  >;
 
 export type {
   CollectionConfigBase,

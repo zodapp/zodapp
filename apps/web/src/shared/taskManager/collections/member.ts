@@ -75,8 +75,14 @@ const memberDataSchema = z
 export const membersCollection = collectionConfig({
   path: "/workspaces/:workspaceId/members/:memberId" as const,
   fieldKeys: [] as const,
-  schema: memberDataSchema,
-  createOmitKeys: ["createdAt", "updatedAt"] as const,
+  schema: memberDataSchema.omit({
+    createdAt: true,
+    updatedAt: true,
+  }),
+  createExcludedSchema: memberDataSchema.pick({
+    createdAt: true,
+    updatedAt: true,
+  }),
   /** docId に email を使用（同一ワークスペース内でメール一意） */
   onCreateId: (_collectionIdentity, inputData) => inputData.email,
   onCreate: () => ({ createdAt: new Date() }),
