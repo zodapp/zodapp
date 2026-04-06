@@ -29,6 +29,8 @@ type ApplyResult = {
   matchedIndexes: Set<number>;
 };
 
+type ApiName = 'hideSchemaFields' | 'hideSchemaFieldsExcept';
+
 /**
  * Zod スキーマを公開 API のみで clone する。
  * .describe() は新しいインスタンスを返すため、private field を差し替える土台に使える。
@@ -171,20 +173,21 @@ const replaceIntersectionSides = (
   return nextIntersection;
 };
 
-const normalizePaths = (paths: readonly string[]): PathEntry[] => {
+const normalizePaths = (
+  paths: readonly string[],
+  apiName: ApiName,
+): PathEntry[] => {
   const unique = new Map<string, PathEntry>();
 
   for (const rawPath of paths) {
     const normalized = rawPath.trim();
     if (!normalized) {
-      throw new Error('hideSchemaFields: path must not be empty');
+      throw new Error(`${apiName}: path must not be empty`);
     }
 
     const segments = normalized.split('.');
     if (segments.some((segment) => segment.length === 0)) {
-      throw new Error(
-        `hideSchemaFields: path "${normalized}" contains an empty segment`,
-      );
+      throw new Error(`${apiName}: path "${normalized}" contains an empty segment`);
     }
 
     if (!unique.has(normalized)) {
@@ -204,12 +207,28 @@ const normalizePaths = (paths: readonly string[]): PathEntry[] => {
     for (const other of entries.slice(i + 1)) {
       if (!other.raw.startsWith(`${current.raw}.`)) continue;
       throw new Error(
-        `hideSchemaFields: overlapping paths are not supported (${current.raw}, ${other.raw})`,
+        `${apiName}: overlapping paths are not supported (${current.raw}, ${other.raw})`,
       );
     }
   }
 
   return entries.map((entry, index) => ({ ...entry, index }));
+};
+
+const assertAllPathsResolved = (
+  apiName: ApiName,
+  paths: readonly PathEntry[],
+  matchedIndexes: ReadonlySet<number>,
+) => {
+  const unresolved = paths
+    .filter((path) => !matchedIndexes.has(path.index))
+    .map((path) => path.raw);
+
+  if (unresolved.length > 0) {
+    throw new Error(
+      `${apiName}: unknown or non-traversable path(s): ${unresolved.join(', ')}`,
+    );
+  }
 };
 
 const mergeMatchedIndexes = (results: ApplyResult[]): Set<number> => {
@@ -222,32 +241,53 @@ const mergeMatchedIndexes = (results: ApplyResult[]): Set<number> => {
   return merged;
 };
 
-const applyHidden = (
+const unchangedResult = (
+  schema: z.ZodTypeAny,
+  matchedIndexes = new Set<number>(),
+): ApplyResult => {
+  return { schema, changed: false, matchedIndexes };
+};
+
+const hiddenResult = (
+  schema: z.ZodTypeAny,
+  matchedIndexes = new Set<number>(),
+): ApplyResult => {
+  return {
+    schema: cloneAsHidden(schema),
+    changed: true,
+    matchedIndexes,
+  };
+};
+
+type ApplyPolicy = {
+  onLeafMatch: (
+    schema: z.ZodTypeAny,
+    leafPaths: readonly PathEntry[],
+  ) => ApplyResult;
+  onObjectField: (args: {
+    key: string;
+    child: z.ZodTypeAny;
+    nextPaths: readonly PathEntry[];
+    apply: (schema: z.ZodTypeAny, paths: readonly PathEntry[]) => ApplyResult;
+  }) => ApplyResult;
+  onExhaustedTraversal: (schema: z.ZodTypeAny) => ApplyResult;
+};
+
+const applyWithPolicy = (
   schema: z.ZodTypeAny,
   paths: readonly PathEntry[],
+  policy: ApplyPolicy,
 ): ApplyResult => {
-  if (paths.length === 0) {
-    return {
-      schema,
-      changed: false,
-      matchedIndexes: new Set<number>(),
-    };
-  }
-
   const leafPaths = paths.filter((path) => path.segments.length === 0);
   if (leafPaths.length > 0) {
-    return {
-      schema: cloneAsHidden(schema),
-      changed: true,
-      matchedIndexes: new Set(leafPaths.map((path) => path.index)),
-    };
+    return policy.onLeafMatch(schema, leafPaths);
   }
 
   const { inner, rewrap } = unwrapSchema(schema);
   if (inner !== schema) {
-    const innerResult = applyHidden(inner, paths);
+    const innerResult = applyWithPolicy(inner, paths, policy);
     if (!innerResult.changed) {
-      return { schema, changed: false, matchedIndexes: innerResult.matchedIndexes };
+      return unchangedResult(schema, innerResult.matchedIndexes);
     }
 
     return {
@@ -270,27 +310,26 @@ const applyHidden = (
     const childResults: ApplyResult[] = [];
     let nextShape: Record<string, z.ZodTypeAny> | null = null;
 
-    for (const [key, nextPaths] of grouped) {
-      const child = schema.shape[key] as z.ZodTypeAny | undefined;
-      if (!child) continue;
-
-      const childResult = applyHidden(child, nextPaths);
+    const shape = schema.shape as Record<string, z.ZodTypeAny>;
+    for (const [key, child] of Object.entries(shape)) {
+      const childResult = policy.onObjectField({
+        key,
+        child,
+        nextPaths: grouped.get(key) ?? [],
+        apply: (nextSchema, nextPaths) => applyWithPolicy(nextSchema, nextPaths, policy),
+      });
       childResults.push(childResult);
 
       if (!childResult.changed) continue;
 
       if (nextShape === null) {
-        nextShape = { ...(schema.shape as Record<string, z.ZodTypeAny>) };
+        nextShape = { ...shape };
       }
       nextShape[key] = childResult.schema;
     }
 
     if (nextShape === null) {
-      return {
-        schema,
-        changed: false,
-        matchedIndexes: mergeMatchedIndexes(childResults),
-      };
+      return unchangedResult(schema, mergeMatchedIndexes(childResults));
     }
 
     return {
@@ -300,14 +339,14 @@ const applyHidden = (
     };
   }
 
+  if (paths.length === 0) {
+    return policy.onExhaustedTraversal(schema);
+  }
+
   if (schema instanceof z.ZodArray) {
-    const elementResult = applyHidden(schema.element as z.ZodTypeAny, paths);
+    const elementResult = applyWithPolicy(schema.element as z.ZodTypeAny, paths, policy);
     if (!elementResult.changed) {
-      return {
-        schema,
-        changed: false,
-        matchedIndexes: elementResult.matchedIndexes,
-      };
+      return unchangedResult(schema, elementResult.matchedIndexes);
     }
 
     return {
@@ -319,11 +358,11 @@ const applyHidden = (
 
   if (schema instanceof z.ZodDiscriminatedUnion) {
     const options = Array.from(schema.options as readonly z.ZodObject<z.ZodRawShape>[]);
-    const optionResults = options.map((option) => applyHidden(option, paths));
+    const optionResults = options.map((option) => applyWithPolicy(option, paths, policy));
     const matchedIndexes = mergeMatchedIndexes(optionResults);
 
     if (!optionResults.some((result) => result.changed)) {
-      return { schema, changed: false, matchedIndexes };
+      return unchangedResult(schema, matchedIndexes);
     }
 
     const discriminator = (
@@ -360,12 +399,12 @@ const applyHidden = (
 
   if (schema instanceof z.ZodUnion) {
     const optionResults = Array.from(schema.options as readonly z.ZodTypeAny[]).map(
-      (option) => applyHidden(option, paths),
+      (option) => applyWithPolicy(option, paths, policy),
     );
     const matchedIndexes = mergeMatchedIndexes(optionResults);
 
     if (!optionResults.some((result) => result.changed)) {
-      return { schema, changed: false, matchedIndexes };
+      return unchangedResult(schema, matchedIndexes);
     }
 
     return {
@@ -383,12 +422,12 @@ const applyHidden = (
   }
 
   if (schema instanceof z.ZodIntersection) {
-    const left = applyHidden(schema._def.left as z.ZodTypeAny, paths);
-    const right = applyHidden(schema._def.right as z.ZodTypeAny, paths);
+    const left = applyWithPolicy(schema._def.left as z.ZodTypeAny, paths, policy);
+    const right = applyWithPolicy(schema._def.right as z.ZodTypeAny, paths, policy);
     const matchedIndexes = mergeMatchedIndexes([left, right]);
 
     if (!left.changed && !right.changed) {
-      return { schema, changed: false, matchedIndexes };
+      return unchangedResult(schema, matchedIndexes);
     }
 
     return {
@@ -398,30 +437,54 @@ const applyHidden = (
     };
   }
 
-  return {
-    schema,
-    changed: false,
-    matchedIndexes: new Set<number>(),
-  };
+  return unchangedResult(schema);
 };
+
+const applyHidden = (schema: z.ZodTypeAny, paths: readonly PathEntry[]): ApplyResult =>
+  applyWithPolicy(schema, paths, {
+    onLeafMatch: (currentSchema, leafPaths) =>
+      hiddenResult(currentSchema, new Set(leafPaths.map((path) => path.index))),
+    onObjectField: ({ child, nextPaths, apply }) => {
+      if (nextPaths.length === 0) return unchangedResult(child);
+      return apply(child, nextPaths);
+    },
+    onExhaustedTraversal: (currentSchema) => unchangedResult(currentSchema),
+  });
+
+const applyHiddenExcept = (
+  schema: z.ZodTypeAny,
+  paths: readonly PathEntry[],
+): ApplyResult =>
+  applyWithPolicy(schema, paths, {
+    onLeafMatch: (currentSchema, leafPaths) =>
+      unchangedResult(currentSchema, new Set(leafPaths.map((path) => path.index))),
+    onObjectField: ({ child, nextPaths, apply }) => {
+      if (nextPaths.length === 0) return hiddenResult(child);
+      return apply(child, nextPaths);
+    },
+    onExhaustedTraversal: (currentSchema) => hiddenResult(currentSchema),
+  });
 
 export function hideSchemaFields<S extends z.ZodTypeAny>(
   schema: S,
   options: { paths: readonly string[] },
 ): S {
-  const paths = normalizePaths(options.paths);
+  const paths = normalizePaths(options.paths, 'hideSchemaFields');
   if (paths.length === 0) return schema;
 
   const result = applyHidden(schema, paths);
-  const unresolved = paths
-    .filter((path) => !result.matchedIndexes.has(path.index))
-    .map((path) => path.raw);
+  assertAllPathsResolved('hideSchemaFields', paths, result.matchedIndexes);
 
-  if (unresolved.length > 0) {
-    throw new Error(
-      `hideSchemaFields: unknown or non-traversable path(s): ${unresolved.join(', ')}`,
-    );
-  }
+  return result.schema as S;
+}
+
+export function hideSchemaFieldsExcept<S extends z.ZodTypeAny>(
+  schema: S,
+  options: { paths: readonly string[] },
+): S {
+  const paths = normalizePaths(options.paths, 'hideSchemaFieldsExcept');
+  const result = applyHiddenExcept(schema, paths);
+  assertAllPathsResolved('hideSchemaFieldsExcept', paths, result.matchedIndexes);
 
   return result.schema as S;
 }
