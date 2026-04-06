@@ -147,12 +147,14 @@ export const users = collectionConfig({
 
 ### identity key の自動 hidden 化
 
-identity key（`path` と `fieldKeys` から決まる `documentIdentityKeys`）は、`dataSchema` / `updateSchema` / `storeSchema` に自動追加されます。
+identity key（`path` と `fieldKeys` から決まる `documentIdentityKeys`）は、`dataSchema` / `updateSchema` / `storeSchema` / `createSchema` で自動的に hidden 化されます。
 
 - intrinsic `schema` に同名キーがある場合: validation と label などの meta を保持したまま hidden 化されます
-- intrinsic `schema` に同名キーがない場合: `string + hidden` が自動補完されます
+- intrinsic `schema` に同名キーがない場合: `string + hidden` が自動補完されます（`createSchema` を除く）
 - hidden 化は runtime/UI メタの変更であり、TypeScript の型には影響しません
-- `createSchema` には identity key は追加されません
+- `createSchema` の `z.infer` は intrinsic `schema` と一致します。runtime では identity key および `createExcludedSchema` のキーが hidden optional として受け止められますが、値の strip は行いません
+
+**重要**: intrinsic `schema` に identity key と同名のフィールドを含める場合は、**optional のみ許容**されます。required なフィールドが identity key と重複すると `collectionConfig()` 時にエラーになります。
 
 ID をテーブル等で表示したい場合は、application 側の表示 schema（`extendSchemaSafe` 等）で明示的に復元してください。
 
@@ -161,6 +163,8 @@ ID をテーブル等で表示したい場合は、application 側の表示 sche
 **型**: `z.ZodObject<...>`
 
 create 以外でだけ追加したいフィールドの schema 断片です。optional / nullable / default などの定義は application 側の schema をそのまま保持します。`onCreate` / `onWrite` で自動設定するフィールド（タイムスタンプ等）をここへ置きます。
+
+intrinsic `schema` に `createExcludedSchema` と同名のフィールドを含める場合は、identity key と同様に **optional のみ許容**されます。required なフィールドが重複すると `collectionConfig()` 時にエラーになります。
 
 ```ts
 export const projects = collectionConfig({
@@ -567,7 +571,7 @@ type CollectionKey = z.infer<typeof testCollection.collectionKeySchema>;
 | **`dataSchema`**   | `schema` + identity/document keys（必須） + createExcluded（as-is）  | 読み取り時の完全なデータ型   |
 | **`updateSchema`** | `schema` + identity/document keys（optional） + createExcluded（as-is） | 更新用フォーム向け |
 | **`storeSchema`**  | `schema` + nonPathKeys + createExcluded（as-is）                    | Firestore に保存する形 |
-| **`createSchema`** | `schema` そのまま                                                    | 新規作成フォーム向け         |
+| **`createSchema`** | `schema`（型は intrinsic のまま、runtime では identity/createExcluded を hidden 化） | 新規作成フォーム向け |
 
 上記の例での各スキーマの `z.infer` 結果:
 
@@ -611,8 +615,9 @@ type Create = z.infer<typeof testCollection.createSchema>;
 //   name: string;
 //   email: string;
 // }
-// ※ createSchema は intrinsic schema をそのまま使う。
-//   identity/createExcluded に置いたフィールドはここには追加されない
+// ※ createSchema の z.infer は intrinsic schema と一致する。
+//   runtime では identity/createExcluded のキーが hidden optional として受け止められるが、
+//   型には表れない（strip もしない）
 ```
 
 ---

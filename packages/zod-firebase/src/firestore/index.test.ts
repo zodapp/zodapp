@@ -382,7 +382,7 @@ describe("collectionConfig", () => {
         path: "/teams/:teamId/users/:userId" as const,
         fieldKeys: [] as const,
         schema: z.object({
-          userId: z.string().min(1),
+          userId: z.string().min(1).optional(),
           name: z.string(),
         }),
       });
@@ -405,6 +405,34 @@ describe("collectionConfig", () => {
           name: "Alice",
         }),
       ).toThrow();
+    });
+
+    it("should throw when intrinsic has required identity key overlap", () => {
+      expect(() =>
+        collectionConfig({
+          path: "/teams/:teamId/users/:userId" as const,
+          fieldKeys: [] as const,
+          schema: z.object({
+            userId: z.string().min(1),
+            name: z.string(),
+          }),
+        }),
+      ).toThrow(/must be optional/);
+    });
+
+    it("should throw when intrinsic has required createExcluded key overlap", () => {
+      expect(() =>
+        collectionConfig({
+          path: "/teams/:teamId/users/:userId" as const,
+          schema: z.object({
+            name: z.string(),
+            createdAt: z.date(),
+          }),
+          createExcludedSchema: z.object({
+            createdAt: z.date().optional(),
+          }),
+        }),
+      ).toThrow(/must be optional/);
     });
   });
 
@@ -622,22 +650,21 @@ describe("collectionConfig", () => {
   });
 
   describe("intrinsicSchema のバリデーション保持", () => {
-    // intrinsicSchema 側で z.string() より厳しいバリデーションを持つキーが
-    // fieldKeys に含まれる場合、元のバリデーションが保持されること
+    // intrinsicSchema 側で identity / fieldKeys と重複するキーは optional にする（新契約）
+    // optional でも min(1) 等のバリデーションは保持される
     const withValidation = collectionConfig({
       path: "/teams/:teamId/users/:userId" as const,
       fieldKeys: ["groupId", "teamId"] as const,
       schema: z.object({
-        userId: z.string().min(1),
-        teamId: z.string().min(1),
-        groupId: z.string().min(1),
+        userId: z.string().min(1).optional(),
+        teamId: z.string().min(1).optional(),
+        groupId: z.string().min(1).optional(),
         name: z.string(),
         email: z.email(),
       }),
     });
 
     it("dataSchema は intrinsicSchema のバリデーションを保持する", () => {
-      // 有効なデータ
       expect(
         withValidation.dataSchema.parse({
           userId: "u1",
@@ -672,7 +699,6 @@ describe("collectionConfig", () => {
     });
 
     it("updateSchema は intrinsicSchema のバリデーションを保持する", () => {
-      // 有効なデータ（fieldKeys のみ必須）
       expect(
         withValidation.updateSchema.parse({
           groupId: "g1",
@@ -704,7 +730,6 @@ describe("collectionConfig", () => {
     });
 
     it("storeSchema は intrinsicSchema のバリデーションを保持する（nonPathKeys）", () => {
-      // 有効なデータ（documentPathKeys は除外、fieldKeys は必須）
       expect(
         withValidation.storeSchema.parse({
           groupId: "g1",
@@ -726,7 +751,6 @@ describe("collectionConfig", () => {
     });
 
     it("storeSchema は intrinsicSchema のバリデーションを保持する（pathFieldKeys）", () => {
-      // teamId が空文字列 → min(1) により reject（pathFieldKeys で復元されたスキーマ）
       expect(() =>
         withValidation.storeSchema.parse({
           groupId: "g1",
@@ -735,6 +759,26 @@ describe("collectionConfig", () => {
           email: "alice@example.com",
         }),
       ).toThrow();
+    });
+
+    it("createSchema は identity / createExcluded を hidden 化する", () => {
+      const result = withValidation.createSchema.parse({
+        name: "Alice",
+        email: "alice@example.com",
+      });
+      expect(result).toEqual({
+        name: "Alice",
+        email: "alice@example.com",
+      });
+
+      const resultWithIdentity = withValidation.createSchema.parse({
+        name: "Alice",
+        email: "alice@example.com",
+        groupId: "g1",
+        teamId: "t1",
+        userId: "u1",
+      });
+      expect(resultWithIdentity.name).toBe("Alice");
     });
   });
 
@@ -838,8 +882,8 @@ describe("collectionConfig", () => {
         path: "/teams/:teamId/users/:userId" as const,
         fieldKeys: [] as const,
         schema: z.object({
-          userId: z.string(),
-          teamId: z.string(),
+          userId: z.string().optional(),
+          teamId: z.string().optional(),
           name: z.string(),
         }),
       });
@@ -935,7 +979,7 @@ describe("autoQuery helpers", () => {
     path: "/dialogs/:id" as const,
     fieldKeys: ["teamId"] as const,
     schema: z.object({
-      teamId: z.string(),
+      teamId: z.string().optional(),
       name: z.string(),
       deleted: z.boolean(),
     }),
@@ -955,9 +999,9 @@ describe("autoQuery helpers", () => {
     path: "/teams/:teamId/users/:userId" as const,
     fieldKeys: ["teamId", "groupId"] as const,
     schema: z.object({
-      userId: z.string(),
-      teamId: z.string(),
-      groupId: z.string(),
+      userId: z.string().optional(),
+      teamId: z.string().optional(),
+      groupId: z.string().optional(),
       name: z.string(),
     }),
   });
@@ -967,8 +1011,8 @@ describe("autoQuery helpers", () => {
     path: "/items/:id" as const,
     fieldKeys: ["teamId", "orgId"] as const,
     schema: z.object({
-      teamId: z.string(),
-      orgId: z.string(),
+      teamId: z.string().optional(),
+      orgId: z.string().optional(),
       title: z.string(),
     }),
   });

@@ -156,6 +156,64 @@ export const mergeSchemaRecursively = (
   throw buildUnsupportedSchemaError(contextLabel);
 };
 
+/**
+ * intrinsicSchema 上で keys と重複するフィールドが optional であることを検証する。
+ * required なフィールドが見つかった場合は throw する。
+ */
+export const assertOverlappingKeysOptional = (
+  schema: z.ZodTypeAny,
+  keys: readonly string[],
+  contextLabel: string,
+): void => {
+  if (keys.length === 0) return;
+
+  const { inner } = unwrapSchema(schema);
+
+  if (inner instanceof z.ZodObject) {
+    const shape = inner.shape as Record<string, z.ZodTypeAny>;
+    for (const key of keys) {
+      const field = shape[key];
+      if (!field) continue;
+      if (!(field instanceof z.ZodOptional)) {
+        throw new Error(
+          `[collectionConfig] ${contextLabel}: intrinsic schema field "${key}" ` +
+            `must be optional when it overlaps with identity or createExcluded keys. ` +
+            `Use .optional() to allow the overlap.`,
+        );
+      }
+    }
+    return;
+  }
+
+  if (inner instanceof z.ZodDiscriminatedUnion) {
+    for (const option of inner.options as readonly AnyZodObject[]) {
+      assertOverlappingKeysOptional(option, keys, contextLabel);
+    }
+    return;
+  }
+
+  if (inner instanceof z.ZodUnion) {
+    for (const option of inner.options as readonly z.ZodTypeAny[]) {
+      assertOverlappingKeysOptional(option, keys, contextLabel);
+    }
+    return;
+  }
+
+  if (inner instanceof z.ZodIntersection) {
+    assertOverlappingKeysOptional(
+      inner._def.left as z.ZodTypeAny,
+      keys,
+      contextLabel,
+    );
+    assertOverlappingKeysOptional(
+      inner._def.right as z.ZodTypeAny,
+      keys,
+      contextLabel,
+    );
+    return;
+  }
+};
+
 export const stripKeysRecursively = (
   schema: z.ZodTypeAny,
   keys: readonly string[],
