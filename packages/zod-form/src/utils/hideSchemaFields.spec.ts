@@ -111,6 +111,103 @@ describe('hideSchemaFields', () => {
     ).toBe(true);
   });
 
+  it('preserves strict object behavior after hiding fields', () => {
+    const schema = z.strictObject({
+      name: z.string(),
+      secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+    });
+
+    const hiddenSchema = hideSchemaFields(schema, {
+      paths: ['secret'],
+    });
+
+    expect(
+      hiddenSchema.safeParse({
+        name: 'Ada',
+        secret: 'hidden',
+      }).success,
+    ).toBe(true);
+    expect(
+      hiddenSchema.safeParse({
+        name: 'Ada',
+        secret: 'hidden',
+        extra: true,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('preserves catchall validation after hiding fields', () => {
+    const schema = z
+      .object({
+        name: z.string(),
+        secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+      })
+      .catchall(z.string());
+
+    const hiddenSchema = hideSchemaFields(schema, {
+      paths: ['secret'],
+    });
+
+    expect(
+      hiddenSchema.safeParse({
+        name: 'Ada',
+        secret: 'hidden',
+        extra: 'ok',
+      }).success,
+    ).toBe(true);
+    expect(
+      hiddenSchema.safeParse({
+        name: 'Ada',
+        secret: 'hidden',
+        extra: 123,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('preserves array checks after hiding element fields', () => {
+    const memberSchema = z.object({
+      displayName: z.string().register(zf.string.registry, {
+        label: 'Display Name',
+      }),
+      avatarImage: z
+        .string()
+        .register(zf.string.registry, { label: 'Avatar' })
+        .optional(),
+    });
+
+    const schema = z.object({
+      members: z.array(memberSchema).min(2).max(2).register(zf.array.registry, {
+        label: 'Members',
+      }),
+    });
+
+    const hiddenSchema = hideSchemaFields(schema, {
+      paths: ['members.avatarImage'],
+    });
+
+    expect(
+      hiddenSchema.safeParse({
+        members: [{ displayName: 'Ada', avatarImage: 'a.png' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      hiddenSchema.safeParse({
+        members: [
+          { displayName: 'Ada', avatarImage: 'a.png' },
+          { displayName: 'Bob', avatarImage: 'b.png' },
+        ],
+      }).success,
+    ).toBe(true);
+
+    const hiddenMembers = getObjectField(
+      hiddenSchema,
+      'members',
+    ) as z.ZodArray<z.ZodTypeAny>;
+    expect((getMeta(hiddenMembers, 'array') as { label?: string } | undefined)?.label).toBe(
+      'Members',
+    );
+  });
+
   it('recursively updates union arms', () => {
     const unionSchema = z.union([
       z.object({

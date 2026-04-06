@@ -1,12 +1,12 @@
-import { getMeta, zf } from '../def';
-import { z } from 'zod';
+import { getMeta, zf } from "../def";
+import { z } from "zod";
 
 export type AnyZodObject = z.ZodObject<z.ZodRawShape>;
 
 type Wrapper =
-  | { kind: 'optional' }
-  | { kind: 'nullable' }
-  | { kind: 'default'; defaultValue: unknown };
+  | { kind: "optional" }
+  | { kind: "nullable" }
+  | { kind: "default"; defaultValue: unknown };
 
 type RewrapOptions = {
   preserveOptional?: boolean;
@@ -18,10 +18,9 @@ type ReplaceObjectShapeOptions = {
 
 /**
  * Zod スキーマを公開 API のみで clone します。
- * `.describe()` が常に新しいインスタンスを返す性質を利用します。
  */
 export function cloneSchema<T extends z.ZodTypeAny>(schema: T): T {
-  return schema.describe(schema.description as string);
+  return schema.clone();
 }
 
 export const unwrapSchema = (schema: z.ZodTypeAny) => {
@@ -30,18 +29,18 @@ export const unwrapSchema = (schema: z.ZodTypeAny) => {
 
   while (true) {
     if (current instanceof z.ZodOptional) {
-      wrappers.push({ kind: 'optional' });
+      wrappers.push({ kind: "optional" });
       current = current.unwrap() as z.ZodTypeAny;
       continue;
     }
     if (current instanceof z.ZodNullable) {
-      wrappers.push({ kind: 'nullable' });
+      wrappers.push({ kind: "nullable" });
       current = current.unwrap() as z.ZodTypeAny;
       continue;
     }
     if (current instanceof z.ZodDefault) {
       wrappers.push({
-        kind: 'default',
+        kind: "default",
         defaultValue: (current._def as { defaultValue: unknown }).defaultValue,
       });
       current = current.unwrap() as z.ZodTypeAny;
@@ -55,10 +54,10 @@ export const unwrapSchema = (schema: z.ZodTypeAny) => {
     options: RewrapOptions = {},
   ): z.ZodTypeAny =>
     wrappers.reduceRight<z.ZodTypeAny>((acc, wrapper) => {
-      if (wrapper.kind === 'optional') {
+      if (wrapper.kind === "optional") {
         return options.preserveOptional === false ? acc : acc.optional();
       }
-      if (wrapper.kind === 'nullable') return acc.nullable();
+      if (wrapper.kind === "nullable") return acc.nullable();
       return acc.default(wrapper.defaultValue as never);
     }, next);
 
@@ -70,94 +69,66 @@ export const replaceObjectShape = (
   nextShape: z.ZodRawShape,
   options: ReplaceObjectShapeOptions = {},
 ): AnyZodObject => {
-  let nextObject = z.object(nextShape);
-  if (schema.description !== undefined) {
-    nextObject = nextObject.describe(schema.description);
-  }
+  let nextObject = schema.clone({
+    ...schema.def,
+    shape: nextShape,
+  });
 
-  const objectMeta = getMeta(schema, 'object');
+  const objectMeta = getMeta(schema, "object");
   if (objectMeta) {
-    nextObject = nextObject.register(zf.object.registry as never, {
-      ...(objectMeta as Record<string, unknown>),
-      ...(options.properties ? { properties: [...options.properties] } : {}),
-    } as never);
+    nextObject = nextObject.register(
+      zf.object.registry as never,
+      {
+        ...(objectMeta as Record<string, unknown>),
+        ...(options.properties ? { properties: [...options.properties] } : {}),
+      } as never,
+    );
   }
 
   return nextObject as AnyZodObject;
 };
 
 export const replaceArrayElement = (
-  schema: z.ZodTypeAny,
+  schema: z.ZodArray<z.ZodTypeAny>,
   nextElement: z.ZodTypeAny,
 ): z.ZodTypeAny => {
-  let nextArray = z.array(nextElement);
-  if (schema.description !== undefined) {
-    nextArray = nextArray.describe(schema.description);
-  }
-
-  const arrayMeta = getMeta(schema, 'array');
-  if (arrayMeta) {
-    nextArray = nextArray.register(
-      zf.array.registry as never,
-      arrayMeta as never,
-    );
-  }
-
-  return nextArray;
+  return schema.clone({
+    ...schema.def,
+    element: nextElement,
+  });
 };
 
 export const replaceUnionOptions = (
-  schema: z.ZodTypeAny,
+  schema: z.ZodUnion<[z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]>,
   nextOptions: [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
 ): z.ZodTypeAny => {
-  let nextUnion = z.union(nextOptions);
-  if (schema.description !== undefined) {
-    nextUnion = nextUnion.describe(schema.description);
-  }
-
-  const unionMeta = getMeta(schema, 'union');
-  if (unionMeta) {
-    nextUnion = nextUnion.register(
-      zf.union.registry as never,
-      unionMeta as never,
-    );
-  }
-
-  return nextUnion;
+  return schema.clone({
+    ...schema.def,
+    options: nextOptions,
+  });
 };
 
 export const replaceDiscriminatedUnionOptions = (
-  schema: z.ZodTypeAny,
+  schema: z.ZodDiscriminatedUnion<
+    [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
+    string
+  >,
   nextOptions: [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
 ): z.ZodTypeAny => {
-  const discriminator = (
-    schema as unknown as { _def: { discriminator: string } }
-  )._def.discriminator;
-
-  let nextUnion = z.discriminatedUnion(discriminator, nextOptions);
-  if (schema.description !== undefined) {
-    nextUnion = nextUnion.describe(schema.description);
-  }
-
-  const unionMeta = getMeta(schema, 'union');
-  if (unionMeta) {
-    nextUnion = nextUnion.register(
-      zf.union.registry as never,
-      unionMeta as never,
-    );
-  }
-
-  return nextUnion;
+  return schema.clone({
+    ...schema.def,
+    options: nextOptions,
+  });
 };
 
 export const replaceIntersectionSides = (
-  schema: z.ZodTypeAny,
+  schema: z.ZodIntersection<z.ZodTypeAny, z.ZodTypeAny>,
   left: z.ZodTypeAny,
   right: z.ZodTypeAny,
 ): z.ZodTypeAny => {
-  let nextIntersection = z.intersection(left, right);
-  if (schema.description !== undefined) {
-    nextIntersection = nextIntersection.describe(schema.description);
-  }
-  return nextIntersection;
+  return schema.clone({
+    ...schema.def,
+    left,
+    right,
+  });
 };
