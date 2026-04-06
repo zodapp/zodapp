@@ -89,7 +89,7 @@ export const replaceObjectShape = (
 };
 
 export const replaceArrayElement = (
-  schema: z.ZodArray<z.ZodTypeAny>,
+  schema: z.ZodArray<z.core.SomeType>,
   nextElement: z.ZodTypeAny,
 ): z.ZodTypeAny => {
   return schema.clone({
@@ -99,8 +99,8 @@ export const replaceArrayElement = (
 };
 
 export const replaceUnionOptions = (
-  schema: z.ZodUnion<[z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]>,
-  nextOptions: [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
+  schema: z.ZodUnion<readonly z.core.SomeType[]>,
+  nextOptions: readonly [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
 ): z.ZodTypeAny => {
   return schema.clone({
     ...schema.def,
@@ -109,11 +109,8 @@ export const replaceUnionOptions = (
 };
 
 export const replaceDiscriminatedUnionOptions = (
-  schema: z.ZodDiscriminatedUnion<
-    [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
-    string
-  >,
-  nextOptions: [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
+  schema: z.ZodDiscriminatedUnion<readonly z.core.SomeType[], string>,
+  nextOptions: readonly [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
 ): z.ZodTypeAny => {
   return schema.clone({
     ...schema.def,
@@ -122,7 +119,7 @@ export const replaceDiscriminatedUnionOptions = (
 };
 
 export const replaceIntersectionSides = (
-  schema: z.ZodIntersection<z.ZodTypeAny, z.ZodTypeAny>,
+  schema: z.ZodIntersection<z.core.SomeType, z.core.SomeType>,
   left: z.ZodTypeAny,
   right: z.ZodTypeAny,
 ): z.ZodTypeAny => {
