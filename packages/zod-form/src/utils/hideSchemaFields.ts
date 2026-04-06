@@ -1,4 +1,13 @@
-import { getMeta, zf } from './def';
+import { getMeta, zf } from '../def';
+import {
+  cloneSchema,
+  replaceArrayElement,
+  replaceDiscriminatedUnionOptions,
+  replaceIntersectionSides,
+  replaceObjectShape,
+  replaceUnionOptions,
+  unwrapSchema,
+} from './schema';
 import { z } from 'zod';
 
 type CommonMeta = {
@@ -11,11 +20,6 @@ type CommonMeta = {
   width?: number;
   align?: 'left' | 'center' | 'right';
 };
-
-type Wrapper =
-  | { kind: 'optional' }
-  | { kind: 'nullable' }
-  | { kind: 'default'; defaultValue: unknown };
 
 type PathEntry = {
   index: number;
@@ -30,10 +34,6 @@ type ApplyResult = {
 };
 
 type ApiName = 'hideSchemaFields' | 'hideSchemaFieldsExcept';
-
-function cloneSchema<T extends z.ZodTypeAny>(schema: T): T {
-  return schema.describe(schema.description as string);
-}
 
 const pickCommonMeta = (schema: z.ZodTypeAny): CommonMeta | undefined => {
   const meta = getMeta(schema) as CommonMeta | undefined;
@@ -59,116 +59,6 @@ const cloneAsHidden = (schema: z.ZodTypeAny): z.ZodTypeAny => {
   return cloned;
 };
 
-const unwrapSchema = (schema: z.ZodTypeAny) => {
-  const wrappers: Wrapper[] = [];
-  let current = schema;
-
-  while (true) {
-    if (current instanceof z.ZodOptional) {
-      wrappers.push({ kind: 'optional' });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    if (current instanceof z.ZodNullable) {
-      wrappers.push({ kind: 'nullable' });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    if (current instanceof z.ZodDefault) {
-      wrappers.push({
-        kind: 'default',
-        defaultValue: (
-          current._def as { defaultValue: unknown }
-        ).defaultValue,
-      });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    break;
-  }
-
-  const rewrap = (next: z.ZodTypeAny) =>
-    wrappers.reduceRight<z.ZodTypeAny>((acc, wrapper) => {
-      if (wrapper.kind === 'optional') return acc.optional();
-      if (wrapper.kind === 'nullable') return acc.nullable();
-      return acc.default(wrapper.defaultValue as never);
-    }, next);
-
-  return { inner: current, rewrap };
-};
-
-const replaceObjectShape = (
-  schema: z.ZodObject<z.ZodRawShape>,
-  nextShape: z.ZodRawShape,
-): z.ZodObject<z.ZodRawShape> => {
-  let nextObject = z.object(nextShape);
-  if (schema.description !== undefined) {
-    nextObject = nextObject.describe(schema.description);
-  }
-
-  const objectMeta = getMeta(schema, 'object');
-  if (objectMeta) {
-    nextObject = nextObject.register(
-      zf.object.registry as never,
-      objectMeta as never,
-    );
-  }
-
-  return nextObject as z.ZodObject<z.ZodRawShape>;
-};
-
-const replaceArrayElement = (
-  schema: z.ZodTypeAny,
-  nextElement: z.ZodTypeAny,
-): z.ZodTypeAny => {
-  let nextArray = z.array(nextElement);
-  if (schema.description !== undefined) {
-    nextArray = nextArray.describe(schema.description);
-  }
-
-  const arrayMeta = getMeta(schema, 'array');
-  if (arrayMeta) {
-    nextArray = nextArray.register(
-      zf.array.registry as never,
-      arrayMeta as never,
-    );
-  }
-
-  return nextArray;
-};
-
-const replaceUnionOptions = (
-  schema: z.ZodTypeAny,
-  nextOptions: [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
-): z.ZodTypeAny => {
-  let nextUnion = z.union(nextOptions);
-  if (schema.description !== undefined) {
-    nextUnion = nextUnion.describe(schema.description);
-  }
-
-  const unionMeta = getMeta(schema, 'union');
-  if (unionMeta) {
-    nextUnion = nextUnion.register(
-      zf.union.registry as never,
-      unionMeta as never,
-    );
-  }
-
-  return nextUnion;
-};
-
-const replaceIntersectionSides = (
-  schema: z.ZodTypeAny,
-  left: z.ZodTypeAny,
-  right: z.ZodTypeAny,
-): z.ZodTypeAny => {
-  let nextIntersection = z.intersection(left, right);
-  if (schema.description !== undefined) {
-    nextIntersection = nextIntersection.describe(schema.description);
-  }
-  return nextIntersection;
-};
-
 const normalizePaths = (
   paths: readonly string[],
   apiName: ApiName,
@@ -183,7 +73,9 @@ const normalizePaths = (
 
     const segments = normalized.split('.');
     if (segments.some((segment) => segment.length === 0)) {
-      throw new Error(`${apiName}: path "${normalized}" contains an empty segment`);
+      throw new Error(
+        `${apiName}: path "${normalized}" contains an empty segment`,
+      );
     }
 
     if (!unique.has(normalized)) {
@@ -312,7 +204,8 @@ const applyWithPolicy = (
         key,
         child,
         nextPaths: grouped.get(key) ?? [],
-        apply: (nextSchema, nextPaths) => applyWithPolicy(nextSchema, nextPaths, policy),
+        apply: (nextSchema, nextPaths) =>
+          applyWithPolicy(nextSchema, nextPaths, policy),
       });
       childResults.push(childResult);
 
@@ -340,7 +233,11 @@ const applyWithPolicy = (
   }
 
   if (schema instanceof z.ZodArray) {
-    const elementResult = applyWithPolicy(schema.element as z.ZodTypeAny, paths, policy);
+    const elementResult = applyWithPolicy(
+      schema.element as z.ZodTypeAny,
+      paths,
+      policy,
+    );
     if (!elementResult.changed) {
       return unchangedResult(schema, elementResult.matchedIndexes);
     }
@@ -353,50 +250,36 @@ const applyWithPolicy = (
   }
 
   if (schema instanceof z.ZodDiscriminatedUnion) {
-    const options = Array.from(schema.options as readonly z.ZodObject<z.ZodRawShape>[]);
-    const optionResults = options.map((option) => applyWithPolicy(option, paths, policy));
+    const options = Array.from(
+      schema.options as readonly z.ZodObject<z.ZodRawShape>[],
+    );
+    const optionResults = options.map((option) =>
+      applyWithPolicy(option, paths, policy),
+    );
     const matchedIndexes = mergeMatchedIndexes(optionResults);
 
     if (!optionResults.some((result) => result.changed)) {
       return unchangedResult(schema, matchedIndexes);
     }
 
-    const discriminator = (
-      schema as unknown as { _def: { discriminator: string } }
-    )._def.discriminator;
-
-    let nextUnion = z.discriminatedUnion(
-      discriminator,
-      optionResults.map((result) => result.schema) as [
-        z.ZodObject<z.ZodRawShape>,
-        z.ZodObject<z.ZodRawShape>,
-        ...z.ZodObject<z.ZodRawShape>[],
-      ],
-    );
-
-    if (schema.description !== undefined) {
-      nextUnion = nextUnion.describe(schema.description);
-    }
-
-    const unionMeta = getMeta(schema, 'union');
-    if (unionMeta) {
-      nextUnion = nextUnion.register(
-        zf.union.registry as never,
-        unionMeta as never,
-      );
-    }
-
     return {
-      schema: nextUnion,
+      schema: replaceDiscriminatedUnionOptions(
+        schema,
+        optionResults.map((result) => result.schema) as [
+          z.ZodObject<z.ZodRawShape>,
+          z.ZodObject<z.ZodRawShape>,
+          ...z.ZodObject<z.ZodRawShape>[],
+        ],
+      ),
       changed: true,
       matchedIndexes,
     };
   }
 
   if (schema instanceof z.ZodUnion) {
-    const optionResults = Array.from(schema.options as readonly z.ZodTypeAny[]).map(
-      (option) => applyWithPolicy(option, paths, policy),
-    );
+    const optionResults = Array.from(
+      schema.options as readonly z.ZodTypeAny[],
+    ).map((option) => applyWithPolicy(option, paths, policy));
     const matchedIndexes = mergeMatchedIndexes(optionResults);
 
     if (!optionResults.some((result) => result.changed)) {
@@ -419,7 +302,11 @@ const applyWithPolicy = (
 
   if (schema instanceof z.ZodIntersection) {
     const left = applyWithPolicy(schema._def.left as z.ZodTypeAny, paths, policy);
-    const right = applyWithPolicy(schema._def.right as z.ZodTypeAny, paths, policy);
+    const right = applyWithPolicy(
+      schema._def.right as z.ZodTypeAny,
+      paths,
+      policy,
+    );
     const matchedIndexes = mergeMatchedIndexes([left, right]);
 
     if (!left.changed && !right.changed) {
@@ -436,7 +323,10 @@ const applyWithPolicy = (
   return unchangedResult(schema);
 };
 
-const applyHidden = (schema: z.ZodTypeAny, paths: readonly PathEntry[]): ApplyResult =>
+const applyHidden = (
+  schema: z.ZodTypeAny,
+  paths: readonly PathEntry[],
+): ApplyResult =>
   applyWithPolicy(schema, paths, {
     onLeafMatch: (currentSchema, leafPaths) =>
       hiddenResult(currentSchema, new Set(leafPaths.map((path) => path.index))),

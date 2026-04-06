@@ -3,6 +3,7 @@ export * from "./def";
 
 // Zod utilities
 export * from "./utils/zod";
+export * from "./utils/schema";
 export * from "./utils/default";
 
 // External key types
@@ -15,6 +16,6 @@ export * from "./file";
 export * from "./resolverContext";
 
 // Schema field visibility
-export { hideSchemaFields, hideSchemaFieldsExcept } from "./hideSchemaFields";
+export { hideSchemaFields, hideSchemaFieldsExcept } from "./utils/hideSchemaFields";
 
 // Note: Media types and React-dependent types have been moved to @zodapp/zod-form-react

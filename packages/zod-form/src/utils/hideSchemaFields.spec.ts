@@ -1,8 +1,7 @@
-import { getMeta, zf } from './def';
+import { getMeta, zf } from '../def';
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
-
 import { hideSchemaFields, hideSchemaFieldsExcept } from './hideSchemaFields';
+import { z } from 'zod';
 
 type ObjectMeta = {
   properties?: string[];
@@ -79,7 +78,9 @@ describe('hideSchemaFields', () => {
 
   it('hides fields inside array elements', () => {
     const memberSchema = z.object({
-      displayName: z.string().register(zf.string.registry, { label: 'Display Name' }),
+      displayName: z.string().register(zf.string.registry, {
+        label: 'Display Name',
+      }),
       avatarImage: z
         .string()
         .register(zf.string.registry, { label: 'Avatar' })
@@ -127,7 +128,9 @@ describe('hideSchemaFields', () => {
     });
 
     expectTypeOf(hiddenUnion).toEqualTypeOf(unionSchema);
-    for (const option of hiddenUnion.options as unknown as z.ZodObject<z.ZodRawShape>[]) {
+    for (const option of hiddenUnion.options as unknown as z.ZodObject<
+      z.ZodRawShape
+    >[]) {
       expect(isHiddenField(getObjectField(option, 'secret'))).toBe(true);
     }
   });
@@ -149,7 +152,9 @@ describe('hideSchemaFields', () => {
     });
 
     expectTypeOf(hiddenUnion).toEqualTypeOf(discriminatedUnionSchema);
-    for (const option of hiddenUnion.options as unknown as z.ZodObject<z.ZodRawShape>[]) {
+    for (const option of hiddenUnion.options as unknown as z.ZodObject<
+      z.ZodRawShape
+    >[]) {
       expect(isHiddenField(getObjectField(option, 'secret'))).toBe(true);
     }
   });
@@ -269,13 +274,17 @@ describe('hideSchemaFieldsExcept', () => {
       paths: ['profile'],
     });
 
-    expect(getObjectField(hiddenSchema, 'profile')).toBe(getObjectField(schema, 'profile'));
+    expect(getObjectField(hiddenSchema, 'profile')).toBe(
+      getObjectField(schema, 'profile'),
+    );
     expect(isHiddenField(getObjectField(hiddenSchema, 'note'))).toBe(true);
   });
 
   it('keeps fields inside array elements', () => {
     const memberSchema = z.object({
-      displayName: z.string().register(zf.string.registry, { label: 'Display Name' }),
+      displayName: z.string().register(zf.string.registry, {
+        label: 'Display Name',
+      }),
       avatarImage: z
         .string()
         .register(zf.string.registry, { label: 'Avatar' })

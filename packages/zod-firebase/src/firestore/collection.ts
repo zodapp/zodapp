@@ -1,4 +1,15 @@
 import {
+  cloneSchema,
+  getMeta,
+  hideSchemaFields,
+  replaceDiscriminatedUnionOptions,
+  replaceIntersectionSides,
+  replaceObjectShape,
+  replaceUnionOptions,
+  unwrapSchema,
+  zf,
+} from "@zodapp/zod-form";
+import {
   CollectionPathKeyFromPath,
   CollectionPathParamsFromPath,
   compilePath,
@@ -6,20 +17,11 @@ import {
   DocumentPathKeyFromPath,
   DocumentPathParamsFromPath,
 } from "./pathUtil";
-import { getMeta, zf, hideSchemaFields } from "@zodapp/zod-form";
 import { z } from "zod";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyZodObject = z.ZodObject<any>;
 type EmptyShape = Record<never, z.ZodTypeAny>;
-
-/**
- * Zodスキーマを公開APIのみでcloneする。
- * .describe() は常に新しいインスタンスを返す性質を利用。
- */
-function cloneSchema<T extends z.ZodTypeAny>(schema: T): T {
-  return schema.describe(schema.description as string);
-}
 
 /**
  * CollectionConfig のブランドシンボル
@@ -145,11 +147,6 @@ type StoreTypeFor<
   SafeMappedType<NonPathKeysOf<Path, FieldKeys>, string> &
   AsIsObjectTypeOf<CreateExcludedShape>;
 
-type Wrapper =
-  | { kind: "optional" }
-  | { kind: "nullable" }
-  | { kind: "default"; defaultValue: unknown };
-
 type MergeMode = "appendOptional" | "appendRequired" | "appendAsIs";
 
 const EMPTY_OBJECT_SCHEMA = z.object({});
@@ -174,107 +171,6 @@ const omitShapeKeys = (
   return Object.fromEntries(
     Object.entries(shape).filter(([key]) => !keySet.has(key)),
   ) as z.ZodRawShape;
-};
-
-const normalizeWrapper = (schema: z.ZodTypeAny) => {
-  const wrappers: Wrapper[] = [];
-  let current = schema;
-
-  while (true) {
-    if (current instanceof z.ZodOptional) {
-      wrappers.push({ kind: "optional" });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    if (current instanceof z.ZodNullable) {
-      wrappers.push({ kind: "nullable" });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    if (current instanceof z.ZodDefault) {
-      wrappers.push({
-        kind: "default",
-        defaultValue: (current._def as { defaultValue: unknown }).defaultValue,
-      });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    break;
-  }
-
-  const rewrap = (
-    next: z.ZodTypeAny,
-    options: { preserveOptional?: boolean } = {},
-  ) =>
-    wrappers.reduceRight<z.ZodTypeAny>((acc, wrapper) => {
-      if (wrapper.kind === "optional") {
-        return options.preserveOptional === false ? acc : acc.optional();
-      }
-      if (wrapper.kind === "nullable") return acc.nullable();
-      return acc.default(wrapper.defaultValue as never);
-    }, next);
-
-  return { inner: current, rewrap };
-};
-
-const rebuildObjectSchema = (
-  schema: AnyZodObject,
-  nextShape: z.ZodRawShape,
-): AnyZodObject => {
-  let nextObject = z.object(nextShape);
-  if (schema.description !== undefined) {
-    nextObject = nextObject.describe(schema.description);
-  }
-
-  const objectMeta = getMeta(schema, "object");
-  if (objectMeta) {
-    nextObject = nextObject.register(zf.object.registry as never, {
-      ...(objectMeta as Record<string, unknown>),
-      properties: Object.keys(nextShape),
-    } as never);
-  }
-  return nextObject;
-};
-
-const replaceUnionOptions = (
-  schema: z.ZodTypeAny,
-  nextOptions: [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
-) => {
-  let nextUnion = z.union(nextOptions);
-  if (schema.description !== undefined) {
-    nextUnion = nextUnion.describe(schema.description);
-  }
-  const unionMeta = getMeta(schema, "union");
-  if (unionMeta) {
-    nextUnion = nextUnion.register(zf.union.registry as never, unionMeta as never);
-  }
-  return nextUnion;
-};
-
-const replaceDiscriminatedUnionOptions = (
-  schema: z.ZodTypeAny,
-  nextOptions: [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
-) => {
-  const discriminator = (
-    schema as unknown as { _def: { discriminator: string } }
-  )._def.discriminator;
-  let nextUnion = z.discriminatedUnion(discriminator, nextOptions);
-  if (schema.description !== undefined) {
-    nextUnion = nextUnion.describe(schema.description);
-  }
-  return nextUnion;
-};
-
-const replaceIntersectionSides = (
-  schema: z.ZodTypeAny,
-  left: z.ZodTypeAny,
-  right: z.ZodTypeAny,
-) => {
-  let nextIntersection = z.intersection(left, right);
-  if (schema.description !== undefined) {
-    nextIntersection = nextIntersection.describe(schema.description);
-  }
-  return nextIntersection;
 };
 
 const hiddenString = (optional = false) =>
@@ -321,7 +217,7 @@ const mergeSchemaRecursively = (
 ): z.ZodTypeAny => {
   if (isEmptyShape(delta.shape)) return base;
 
-  const { inner, rewrap } = normalizeWrapper(base);
+  const { inner, rewrap } = unwrapSchema(base);
 
   if (inner instanceof z.ZodObject) {
     const nextShape = Object.fromEntries(
@@ -340,10 +236,13 @@ const mergeSchemaRecursively = (
         ];
       }),
     ) as z.ZodRawShape;
+    const mergedShape = {
+      ...inner.shape,
+      ...nextShape,
+    };
     return rewrap(
-      rebuildObjectSchema(inner as AnyZodObject, {
-        ...inner.shape,
-        ...nextShape,
+      replaceObjectShape(inner as AnyZodObject, mergedShape, {
+        properties: Object.keys(mergedShape),
       }),
     );
   }
@@ -408,11 +307,14 @@ const stripKeysRecursively = (
 ): z.ZodTypeAny => {
   if (keys.length === 0) return schema;
 
-  const { inner, rewrap } = normalizeWrapper(schema);
+  const { inner, rewrap } = unwrapSchema(schema);
 
   if (inner instanceof z.ZodObject) {
+    const nextShape = omitShapeKeys(inner.shape, keys);
     return rewrap(
-      rebuildObjectSchema(inner as AnyZodObject, omitShapeKeys(inner.shape, keys)),
+      replaceObjectShape(inner as AnyZodObject, nextShape, {
+        properties: Object.keys(nextShape),
+      }),
     );
   }
 
@@ -461,7 +363,7 @@ const pickLegacyCreateExcludedSchema = (
 ): AnyZodObject => {
   if (keys.length === 0) return EMPTY_OBJECT_SCHEMA;
 
-  const { inner } = normalizeWrapper(schema);
+  const { inner } = unwrapSchema(schema);
   if (!(inner instanceof z.ZodObject)) {
     throw new Error(
       `[collectionConfig] createOmitKeys requires top-level schema to be ZodObject ${pathLabel}. ` +
