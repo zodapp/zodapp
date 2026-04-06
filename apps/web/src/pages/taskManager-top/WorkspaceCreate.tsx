@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
-import { hideSchemaFields as hideSchemaFieldsBase } from "@zodapp/zod-form-widget";
+import { hideSchemaFields } from "@zodapp/zod-form-widget";
 
 import { AutoForm } from "@zodapp/zod-form-widget/form";
 import { ImportPanel } from "@zodapp/zod-form-widget/tabular";
@@ -24,11 +24,6 @@ import type {
   WorkspaceOwnerInfo,
   WorkspaceCreateData,
 } from "./utils/userWorkspace";
-
-const hideSchemaFields = hideSchemaFieldsBase as <S extends z.ZodTypeAny>(
-  schema: S,
-  options: { paths: readonly string[] },
-) => S;
 
 const memberCreateSchema = hideSchemaFields(membersCollection.createSchema, {
   paths: ["avatarImage"],
