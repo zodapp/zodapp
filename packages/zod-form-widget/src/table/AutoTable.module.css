@@ -32,6 +32,10 @@
   background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 12%, transparent);
 }
 
+.previewHeaderCell[data-focused='true'] {
+  background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 12%, white);
+}
+
 .previewContent {
   display: block;
   width: 100%;
