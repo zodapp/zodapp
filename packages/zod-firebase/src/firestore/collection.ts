@@ -1,7 +1,4 @@
-import {
-  hideSchemaFields,
-  type AnyZodObject,
-} from "@zodapp/zod-form";
+import { hideSchemaFields, type AnyZodObject } from "@zodapp/zod-form";
 import {
   CollectionPathKeyFromPath,
   CollectionPathParamsFromPath,
@@ -12,7 +9,7 @@ import {
 } from "./pathUtil";
 import {
   assertTopLevelOverlappingKeysOptional,
-  mergeSchemaWithObject,
+  mergeSchemaForCollection,
 } from "./utils/schemaTransform";
 import { z } from "zod";
 type EmptyShape = Record<never, z.ZodTypeAny>;
@@ -94,7 +91,9 @@ type NonPathKeySchemaFor<Path extends string, FieldKeys extends string> = [
   ? z.ZodUnknown
   : z.ZodObject<{ [K in NonPathKeysOf<Path, FieldKeys>]: z.ZodString }>;
 
-type AsIsObjectTypeOf<Shape extends z.ZodRawShape> = [keyof Shape] extends [never]
+type AsIsObjectTypeOf<Shape extends z.ZodRawShape> = [keyof Shape] extends [
+  never,
+]
   ? unknown
   : z.infer<z.ZodObject<Shape>>;
 
@@ -179,18 +178,15 @@ export const getCollectionConfigBare = <
     [K in DocumentIdentityKey<Path, FieldKeys>]: z.ZodString;
   }>;
 
-  const effectiveCreateExcludedSchema = (
-    config.createExcludedSchema ?? EMPTY_OBJECT_SCHEMA
-  ) as AnyZodObject;
+  const effectiveCreateExcludedSchema = (config.createExcludedSchema ??
+    EMPTY_OBJECT_SCHEMA) as AnyZodObject;
 
   const intrinsicSchema = config.schema;
   const fieldKeySchema = z.object(
     Object.fromEntries(fieldKeys.map((key) => [key, z.string()])),
   );
 
-  const createExcludedKeys = Object.keys(
-    effectiveCreateExcludedSchema.shape,
-  );
+  const createExcludedKeys = Object.keys(effectiveCreateExcludedSchema.shape);
 
   assertTopLevelOverlappingKeysOptional(
     intrinsicSchema,
@@ -203,8 +199,8 @@ export const getCollectionConfigBare = <
     "createExcluded overlap",
   );
 
-  const dataSchemaBase = mergeSchemaWithObject(
-    mergeSchemaWithObject(
+  const dataSchemaBase = mergeSchemaForCollection(
+    mergeSchemaForCollection(
       intrinsicSchema,
       documentIdentitySchema,
       "required",
@@ -218,19 +214,17 @@ export const getCollectionConfigBare = <
     DataTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
   >;
 
-  const updateSchemaBase = mergeSchemaWithObject(
+  const updateSchemaBase = mergeSchemaForCollection(
     intrinsicSchema,
     effectiveCreateExcludedSchema,
     "asIs",
   );
   const updateSchema = hideSchemaFields(updateSchemaBase, {
     paths: documentIdentityKeys as unknown as string[],
-  }) as z.ZodType<
-    UpdateTypeFor<IntrinsicSchema, CreateExcludedShape>
-  >;
+  }) as z.ZodType<UpdateTypeFor<IntrinsicSchema, CreateExcludedShape>>;
 
-  const storeSchemaBase = mergeSchemaWithObject(
-    mergeSchemaWithObject(
+  const storeSchemaBase = mergeSchemaForCollection(
+    mergeSchemaForCollection(
       intrinsicSchema,
       fieldKeySchema as AnyZodObject,
       "required",
@@ -357,12 +351,7 @@ export const collectionConfig = <
     IntrinsicSchema,
     CreateExcludedShape
   >,
-): CollectionConfig<
-  Path,
-  FieldKeys,
-  IntrinsicSchema,
-  CreateExcludedShape
-> => {
+): CollectionConfig<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape> => {
   return {
     ...getCollectionConfigBare(config),
     ...config,
@@ -383,9 +372,7 @@ type DataSchemaTypeFor<
 type UpdateSchemaTypeFor<
   IntrinsicSchema extends z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape,
-> = z.ZodType<
-  UpdateTypeFor<IntrinsicSchema, CreateExcludedShape>
->;
+> = z.ZodType<UpdateTypeFor<IntrinsicSchema, CreateExcludedShape>>;
 
 type StoreSchemaTypeFor<
   Path extends string,

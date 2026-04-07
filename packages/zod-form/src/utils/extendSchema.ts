@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { unwrapSchema } from "./schema";
 import type { AnyZodObject } from "./schema";
-import { transformCompositeTopLevel } from "./schema";
+import { mergeSchema } from "./schema";
 import type { TransformMode } from "./schema";
 
 type EmptyShape = Record<never, never>;
@@ -111,7 +111,7 @@ export function extendSchema<
   ExtendSchemaInput<S, Extra>
 > {
   const mode = options.mode ?? "tail";
-  const next = transformCompositeTopLevel(schema, extra, {
+  const next = mergeSchema(schema, extra, {
     mode,
     reduceField: replaceFieldReducer,
   });

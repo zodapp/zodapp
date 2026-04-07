@@ -2,7 +2,7 @@ import {
   cloneSchema,
   getMeta,
   type AnyZodObject,
-  transformCompositeTopLevel,
+  mergeSchema,
   unwrapSchema,
   zf,
 } from "@zodapp/zod-form";
@@ -18,8 +18,7 @@ const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
 
   const inner = schema.unwrap() as z.ZodTypeAny;
   const optionalMeta = getMeta(schema as z.ZodTypeAny);
-  const isHidden =
-    optionalMeta?.typeName === "hidden" || optionalMeta?.hidden;
+  const isHidden = optionalMeta?.typeName === "hidden" || optionalMeta?.hidden;
   const cloned = cloneSchema(inner);
   if (isHidden) {
     cloned.register(zf.hidden.registry, {
@@ -29,13 +28,13 @@ const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
   return cloned;
 };
 
-export const mergeSchemaWithObject = (
+export const mergeSchemaForCollection = (
   base: z.ZodTypeAny,
   delta: AnyZodObject,
   mode: MergeMode,
   _contextLabel = "schema merge",
 ): z.ZodTypeAny => {
-  return transformCompositeTopLevel(base, delta.shape, {
+  return mergeSchema(base, delta.shape, {
     mode: "append",
     reduceField: (existent, replacement, _key) => {
       const source = existent ?? replacement;

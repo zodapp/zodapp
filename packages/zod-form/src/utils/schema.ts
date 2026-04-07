@@ -258,7 +258,7 @@ const splitIntersectionExtra = (
   };
 };
 
-export const transformCompositeTopLevel = (
+export const mergeSchema = (
   schema: z.ZodTypeAny,
   extra: z.ZodRawShape,
   options: TransformCompositeOptions,
@@ -291,8 +291,8 @@ export const transformCompositeTopLevel = (
     return rewrap(
       replaceIntersectionSides(
         inner,
-        transformCompositeTopLevel(left, leftExtra, options),
-        transformCompositeTopLevel(right, rightExtra, options),
+        mergeSchema(left, leftExtra, options),
+        mergeSchema(right, rightExtra, options),
       ),
     );
   }
@@ -300,16 +300,18 @@ export const transformCompositeTopLevel = (
   if (inner instanceof z.ZodDiscriminatedUnion) {
     const nextOptions = Array.from(
       inner.options as readonly AnyZodObject[],
-    ).map((option) =>
-      transformCompositeTopLevel(option, extra, options),
-    ) as [AnyZodObject, AnyZodObject, ...AnyZodObject[]];
+    ).map((option) => mergeSchema(option, extra, options)) as [
+      AnyZodObject,
+      AnyZodObject,
+      ...AnyZodObject[],
+    ];
     return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
   }
 
   if (inner instanceof z.ZodUnion) {
     const nextOptions = Array.from(
       inner.options as readonly z.ZodTypeAny[],
-    ).map((option) => transformCompositeTopLevel(option, extra, options));
+    ).map((option) => mergeSchema(option, extra, options));
     return rewrap(
       replaceUnionOptions(
         inner,
