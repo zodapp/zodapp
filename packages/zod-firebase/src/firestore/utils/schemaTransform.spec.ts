@@ -57,7 +57,7 @@ describe('mergeSchemaWithObject', () => {
     );
   });
 
-  it('applies the same top-level merge to every branch of an intersection', () => {
+  it('places new keys only in the right branch of an intersection', () => {
     const base = z.intersection(
       z.object({
         leftOnly: z.string().optional(),
@@ -83,7 +83,7 @@ describe('mergeSchemaWithObject', () => {
     const rightShared = right.shape.shared as z.ZodTypeAny;
     const rightExtra = right.shape.extra as z.ZodTypeAny;
 
-    expect(Object.keys(left.shape)).toEqual(['leftOnly', 'shared', 'extra']);
+    expect(Object.keys(left.shape)).toEqual(['leftOnly', 'shared']);
     expect(Object.keys(right.shape)).toEqual(['rightOnly', 'shared', 'extra']);
     expect(leftShared.safeParse('left').success).toBe(true);
     expect(rightShared.safeParse('right').success).toBe(true);

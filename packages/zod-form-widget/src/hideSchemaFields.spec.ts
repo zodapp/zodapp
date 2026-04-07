@@ -2,7 +2,7 @@ import { getMeta, zf } from '@zodapp/zod-form';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 
-import { hideSchemaFields, hideSchemaFieldsExcept } from './hideSchemaFields';
+import { hideSchemaFields, hideSchemaFieldsExcept } from '@zodapp/zod-form';
 
 type ObjectMeta = {
   properties?: string[];

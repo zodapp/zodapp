@@ -18,4 +18,8 @@ export * from "./resolverContext";
 // Schema field visibility
 export { hideSchemaFields, hideSchemaFieldsExcept } from "./utils/hideSchemaFields";
 
+// Schema extension
+export { extendSchema, extendSchemaSafe } from "./utils/extendSchema";
+export type { ExtendSchemaOptions, ExtendMode } from "./utils/extendSchema";
+
 // Note: Media types and React-dependent types have been moved to @zodapp/zod-form-react
