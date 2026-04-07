@@ -88,13 +88,6 @@ type SafeMappedType<Keys extends string, Value> =
       ? unknown
       : { [K in Keys]: Value };
 
-type SafeOptionalMappedType<Keys extends string, Value> =
-  IsAny<Keys> extends true
-    ? unknown
-    : [Keys] extends [never]
-      ? unknown
-      : { [K in Keys]?: Value };
-
 type NonPathKeySchemaFor<Path extends string, FieldKeys extends string> = [
   NonPathKeysOf<Path, FieldKeys>,
 ] extends [never]
@@ -115,17 +108,9 @@ type DataTypeFor<
   AsIsObjectTypeOf<CreateExcludedShape>;
 
 type UpdateTypeFor<
-  Path extends string,
-  FieldKeys extends string,
   IntrinsicSchema extends z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape,
-> = z.infer<IntrinsicSchema> &
-  SafeOptionalMappedType<
-    Exclude<DocumentIdentityKey<Path, FieldKeys>, FieldKeys>,
-    string
-  > &
-  SafeOptionalMappedType<FieldKeys, string> &
-  AsIsObjectTypeOf<CreateExcludedShape>;
+> = z.infer<IntrinsicSchema> & AsIsObjectTypeOf<CreateExcludedShape>;
 
 type StoreTypeFor<
   Path extends string,
@@ -234,22 +219,14 @@ export const getCollectionConfigBare = <
   >;
 
   const updateSchemaBase = mergeSchemaWithObject(
-    mergeSchemaWithObject(
-      mergeSchemaWithObject(
-        intrinsicSchema,
-        documentIdentitySchema,
-        "optional",
-      ),
-      fieldKeySchema as AnyZodObject,
-      "optional",
-    ),
+    intrinsicSchema,
     effectiveCreateExcludedSchema,
     "asIs",
   );
   const updateSchema = hideSchemaFields(updateSchemaBase, {
     paths: documentIdentityKeys as unknown as string[],
   }) as z.ZodType<
-    UpdateTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+    UpdateTypeFor<IntrinsicSchema, CreateExcludedShape>
   >;
 
   const storeSchemaBase = mergeSchemaWithObject(
@@ -404,12 +381,10 @@ type DataSchemaTypeFor<
 >;
 
 type UpdateSchemaTypeFor<
-  Path extends string,
-  FieldKeys extends string,
   IntrinsicSchema extends z.ZodTypeAny,
   CreateExcludedShape extends z.ZodRawShape,
 > = z.ZodType<
-  UpdateTypeFor<Path, FieldKeys, IntrinsicSchema, CreateExcludedShape>
+  UpdateTypeFor<IntrinsicSchema, CreateExcludedShape>
 >;
 
 type StoreSchemaTypeFor<
@@ -472,8 +447,6 @@ export type CollectionConfigMethods<
     CreateExcludedShape
   >;
   readonly updateSchema: UpdateSchemaTypeFor<
-    Path,
-    FieldKeys,
     IntrinsicSchema,
     CreateExcludedShape
   >;

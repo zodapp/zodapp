@@ -428,7 +428,7 @@ describe("collectionConfig", () => {
       expect(getMeta(afterShape.memo as z.ZodTypeAny)?.typeName).not.toBe("hidden");
     });
 
-    it("should have updateSchema with identity keys and fieldKeys optional", () => {
+    it("should keep updateSchema aligned with intrinsic schema and hide identity keys", () => {
       const data = {
         name: "John Doe",
         email: "john@example.com",
@@ -439,7 +439,7 @@ describe("collectionConfig", () => {
       const result = testCollection.updateSchema.parse(data);
       expect(result).toEqual(data);
 
-      // fieldKeys / identityKeys がなくても OK
+      // intrinsic schema だけでも OK
       expect(
         testCollection.updateSchema.parse({
           name: "John Doe",
@@ -450,7 +450,7 @@ describe("collectionConfig", () => {
         email: "john@example.com",
       });
 
-      // documentIdentityKeys ありでも OK
+      // identity keys を渡しても runtime schema には追加されず、strip される
       const dataWithIdentity = {
         ...data,
         groupId: "group-789",
@@ -459,7 +459,7 @@ describe("collectionConfig", () => {
       };
       const resultWithIdentity =
         testCollection.updateSchema.parse(dataWithIdentity);
-      expect(resultWithIdentity).toEqual(dataWithIdentity);
+      expect(resultWithIdentity).toEqual(data);
     });
 
     it("should have storeSchema with fieldKeys/createExcluded (required)", () => {
@@ -517,7 +517,6 @@ describe("collectionConfig", () => {
         name: "Alice",
       });
       expect(parsed).toEqual({
-        teamId: "team-1",
         userId: "user-1",
         name: "Alice",
       });
@@ -962,9 +961,6 @@ describe("collectionConfig", () => {
         updatedAt?: Date | undefined;
       };
       type ExpectedUpdate = {
-        userId?: string | undefined;
-        teamId?: string | undefined;
-        groupId?: string | undefined;
         name: string;
         email: string;
         createdAt?: Date | undefined;

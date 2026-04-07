@@ -11,15 +11,11 @@ import {
 } from "@zodapp/zod-form";
 import { z } from "zod";
 
-type MergeMode = "optional" | "required" | "asIs";
+type MergeMode = "required" | "asIs";
 
 const isEmptyShape = (shape: z.ZodRawShape) => Object.keys(shape).length === 0;
 
-const hiddenString = (optional = false) =>
-  (optional ? z.string().optional() : z.string()).register(
-    zf.hidden.registry,
-    {},
-  );
+const hiddenString = () => z.string().register(zf.hidden.registry, {});
 
 const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
   if (!schema) return hiddenString();
@@ -38,23 +34,10 @@ const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
   return cloned;
 };
 
-const materializeOptionalField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
-  if (!schema) return hiddenString(true);
-  if (schema instanceof z.ZodOptional) return cloneSchema(schema);
-
-  const label = getMeta(schema as z.ZodTypeAny)?.label;
-  const optional = cloneSchema(schema).optional();
-  optional.register(zf.hidden.registry, {
-    ...(label ? { label } : {}),
-  });
-  return optional;
-};
-
 const materializeField = (
   schema: z.ZodTypeAny | undefined,
   mode: MergeMode,
 ): z.ZodTypeAny => {
-  if (mode === "optional") return materializeOptionalField(schema);
   if (mode === "required") return materializeRequiredField(schema);
   return schema ?? hiddenString();
 };
