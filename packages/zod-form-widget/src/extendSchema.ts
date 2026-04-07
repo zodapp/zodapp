@@ -1,4 +1,11 @@
-import { getMeta, zf } from "@zodapp/zod-form";
+import {
+  type AnyZodObject,
+  replaceDiscriminatedUnionOptions,
+  replaceIntersectionSides,
+  replaceObjectShape,
+  replaceUnionOptions,
+  unwrapSchema,
+} from "@zodapp/zod-form";
 import { z } from "zod";
 
 type EmptyShape = Record<never, never>;
@@ -11,204 +18,176 @@ type ShapeOutput<Shape extends z.ZodRawShape> = {
   [K in keyof Shape]: z.output<Shape[K]>;
 };
 
-export type ExtendSchemaOptions<
-  Before extends z.ZodRawShape = EmptyShape,
-  After extends z.ZodRawShape = EmptyShape,
-> = {
-  before?: Before;
-  after?: After;
+export type ExtendMode = "head" | "tail" | "append" | "prepend";
+
+export type ExtendSchemaOptions = {
+  mode?: ExtendMode;
 };
 
 type ExtendSchemaOutput<
   S extends z.ZodTypeAny,
-  Before extends z.ZodRawShape,
-  After extends z.ZodRawShape,
-> = z.output<S> & ShapeOutput<Before> & ShapeOutput<After>;
+  Extra extends z.ZodRawShape,
+> = z.output<S> & ShapeOutput<Extra>;
 
 type ExtendSchemaInput<
   S extends z.ZodTypeAny,
-  Before extends z.ZodRawShape,
-  After extends z.ZodRawShape,
-> = z.input<S> & ShapeInput<Before> & ShapeInput<After>;
-
-export type Position = "before" | "after";
-
-type ObjectMeta = {
-  label?: string;
-  uiType?: string;
-  tags?: string[];
-  hidden?: boolean;
-  readOnly?: boolean;
-  color?: string;
-  width?: number;
-  align?: "left" | "center" | "right";
-  properties?: string[];
-};
-
-type Wrapper =
-  | { kind: "optional" }
-  | { kind: "nullable" }
-  | { kind: "default"; defaultValue: unknown };
+  Extra extends z.ZodRawShape,
+> = z.input<S> & ShapeInput<Extra>;
 
 const EMPTY_SHAPE: EmptyShape = {};
 
 const isEmptyShape = (shape: z.ZodRawShape) => Object.keys(shape).length === 0;
 
-const omitShapeKeys = (
+const modePlacesNewKeysFirst = (mode: ExtendMode) =>
+  mode === "head" || mode === "prepend";
+
+const buildOrderedKeys = (
   shape: z.ZodRawShape,
-  keys: string[],
+  extra: z.ZodRawShape,
+  mode: ExtendMode,
+): string[] => {
+  const currentKeys = Object.keys(shape);
+  const extraKeys = Object.keys(extra);
+  const currentKeySet = new Set(currentKeys);
+  const extraKeySet = new Set(extraKeys);
+  const newKeys = extraKeys.filter((key) => !currentKeySet.has(key));
+
+  if (mode === "append") {
+    return [...currentKeys, ...newKeys];
+  }
+
+  if (mode === "prepend") {
+    return [...newKeys, ...currentKeys];
+  }
+
+  const restKeys = currentKeys.filter((key) => !extraKeySet.has(key));
+  return mode === "head" ? [...extraKeys, ...restKeys] : [...restKeys, ...extraKeys];
+};
+
+const rebuildObjectShape = (
+  shape: z.ZodRawShape,
+  extra: z.ZodRawShape,
+  mode: ExtendMode,
 ): z.ZodRawShape => {
-  const keySet = new Set(keys);
+  const orderedKeys = buildOrderedKeys(shape, extra, mode);
   return Object.fromEntries(
-    Object.entries(shape).filter(([key]) => !keySet.has(key)),
+    orderedKeys.map((key) => [key, (extra[key] ?? shape[key]) as z.ZodTypeAny]),
   ) as z.ZodRawShape;
 };
 
-const mergeShape = (
-  shape: z.ZodRawShape,
-  extra: z.ZodRawShape,
-  position: Position,
-): z.ZodRawShape => {
-  if (isEmptyShape(extra)) return shape;
-  const rest = omitShapeKeys(shape, Object.keys(extra));
-  return position === "before"
-    ? { ...extra, ...rest }
-    : { ...rest, ...extra };
-};
-
-const normalizeObjectOrder = (
-  schema: z.ZodObject<z.ZodRawShape>,
-  nextKeys: string[],
-): string[] => {
-  const objectMeta = getMeta(schema, "object") as ObjectMeta | undefined;
-  const propertySet = new Set(nextKeys);
-  const metaProperties = (objectMeta?.properties ?? []).filter((key) =>
-    propertySet.has(key),
-  );
-  return [
-    ...metaProperties,
-    ...nextKeys.filter((key) => !metaProperties.includes(key)),
-  ];
-};
-
-const mergeProperties = (
-  schema: z.ZodObject<z.ZodRawShape>,
-  nextShape: z.ZodRawShape,
-  movedKeys: string[],
-  position: Position,
-): string[] => {
-  const nextKeys = Object.keys(nextShape);
-  const baseOrder = normalizeObjectOrder(schema, nextKeys);
-  const moved = movedKeys.filter((key) => nextKeys.includes(key));
-  const rest = baseOrder.filter((key) => !moved.includes(key));
-  return position === "before" ? [...moved, ...rest] : [...rest, ...moved];
-};
-
 const rebuildObjectSchema = (
-  schema: z.ZodObject<z.ZodRawShape>,
+  schema: AnyZodObject,
   extra: z.ZodRawShape,
-  position: Position,
-): z.ZodObject<z.ZodRawShape> => {
-  const nextShape = mergeShape(schema.shape, extra, position);
-  const nextObject = z.object(nextShape);
-  const nextProperties = mergeProperties(
-    schema,
-    nextShape,
-    Object.keys(extra),
-    position,
-  );
-  const objectMeta = getMeta(schema, "object") as ObjectMeta | undefined;
-  const nextMeta = { ...(objectMeta ?? {}), properties: nextProperties };
-  return nextObject.register(zf.object.registry, nextMeta);
+  mode: ExtendMode,
+): AnyZodObject => {
+  return replaceObjectShape(schema, rebuildObjectShape(schema.shape, extra, mode));
 };
 
-const unwrapSchema = (schema: z.ZodTypeAny) => {
-  const wrappers: Wrapper[] = [];
-  let current = schema;
+const collectTopLevelKeys = (schema: z.ZodTypeAny): Set<string> => {
+  const { inner } = unwrapSchema(schema);
 
-  while (true) {
-    if (current instanceof z.ZodOptional) {
-      wrappers.push({ kind: "optional" });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    if (current instanceof z.ZodNullable) {
-      wrappers.push({ kind: "nullable" });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    if (current instanceof z.ZodDefault) {
-      wrappers.push({
-        kind: "default",
-        defaultValue: (
-          current._def as { defaultValue: unknown }
-        ).defaultValue,
-      });
-      current = current.unwrap() as z.ZodTypeAny;
-      continue;
-    }
-    break;
+  if (inner instanceof z.ZodObject) {
+    return new Set(Object.keys(inner.shape));
   }
 
-  const rewrap = (next: z.ZodTypeAny) =>
-    wrappers.reduceRight<z.ZodTypeAny>((acc, wrapper) => {
-      if (wrapper.kind === "optional") return acc.optional();
-      if (wrapper.kind === "nullable") return acc.nullable();
-      return acc.default(wrapper.defaultValue as never);
-    }, next);
+  if (inner instanceof z.ZodDiscriminatedUnion) {
+    return Array.from(inner.options as readonly AnyZodObject[]).reduce(
+      (keys, option) => new Set([...keys, ...collectTopLevelKeys(option)]),
+      new Set<string>(),
+    );
+  }
 
-  return { inner: current, rewrap };
+  if (inner instanceof z.ZodUnion) {
+    return Array.from(inner.options as readonly z.ZodTypeAny[]).reduce(
+      (keys, option) => new Set([...keys, ...collectTopLevelKeys(option)]),
+      new Set<string>(),
+    );
+  }
+
+  if (inner instanceof z.ZodIntersection) {
+    return new Set([
+      ...collectTopLevelKeys(inner._def.left as z.ZodTypeAny),
+      ...collectTopLevelKeys(inner._def.right as z.ZodTypeAny),
+    ]);
+  }
+
+  return new Set<string>();
+};
+
+const splitIntersectionShape = (
+  left: z.ZodTypeAny,
+  right: z.ZodTypeAny,
+  extra: z.ZodRawShape,
+  mode: ExtendMode,
+): {
+  leftExtra: z.ZodRawShape;
+  rightExtra: z.ZodRawShape;
+} => {
+  const leftKeys = collectTopLevelKeys(left);
+  const rightKeys = collectTopLevelKeys(right);
+  const leftExtra: Record<string, z.ZodRawShape[string]> = {};
+  const rightExtra: Record<string, z.ZodRawShape[string]> = {};
+  const targetForNewKeys = modePlacesNewKeysFirst(mode) ? leftExtra : rightExtra;
+
+  for (const [key, schema] of Object.entries(extra)) {
+    const inLeft = leftKeys.has(key);
+    const inRight = rightKeys.has(key);
+
+    if (inLeft) leftExtra[key] = schema;
+    if (inRight) rightExtra[key] = schema;
+    if (!inLeft && !inRight) targetForNewKeys[key] = schema;
+  }
+
+  return {
+    leftExtra: leftExtra as z.ZodRawShape,
+    rightExtra: rightExtra as z.ZodRawShape,
+  };
 };
 
 const applyShape = (
   schema: z.ZodTypeAny,
   extra: z.ZodRawShape,
-  position: Position,
+  mode: ExtendMode,
 ): z.ZodTypeAny => {
   if (isEmptyShape(extra)) return schema;
 
   const { inner, rewrap } = unwrapSchema(schema);
 
   if (inner instanceof z.ZodObject) {
-    return rewrap(rebuildObjectSchema(inner, extra, position));
+    return rewrap(rebuildObjectSchema(inner as AnyZodObject, extra, mode));
   }
 
   if (inner instanceof z.ZodIntersection) {
     const left = inner._def.left as z.ZodTypeAny;
     const right = inner._def.right as z.ZodTypeAny;
-    const next =
-      position === "before"
-        ? z.intersection(applyShape(left, extra, position), right)
-        : z.intersection(left, applyShape(right, extra, position));
-    return rewrap(next);
+    const { leftExtra, rightExtra } = splitIntersectionShape(left, right, extra, mode);
+
+    return rewrap(
+      replaceIntersectionSides(
+        inner,
+        applyShape(left, leftExtra, mode),
+        applyShape(right, rightExtra, mode),
+      ),
+    );
   }
 
   if (inner instanceof z.ZodDiscriminatedUnion) {
-    const discriminator = (
-      inner as unknown as { _def: { discriminator: string } }
-    )._def.discriminator;
-    const options = Array.from(
-      inner.options as readonly z.ZodObject<z.ZodRawShape>[],
-    ).map((option) => applyShape(option, extra, position));
-    const next = z.discriminatedUnion(
-      discriminator,
-      options as unknown as [
-        z.ZodObject<z.ZodRawShape>,
-        z.ZodObject<z.ZodRawShape>,
-        ...z.ZodObject<z.ZodRawShape>[],
-      ],
-    );
-    return rewrap(next);
+    const options = Array.from(inner.options as readonly AnyZodObject[]).map(
+      (option) => applyShape(option, extra, mode),
+    ) as [AnyZodObject, AnyZodObject, ...AnyZodObject[]];
+    return rewrap(replaceDiscriminatedUnionOptions(inner, options));
   }
 
   if (inner instanceof z.ZodUnion) {
     const options = Array.from(inner.options as readonly z.ZodTypeAny[]).map(
-      (option) => applyShape(option, extra, position),
+      (option) => applyShape(option, extra, mode),
     );
-    const next = z.union(
-      options as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
+    return rewrap(
+      replaceUnionOptions(
+        inner,
+        options as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
+      ),
     );
-    return rewrap(next);
   }
 
   return schema;
@@ -222,14 +201,14 @@ const collectArmKeySets = (schema: z.ZodTypeAny): Array<Set<string>> => {
   }
 
   if (inner instanceof z.ZodDiscriminatedUnion) {
-    return Array.from(
-      inner.options as readonly z.ZodObject<z.ZodRawShape>[],
-    ).flatMap((option) => collectArmKeySets(option));
+    return Array.from(inner.options as readonly AnyZodObject[]).flatMap((option) =>
+      collectArmKeySets(option),
+    );
   }
 
   if (inner instanceof z.ZodUnion) {
-    return Array.from(inner.options as readonly z.ZodTypeAny[]).flatMap(
-      (option) => collectArmKeySets(option),
+    return Array.from(inner.options as readonly z.ZodTypeAny[]).flatMap((option) =>
+      collectArmKeySets(option),
     );
   }
 
@@ -253,7 +232,7 @@ const isNeverBased = (schema: z.ZodRawShape[string] | undefined): boolean => {
 const assertNoNewKeys = (
   schema: z.ZodTypeAny,
   extra: z.ZodRawShape,
-  position: Position,
+  mode: ExtendMode,
 ): void => {
   if (isEmptyShape(extra)) return;
 
@@ -268,7 +247,7 @@ const assertNoNewKeys = (
 
     throw new Error(
       [
-        `extendSchemaSafe: ${position} に未知の key が含まれています`,
+        `extendSchemaSafe: ${mode} に未知の key が含まれています`,
         `arm=${index + 1}`,
         `unknown=${unknownKeys.join(",")}`,
       ].join(" "),
@@ -278,37 +257,34 @@ const assertNoNewKeys = (
 
 export function extendSchema<
   S extends z.ZodTypeAny,
-  Before extends z.ZodRawShape = EmptyShape,
-  After extends z.ZodRawShape = EmptyShape,
+  Extra extends z.ZodRawShape = EmptyShape,
 >(
   schema: S,
-  options: ExtendSchemaOptions<Before, After> = {},
+  extra = EMPTY_SHAPE as Extra,
+  options: ExtendSchemaOptions = {},
 ): z.ZodType<
-  ExtendSchemaOutput<S, Before, After>,
-  ExtendSchemaInput<S, Before, After>
+  ExtendSchemaOutput<S, Extra>,
+  ExtendSchemaInput<S, Extra>
 > {
-  const before = (options.before ?? EMPTY_SHAPE) as Before;
-  const after = (options.after ?? EMPTY_SHAPE) as After;
-  const next = applyShape(applyShape(schema, before, "before"), after, "after");
+  const mode = options.mode ?? "tail";
+  const next = applyShape(schema, extra, mode);
   return next as unknown as z.ZodType<
-    ExtendSchemaOutput<S, Before, After>,
-    ExtendSchemaInput<S, Before, After>
+    ExtendSchemaOutput<S, Extra>,
+    ExtendSchemaInput<S, Extra>
   >;
 }
 
 export function extendSchemaSafe<
   S extends z.ZodTypeAny,
-  Before extends z.ZodRawShape = EmptyShape,
-  After extends z.ZodRawShape = EmptyShape,
+  Extra extends z.ZodRawShape = EmptyShape,
 >(
   schema: S,
-  options: ExtendSchemaOptions<Before, After> = {},
+  extra = EMPTY_SHAPE as Extra,
+  options: ExtendSchemaOptions = {},
 ): S {
-  const before = (options.before ?? EMPTY_SHAPE) as Before;
-  const after = (options.after ?? EMPTY_SHAPE) as After;
+  const mode = options.mode ?? "tail";
 
-  assertNoNewKeys(schema, before, "before");
-  assertNoNewKeys(schema, after, "after");
+  assertNoNewKeys(schema, extra, mode);
 
-  return extendSchema(schema, options) as unknown as S;
+  return extendSchema(schema, extra, options) as unknown as S;
 }
