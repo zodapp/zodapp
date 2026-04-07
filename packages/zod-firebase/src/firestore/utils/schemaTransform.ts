@@ -3,27 +3,17 @@ import {
   getMeta,
   type AnyZodObject,
   replaceDiscriminatedUnionOptions,
-  replaceIntersectionSides,
   replaceObjectShape,
+  replaceIntersectionSides,
   replaceUnionOptions,
   unwrapSchema,
   zf,
 } from "@zodapp/zod-form";
 import { z } from "zod";
 
-type MergeMode = "appendOptional" | "appendRequired" | "appendAsIs";
+type MergeMode = "optional" | "required" | "asIs";
 
 const isEmptyShape = (shape: z.ZodRawShape) => Object.keys(shape).length === 0;
-
-const omitShapeKeys = (
-  shape: z.ZodRawShape,
-  keys: readonly string[],
-): z.ZodRawShape => {
-  const keySet = new Set(keys);
-  return Object.fromEntries(
-    Object.entries(shape).filter(([key]) => !keySet.has(key)),
-  ) as z.ZodRawShape;
-};
 
 const hiddenString = (optional = false) =>
   (optional ? z.string().optional() : z.string()).register(
@@ -33,7 +23,7 @@ const hiddenString = (optional = false) =>
 
 const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
   if (!schema) return hiddenString();
-  if (!(schema instanceof z.ZodOptional)) return schema;
+  if (!(schema instanceof z.ZodOptional)) return cloneSchema(schema);
 
   const inner = schema.unwrap() as z.ZodTypeAny;
   const optionalMeta = getMeta(schema as z.ZodTypeAny);
@@ -50,14 +40,23 @@ const materializeRequiredField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
 
 const materializeOptionalField = (schema?: z.ZodTypeAny): z.ZodTypeAny => {
   if (!schema) return hiddenString(true);
-  if (schema instanceof z.ZodOptional) return schema;
+  if (schema instanceof z.ZodOptional) return cloneSchema(schema);
 
   const label = getMeta(schema as z.ZodTypeAny)?.label;
-  const optional = schema.optional();
+  const optional = cloneSchema(schema).optional();
   optional.register(zf.hidden.registry, {
     ...(label ? { label } : {}),
   });
   return optional;
+};
+
+const materializeField = (
+  schema: z.ZodTypeAny | undefined,
+  mode: MergeMode,
+): z.ZodTypeAny => {
+  if (mode === "optional") return materializeOptionalField(schema);
+  if (mode === "required") return materializeRequiredField(schema);
+  return schema ?? hiddenString();
 };
 
 const buildUnsupportedSchemaError = (contextLabel: string) =>
@@ -66,12 +65,11 @@ const buildUnsupportedSchemaError = (contextLabel: string) =>
       `ZodDiscriminatedUnion, ZodIntersection, and their wrappers.`,
   );
 
-export const mergeSchemaRecursively = (
+export const mergeSchemaWithObject = (
   base: z.ZodTypeAny,
   delta: AnyZodObject,
   mode: MergeMode,
-  contextLabel: string,
-  preferExistingOnOverlap = false,
+  contextLabel = "schema merge",
 ): z.ZodTypeAny => {
   if (isEmptyShape(delta.shape)) return base;
 
@@ -80,18 +78,10 @@ export const mergeSchemaRecursively = (
   if (inner instanceof z.ZodObject) {
     const nextShape = Object.fromEntries(
       Object.entries(delta.shape).map(([key, schema]) => {
-        const sourceSchema =
-          preferExistingOnOverlap && inner.shape[key]
-            ? (inner.shape[key] as z.ZodTypeAny)
-            : (schema as z.ZodTypeAny);
-        return [
-          key,
-          mode === "appendOptional"
-            ? materializeOptionalField(sourceSchema)
-            : mode === "appendRequired"
-              ? materializeRequiredField(sourceSchema)
-              : sourceSchema,
-        ];
+        const sourceSchema = inner.shape[key]
+          ? (inner.shape[key] as z.ZodTypeAny)
+          : (schema as z.ZodTypeAny);
+        return [key, materializeField(sourceSchema, mode)];
       }),
     ) as z.ZodRawShape;
     const mergedShape = {
@@ -109,12 +99,11 @@ export const mergeSchemaRecursively = (
     const nextOptions = Array.from(
       inner.options as readonly AnyZodObject[],
     ).map((option) =>
-      mergeSchemaRecursively(
+      mergeSchemaWithObject(
         option,
         delta,
         mode,
         contextLabel,
-        preferExistingOnOverlap,
       ),
     ) as [AnyZodObject, AnyZodObject, ...AnyZodObject[]];
     return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
@@ -124,31 +113,28 @@ export const mergeSchemaRecursively = (
     const nextOptions = Array.from(
       inner.options as readonly z.ZodTypeAny[],
     ).map((option) =>
-      mergeSchemaRecursively(
+      mergeSchemaWithObject(
         option,
         delta,
         mode,
         contextLabel,
-        preferExistingOnOverlap,
       ),
     ) as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]];
     return rewrap(replaceUnionOptions(inner, nextOptions));
   }
 
   if (inner instanceof z.ZodIntersection) {
-    const left = mergeSchemaRecursively(
+    const left = mergeSchemaWithObject(
       inner._def.left as z.ZodTypeAny,
       delta,
       mode,
       contextLabel,
-      preferExistingOnOverlap,
     );
-    const right = mergeSchemaRecursively(
+    const right = mergeSchemaWithObject(
       inner._def.right as z.ZodTypeAny,
       delta,
       mode,
       contextLabel,
-      preferExistingOnOverlap,
     );
     return rewrap(replaceIntersectionSides(inner, left, right));
   }
@@ -157,10 +143,10 @@ export const mergeSchemaRecursively = (
 };
 
 /**
- * intrinsicSchema 上で keys と重複するフィールドが optional であることを検証する。
- * required なフィールドが見つかった場合は throw する。
+ * intrinsicSchema が top-level の ZodObject の場合のみ、
+ * keys と重複するフィールドが optional であることを検証する。
  */
-export const assertOverlappingKeysOptional = (
+export const assertTopLevelOverlappingKeysOptional = (
   schema: z.ZodTypeAny,
   keys: readonly string[],
   contextLabel: string,
@@ -182,89 +168,5 @@ export const assertOverlappingKeysOptional = (
         );
       }
     }
-    return;
   }
-
-  if (inner instanceof z.ZodDiscriminatedUnion) {
-    for (const option of inner.options as readonly AnyZodObject[]) {
-      assertOverlappingKeysOptional(option, keys, contextLabel);
-    }
-    return;
-  }
-
-  if (inner instanceof z.ZodUnion) {
-    for (const option of inner.options as readonly z.ZodTypeAny[]) {
-      assertOverlappingKeysOptional(option, keys, contextLabel);
-    }
-    return;
-  }
-
-  if (inner instanceof z.ZodIntersection) {
-    assertOverlappingKeysOptional(
-      inner._def.left as z.ZodTypeAny,
-      keys,
-      contextLabel,
-    );
-    assertOverlappingKeysOptional(
-      inner._def.right as z.ZodTypeAny,
-      keys,
-      contextLabel,
-    );
-    return;
-  }
-};
-
-export const stripKeysRecursively = (
-  schema: z.ZodTypeAny,
-  keys: readonly string[],
-  contextLabel: string,
-): z.ZodTypeAny => {
-  if (keys.length === 0) return schema;
-
-  const { inner, rewrap } = unwrapSchema(schema);
-
-  if (inner instanceof z.ZodObject) {
-    const nextShape = omitShapeKeys(inner.shape, keys);
-    return rewrap(
-      replaceObjectShape(inner as AnyZodObject, nextShape, {
-        properties: Object.keys(nextShape),
-      }),
-    );
-  }
-
-  if (inner instanceof z.ZodDiscriminatedUnion) {
-    const nextOptions = Array.from(
-      inner.options as readonly AnyZodObject[],
-    ).map((option) =>
-      stripKeysRecursively(option, keys, contextLabel),
-    ) as [AnyZodObject, AnyZodObject, ...AnyZodObject[]];
-    return rewrap(replaceDiscriminatedUnionOptions(inner, nextOptions));
-  }
-
-  if (inner instanceof z.ZodUnion) {
-    const nextOptions = Array.from(
-      inner.options as readonly z.ZodTypeAny[],
-    ).map((option) => stripKeysRecursively(option, keys, contextLabel)) as [
-      z.ZodTypeAny,
-      z.ZodTypeAny,
-      ...z.ZodTypeAny[],
-    ];
-    return rewrap(replaceUnionOptions(inner, nextOptions));
-  }
-
-  if (inner instanceof z.ZodIntersection) {
-    const left = stripKeysRecursively(
-      inner._def.left as z.ZodTypeAny,
-      keys,
-      contextLabel,
-    );
-    const right = stripKeysRecursively(
-      inner._def.right as z.ZodTypeAny,
-      keys,
-      contextLabel,
-    );
-    return rewrap(replaceIntersectionSides(inner, left, right));
-  }
-
-  throw buildUnsupportedSchemaError(contextLabel);
 };

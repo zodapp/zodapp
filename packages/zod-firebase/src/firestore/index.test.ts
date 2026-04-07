@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, expectTypeOf } from "vitest";
 import { z } from "zod";
+import { getMeta, hideSchemaFieldsExcept, zf } from "@zodapp/zod-form";
 import {
   collectionConfig,
   createCollectionMutations,
@@ -304,6 +305,129 @@ describe("collectionConfig", () => {
       expect(stored.updatedAt).toBeUndefined();
     });
 
+    it("should preserve createExcluded optional date field meta in updateSchema", () => {
+      const createExcludedSchema = z.object({
+        updatedAt: zf
+          .date()
+          .register(zf.date.registry, { label: "更新日時" })
+          .optional(),
+      });
+      const withOptionalDate = collectionConfig({
+        path: "/teams/:teamId" as const,
+        schema: z.object({
+          name: z.string(),
+        }),
+        createExcludedSchema,
+      });
+
+      const updateShape = (
+        withOptionalDate.updateSchema as unknown as z.ZodObject<z.ZodRawShape>
+      ).shape;
+      const sourceMeta = getMeta(createExcludedSchema.shape.updatedAt as z.ZodTypeAny);
+      const meta = getMeta(updateShape.updatedAt as z.ZodTypeAny);
+      expect(sourceMeta?.typeName).not.toBe("hidden");
+      expect(meta?.typeName).not.toBe("hidden");
+    });
+
+    it("should not mutate updateSchema when deriving hidden-except schemas", () => {
+      const dialogLike = collectionConfig({
+        path: "/dialogs/:id" as const,
+        fieldKeys: ["teamId"] as const,
+        schema: z
+          .object({
+            id: zf
+              .string()
+              .register(zf.string.registry, { label: "問い合わせ番号" })
+              .optional(),
+            title: zf.string().register(zf.string.registry, { label: "タイトル" }),
+            flowGroupId: zf
+              .string()
+              .register(zf.string.registry, { label: "シナリオ" })
+              .optional(),
+            customerPhoneNumber: zf
+              .string()
+              .register(zf.string.registry, { label: "顧客電話番号" }),
+            operatorPhoneNumber: zf
+              .string()
+              .register(zf.string.registry, { label: "対応電話番号" }),
+            endedAt: zf
+              .date()
+              .register(zf.date.registry, { label: "終了日時" })
+              .optional(),
+            duration: zf
+              .number()
+              .register(zf.number.registry, { label: "通話時間" })
+              .optional(),
+            summary: zf
+              .string()
+              .register(zf.string.registry, { label: "要約" })
+              .optional(),
+            memo: zf
+              .string()
+              .register(zf.string.registry, { label: "メモ" })
+              .optional(),
+            slots: z
+              .record(z.string(), z.string().optional())
+              .register(zf.hidden.registry, { label: "取得項目" })
+              .optional(),
+          })
+          .register(zf.object.registry, {}),
+        createExcludedSchema: z.object({
+          createdAt: zf
+            .date()
+            .register(zf.date.registry, { label: "作成日時" }),
+          updatedAt: zf
+            .date()
+            .register(zf.date.registry, { label: "更新日時" })
+            .optional(),
+          deleted: zf
+            .boolean()
+            .register(zf.hidden.registry, { label: "削除" })
+            .optional(),
+        }),
+      });
+
+      const beforeShape = (
+        dialogLike.updateSchema as unknown as z.ZodObject<z.ZodRawShape>
+      ).shape;
+      expect(getMeta(beforeShape.customerPhoneNumber as z.ZodTypeAny)?.typeName).not.toBe(
+        "hidden",
+      );
+      expect(getMeta(beforeShape.summary as z.ZodTypeAny)?.typeName).not.toBe(
+        "hidden",
+      );
+      expect(getMeta(beforeShape.memo as z.ZodTypeAny)?.typeName).not.toBe("hidden");
+
+      hideSchemaFieldsExcept(dialogLike.updateSchema, {
+        paths: ["summary"],
+      });
+      hideSchemaFieldsExcept(dialogLike.updateSchema, {
+        paths: ["memo"],
+      });
+      hideSchemaFieldsExcept(dialogLike.updateSchema, {
+        paths: [
+          "id",
+          "flowGroupId",
+          "customerPhoneNumber",
+          "operatorPhoneNumber",
+          "createdAt",
+          "endedAt",
+          "duration",
+        ],
+      });
+
+      const afterShape = (
+        dialogLike.updateSchema as unknown as z.ZodObject<z.ZodRawShape>
+      ).shape;
+      expect(getMeta(afterShape.customerPhoneNumber as z.ZodTypeAny)?.typeName).not.toBe(
+        "hidden",
+      );
+      expect(getMeta(afterShape.summary as z.ZodTypeAny)?.typeName).not.toBe(
+        "hidden",
+      );
+      expect(getMeta(afterShape.memo as z.ZodTypeAny)?.typeName).not.toBe("hidden");
+    });
+
     it("should have updateSchema with identity keys and fieldKeys optional", () => {
       const data = {
         name: "John Doe",
@@ -338,7 +462,7 @@ describe("collectionConfig", () => {
       expect(resultWithIdentity).toEqual(dataWithIdentity);
     });
 
-    it("should have storeSchema without documentPathKeys but with fieldKeys/createExcluded (required)", () => {
+    it("should have storeSchema with fieldKeys/createExcluded (required)", () => {
       const data = {
         groupId: "group-789",
         name: "John Doe",
@@ -1283,6 +1407,37 @@ describe("autoQuery helpers", () => {
       ).toThrow();
     });
 
+    it("keeps union schemas as runtime unions while merging identity fields", () => {
+      const discriminated = collectionConfig({
+        path: "/items/:itemId" as const,
+        fieldKeys: [] as const,
+        schema: z.discriminatedUnion("kind", [
+          z.object({ kind: z.literal("a"), value: z.string() }),
+          z.object({ kind: z.literal("b"), count: z.number() }),
+        ]),
+      });
+      const plainUnion = collectionConfig({
+        path: "/docs/:docId" as const,
+        fieldKeys: [] as const,
+        schema: z.union([
+          z.object({ type: z.literal("text"), body: z.string() }),
+          z.object({ type: z.literal("image"), url: z.string() }),
+        ]),
+      });
+      const intersection = collectionConfig({
+        path: "/entries/:entryId" as const,
+        fieldKeys: [] as const,
+        schema: z.intersection(
+          z.object({ title: z.string() }),
+          z.object({ priority: z.number() }),
+        ),
+      });
+
+      expect(discriminated.dataSchema).toBeInstanceOf(z.ZodDiscriminatedUnion);
+      expect(plainUnion.dataSchema).toBeInstanceOf(z.ZodUnion);
+      expect(intersection.dataSchema).toBeInstanceOf(z.ZodIntersection);
+    });
+
     it("should support plain union schema with identity auto-merge", () => {
       const plainUnion = collectionConfig({
         path: "/docs/:docId" as const,
@@ -1319,7 +1474,7 @@ describe("autoQuery helpers", () => {
       expect(parsed).toEqual({ entryId: "e1", title: "task", priority: 1 });
     });
 
-    it("should strip identity keys from storeSchema for union", () => {
+    it("should support storeSchema for union with required fieldKeys", () => {
       const unionStore = collectionConfig({
         path: "/teams/:teamId/items/:itemId" as const,
         fieldKeys: ["teamId"] as const,

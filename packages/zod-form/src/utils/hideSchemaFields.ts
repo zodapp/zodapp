@@ -54,8 +54,12 @@ const pickCommonMeta = (schema: z.ZodTypeAny): CommonMeta | undefined => {
 };
 
 const cloneAsHidden = (schema: z.ZodTypeAny): z.ZodTypeAny => {
-  const cloned = cloneSchema(schema);
-  cloned.register(zf.hidden.registry, pickCommonMeta(schema) ?? {});
+  const { inner, rewrap } = unwrapSchema(schema);
+  const cloned = rewrap(cloneSchema(inner));
+  cloned.register(
+    zf.hidden.registry,
+    pickCommonMeta(schema) ?? pickCommonMeta(inner) ?? {},
+  );
   return cloned;
 };
 
@@ -101,22 +105,6 @@ const normalizePaths = (
   }
 
   return entries.map((entry, index) => ({ ...entry, index }));
-};
-
-const assertAllPathsResolved = (
-  apiName: ApiName,
-  paths: readonly PathEntry[],
-  matchedIndexes: ReadonlySet<number>,
-) => {
-  const unresolved = paths
-    .filter((path) => !matchedIndexes.has(path.index))
-    .map((path) => path.raw);
-
-  if (unresolved.length > 0) {
-    throw new Error(
-      `${apiName}: unknown or non-traversable path(s): ${unresolved.join(', ')}`,
-    );
-  }
 };
 
 const mergeMatchedIndexes = (results: ApplyResult[]): Set<number> => {
@@ -359,8 +347,6 @@ export function hideSchemaFields<S extends z.ZodTypeAny>(
   if (paths.length === 0) return schema;
 
   const result = applyHidden(schema, paths);
-  assertAllPathsResolved('hideSchemaFields', paths, result.matchedIndexes);
-
   return result.schema as S;
 }
 
@@ -370,7 +356,5 @@ export function hideSchemaFieldsExcept<S extends z.ZodTypeAny>(
 ): S {
   const paths = normalizePaths(options.paths, 'hideSchemaFieldsExcept');
   const result = applyHiddenExcept(schema, paths);
-  assertAllPathsResolved('hideSchemaFieldsExcept', paths, result.matchedIndexes);
-
   return result.schema as S;
 }

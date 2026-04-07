@@ -1,6 +1,11 @@
 import { getMeta, zf } from "../def";
 import { describe, expect, it } from "vitest";
-import { cloneSchema, replaceArrayElement, replaceObjectShape } from "./schema";
+import {
+  cloneSchema,
+  replaceArrayElement,
+  replaceObjectShape,
+  unwrapSchema,
+} from "./schema";
 import { z } from "zod";
 
 type StringMeta = {
@@ -60,6 +65,46 @@ describe("schema helpers", () => {
     const meta = getMeta(cloned, "externalKey") as ExternalKeyMeta | undefined;
     expect(meta?.label).toBe("User");
     expect(meta?.externalKeyConfig).toBe(externalKeyConfig);
+  });
+
+  it("cloneSchema isolates register mutations from the source schema", () => {
+    const schema = zf.string().register(zf.string.registry, {
+      label: "Name",
+    });
+
+    const cloned = cloneSchema(schema);
+    cloned.register(zf.hidden.registry, {
+      label: "Hidden",
+    });
+
+    expect((getMeta(schema) as { typeName?: string } | undefined)?.typeName).toBe(
+      "string",
+    );
+    expect((getMeta(cloned) as { typeName?: string } | undefined)?.typeName).toBe(
+      "hidden",
+    );
+  });
+
+  it("cloneSchema isolates wrapper rewrap mutations from the source schema", () => {
+    const schema = zf
+      .string()
+      .register(zf.string.registry, {
+        label: "Name",
+      })
+      .optional();
+
+    const { inner, rewrap } = unwrapSchema(schema);
+    const cloned = rewrap(cloneSchema(inner));
+    cloned.register(zf.hidden.registry, {
+      label: "Hidden",
+    });
+
+    expect((getMeta(schema) as { typeName?: string } | undefined)?.typeName).not.toBe(
+      "hidden",
+    );
+    expect((getMeta(cloned) as { typeName?: string } | undefined)?.typeName).toBe(
+      "hidden",
+    );
   });
 
   it("replaceObjectShape preserves object metadata and validation mode", () => {

@@ -180,28 +180,28 @@ describe('hideSchemaFields', () => {
     expect(isHiddenField(getObjectField(right, 'secret'))).toBe(true);
   });
 
-  it('throws when a path is unknown', () => {
+  it('ignores unknown paths', () => {
     const schema = z.object({
       name: z.string(),
     });
 
-    expect(() =>
-      hideSchemaFields(schema, {
-        paths: ['missing'],
-      }),
-    ).toThrowError(/unknown or non-traversable path/);
+    const hiddenSchema = hideSchemaFields(schema, {
+      paths: ['missing'],
+    });
+
+    expect(hiddenSchema).toBe(schema);
   });
 
-  it('throws when trying to traverse into a leaf field', () => {
+  it('ignores paths that try to traverse into a leaf field', () => {
     const schema = z.object({
       name: z.string(),
     });
 
-    expect(() =>
-      hideSchemaFields(schema, {
-        paths: ['name.first'],
-      }),
-    ).toThrowError(/unknown or non-traversable path/);
+    const hiddenSchema = hideSchemaFields(schema, {
+      paths: ['name.first'],
+    });
+
+    expect(hiddenSchema).toBe(schema);
   });
 });
 
@@ -302,27 +302,27 @@ describe('hideSchemaFieldsExcept', () => {
     expect(isHiddenField(getObjectField(hiddenMember, 'avatarImage'))).toBe(true);
   });
 
-  it('throws when a path is unknown', () => {
+  it('hides all fields when no visible path matches', () => {
     const schema = z.object({
-      name: z.string(),
+      name: z.string().register(zf.string.registry, { label: 'Name' }),
     });
 
-    expect(() =>
-      hideSchemaFieldsExcept(schema, {
-        paths: ['missing'],
-      }),
-    ).toThrowError(/unknown or non-traversable path/);
+    const hiddenSchema = hideSchemaFieldsExcept(schema, {
+      paths: ['missing'],
+    });
+
+    expect(isHiddenField(getObjectField(hiddenSchema, 'name'))).toBe(true);
   });
 
-  it('throws when trying to traverse into a leaf field', () => {
+  it('ignores paths that try to traverse into a leaf field', () => {
     const schema = z.object({
       name: z.string(),
     });
 
-    expect(() =>
-      hideSchemaFieldsExcept(schema, {
-        paths: ['name.first'],
-      }),
-    ).toThrowError(/unknown or non-traversable path/);
+    const hiddenSchema = hideSchemaFieldsExcept(schema, {
+      paths: ['name.first'],
+    });
+
+    expect(hiddenSchema).toBe(schema);
   });
 });

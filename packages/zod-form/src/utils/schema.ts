@@ -20,7 +20,9 @@ type ReplaceObjectShapeOptions = {
  * Zod スキーマを公開 API のみで clone します。
  */
 export function cloneSchema<T extends z.ZodTypeAny>(schema: T): T {
-  return schema.clone();
+  return schema.clone({
+    ...schema.def,
+  });
 }
 
 export const unwrapSchema = (schema: z.ZodTypeAny) => {
