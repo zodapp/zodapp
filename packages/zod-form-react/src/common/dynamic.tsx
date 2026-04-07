@@ -48,14 +48,22 @@ export const Dynamic: ZodForm = (props: ZodFormProps) => {
   const { uiType, typeName } = meta ?? {};
 
   const componentDef =
-    componentLibrary[`${typeName ?? schema.type}_${uiType}`] ||
-    componentLibrary[`${typeName ?? schema.type}`];
+    componentLibrary[`${typeName}_${uiType}`] ||
+    componentLibrary[`${schema.type}_${uiType}`] ||
+    componentLibrary[`${typeName}`] ||
+    componentLibrary[`${schema.type}`];
 
   if (componentDef) {
     const Component = getLazyComponent(componentDef, lazyFactory);
     // eslint-disable-next-line react-hooks/static-components
     return <Component {...props} />;
   } else {
+    console.log(
+      "componentDef not found",
+      schema,
+      `${typeName ?? schema.type}_${uiType}`,
+      `${typeName ?? schema.type}`,
+    );
     return (
       <div>
         <NotFoundComponent {...props} />
