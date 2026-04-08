@@ -13,28 +13,25 @@ const workspaceDataSchema = z
       .register(zf.string.registry, { label: "説明", uiType: "textarea" })
       .optional(),
     ownerId: zf.string().register(zf.hidden.registry, {}),
-    createdAt: zf
-      .date()
-      .register(zf.date.registry, { label: "作成日", readOnly: true })
-      .optional(),
-    updatedAt: zf
-      .date()
-      .register(zf.date.registry, { label: "更新日", readOnly: true })
-      .optional(),
   })
   .register(zf.object.registry, {});
+
+const workspaceCreateExcludedSchema = z.object({
+  createdAt: zf
+    .date()
+    .register(zf.date.registry, { label: "作成日", readOnly: true })
+    .optional(),
+  updatedAt: zf
+    .date()
+    .register(zf.date.registry, { label: "更新日", readOnly: true })
+    .optional(),
+});
 
 export const workspacesCollection = collectionConfig({
   path: "/workspaces/:workspaceId" as const,
   fieldKeys: [] as const,
-  schema: workspaceDataSchema.omit({
-    createdAt: true,
-    updatedAt: true,
-  }),
-  createExcludedSchema: workspaceDataSchema.pick({
-    createdAt: true,
-    updatedAt: true,
-  }),
+  schema: workspaceDataSchema,
+  createExcludedSchema: workspaceCreateExcludedSchema,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
 });

@@ -60,29 +60,25 @@ const memberDataSchema = z
     // 権限
     role: memberRoleSchema,
 
-    // タイムスタンプ
-    createdAt: zf
-      .date()
-      .register(zf.date.registry, { label: "作成日", readOnly: true })
-      .optional(),
-    updatedAt: zf
-      .date()
-      .register(zf.date.registry, { label: "更新日", readOnly: true })
-      .optional(),
   })
   .register(zf.object.registry, {});
+
+const memberCreateExcludedSchema = z.object({
+  createdAt: zf
+    .date()
+    .register(zf.date.registry, { label: "作成日", readOnly: true })
+    .optional(),
+  updatedAt: zf
+    .date()
+    .register(zf.date.registry, { label: "更新日", readOnly: true })
+    .optional(),
+});
 
 export const membersCollection = collectionConfig({
   path: "/workspaces/:workspaceId/members/:memberId" as const,
   fieldKeys: [] as const,
-  schema: memberDataSchema.omit({
-    createdAt: true,
-    updatedAt: true,
-  }),
-  createExcludedSchema: memberDataSchema.pick({
-    createdAt: true,
-    updatedAt: true,
-  }),
+  schema: memberDataSchema,
+  createExcludedSchema: memberCreateExcludedSchema,
   /** docId に email を使用（同一ワークスペース内でメール一意） */
   onCreateId: (_collectionIdentity, inputData) => inputData.email,
   onCreate: () => ({ createdAt: new Date() }),
