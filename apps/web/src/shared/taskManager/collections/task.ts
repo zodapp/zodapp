@@ -121,46 +121,6 @@ const taskDataSchema = z
       .register(zf.date.registry, { label: "期限", width: 100 })
       .optional(),
 
-    expired: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        label: "期限切れ",
-        width: 80,
-        compute: (data) => {
-          return (data.dueAt ? data.dueAt < new Date() : null)
-            ? { type: "badge", label: "期限切れ", color: "red" }
-            : { type: "badge", label: "期限内", color: "green" };
-        },
-      })
-      .optional(),
-
-    // ソート/購読用タイムスタンプ
-    createdAt: zf
-      .date()
-      .register(zf.date.registry, {
-        label: "作成日",
-        readOnly: true,
-        width: 100,
-      })
-      .optional(),
-    updatedAt: zf
-      .date()
-      .register(zf.date.registry, {
-        label: "更新日",
-        readOnly: true,
-        width: 100,
-      })
-      .optional(),
-
-    // 論理削除
-    archivedAt: zf
-      .date()
-      .register(zf.date.registry, {
-        label: "アーカイブ日",
-        readOnly: true,
-        width: 100,
-      })
-      .optional(),
     deletedAt: zf
       .date()
       .register(zf.date.registry, { label: "削除日", width: 100 })
@@ -170,21 +130,50 @@ const taskDataSchema = z
   })
   .register(zf.object.registry, {});
 
+const taskCreateExcludedSchema = z.object({
+  expired: zfReact
+    .computed()
+    .register(zf.computed.registry, {
+      label: "期限切れ",
+      width: 80,
+      compute: (data) => {
+        return (data.dueAt ? data.dueAt < new Date() : null)
+          ? { type: "badge", label: "期限切れ", color: "red" }
+          : { type: "badge", label: "期限内", color: "green" };
+      },
+    })
+    .optional(),
+  createdAt: zf
+    .date()
+    .register(zf.date.registry, {
+      label: "作成日",
+      readOnly: true,
+      width: 100,
+    })
+    .optional(),
+  updatedAt: zf
+    .date()
+    .register(zf.date.registry, {
+      label: "更新日",
+      readOnly: true,
+      width: 100,
+    })
+    .optional(),
+  archivedAt: zf
+    .date()
+    .register(zf.date.registry, {
+      label: "アーカイブ日",
+      readOnly: true,
+      width: 100,
+    })
+    .optional(),
+});
+
 export const tasksCollection = collectionConfig({
   path: "/workspaces/:workspaceId/projects/:projectId/tasks/:taskId" as const,
   fieldKeys: [] as const,
-  schema: taskDataSchema.omit({
-    createdAt: true,
-    updatedAt: true,
-    archivedAt: true,
-    expired: true,
-  }),
-  createExcludedSchema: taskDataSchema.pick({
-    createdAt: true,
-    updatedAt: true,
-    archivedAt: true,
-    expired: true,
-  }),
+  schema: taskDataSchema,
+  createExcludedSchema: taskCreateExcludedSchema,
 
   // create時のみ自動設定
   onCreate: () => ({ createdAt: new Date() }),

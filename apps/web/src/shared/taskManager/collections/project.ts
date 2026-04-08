@@ -37,15 +37,6 @@ const projectDataSchema = z
     // 状態
     status: projectStatusSchema.default("active"),
 
-    // タイムスタンプ
-    createdAt: zf
-      .date()
-      .register(zf.date.registry, { label: "作成日", readOnly: true })
-      .optional(),
-    updatedAt: zf
-      .date()
-      .register(zf.date.registry, { label: "更新日", readOnly: true })
-      .optional(),
     archivedAt: zf
       .date()
       .register(zf.date.registry, { label: "アーカイブ日", readOnly: true })
@@ -53,17 +44,22 @@ const projectDataSchema = z
   })
   .register(zf.object.registry, {});
 
+const projectCreateExcludedSchema = z.object({
+  createdAt: zf
+    .date()
+    .register(zf.date.registry, { label: "作成日", readOnly: true })
+    .optional(),
+  updatedAt: zf
+    .date()
+    .register(zf.date.registry, { label: "更新日", readOnly: true })
+    .optional(),
+});
+
 export const projectsCollection = collectionConfig({
   path: "/workspaces/:workspaceId/projects/:projectId" as const,
   fieldKeys: [] as const,
-  schema: projectDataSchema.omit({
-    createdAt: true,
-    updatedAt: true,
-  }),
-  createExcludedSchema: projectDataSchema.pick({
-    createdAt: true,
-    updatedAt: true,
-  }),
+  schema: projectDataSchema,
+  createExcludedSchema: projectCreateExcludedSchema,
   onCreate: () => ({ createdAt: new Date() }),
   onWrite: () => ({ updatedAt: new Date() }),
   onInit: () => ({ status: "active" as const }),
