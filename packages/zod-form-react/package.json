@@ -65,7 +65,7 @@
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
-    "@tanstack/react-form": "^1.27.7"
+    "@tanstack/react-form": "^1.28.6"
   },
   "volta": {
     "extends": "../../package.json"

@@ -72,10 +72,10 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   const [formValues, setFormValues] = useState(() => form.state.values);
   useEffect(() => {
     if (!showPreview) return;
-    const unsubscribe = form.store.subscribe(() => {
+    const subscription = form.store.subscribe(() => {
       setFormValues(form.state.values);
     });
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, [form, showPreview]);
 
   return (
