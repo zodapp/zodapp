@@ -59,12 +59,12 @@ const AutoSearchInner = <T extends z.ZodObject<z.ZodRawShape>>({
   useEffect(() => {
     if (!debouncedOnChange) return;
 
-    const unsubscribe = form.store.subscribe(() => {
+    const subscription = form.store.subscribe(() => {
       debouncedOnChange(form.state.values as z.output<T>);
     });
 
     return () => {
-      unsubscribe();
+      subscription.unsubscribe();
       debouncedOnChange.cancel();
     };
   }, [form, debouncedOnChange]);

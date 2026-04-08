@@ -80,8 +80,9 @@ export const useArray = (
         for (const [key, fieldInfo] of Object.entries(
           fieldApi.form.fieldInfo,
         )) {
-          if (fieldInfo.instance && key.startsWith(fieldPath)) {
-            fieldInfo.instance.handleBlur();
+          const instance = fieldInfo?.instance;
+          if (instance && key.startsWith(fieldPath)) {
+            instance.handleBlur();
           }
         }
       });
