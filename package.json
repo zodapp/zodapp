@@ -46,10 +46,5 @@
   "volta": {
     "node": "22.14.0",
     "pnpm": "10.9.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "@tanstack/store": "^0.9.3"
-    }
   }
 }

@@ -27,7 +27,7 @@
     "@mantine/hooks": "^8.3.14",
     "@repo/firebase": "workspace:*",
     "@tabler/icons-react": "^3.36.1",
-    "@tanstack/react-form": "^1.28.0",
+    "@tanstack/react-form": "^1.28.6",
     "@tanstack/react-router": "^1.157.18",
     "@zodapp/caching-utilities": "workspace:*",
     "@zodapp/zod-extendable": "workspace:*",
