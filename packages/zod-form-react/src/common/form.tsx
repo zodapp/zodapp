@@ -76,9 +76,15 @@ export const useFormValues = <TValues = unknown,>() => {
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      // TanStack `Derived#subscribe` / `Store#subscribe` return an unsubscribe function.
-      // That matches what `useSyncExternalStore` expects from the inner subscribe callback.
-      return form.store.subscribe(onStoreChange);
+      // `useSyncExternalStore` requires this callback to return `() => void`.
+      // `@tanstack/store` may return that directly (e.g. 0.8.x) or a `Subscription` with
+      // `.unsubscribe()` (e.g. 0.9.x); normalize so teardown is always a function.
+      const result = form.store.subscribe(onStoreChange) as
+        | (() => void)
+        | { unsubscribe: () => void };
+      return typeof result === "function"
+        ? result
+        : () => result.unsubscribe();
     },
     [form.store],
   );
