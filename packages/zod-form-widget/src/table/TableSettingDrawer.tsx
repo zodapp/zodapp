@@ -559,6 +559,17 @@ export function useTableSettingDrawer({
   const [saveAsScope, setSaveAsScope] = useState<
     ColumnSettingScope | undefined
   >(defaultScopeValue);
+  const trimmedSaveAsName = saveAsName.trim();
+  const hasDuplicateSaveAsName = useMemo(() => {
+    if (!trimmedSaveAsName || !saveAsScope) return false;
+    return columnSettings.some(
+      (setting) =>
+        setting.type === saveAsScope && setting.name.trim() === trimmedSaveAsName,
+    );
+  }, [columnSettings, saveAsScope, trimmedSaveAsName]);
+  const saveAsNameError = hasDuplicateSaveAsName
+    ? "選択した保存先に同名のプロフィールが既に存在します"
+    : undefined;
 
   const openSaveAs = useCallback(() => {
     setSaveAsName("");
@@ -567,10 +578,16 @@ export function useTableSettingDrawer({
   }, [saveAsHandlers, defaultScopeValue]);
 
   const handleSaveAsConfirm = useCallback(() => {
-    if (!saveAsName.trim() || !saveAsScope) return;
+    if (!trimmedSaveAsName || !saveAsScope || hasDuplicateSaveAsName) return;
     saveAsHandlers.close();
-    void savePreviewAs(saveAsName.trim(), saveAsScope);
-  }, [saveAsName, saveAsScope, saveAsHandlers, savePreviewAs]);
+    void savePreviewAs(trimmedSaveAsName, saveAsScope);
+  }, [
+    trimmedSaveAsName,
+    saveAsScope,
+    hasDuplicateSaveAsName,
+    saveAsHandlers,
+    savePreviewAs,
+  ]);
 
   // --- Delete confirm modal ---
   const [deleteConfirmOpened, deleteConfirmHandlers] = useDisclosure(false);
@@ -584,6 +601,22 @@ export function useTableSettingDrawer({
     void deleteCurrent();
   }, [deleteConfirmHandlers, deleteCurrent]);
 
+  const isChildModalOpened =
+    saveConfirmOpened || saveAsOpened || deleteConfirmOpened;
+
+  const drawerActionButtonStyles = useMemo(
+    () => ({
+      root: {
+        "&:focus-visible": {
+          outline: "2px solid rgba(248, 155, 68, 0.45)",
+          outlineOffset: 1,
+          boxShadow: "none",
+        },
+      },
+    }),
+    [],
+  );
+
   // --- Drawer ---
 
   const modal = (
@@ -591,6 +624,7 @@ export function useTableSettingDrawer({
       <Drawer
         opened={isPreviewing}
         onClose={handleClose}
+        closeOnEscape={!isChildModalOpened}
         title="テーブル設定"
         position="bottom"
         size="240px"
@@ -613,7 +647,7 @@ export function useTableSettingDrawer({
           },
         }}
       >
-        <Group gap="xs" px="md" mb="xs" wrap="nowrap">
+        <Group gap="xs" px="md" pt={4} mb="xs" wrap="nowrap">
           {hasProfileStore && (
             <>
               <Select
@@ -675,6 +709,7 @@ export function useTableSettingDrawer({
               variant="default"
               onClick={openSaveAs}
               disabled={isSaving}
+              styles={drawerActionButtonStyles}
             >
               別名で保存
             </Button>
@@ -686,6 +721,7 @@ export function useTableSettingDrawer({
               onClick={handleSaveClick}
               disabled={!canSave}
               loading={isSaving}
+              styles={drawerActionButtonStyles}
             >
               上書き保存
             </Button>
@@ -747,10 +783,16 @@ export function useTableSettingDrawer({
               size="xs"
               variant="default"
               onClick={saveConfirmHandlers.close}
+              styles={drawerActionButtonStyles}
             >
               キャンセル
             </Button>
-            <Button size="xs" onClick={handleSaveConfirm} loading={isSaving}>
+            <Button
+              size="xs"
+              onClick={handleSaveConfirm}
+              loading={isSaving}
+              styles={drawerActionButtonStyles}
+            >
               上書き保存
             </Button>
           </Group>
@@ -771,6 +813,7 @@ export function useTableSettingDrawer({
             placeholder="名前を入力"
             value={saveAsName}
             onChange={(e) => setSaveAsName(e.currentTarget.value)}
+            error={saveAsNameError}
             size="sm"
           />
           <Radio.Group
@@ -794,14 +837,20 @@ export function useTableSettingDrawer({
             </Stack>
           </Radio.Group>
           <Group justify="flex-end">
-            <Button size="xs" variant="default" onClick={saveAsHandlers.close}>
+            <Button
+              size="xs"
+              variant="default"
+              onClick={saveAsHandlers.close}
+              styles={drawerActionButtonStyles}
+            >
               キャンセル
             </Button>
             <Button
               size="xs"
               onClick={handleSaveAsConfirm}
-              disabled={!saveAsName.trim()}
+              disabled={!trimmedSaveAsName || !saveAsScope || hasDuplicateSaveAsName}
               loading={isSaving}
+              styles={drawerActionButtonStyles}
             >
               保存
             </Button>
@@ -828,6 +877,7 @@ export function useTableSettingDrawer({
               size="xs"
               variant="default"
               onClick={deleteConfirmHandlers.close}
+              styles={drawerActionButtonStyles}
             >
               キャンセル
             </Button>
@@ -836,6 +886,7 @@ export function useTableSettingDrawer({
               color="red"
               onClick={handleDeleteConfirm}
               loading={isSaving}
+              styles={drawerActionButtonStyles}
             >
               削除
             </Button>
