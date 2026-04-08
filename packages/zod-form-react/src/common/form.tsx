@@ -76,15 +76,10 @@ export const useFormValues = <TValues = unknown,>() => {
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      // `useSyncExternalStore` requires this callback to return `() => void`.
-      // `@tanstack/store` may return that directly (e.g. 0.8.x) or a `Subscription` with
-      // `.unsubscribe()` (e.g. 0.9.x); normalize so teardown is always a function.
-      const result = form.store.subscribe(onStoreChange) as
-        | (() => void)
-        | { unsubscribe: () => void };
-      return typeof result === "function"
-        ? result
-        : () => result.unsubscribe();
+      // `useSyncExternalStore` expects `() => void`; `@tanstack/store` ≥0.9 returns a
+      // `Subscription` from `subscribe`, so unwrap with `.unsubscribe()`.
+      const subscription = form.store.subscribe(onStoreChange);
+      return () => subscription.unsubscribe();
     },
     [form.store],
   );
