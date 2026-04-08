@@ -76,7 +76,10 @@ export const useFormValues = <TValues = unknown,>() => {
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      return form.store.subscribe(onStoreChange);
+      // useSyncExternalStore はティアダウンとして () => void を要求する。
+      // @tanstack/store 0.9 系では subscribe が Subscription を返すため .unsubscribe() で包む。
+      const subscription = form.store.subscribe(onStoreChange);
+      return () => subscription.unsubscribe();
     },
     [form.store],
   );
