@@ -5,7 +5,7 @@ import {
   RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { readFileSync } from "fs";
-import { describe, beforeAll, afterAll, beforeEach, it, expect } from "vitest";
+import { describe, beforeAll, afterAll, beforeEach, it } from "vitest";
 
 let testEnv: RulesTestEnvironment;
 

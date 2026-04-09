@@ -25,8 +25,6 @@ const hobbyLiterals = [
     .register(zf.literal.registry, { label: "ゲーム", color: "grape.6" }),
 ] as const;
 
-type Hobby = z.output<(typeof hobbyLiterals)[number]>;
-
 // discriminatedUnion用のスキーマ定義
 const contactSchema = z
   .discriminatedUnion("type", [
