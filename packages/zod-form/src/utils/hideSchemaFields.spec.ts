@@ -1,6 +1,10 @@
 import { getMeta, zf } from '../def';
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { hideSchemaFields, hideSchemaFieldsExcept } from './hideSchemaFields';
+import {
+  hideSchemaFields,
+  hideSchemaFieldsExcept,
+  readOnlySchemaFieldsExcept,
+} from './hideSchemaFields';
 import { z } from 'zod';
 
 type ObjectMeta = {
@@ -9,7 +13,15 @@ type ObjectMeta = {
 
 type FieldMeta = {
   hidden?: boolean;
+  readOnly?: boolean;
   typeName?: string;
+};
+
+type UnionMeta = FieldMeta & {
+  selectorLabel?: string;
+  unselectedLabel?: string;
+  hideSelector?: boolean;
+  readOnlySelector?: boolean;
 };
 
 const getObjectProperties = (schema: z.ZodTypeAny) =>
@@ -21,6 +33,11 @@ const getObjectField = (schema: z.ZodObject<z.ZodRawShape>, key: string) =>
 const isHiddenField = (schema: z.ZodTypeAny) => {
   const meta = getMeta(schema) as FieldMeta | undefined;
   return meta?.hidden === true || meta?.typeName === 'hidden';
+};
+
+const isReadOnlyField = (schema: z.ZodTypeAny) => {
+  const meta = getMeta(schema) as FieldMeta | undefined;
+  return meta?.readOnly === true;
 };
 
 describe('hideSchemaFields', () => {
@@ -256,6 +273,33 @@ describe('hideSchemaFields', () => {
     }
   });
 
+  it('keeps union selector metadata visible when only arm fields are hidden', () => {
+    const unionSchema = z
+      .discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('alpha'),
+          secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+        }),
+        z.object({
+          kind: z.literal('beta'),
+          secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+        }),
+      ])
+      .register(zf.union.registry, {
+        selectorLabel: '種類',
+        unselectedLabel: '未選択',
+      });
+
+    const hiddenUnion = hideSchemaFields(unionSchema, {
+      paths: ['secret'],
+    });
+    const unionMeta = getMeta(hiddenUnion, 'union') as UnionMeta | undefined;
+
+    expect(unionMeta?.selectorLabel).toBe('種類');
+    expect(unionMeta?.unselectedLabel).toBe('未選択');
+    expect(unionMeta?.hidden).not.toBe(true);
+  });
+
   it('recursively updates intersection branches', () => {
     const intersectionSchema = z.intersection(
       z.object({
@@ -408,6 +452,43 @@ describe('hideSchemaFieldsExcept', () => {
     expect(isHiddenField(getObjectField(hiddenMember, 'avatarImage'))).toBe(true);
   });
 
+  it('marks union selector as hidden for except mode while preserving visible paths', () => {
+    const unionSchema = z
+      .discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('alpha'),
+          versionLabel: z.string().register(zf.string.registry, {
+            label: 'Version Label',
+          }),
+          secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+        }),
+        z.object({
+          kind: z.literal('beta'),
+          versionLabel: z.string().register(zf.string.registry, {
+            label: 'Version Label',
+          }),
+          secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+        }),
+      ])
+      .register(zf.union.registry, {
+        selectorLabel: '種類',
+      });
+
+    const hiddenUnion = hideSchemaFieldsExcept(unionSchema, {
+      paths: ['versionLabel'],
+    });
+    const unionMeta = getMeta(hiddenUnion, 'union') as UnionMeta | undefined;
+
+    expect(isHiddenField(hiddenUnion)).toBe(false);
+    expect(unionMeta?.hideSelector).toBe(true);
+    for (const option of hiddenUnion.options as unknown as z.ZodObject<
+      z.ZodRawShape
+    >[]) {
+      expect(isHiddenField(getObjectField(option, 'versionLabel'))).toBe(false);
+      expect(isHiddenField(getObjectField(option, 'secret'))).toBe(true);
+    }
+  });
+
   it('hides all fields when no visible path matches', () => {
     const schema = z.object({
       name: z.string().register(zf.string.registry, { label: 'Name' }),
@@ -430,5 +511,48 @@ describe('hideSchemaFieldsExcept', () => {
     });
 
     expect(hiddenSchema).toBe(schema);
+  });
+});
+
+describe('readOnlySchemaFieldsExcept', () => {
+  it('marks discriminated union selector as readOnly while preserving selector meta', () => {
+    const unionSchema = z
+      .discriminatedUnion('kind', [
+        z.object({
+          kind: z.literal('alpha'),
+          versionLabel: z.string().register(zf.string.registry, {
+            label: 'Version Label',
+          }),
+          secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+        }),
+        z.object({
+          kind: z.literal('beta'),
+          versionLabel: z.string().register(zf.string.registry, {
+            label: 'Version Label',
+          }),
+          secret: z.string().register(zf.string.registry, { label: 'Secret' }),
+        }),
+      ])
+      .register(zf.union.registry, {
+        selectorLabel: '種類',
+        unselectedLabel: '未選択',
+      });
+
+    const readOnlyUnion = readOnlySchemaFieldsExcept(unionSchema, {
+      paths: ['versionLabel'],
+    });
+    const unionMeta = getMeta(readOnlyUnion, 'union') as UnionMeta | undefined;
+
+    expect(unionMeta?.selectorLabel).toBe('種類');
+    expect(unionMeta?.unselectedLabel).toBe('未選択');
+    expect(unionMeta?.readOnly).not.toBe(true);
+    expect(unionMeta?.readOnlySelector).toBe(true);
+
+    for (const option of readOnlyUnion.options as unknown as z.ZodObject<
+      z.ZodRawShape
+    >[]) {
+      expect(isReadOnlyField(getObjectField(option, 'versionLabel'))).toBe(false);
+      expect(isReadOnlyField(getObjectField(option, 'secret'))).toBe(true);
+    }
   });
 });

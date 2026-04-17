@@ -104,20 +104,40 @@ export const replaceUnionOptions = (
   schema: z.ZodUnion<readonly z.core.SomeType[]>,
   nextOptions: readonly [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
 ): z.ZodTypeAny => {
-  return schema.clone({
+  let nextUnion = schema.clone({
     ...schema.def,
     options: nextOptions,
   });
+
+  const unionMeta = getMeta(schema, "union");
+  if (unionMeta) {
+    nextUnion = nextUnion.register(
+      zf.union.registry as never,
+      { ...(unionMeta as Record<string, unknown>) } as never,
+    );
+  }
+
+  return nextUnion;
 };
 
 export const replaceDiscriminatedUnionOptions = (
   schema: z.ZodDiscriminatedUnion<readonly z.core.SomeType[], string>,
   nextOptions: readonly [AnyZodObject, AnyZodObject, ...AnyZodObject[]],
 ): z.ZodTypeAny => {
-  return schema.clone({
+  let nextUnion = schema.clone({
     ...schema.def,
     options: nextOptions,
   });
+
+  const unionMeta = getMeta(schema, "union");
+  if (unionMeta) {
+    nextUnion = nextUnion.register(
+      zf.union.registry as never,
+      { ...(unionMeta as Record<string, unknown>) } as never,
+    );
+  }
+
+  return nextUnion;
 };
 
 export const replaceIntersectionSides = (

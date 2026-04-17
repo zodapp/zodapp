@@ -16,7 +16,12 @@ export * from "./file";
 export * from "./resolverContext";
 
 // Schema field visibility
-export { hideSchemaFields, hideSchemaFieldsExcept } from "./utils/hideSchemaFields";
+export {
+  hideSchemaFields,
+  hideSchemaFieldsExcept,
+  readOnlySchemaFields,
+  readOnlySchemaFieldsExcept,
+} from "./utils/hideSchemaFields";
 
 // Schema extension
 export { extendSchema, extendSchemaSafe } from "./utils/extendSchema";

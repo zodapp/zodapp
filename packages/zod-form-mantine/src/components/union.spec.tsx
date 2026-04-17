@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { z } from "zod";
 
-import { zf } from "@zodapp/zod-form";
+import { readOnlySchemaFieldsExcept, zf } from "@zodapp/zod-form";
 import {
   Dynamic,
   FormProvider,
@@ -511,5 +511,183 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("08099990000")).toBeTruthy();
     });
+  });
+
+  it("renders discriminator selector as readonly text while keeping editable fields interactive", async () => {
+    const unionSchema = readOnlySchemaFieldsExcept(
+      z
+        .discriminatedUnion("type", [
+          z
+            .object({
+              type: zf
+                .literal("proxy")
+                .register(zf.literal.registry, { hidden: true }),
+              versionLabel: zf
+                .string()
+                .register(zf.string.registry, { label: "バージョン名" }),
+              url: zf.string().register(zf.string.registry, { label: "URL" }),
+            })
+            .register(zf.object.registry, { label: "プロキシ" }),
+          z
+            .object({
+              type: zf
+                .literal("scenario")
+                .register(zf.literal.registry, { hidden: true }),
+              versionLabel: zf
+                .string()
+                .register(zf.string.registry, { label: "バージョン名" }),
+              scenarioId: zf
+                .string()
+                .register(zf.string.registry, { label: "シナリオID" }),
+            })
+            .register(zf.object.registry, { label: "シナリオ" }),
+        ])
+        .register(zf.union.registry, {
+          label: "発信先タイプ",
+          selectorLabel: "タイプ",
+        }),
+      { paths: ["versionLabel"] },
+    );
+
+    const schema = z
+      .object({
+        payload: unionSchema,
+      })
+      .register(zf.object.registry, { properties: ["payload"] });
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          payload: {
+            type: "proxy" as const,
+            versionLabel: "v1",
+            url: "https://example.com",
+          },
+        } as z.input<typeof schema>,
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Dynamic fieldPath="" schema={schema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    expect(screen.getByText("プロキシ")).toBeTruthy();
+    expect(document.querySelector("input.mantine-Select-input")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "バージョン名" })).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "URL" })).toBeNull();
+  });
+
+  it("keeps versionLabel editable while discriminator selector stays readonly", async () => {
+    const unionSchema = readOnlySchemaFieldsExcept(
+      z
+        .discriminatedUnion("type", [
+          z
+            .object({
+              type: zf
+                .literal("proxy")
+                .register(zf.literal.registry, { hidden: true }),
+              versionLabel: zf
+                .string()
+                .register(zf.string.registry, { label: "バージョン名" }),
+              url: zf.string().register(zf.string.registry, { label: "URL" }),
+            })
+            .register(zf.object.registry, { label: "プロキシ" }),
+          z
+            .object({
+              type: zf
+                .literal("scenario")
+                .register(zf.literal.registry, { hidden: true }),
+              versionLabel: zf
+                .string()
+                .register(zf.string.registry, { label: "バージョン名" }),
+              scenarioId: zf
+                .string()
+                .register(zf.string.registry, { label: "シナリオID" }),
+            })
+            .register(zf.object.registry, { label: "シナリオ" }),
+        ])
+        .register(zf.union.registry, {
+          label: "発信先タイプ",
+          selectorLabel: "タイプ",
+        }),
+      { paths: ["versionLabel"] },
+    );
+
+    const schema = z
+      .object({
+        payload: unionSchema,
+      })
+      .register(zf.object.registry, { properties: ["payload"] });
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          payload: {
+            type: "proxy" as const,
+            versionLabel: "v1",
+            url: "https://example.com",
+          },
+        } as z.input<typeof schema>,
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Dynamic fieldPath="" schema={schema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    expect(screen.getByText("プロキシ")).toBeTruthy();
+    expect(document.querySelector("input.mantine-Select-input")).toBeNull();
+    const versionLabelInput = screen.getByRole("textbox", { name: "バージョン名" });
+    fireEvent.change(versionLabelInput, { target: { value: "v2" } });
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("v2")).toBeTruthy();
+    });
+    expect(screen.queryByRole("textbox", { name: "URL" })).toBeNull();
   });
 });
