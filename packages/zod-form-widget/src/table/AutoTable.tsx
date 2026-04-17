@@ -714,7 +714,7 @@ function HeaderCellInner({
             </span>
           </button>
         ) : (
-          field.label
+          <div className={styles.headerLabel}>{field.label}</div>
         )}
       </div>
     </Table.Th>

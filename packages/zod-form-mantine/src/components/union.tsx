@@ -187,6 +187,8 @@ const UnionBody = React.memo(function UnionBody({
   readOnly,
   label,
   selectorLabel,
+  hideSelector,
+  readOnlySelector,
   field,
   error,
   formValue,
@@ -198,6 +200,8 @@ const UnionBody = React.memo(function UnionBody({
   readOnly: boolean | undefined;
   label: string | false | undefined;
   selectorLabel: string | undefined;
+  hideSelector: boolean | undefined;
+  readOnlySelector: boolean | undefined;
   field: ZodFormInternalProps<UnionSchema>["field"];
   error: ZodFormInternalProps<UnionSchema>["error"];
   formValue: unknown;
@@ -440,27 +444,32 @@ const UnionBody = React.memo(function UnionBody({
     },
     [field, compiledOptions, formValue, accessor],
   );
+  const shouldHideSelector = hideSelector === true;
+  const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;
+
   return (
     <Fieldset legend={label || undefined} mt={10}>
-      {readOnly || field.disabled ? (
-        <InputWrapper label={selectorLabel ?? "タイプ"} style={inputWrapperStyle}>
-          <ReadonlyText>{selectedProfile?.label}</ReadonlyText>
-        </InputWrapper>
-      ) : (
-        <Select
-          ref={ref}
-          data={compiledOptions.profiles}
-          value={selectedProfile?.value}
-          onChange={handleSelect}
-          onBlur={field.onBlur}
-          onFocus={onFocus}
-          label={selectorLabel ?? "タイプ"}
-          error={undefined}
-          required={required !== false}
-          disabled={readOnly || field.disabled}
-          allowDeselect={required === false}
-          clearable={required === false}
-        />
+      {!shouldHideSelector && (
+        selectorIsReadOnly ? (
+          <InputWrapper label={selectorLabel ?? "タイプ"} style={inputWrapperStyle}>
+            <ReadonlyText>{selectedProfile?.label}</ReadonlyText>
+          </InputWrapper>
+        ) : (
+          <Select
+            ref={ref}
+            data={compiledOptions.profiles}
+            value={selectedProfile?.value}
+            onChange={handleSelect}
+            onBlur={field.onBlur}
+            onFocus={onFocus}
+            label={selectorLabel ?? "タイプ"}
+            error={undefined}
+            required={required !== false}
+            disabled={selectorIsReadOnly}
+            allowDeselect={required === false}
+            clearable={required === false}
+          />
+        )
       )}
       {selectedProfile?.schema && (
         <div style={{ marginTop: 15, minHeight: 20, marginBottom: 15 }}>
@@ -507,7 +516,12 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   field,
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: ZodFormInternalProps<UnionSchema>) {
-  const { label: labelFromMeta, selectorLabel } = getMeta(schema) ?? {};
+  const {
+    label: labelFromMeta,
+    selectorLabel,
+    hideSelector,
+    readOnlySelector,
+  } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const isRoot = fieldPath === "";
   const accessor = useValueAccessor(fieldPath, field);
@@ -519,6 +533,8 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     readOnly,
     label,
     selectorLabel,
+    hideSelector,
+    readOnlySelector,
     field,
     error,
     accessor,

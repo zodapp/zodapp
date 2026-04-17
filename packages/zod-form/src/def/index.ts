@@ -236,8 +236,12 @@ const zf = {
   object: extendObject(zodExtendableObjectDefSchema),
   union: extendUnion(
     zodExtendableCommonDefSchema.extend({
+      // union selector は object field ではない独立 UI なので、
+      // container 全体の hidden/readOnly とは別に selector 専用 meta で制御する。
       selectorLabel: z.string().optional(),
       unselectedLabel: z.string().optional(),
+      hideSelector: z.boolean().optional(),
+      readOnlySelector: z.boolean().optional(),
     }),
   ),
   common,

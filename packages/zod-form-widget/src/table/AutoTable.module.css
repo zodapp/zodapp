@@ -63,6 +63,14 @@
     color 120ms ease;
 }
 
+.headerLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+
 .sortButton span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
