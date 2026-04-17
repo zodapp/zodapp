@@ -1,22 +1,33 @@
-import { Suspense, useMemo, useState, useEffect, memo, useCallback, useRef } from 'react';
-import { Button, Code, Group, Loader, Stack } from '@mantine/core';
+import {
+  Suspense,
+  useMemo,
+  useState,
+  useEffect,
+  memo,
+  useCallback,
+  useRef,
+} from "react";
+import { Button, Code, Group, Loader, Stack } from "@mantine/core";
 import {
   componentLibrary,
   Dynamic,
   FormProvider,
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
-  useZodForm
-} from '@zodapp/zod-form-mantine';
-import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
-import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
+  useZodForm,
+} from "@zodapp/zod-form-mantine";
+import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
+import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   MediaResolvers,
   ExternalKeyActionResolver,
-  CollectionReferenceActionEntry
-} from '@zodapp/zod-form-react';
-import type { z } from 'zod';
-import { normalizeAutoFormActions, type AutoFormAction } from './autoFormActions';
+  CollectionReferenceActionEntry,
+} from "@zodapp/zod-form-react";
+import type { z } from "zod";
+import {
+  normalizeAutoFormActions,
+  type AutoFormAction,
+} from "./autoFormActions";
 
 type AutoFormProps<T extends z.ZodTypeAny> = {
   schema: T;
@@ -44,8 +55,8 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   onSubmit,
   onCancel,
   isLoading = false,
-  submitLabel = '保存',
-  cancelLabel = 'キャンセル',
+  submitLabel = "保存",
+  cancelLabel = "キャンセル",
   showPreview = false,
   externalKeyResolvers,
   externalKeyActionResolver,
@@ -53,24 +64,30 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   mediaResolvers,
   resolverContext,
   collectionReferenceActions,
-  readOnly = false
+  readOnly = false,
 }: AutoFormProps<T>) => {
-  const initialValues = useMemo(() => (defaultValues ?? {}) as z.input<T>, [defaultValues]);
+  const initialValues = useMemo(
+    () => (defaultValues ?? {}) as z.input<T>,
+    [defaultValues],
+  );
   const defaultSubmitHandlerRef = useRef(onSubmit);
-  const pendingSubmitHandlerRef = useRef<((data: z.output<T>) => void) | undefined>(undefined);
+  const pendingSubmitHandlerRef = useRef<
+    ((data: z.output<T>) => void) | undefined
+  >(undefined);
 
   const form = useZodForm({
     defaultValues: initialValues,
     validators: {
       onChange: schema,
       onBlur: schema,
-      onSubmit: schema
+      onSubmit: schema,
     },
     onSubmit: ({ value }) => {
-      const handler = pendingSubmitHandlerRef.current ?? defaultSubmitHandlerRef.current;
+      const handler =
+        pendingSubmitHandlerRef.current ?? defaultSubmitHandlerRef.current;
       pendingSubmitHandlerRef.current = undefined;
       handler?.(value as z.output<T>);
-    }
+    },
   });
 
   useEffect(() => {
@@ -94,23 +111,23 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         onSubmit,
         onCancel,
         submitLabel,
-        cancelLabel
+        cancelLabel,
       }),
-    [actions, cancelLabel, onCancel, onSubmit, submitLabel]
+    [actions, cancelLabel, onCancel, onSubmit, submitLabel],
   );
 
   const handleSubmitAction = useCallback(
     async (handler: (data: z.output<T>) => void) => {
       pendingSubmitHandlerRef.current = handler;
       await form.handleSubmit();
-      if (import.meta.env.NODE_ENV === 'development' && !form.state.isValid) {
-        console.warn('[AutoForm] バリデーションエラー:', form.getAllErrors());
+      if (import.meta.env.NODE_ENV === "development" && !form.state.isValid) {
+        console.warn("[AutoForm] バリデーションエラー:", form.getAllErrors());
       }
       if (!form.state.isValid) {
         pendingSubmitHandlerRef.current = undefined;
       }
     },
-    [form]
+    [form],
   );
 
   return (
@@ -135,7 +152,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
                     const disabled = isLoading || action.disabled;
                     const loading = action.loading ?? false;
 
-                    if (action.type === 'submit') {
+                    if (action.type === "submit") {
                       return (
                         <Button
                           key={index}
@@ -151,7 +168,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
                       );
                     }
 
-                    if (action.type === 'cancel') {
+                    if (action.type === "cancel") {
                       return (
                         <Button
                           key={index}
@@ -172,7 +189,9 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
                         key={index}
                         variant={action.variant}
                         color={action.color}
-                        onClick={() => action.onClick({ values: form.state.values })}
+                        onClick={() =>
+                          action.onClick({ values: form.state.values })
+                        }
                         type="button"
                         loading={loading}
                         disabled={disabled}
@@ -185,16 +204,16 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
               )}
               {/* デモ・デバッグ用: リアクティブに現在の値を表示 */}
               {showPreview && (
-                <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
+                <Code block style={{ maxHeight: 200, overflow: "auto" }}>
                   {JSON.stringify(
                     formValues,
                     (_key, value) => {
-                      if (typeof value === 'bigint') {
+                      if (typeof value === "bigint") {
                         return value.toString();
                       }
                       return value;
                     },
-                    2
+                    2,
                   )}
                 </Code>
               )}
