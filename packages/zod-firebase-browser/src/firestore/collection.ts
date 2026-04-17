@@ -18,6 +18,9 @@ type QuerySnapshot<T = firebase.firestore.DocumentData> =
   firebase.firestore.QuerySnapshot<T>;
 type Timestamp = firebase.firestore.Timestamp;
 type Firestore = firebase.firestore.Firestore;
+type DocumentReference = firebase.firestore.DocumentReference;
+type Transaction = firebase.firestore.Transaction;
+type WriteBatch = firebase.firestore.WriteBatch;
 export type AccessorStoreKey = object;
 
 /**
@@ -31,6 +34,15 @@ export type AccessorLevelQueryOptions = QueryOptions & {
   limit?: number;
   limitToLast?: number;
 };
+
+export type AccessorReadContext = {
+  runner?: Transaction;
+};
+
+export type AccessorWriteContext = {
+  runner?: Transaction | WriteBatch;
+};
+
 type CollectionAccessorCacheKeys = readonly [
   Firestore,
   AccessorStoreKey,
@@ -120,17 +132,16 @@ const collectionAccessorCache = hierarchicalWeakCache<
   CollectionAccessorCacheKeys,
   unknown
 >();
+const collectionAccessorPublicCache = new WeakMap<object, unknown>();
 
-/**
- * getAccessor の戻り値型
- * TConfig から各型を抽出してアクセサのメソッド型を定義
- */
-type CollectionAccessorResult<TConfig extends CollectionConfigBase> = {
+type CollectionAccessorInternal<TConfig extends CollectionConfigBase> = {
   getDoc: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    context?: AccessorReadContext,
   ) => Promise<z.infer<TConfig["dataSchema"]> | null>;
   getDocSnapshot: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    context?: AccessorReadContext,
   ) => Promise<DocumentSnapshot | null>;
   docSync: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
@@ -139,24 +150,40 @@ type CollectionAccessorResult<TConfig extends CollectionConfigBase> = {
   updateDoc: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
     data: Partial<z.infer<TConfig["dataSchema"]>>,
+    context?: AccessorWriteContext,
+  ) => Promise<void>;
+  setDoc: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    data: z.infer<TConfig["updateSchema"]>,
+    context?: AccessorWriteContext,
   ) => Promise<void>;
   createDoc: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     data: z.infer<TConfig["createSchema"]>,
+    context?: AccessorWriteContext,
+  ) => Promise<string>;
+  createDocWithId: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    data: z.infer<TConfig["createSchema"]>,
+    context?: AccessorWriteContext,
   ) => Promise<string>;
   query: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     queryOptions?: AccessorLevelQueryOptions,
+    context?: AccessorReadContext,
   ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
   querySnapshot: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     queryOptions?: AccessorLevelQueryOptions,
+    context?: AccessorReadContext,
   ) => Promise<DocumentSnapshot[]>;
   collectionGroupQuery: (
     queryOptions?: AccessorLevelQueryOptions,
+    context?: AccessorReadContext,
   ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
   collectionGroupQuerySnapshot: (
     queryOptions?: AccessorLevelQueryOptions,
+    context?: AccessorReadContext,
   ) => Promise<DocumentSnapshot[]>;
   querySync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
@@ -170,6 +197,7 @@ type CollectionAccessorResult<TConfig extends CollectionConfigBase> = {
   ) => () => void;
   deleteDoc: (
     docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    context?: AccessorWriteContext,
   ) => Promise<void>;
   docToData: (
     doc: DocumentSnapshot,
@@ -191,15 +219,128 @@ type CollectionAccessorResult<TConfig extends CollectionConfigBase> = {
   ) => z.infer<TConfig["dataSchema"]>;
 };
 
+type CollectionAccessorReadMethods<TConfig extends CollectionConfigBase> = {
+  getDoc: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+  ) => Promise<z.infer<TConfig["dataSchema"]> | null>;
+  getDocSnapshot: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+  ) => Promise<DocumentSnapshot | null>;
+  query: (
+    collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
+    queryOptions?: AccessorLevelQueryOptions,
+  ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
+  querySnapshot: (
+    collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
+    queryOptions?: AccessorLevelQueryOptions,
+  ) => Promise<DocumentSnapshot[]>;
+  collectionGroupQuery: (
+    queryOptions?: AccessorLevelQueryOptions,
+  ) => Promise<z.infer<TConfig["dataSchema"]>[]>;
+  collectionGroupQuerySnapshot: (
+    queryOptions?: AccessorLevelQueryOptions,
+  ) => Promise<DocumentSnapshot[]>;
+};
+
+type CollectionAccessorWriteMethods<TConfig extends CollectionConfigBase> = {
+  updateDoc: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    data: Partial<z.infer<TConfig["dataSchema"]>>,
+  ) => Promise<void>;
+  setDoc: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    data: z.infer<TConfig["updateSchema"]>,
+  ) => Promise<void>;
+  createDoc: (
+    collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
+    data: z.infer<TConfig["createSchema"]>,
+  ) => Promise<string>;
+  createDocWithId: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    data: z.infer<TConfig["createSchema"]>,
+  ) => Promise<string>;
+  deleteDoc: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+  ) => Promise<void>;
+};
+
+type CollectionAccessorSharedMethods<TConfig extends CollectionConfigBase> = {
+  docSync: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    callback: (doc: z.infer<TConfig["dataSchema"]> | null) => void,
+  ) => () => void;
+  querySync: (
+    collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
+    queryParams: QueryOptions,
+    callback: (docs: z.infer<TConfig["dataSchema"]>[]) => void,
+  ) => () => void;
+  querySnapshotSync: (
+    collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
+    queryParams: QueryOptions,
+    callback: (snapshot: QuerySnapshot<z.infer<TConfig["dataSchema"]>>) => void,
+  ) => () => void;
+  docToData: (
+    doc: DocumentSnapshot,
+    docIdentityParams:
+      | z.infer<TConfig["documentIdentitySchema"]>
+      | z.infer<TConfig["collectionIdentitySchema"]>,
+  ) => z.infer<TConfig["dataSchema"]> | null;
+  docToDataSafe: (
+    doc: DocumentSnapshot,
+    docIdentityParams:
+      | z.infer<TConfig["documentIdentitySchema"]>
+      | z.infer<TConfig["collectionIdentitySchema"]>,
+  ) => z.infer<TConfig["dataSchema"]>;
+  collectionGroupDocToData: (
+    doc: DocumentSnapshot,
+  ) => z.infer<TConfig["dataSchema"]> | null;
+  collectionGroupDocToDataSafe: (
+    doc: DocumentSnapshot,
+  ) => z.infer<TConfig["dataSchema"]>;
+};
+
+type CollectionAccessorWithContext<TConfig extends CollectionConfigBase> = {
+  withContext: {
+    (): CollectionAccessorResult<TConfig>;
+    (context: undefined): CollectionAccessorResult<TConfig>;
+    (context: AccessorReadContext): CollectionAccessorResult<TConfig>;
+    (context: { runner: Transaction }): CollectionAccessorResult<TConfig>;
+    (context: { runner: WriteBatch }): CollectionBatchAccessorResult<TConfig>;
+    (
+      context: AccessorWriteContext,
+    ): CollectionAccessorResult<TConfig> | CollectionBatchAccessorResult<TConfig>;
+  };
+};
+
+export type CollectionAccessorResult<TConfig extends CollectionConfigBase> =
+  CollectionAccessorReadMethods<TConfig> &
+    CollectionAccessorWriteMethods<TConfig> &
+    CollectionAccessorSharedMethods<TConfig> &
+    CollectionAccessorWithContext<TConfig>;
+
+export type CollectionBatchAccessorResult<
+  TConfig extends CollectionConfigBase,
+> = CollectionAccessorWriteMethods<TConfig> &
+  CollectionAccessorWithContext<TConfig>;
+
 const getAccessorCached = <TConfig extends CollectionConfigBase>(
   db: Firestore,
   config: TConfig,
   storeKey: AccessorStoreKey,
 ): CollectionAccessorResult<TConfig> => {
-  const accessor = collectionAccessorCache.getOrCreate(
+  const accessorCore = collectionAccessorCache.getOrCreate(
     [db, storeKey, config],
     () => getAccessorInternal(db, config),
   );
+  const accessor =
+    collectionAccessorPublicCache.get(accessorCore as object) ??
+    (() => {
+      const newAccessor = createExternalAccessor(
+        accessorCore as CollectionAccessorInternal<TConfig>,
+      );
+      collectionAccessorPublicCache.set(accessorCore as object, newAccessor);
+      return newAccessor;
+    })();
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return accessor as CollectionAccessorResult<TConfig>;
 };
@@ -212,10 +353,79 @@ const extractCursorOptions = (
   return cursor;
 };
 
+const getDocWithContext = async (
+  context: AccessorReadContext | undefined,
+  ref: DocumentReference,
+): Promise<DocumentSnapshot> => {
+  if (!context?.runner) {
+    return await ref.get();
+  }
+  return await context.runner.get(ref);
+};
+
+const getQueryWithContext = async (
+  context: AccessorReadContext | undefined,
+  query: Query,
+): Promise<QuerySnapshot> => {
+  if (!context?.runner) {
+    return await query.get();
+  }
+  const getQuery = context.runner.get as unknown as (
+    inputQuery: Query,
+  ) => Promise<QuerySnapshot>;
+  return await getQuery(query);
+};
+
+const setWithContext = async (
+  context: AccessorWriteContext | undefined,
+  ref: DocumentReference,
+  data: unknown,
+  options?: firebase.firestore.SetOptions,
+) => {
+  if (!context?.runner) {
+    if (options) {
+      await ref.set(data as firebase.firestore.DocumentData, options);
+      return;
+    }
+    await ref.set(data as firebase.firestore.DocumentData);
+    return;
+  }
+  if (options) {
+    if ("get" in context.runner) {
+      context.runner.set(ref, data as firebase.firestore.DocumentData, options);
+      return;
+    }
+    context.runner.set(ref, data as firebase.firestore.DocumentData, options);
+    return;
+  }
+  if ("get" in context.runner) {
+    context.runner.set(ref, data as firebase.firestore.DocumentData);
+    return;
+  }
+  context.runner.set(ref, data as firebase.firestore.DocumentData);
+};
+
+const deleteWithContext = async (
+  context: AccessorWriteContext | undefined,
+  ref: DocumentReference,
+) => {
+  if (!context?.runner) {
+    await ref.delete();
+    return;
+  }
+  context.runner.delete(ref);
+};
+
+const isTransactionRunner = (
+  runner: AccessorWriteContext["runner"],
+): runner is Transaction => {
+  return typeof runner === "object" && runner !== null && "get" in runner;
+};
+
 const getAccessorInternal = <TConfig extends CollectionConfigBase>(
   db: Firestore,
   config: TConfig,
-) => {
+): CollectionAccessorInternal<TConfig> => {
   // TConfig から型を抽出
   type _DataType = z.infer<TConfig["dataSchema"]>;
   type DocIdentityParams = z.infer<TConfig["documentIdentitySchema"]>;
@@ -367,17 +577,23 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     return data;
   };
   return {
-    getDoc: async (docIdentityParams: DocIdentityParams) => {
+    getDoc: async (
+      docIdentityParams: DocIdentityParams,
+      context?: AccessorReadContext,
+    ) => {
       const path = config.buildDocumentPath(docIdentityParams);
-      const doc = await db.doc(path).get();
+      const doc = await getDocWithContext(context, db.doc(path));
       if (!doc) {
         return null;
       }
       return docToData(doc, docIdentityParams);
     },
-    getDocSnapshot: async (docIdentityParams: DocIdentityParams) => {
+    getDocSnapshot: async (
+      docIdentityParams: DocIdentityParams,
+      context?: AccessorReadContext,
+    ) => {
       const path = config.buildDocumentPath(docIdentityParams);
-      const doc = await db.doc(path).get();
+      const doc = await getDocWithContext(context, db.doc(path));
       if (!doc) {
         return null;
       }
@@ -392,15 +608,27 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     updateDoc: async (
       docIdentityParams: DocIdentityParams,
       data: Partial<_DataType>,
+      context?: AccessorWriteContext,
     ) => {
       const docPath = config.buildDocumentPath(docIdentityParams);
       let _data = config.beforeWrite(docIdentityParams, data);
       _data = convertForFirestoreWrite(_data, "merge") as typeof _data;
-      await db.doc(docPath).set(_data, { merge: true });
+      await setWithContext(context, db.doc(docPath), _data, { merge: true });
+    },
+    setDoc: async (
+      docIdentityParams: DocIdentityParams,
+      data: z.infer<TConfig["updateSchema"]>,
+      context?: AccessorWriteContext,
+    ) => {
+      const docPath = config.buildDocumentPath(docIdentityParams);
+      let _data = config.beforeWrite(docIdentityParams, data);
+      _data = convertForFirestoreWrite(_data, "create") as typeof _data;
+      await setWithContext(context, db.doc(docPath), _data);
     },
     createDoc: async (
       collectionIdentityParams: CollIdentityParams,
       data: z.infer<TConfig["createSchema"]>,
+      context?: AccessorWriteContext,
     ) => {
       const collectionPath = config.buildCollectionPath(
         collectionIdentityParams,
@@ -416,12 +644,31 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       // beforeGenerate(documentIdentity, inputData) で onCreate -> onWrite を適用
       let _data = config.beforeGenerate(documentIdentity, data);
       _data = convertForFirestoreWrite(_data, "create") as typeof _data;
-      await db.collection(collectionPath).doc(docId).set(_data);
+      await setWithContext(
+        context,
+        db.collection(collectionPath).doc(docId),
+        _data,
+      );
+      return docId;
+    },
+    createDocWithId: async (
+      docIdentityParams: DocIdentityParams,
+      data: z.infer<TConfig["createSchema"]>,
+      context?: AccessorWriteContext,
+    ) => {
+      const docPath = config.buildDocumentPath(docIdentityParams);
+      const docId = String(
+        (docIdentityParams as Record<string, unknown>)[config.documentKey],
+      );
+      let _data = config.beforeGenerate(docIdentityParams, data);
+      _data = convertForFirestoreWrite(_data, "create") as typeof _data;
+      await setWithContext(context, db.doc(docPath), _data);
       return docId;
     },
     query: async (
       collectionIdentityParams: CollIdentityParams,
       queryOptions?: AccessorLevelQueryOptions,
+      context?: AccessorReadContext,
     ) => {
       const effectiveQuery = resolveScopedQueryOptions(
         config,
@@ -436,7 +683,7 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         ...effectiveQuery,
         ...extractCursorOptions(queryOptions),
       })(collectionRef);
-      const docs = await query.get();
+      const docs = await getQueryWithContext(context, query);
       return docs.docs.map((doc) =>
         docToDataSafe(doc, collectionIdentityParams),
       );
@@ -444,6 +691,7 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     querySnapshot: async (
       collectionIdentityParams: CollIdentityParams,
       queryOptions?: AccessorLevelQueryOptions,
+      context?: AccessorReadContext,
     ) => {
       const effectiveQuery = resolveScopedQueryOptions(
         config,
@@ -458,21 +706,25 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         ...effectiveQuery,
         ...extractCursorOptions(queryOptions),
       })(collectionRef);
-      const docs = await query.get();
+      const docs = await getQueryWithContext(context, query);
       return docs.docs;
     },
-    collectionGroupQuery: async (queryOptions?: AccessorLevelQueryOptions) => {
+    collectionGroupQuery: async (
+      queryOptions?: AccessorLevelQueryOptions,
+      context?: AccessorReadContext,
+    ) => {
       const collectionRef = db.collectionGroup(collectionGroupName);
       const query = queryBuilder(queryOptions)(collectionRef);
-      const docs = await query.get();
+      const docs = await getQueryWithContext(context, query);
       return docs.docs.map((doc) => collectionGroupDocToDataSafe(doc));
     },
     collectionGroupQuerySnapshot: async (
       queryOptions?: AccessorLevelQueryOptions,
+      context?: AccessorReadContext,
     ) => {
       const collectionRef = db.collectionGroup(collectionGroupName);
       const query = queryBuilder(queryOptions)(collectionRef);
-      const docs = await query.get();
+      const docs = await getQueryWithContext(context, query);
       return docs.docs;
     },
     querySync: (
@@ -511,7 +763,10 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         callback,
       );
     },
-    deleteDoc: async (docIdentityParams: DocIdentityParams) => {
+    deleteDoc: async (
+      docIdentityParams: DocIdentityParams,
+      context?: AccessorWriteContext,
+    ) => {
       const docPath = config.buildDocumentPath(docIdentityParams);
       const docRef = db.doc(docPath);
       const _data = config.beforeWrite(docIdentityParams, {
@@ -519,13 +774,70 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
         deletedAt: new Date(),
       });
       // イベントをlistenしている相手に削除を通知してから実際に削除する
-      await docRef.set(_data, { merge: true });
-      await docRef.delete();
+      await setWithContext(context, docRef, _data, { merge: true });
+      await deleteWithContext(context, docRef);
     },
     docToData,
     docToDataSafe,
     collectionGroupDocToData,
     collectionGroupDocToDataSafe,
+  };
+};
+
+const createExternalAccessor = <TConfig extends CollectionConfigBase>(
+  core: CollectionAccessorInternal<TConfig>,
+  context?: AccessorWriteContext,
+): CollectionAccessorResult<TConfig> | CollectionBatchAccessorResult<TConfig> => {
+  const withContext = ((nextContext?: AccessorWriteContext) => {
+    return createExternalAccessor(core, nextContext);
+  }) as CollectionAccessorResult<TConfig>["withContext"];
+
+  const writeAccessor: CollectionBatchAccessorResult<TConfig> = {
+    updateDoc: (docIdentityParams, data) =>
+      core.updateDoc(docIdentityParams, data, context),
+    setDoc: (docIdentityParams, data) => core.setDoc(docIdentityParams, data, context),
+    createDoc: (collectionIdentityParams, data) =>
+      core.createDoc(collectionIdentityParams, data, context),
+    createDocWithId: (docIdentityParams, data) =>
+      core.createDocWithId(docIdentityParams, data, context),
+    deleteDoc: (docIdentityParams) => core.deleteDoc(docIdentityParams, context),
+    withContext,
+  };
+
+  if (context?.runner && !isTransactionRunner(context.runner)) {
+    return writeAccessor;
+  }
+
+  const readContext: AccessorReadContext | undefined =
+    context?.runner && isTransactionRunner(context.runner)
+      ? { runner: context.runner }
+      : undefined;
+
+  return {
+    getDoc: (docIdentityParams) => core.getDoc(docIdentityParams, readContext),
+    getDocSnapshot: (docIdentityParams) =>
+      core.getDocSnapshot(docIdentityParams, readContext),
+    docSync: core.docSync,
+    updateDoc: writeAccessor.updateDoc,
+    setDoc: writeAccessor.setDoc,
+    createDoc: writeAccessor.createDoc,
+    createDocWithId: writeAccessor.createDocWithId,
+    query: (collectionIdentityParams, queryOptions) =>
+      core.query(collectionIdentityParams, queryOptions, readContext),
+    querySnapshot: (collectionIdentityParams, queryOptions) =>
+      core.querySnapshot(collectionIdentityParams, queryOptions, readContext),
+    collectionGroupQuery: (queryOptions) =>
+      core.collectionGroupQuery(queryOptions, readContext),
+    collectionGroupQuerySnapshot: (queryOptions) =>
+      core.collectionGroupQuerySnapshot(queryOptions, readContext),
+    querySync: core.querySync,
+    querySnapshotSync: core.querySnapshotSync,
+    deleteDoc: writeAccessor.deleteDoc,
+    docToData: core.docToData,
+    docToDataSafe: core.docToDataSafe,
+    collectionGroupDocToData: core.collectionGroupDocToData,
+    collectionGroupDocToDataSafe: core.collectionGroupDocToDataSafe,
+    withContext,
   };
 };
 

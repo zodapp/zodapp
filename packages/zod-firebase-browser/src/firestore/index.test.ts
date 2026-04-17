@@ -11,6 +11,7 @@ import {
   getAccessor,
   getMutationsAccessor,
   type AccessorLevelQueryOptions,
+  type AccessorWriteContext,
 } from "./index";
 
 describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
@@ -200,16 +201,20 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     const storeKey = {};
     const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
-    type QuerySecondArg = Parameters<typeof _taskAccessor.query>[1];
+    type QueryTail = Tail<Parameters<typeof _taskAccessor.query>>;
     type QuerySnapshotSecondArg = Parameters<
       typeof _taskAccessor.querySnapshot
     >[1];
+    type QuerySnapshotTail = Tail<Parameters<typeof _taskAccessor.querySnapshot>>;
 
-    expectTypeOf<QuerySecondArg>().toEqualTypeOf<
-      AccessorLevelQueryOptions | undefined
+    expectTypeOf<QueryTail>().toEqualTypeOf<
+      [queryOptions?: AccessorLevelQueryOptions | undefined]
     >();
     expectTypeOf<QuerySnapshotSecondArg>().toEqualTypeOf<
       AccessorLevelQueryOptions | undefined
+    >();
+    expectTypeOf<QuerySnapshotTail>().toEqualTypeOf<
+      [queryOptions?: AccessorLevelQueryOptions | undefined]
     >();
   });
 
@@ -218,7 +223,9 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     const storeKey = {};
     const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
 
+    type CGQArgs = Parameters<typeof _taskAccessor.collectionGroupQuery>;
     type CGQArg = Parameters<typeof _taskAccessor.collectionGroupQuery>[0];
+    type CGQSArgs = Parameters<typeof _taskAccessor.collectionGroupQuerySnapshot>;
     type CGQSArg = Parameters<
       typeof _taskAccessor.collectionGroupQuerySnapshot
     >[0];
@@ -228,6 +235,12 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     >();
     expectTypeOf<CGQSArg>().toEqualTypeOf<
       AccessorLevelQueryOptions | undefined
+    >();
+    expectTypeOf<CGQArgs>().toEqualTypeOf<
+      [queryOptions?: AccessorLevelQueryOptions | undefined]
+    >();
+    expectTypeOf<CGQSArgs>().toEqualTypeOf<
+      [queryOptions?: AccessorLevelQueryOptions | undefined]
     >();
   });
 
@@ -243,5 +256,85 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
 
     expectTypeOf<QuerySyncSecondArg>().toEqualTypeOf<QueryOptions>();
     expectTypeOf<QuerySnapshotSyncSecondArg>().toEqualTypeOf<QueryOptions>();
+  });
+
+  it("型テスト: withContext で transaction は full accessor、batch は write-only accessor になる", () => {
+    const firestore = {} as unknown as firebase.firestore.Firestore;
+    const storeKey = {};
+    const taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
+    const transaction = {} as unknown as firebase.firestore.Transaction;
+    const batch = {} as unknown as firebase.firestore.WriteBatch;
+    const transactionAccessor = taskAccessor.withContext({ runner: transaction });
+    const batchAccessor = taskAccessor.withContext({ runner: batch });
+    const docIdentityParams: DocParams = {
+      workspaceId: "w1",
+      projectId: "p1",
+      taskId: "t1",
+    };
+
+    type WithContextArg = Parameters<typeof taskAccessor.withContext>[0];
+    type GetDocTail = Tail<Parameters<typeof taskAccessor.getDoc>>;
+    type UpdateDocTail = Tail<Parameters<typeof taskAccessor.updateDoc>>;
+    type CreateDocTail = Tail<Parameters<typeof taskAccessor.createDoc>>;
+    type DeleteDocTail = Tail<Parameters<typeof taskAccessor.deleteDoc>>;
+    type TransactionGetDocTail = Tail<Parameters<typeof transactionAccessor.getDoc>>;
+    type BatchCreateDocTail = Tail<Parameters<typeof batchAccessor.createDoc>>;
+
+    expectTypeOf<WithContextArg>().toEqualTypeOf<AccessorWriteContext>();
+    expectTypeOf<GetDocTail>().toEqualTypeOf<[]>();
+    expectTypeOf<UpdateDocTail>().toEqualTypeOf<[data: Partial<Task>]>();
+    expectTypeOf<CreateDocTail>().toEqualTypeOf<
+      [data: z.infer<typeof tasksCollection.createSchema>]
+    >();
+    expectTypeOf<DeleteDocTail>().toEqualTypeOf<[]>();
+    expectTypeOf<TransactionGetDocTail>().toEqualTypeOf<[]>();
+    expectTypeOf<BatchCreateDocTail>().toEqualTypeOf<
+      [data: z.infer<typeof tasksCollection.createSchema>]
+    >();
+
+    if (false as boolean) {
+      taskAccessor.withContext({ runner: transaction }).getDoc(docIdentityParams);
+      taskAccessor
+        .withContext({ runner: transaction })
+        .getDocSnapshot(docIdentityParams);
+      taskAccessor.withContext({ runner: transaction }).query(
+        { workspaceId: "w1", projectId: "p1" },
+        undefined,
+      );
+      taskAccessor.withContext({ runner: transaction }).collectionGroupQuery(
+        undefined,
+      );
+
+      taskAccessor.withContext({ runner: transaction }).createDoc(
+        { workspaceId: "w1", projectId: "p1" },
+        { title: "task", status: "todo" },
+      );
+      taskAccessor.withContext({ runner: batch }).createDoc(
+        { workspaceId: "w1", projectId: "p1" },
+        { title: "task", status: "todo" },
+      );
+      taskAccessor
+        .withContext({ runner: transaction })
+        .updateDoc(docIdentityParams, { title: "updated" });
+      taskAccessor
+        .withContext({ runner: batch })
+        .updateDoc(docIdentityParams, { title: "updated" });
+      taskAccessor.withContext({ runner: transaction }).deleteDoc(docIdentityParams);
+      taskAccessor.withContext({ runner: batch }).deleteDoc(docIdentityParams);
+      taskAccessor.withContext({ runner: batch }).withContext({
+        runner: transaction,
+      }).getDoc(docIdentityParams);
+
+      // @ts-expect-error unbound accessor は context を直接受け取らない
+      taskAccessor.getDoc(docIdentityParams, { runner: transaction });
+      // @ts-expect-error unbound accessor は context を直接受け取らない
+      taskAccessor.createDoc({ workspaceId: "w1", projectId: "p1" }, { title: "task", status: "todo" }, { runner: batch });
+      // @ts-expect-error batch accessor に read API はない
+      batchAccessor.getDoc(docIdentityParams);
+      // @ts-expect-error batch accessor に read API はない
+      batchAccessor.query({ workspaceId: "w1", projectId: "p1" }, undefined);
+    }
+
+    expect(true).toBe(true);
   });
 });
