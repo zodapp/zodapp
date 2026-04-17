@@ -26,6 +26,26 @@ function unwrapWrappers(schema: z.ZodTypeAny): z.ZodTypeAny {
   return current;
 }
 
+function getUnwrappedUnionMeta(schema: z.ZodTypeAny) {
+  let current = schema;
+  let meta = getMetaReact(current, "union");
+
+  while (
+    current instanceof z.ZodOptional ||
+    current instanceof z.ZodNullable ||
+    current instanceof z.ZodDefault
+  ) {
+    current = current.unwrap() as z.ZodTypeAny;
+
+    const innerMeta = getMetaReact(current, "union");
+    meta = (
+      meta && innerMeta ? { ...innerMeta, ...meta } : (meta ?? innerMeta)
+    ) as typeof meta;
+  }
+
+  return meta;
+}
+
 function collectFromArray(
   arraySchema: z.ZodTypeAny,
   originalFieldSchema: z.ZodTypeAny,
@@ -185,7 +205,7 @@ function collectColumns(
       const fieldPath = fieldKeys.join(".");
 
       if (!result.has(fieldPath)) {
-        const unionMeta = getMetaReact(schema, "union");
+        const unionMeta = getUnwrappedUnionMeta(schema);
         const label =
           (unionMeta?.selectorLabel as string | undefined) ?? discriminatorKey;
 
