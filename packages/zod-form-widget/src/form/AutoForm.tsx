@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState, useEffect, memo } from 'react';
+import { Suspense, useMemo, useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Button, Code, Group, Loader, Stack } from '@mantine/core';
 import {
   componentLibrary,
@@ -16,10 +16,12 @@ import type {
   CollectionReferenceActionEntry
 } from '@zodapp/zod-form-react';
 import type { z } from 'zod';
+import { normalizeAutoFormActions, type AutoFormAction } from './autoFormActions';
 
 type AutoFormProps<T extends z.ZodTypeAny> = {
   schema: T;
   defaultValues?: z.input<T> | Partial<z.input<T>>;
+  actions?: readonly AutoFormAction<T>[];
   onSubmit?: (data: z.output<T>) => void;
   onCancel?: (data: z.input<T>) => void;
   isLoading?: boolean;
@@ -38,6 +40,7 @@ type AutoFormProps<T extends z.ZodTypeAny> = {
 const AutoFormInner = <T extends z.ZodTypeAny>({
   schema,
   defaultValues,
+  actions,
   onSubmit,
   onCancel,
   isLoading = false,
@@ -53,6 +56,8 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   readOnly = false
 }: AutoFormProps<T>) => {
   const initialValues = useMemo(() => (defaultValues ?? {}) as z.input<T>, [defaultValues]);
+  const defaultSubmitHandlerRef = useRef(onSubmit);
+  const pendingSubmitHandlerRef = useRef<((data: z.output<T>) => void) | undefined>(undefined);
 
   const form = useZodForm({
     defaultValues: initialValues,
@@ -62,11 +67,15 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
       onSubmit: schema
     },
     onSubmit: ({ value }) => {
-      if (onSubmit) {
-        onSubmit(value as z.output<T>);
-      }
+      const handler = pendingSubmitHandlerRef.current ?? defaultSubmitHandlerRef.current;
+      pendingSubmitHandlerRef.current = undefined;
+      handler?.(value as z.output<T>);
     }
   });
+
+  useEffect(() => {
+    defaultSubmitHandlerRef.current = onSubmit;
+  }, [onSubmit]);
 
   // デバッグ用: リアクティブに現在の値を購読
   const [formValues, setFormValues] = useState(() => form.state.values);
@@ -77,6 +86,32 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     });
     return () => subscription.unsubscribe();
   }, [form, showPreview]);
+
+  const normalizedActions = useMemo(
+    () =>
+      normalizeAutoFormActions({
+        actions,
+        onSubmit,
+        onCancel,
+        submitLabel,
+        cancelLabel
+      }),
+    [actions, cancelLabel, onCancel, onSubmit, submitLabel]
+  );
+
+  const handleSubmitAction = useCallback(
+    async (handler: (data: z.output<T>) => void) => {
+      pendingSubmitHandlerRef.current = handler;
+      await form.handleSubmit();
+      if (import.meta.env.NODE_ENV === 'development' && !form.state.isValid) {
+        console.warn('[AutoForm] バリデーションエラー:', form.getAllErrors());
+      }
+      if (!form.state.isValid) {
+        pendingSubmitHandlerRef.current = undefined;
+      }
+    },
+    [form]
+  );
 
   return (
     <Suspense fallback={<Loader />}>
@@ -94,30 +129,58 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
             <Stack gap="md">
               <Dynamic fieldPath="" schema={schema} readOnly={readOnly} />
 
-              {!readOnly && (
+              {!readOnly && normalizedActions.length > 0 && (
                 <Group justify="flex-end" mt="md">
-                  {onCancel && (
-                    <Button
-                      variant="default"
-                      onClick={() => onCancel(form.state.values)}
-                      disabled={isLoading}
-                    >
-                      {cancelLabel}
-                    </Button>
-                  )}
-                  <Button
-                    onClick={async () => {
-                      await form.handleSubmit();
-                      console.log('form.state', form.state);
-                      if (import.meta.env.NODE_ENV === 'development' && !form.state.isValid) {
-                        console.warn('[AutoForm] バリデーションエラー:', form.getAllErrors());
-                      }
-                    }}
-                    type="button"
-                    loading={isLoading}
-                  >
-                    {submitLabel}
-                  </Button>
+                  {normalizedActions.map((action, index) => {
+                    const disabled = isLoading || action.disabled;
+                    const loading = action.loading ?? false;
+
+                    if (action.type === 'submit') {
+                      return (
+                        <Button
+                          key={index}
+                          variant={action.variant}
+                          color={action.color}
+                          onClick={() => handleSubmitAction(action.onSubmit)}
+                          type="button"
+                          loading={loading}
+                          disabled={disabled}
+                        >
+                          {action.label}
+                        </Button>
+                      );
+                    }
+
+                    if (action.type === 'cancel') {
+                      return (
+                        <Button
+                          key={index}
+                          variant={action.variant}
+                          color={action.color}
+                          onClick={() => action.onCancel(form.state.values)}
+                          type="button"
+                          loading={loading}
+                          disabled={disabled}
+                        >
+                          {action.label}
+                        </Button>
+                      );
+                    }
+
+                    return (
+                      <Button
+                        key={index}
+                        variant={action.variant}
+                        color={action.color}
+                        onClick={() => action.onClick({ values: form.state.values })}
+                        type="button"
+                        loading={loading}
+                        disabled={disabled}
+                      >
+                        {action.label}
+                      </Button>
+                    );
+                  })}
                 </Group>
               )}
               {/* デモ・デバッグ用: リアクティブに現在の値を表示 */}
