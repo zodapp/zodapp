@@ -121,7 +121,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
       pendingSubmitHandlerRef.current = handler;
       await form.handleSubmit();
       if (!form.state.isValid) {
-        console.warn("[AutoForm] バリデーションエラー:", form.getAllErrors());
+        console.warn("[AutoForm] Validation errors:", form.getAllErrors());
         pendingSubmitHandlerRef.current = undefined;
       }
     },
