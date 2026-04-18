@@ -120,10 +120,8 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     async (handler: (data: z.output<T>) => void) => {
       pendingSubmitHandlerRef.current = handler;
       await form.handleSubmit();
-      if (import.meta.env.NODE_ENV === "development" && !form.state.isValid) {
-        console.warn("[AutoForm] バリデーションエラー:", form.getAllErrors());
-      }
       if (!form.state.isValid) {
+        console.warn("[AutoForm] バリデーションエラー:", form.getAllErrors());
         pendingSubmitHandlerRef.current = undefined;
       }
     },
