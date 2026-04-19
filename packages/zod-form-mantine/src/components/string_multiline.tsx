@@ -7,7 +7,11 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
-import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+  renderComputedValue,
+} from "@zodapp/zod-form-mantine-lite/utils";
 import multilineStyles from "@zodapp/zod-form-mantine-lite/utils/stringMultiline.module.css";
 
 type StringSchema = z.ZodString;
@@ -22,8 +26,7 @@ const StringMultilineComponent = wrapComponent(
     error,
   }: ZodFormInternalProps<StringSchema>) {
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter } =
-      getMeta(schema, "string") ?? {};
+    const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
     const value = typeof field.value === "string" ? field.value : "";
@@ -38,9 +41,13 @@ const StringMultilineComponent = wrapComponent(
     if (readOnly || field.disabled) {
       return (
         <InputWrapper label={label || undefined} style={inputWrapperStyle}>
-          {value && formatter
-            ? renderComputedValue(formatter(value), "readOnly")
-            : <ReadonlyText>{value}</ReadonlyText>}
+          {value && formatter ? (
+            renderComputedValue(formatter(value), "readOnly")
+          ) : (
+            <ReadonlyText style={{ whiteSpace: "pre-wrap" }}>
+              {value}
+            </ReadonlyText>
+          )}
         </InputWrapper>
       );
     }
