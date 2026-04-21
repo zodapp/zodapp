@@ -82,6 +82,14 @@ export type AutoTableHandle = {
   ensureLastItemVisible: (options?: { offsetPx?: number }) => Promise<void>;
 };
 
+type TableRowData = Record<string, unknown>;
+type AutoTableItem<TSchema extends z.ZodTypeAny> = z.infer<TSchema> &
+  TableRowData;
+type AutoTableKeyField<TSchema extends z.ZodTypeAny> = Extract<
+  keyof AutoTableItem<TSchema>,
+  string
+>;
+
 const SORTABLE_FIELD_TYPES = new Set([
   "string",
   "number",
@@ -90,12 +98,9 @@ const SORTABLE_FIELD_TYPES = new Set([
   "boolean",
 ]);
 
-type AutoTableProps = {
-  /** @deprecated controller.schema を使用してください */
-  schema?: z.ZodTypeAny;
-  data: Array<Record<string, unknown>>;
-  keyField: string;
-  controller?: ColumnSettingsController;
+type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
+  data: AutoTableItem<TSchema>[];
+  keyField: AutoTableKeyField<TSchema>;
   externalKeyResolvers?: ExternalKeyResolvers;
   externalKeyActionResolver?: ExternalKeyActionResolver;
   resolverContext?: RegisteredResolverContext;
@@ -105,13 +110,33 @@ type AutoTableProps = {
   scrollParent?: HTMLElement | null;
   virtualizeThreshold?: number;
   onScrollStateChange?: (state: AutoTableScrollState) => void;
+  onRowClick?: (item: AutoTableItem<TSchema>) => void;
+  getRowClassName?: (item: AutoTableItem<TSchema>) => string | undefined;
 };
+
+type AutoTablePropsWithSchema<TSchema extends z.ZodTypeAny> =
+  AutoTableBaseProps<TSchema> & {
+    /** @deprecated controller.schema を使用してください */
+    schema: TSchema;
+    controller?: ColumnSettingsController<TSchema>;
+  };
+
+type AutoTablePropsWithController<TSchema extends z.ZodTypeAny> =
+  AutoTableBaseProps<TSchema> & {
+    /** @deprecated controller.schema を使用してください */
+    schema?: TSchema;
+    controller: ColumnSettingsController<TSchema>;
+  };
+
+export type AutoTableProps<TSchema extends z.ZodTypeAny> =
+  | AutoTablePropsWithSchema<TSchema>
+  | AutoTablePropsWithController<TSchema>;
 
 const isSortableFieldType = (type: unknown) =>
   typeof type === "string" && SORTABLE_FIELD_TYPES.has(type);
 
 const getNestedValue = (
-  obj: Record<string, unknown>,
+  obj: TableRowData,
   path: string,
 ): unknown => {
   if (!path.includes(".")) return obj[path];
@@ -139,6 +164,25 @@ const ALIGN_CLASS_NAMES: Record<CellAlign, string> = {
 const joinClassNames = (
   ...classNames: Array<string | false | null | undefined>
 ) => classNames.filter(Boolean).join(" ");
+
+const INTERACTIVE_ROW_TARGET_SELECTOR = [
+  "a",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "label",
+  "[contenteditable='true']",
+  "[role='button']",
+  "[role='checkbox']",
+  "[role='link']",
+  "[role='menuitem']",
+].join(",");
+
+const shouldHandleRowClick = (event: React.MouseEvent<HTMLTableRowElement>) => {
+  if (!(event.target instanceof Element)) return true;
+  return !event.target.closest(INTERACTIVE_ROW_TARGET_SELECTOR);
+};
 
 const buildScrollState = (element: HTMLElement): AutoTableScrollState => {
   const { scrollTop, clientHeight, scrollHeight } = element;
@@ -483,9 +527,9 @@ const buildDefaultPreviewColumns = (fields: AutoTableField[]): ColumnEntry[] =>
       width: String(field.width),
     }));
 
-type UseAutoTableModelProps = {
+type UseAutoTableModelProps<TItem extends TableRowData> = {
   schema: z.ZodTypeAny;
-  data: Array<Record<string, unknown>>;
+  data: TItem[];
   defaultFieldPaths?: string[];
   storageColumns: ColumnEntry[] | null;
   isPreviewing: boolean;
@@ -493,7 +537,7 @@ type UseAutoTableModelProps = {
   sortState: SortState | null;
 };
 
-function useAutoTableModel({
+function useAutoTableModel<TItem extends TableRowData>({
   schema,
   data,
   defaultFieldPaths,
@@ -501,7 +545,7 @@ function useAutoTableModel({
   isPreviewing,
   sortable,
   sortState,
-}: UseAutoTableModelProps) {
+}: UseAutoTableModelProps<TItem>) {
   const { fields, totalMinWidth } = useMemo(() => {
     const schemaColumns = extractSchemaColumns(schema, defaultFieldPaths ? { defaultFieldPaths } : undefined);
     const orderEntries = getOrderEntries(
@@ -518,7 +562,7 @@ function useAutoTableModel({
     };
   }, [defaultFieldPaths, isPreviewing, schema, storageColumns]);
 
-  const sortedData = useMemo(() => {
+  const sortedData = useMemo<TItem[]>(() => {
     if (!sortable || !sortState) return data;
 
     const sortField = fields.find(
@@ -786,10 +830,10 @@ const BodyCell = memo(BodyCellInner);
 
 const DEFAULT_ITEM_HEIGHT = 38;
 
-type SharedViewProps = {
+type SharedViewProps<TItem extends TableRowData> = {
   fields: AutoTableField[];
-  sortedData: Array<Record<string, unknown>>;
-  keyField: string;
+  sortedData: TItem[];
+  keyField: Extract<keyof TItem, string>;
   totalMinWidth: number;
   isPreviewing: boolean;
   sortable: boolean;
@@ -801,9 +845,11 @@ type SharedViewProps = {
   handleSortToggle: (sortKey: string) => void;
   tableClassName: string;
   tableStyle: React.CSSProperties;
+  onRowClick?: (item: TItem) => void;
+  getRowClassName?: (item: TItem) => string | undefined;
 };
 
-function LegacyTableView({
+function LegacyTableView<TItem extends TableRowData>({
   fields,
   sortedData,
   keyField,
@@ -818,8 +864,12 @@ function LegacyTableView({
   handleSortToggle,
   tableClassName,
   tableStyle,
+  onRowClick,
+  getRowClassName,
   tableRefCallback,
-}: SharedViewProps & { tableRefCallback: ReactRefCallbackLike<HTMLTableElement> }) {
+}: SharedViewProps<TItem> & {
+  tableRefCallback: ReactRefCallbackLike<HTMLTableElement>;
+}) {
   return (
     <Table
       ref={tableRefCallback}
@@ -853,7 +903,18 @@ function LegacyTableView({
       </Table.Thead>
       <Table.Tbody>
         {sortedData.map((item) => (
-          <Table.Tr key={String(item[keyField])}>
+          <Table.Tr
+            key={String(item[keyField])}
+            className={getRowClassName?.(item)}
+            onClick={
+              onRowClick
+                ? (event) => {
+                    if (!shouldHandleRowClick(event)) return;
+                    onRowClick(item);
+                  }
+                : undefined
+            }
+          >
             {fields.map((field) => (
               <BodyCell
                 key={field.key}
@@ -872,7 +933,7 @@ function LegacyTableView({
   );
 }
 
-function VirtualizedTableView({
+function VirtualizedTableView<TItem extends TableRowData>({
   fields,
   sortedData,
   keyField,
@@ -887,19 +948,25 @@ function VirtualizedTableView({
   handleSortToggle,
   tableClassName,
   tableStyle,
+  onRowClick,
+  getRowClassName,
   tableRefCallback,
   scrollParent,
   virtuosoRef,
-}: SharedViewProps & {
+}: SharedViewProps<TItem> & {
   tableRefCallback: (node: HTMLTableElement | null) => void;
   scrollParent: HTMLElement;
   virtuosoRef: React.RefObject<TableVirtuosoHandle | null>;
 }) {
-  type RowData = Record<string, unknown>;
+  type RowData = TItem;
   const tableClassNameRef = useRef(tableClassName);
   tableClassNameRef.current = tableClassName;
   const tableStyleRef = useRef(tableStyle);
   tableStyleRef.current = tableStyle;
+  const onRowClickRef = useRef(onRowClick);
+  onRowClickRef.current = onRowClick;
+  const getRowClassNameRef = useRef(getRowClassName);
+  getRowClassNameRef.current = getRowClassName;
 
   const components = useMemo<TableComponents<RowData>>(
     () => ({
@@ -919,6 +986,15 @@ function VirtualizedTableView({
       TableRow: ({ style, item, ...props }) => (
         <tr
           {...props}
+          className={item ? getRowClassNameRef.current?.(item) : undefined}
+          onClick={
+            item
+              ? (event) => {
+                  if (!shouldHandleRowClick(event)) return;
+                  onRowClickRef.current?.(item);
+                }
+              : undefined
+          }
           style={style}
           key={item ? String(item[keyField]) : undefined}
         />
@@ -966,7 +1042,7 @@ function VirtualizedTableView({
   );
 
   const itemContent = useCallback(
-    (_index: number, item: Record<string, unknown>) => (
+    (_index: number, item: TItem) => (
       <>
         {fields.map((field) => (
           <BodyCell
@@ -991,7 +1067,7 @@ function VirtualizedTableView({
   );
 
   const computeItemKey = useCallback(
-    (_index: number, item: Record<string, unknown>) => String(item[keyField]),
+    (_index: number, item: TItem) => String(item[keyField]),
     [keyField],
   );
 
@@ -1013,7 +1089,7 @@ function VirtualizedTableView({
 const noopSetPreviewColumns: SetPreviewColumns = () => {};
 const noopSetFocusedColumnId = (_columnId: string | undefined) => {};
 
-const AutoTableInner = (
+const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
   {
     schema: schemaProp,
     data,
@@ -1028,7 +1104,9 @@ const AutoTableInner = (
     scrollParent,
     virtualizeThreshold,
     onScrollStateChange,
-  }: AutoTableProps,
+    onRowClick,
+    getRowClassName,
+  }: AutoTableProps<TSchema>,
   ref: React.ForwardedRef<AutoTableHandle>,
 ) => {
   const schema = controller?.schema ?? schemaProp;
@@ -1247,6 +1325,8 @@ const AutoTableInner = (
           handleSortToggle={handleSortToggle}
           tableClassName={tableClassName}
           tableStyle={tableStyle}
+          onRowClick={onRowClick}
+          getRowClassName={getRowClassName}
           tableRefCallback={tableRefCallback}
           scrollParent={scrollParent}
           virtuosoRef={virtuosoRef}
@@ -1267,6 +1347,8 @@ const AutoTableInner = (
           handleSortToggle={handleSortToggle}
           tableClassName={tableClassName}
           tableStyle={tableStyle}
+          onRowClick={onRowClick}
+          getRowClassName={getRowClassName}
           tableRefCallback={tableRefCallback}
         />
       )}
@@ -1274,10 +1356,10 @@ const AutoTableInner = (
   );
 };
 
-type AutoTableComponent = (
-  props: AutoTableProps & React.RefAttributes<AutoTableHandle>,
+type AutoTableComponent = <TSchema extends z.ZodTypeAny>(
+  props: AutoTableProps<TSchema> & React.RefAttributes<AutoTableHandle>,
 ) => React.ReactElement | null;
 
-const ForwardedAutoTable = forwardRef(AutoTableInner) as AutoTableComponent;
+const ForwardedAutoTable = forwardRef(AutoTableInner) as unknown as AutoTableComponent;
 
-export const AutoTable = memo(ForwardedAutoTable) as AutoTableComponent;
+export const AutoTable = memo(ForwardedAutoTable) as unknown as AutoTableComponent;
