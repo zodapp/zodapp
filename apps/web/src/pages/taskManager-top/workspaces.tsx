@@ -18,7 +18,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
-import { extendSchema } from "@zodapp/zod-form-widget";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 
 import { z } from "zod";
@@ -57,7 +57,7 @@ const WorkspacesPage = () => {
 
   const workspaceTableSchema = useMemo(
     () =>
-      extendSchema(workspacesCollection.dataSchema, {
+      extendSchemaSafe(workspacesCollection.dataSchema, {
         _action: createActionSchema<WorkspaceData>({
           getParams: (item) => ({
             to: projectsRoute.to,

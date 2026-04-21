@@ -33,7 +33,7 @@ import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
 import { AutoForm, AutoSearch } from "@zodapp/zod-form-widget/form";
 import { FetchMore } from "@zodapp/zod-form-widget/feedback";
-import { extendSchema } from "@zodapp/zod-form-widget";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import {
   AutoTable,
   useAutoTableScroll,
@@ -85,7 +85,7 @@ const TasksPage = () => {
 
   const taskTableSchema = useMemo(
     () =>
-      extendSchema(tasksCollection.dataSchema, {
+      extendSchemaSafe(tasksCollection.dataSchema, {
         _action: createActionSchema<TaskData>({
           getParams: (item) => ({
             to: taskDetailRoute.to,
