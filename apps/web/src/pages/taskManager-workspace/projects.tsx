@@ -29,7 +29,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
-import { extendSchema } from "@zodapp/zod-form-widget";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
@@ -80,7 +80,7 @@ const ProjectsPage = () => {
 
   const projectTableSchema = useMemo(
     () =>
-      extendSchema(projectsCollection.dataSchema, {
+      extendSchemaSafe(projectsCollection.dataSchema, {
         _action: createActionSchema<ProjectData>({
           getParams: (item) => ({
             to: tasksRoute.to,

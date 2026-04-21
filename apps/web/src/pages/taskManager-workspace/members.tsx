@@ -28,7 +28,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
-import { extendSchema } from "@zodapp/zod-form-widget";
+import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { createActionSchema } from "../../components/createActionSchema";
@@ -70,7 +70,7 @@ const MembersPage = () => {
 
   const memberTableSchema = useMemo(
     () =>
-      extendSchema(membersCollection.dataSchema, {
+      extendSchemaSafe(membersCollection.dataSchema, {
         _action: createActionSchema<MemberData>({
           getParams: (item) => ({
             to: memberDetailRoute.to,
