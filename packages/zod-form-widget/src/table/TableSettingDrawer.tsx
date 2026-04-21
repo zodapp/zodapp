@@ -24,6 +24,7 @@ import {
 import { COLUMN_FOCUS_ZONE_CLASS } from "./AutoTable";
 import { type ColumnEntry } from "./table-types";
 import { extractSchemaColumns } from "./extract-schema-columns";
+import { getDefaultOrderEntries } from "./default-column-order";
 import type {
   ColumnSettingsController,
   ColumnSettingScope,
@@ -363,14 +364,13 @@ export function useTableSettingDrawer({
 
   const schemaDefaultColumns = useMemo<ColumnEntry[]>(
     () =>
-      schemaColumns
-        .filter((col) => col.isDefault)
+      getDefaultOrderEntries(schemaColumns, defaultFieldPaths)
         .map((col) => ({
           fieldPath: col.fieldPath,
           width: String(col.meta.width ?? DEFAULT_WIDTH),
           id: col.fieldPath,
         })),
-    [schemaColumns],
+    [defaultFieldPaths, schemaColumns],
   );
 
   const activeColumns = useMemo(() => {
