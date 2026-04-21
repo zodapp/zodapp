@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
-type SetStateAction<T> = T | ((prev: T) => T);
-
-type StateStorage = {
+export type StateStorage = {
   getItem: (key: string) => string | null;
   setItem: (key: string, value: string) => void;
   subscribe: (key: string, listener: () => void) => () => void;
@@ -92,7 +97,7 @@ export function useStorageState<T>(
   storage: StateStorage,
   key: string,
   initialValue: T | (() => T),
-): [T, (value: SetStateAction<T>) => void] {
+): [T, Dispatch<SetStateAction<T>>] {
   const initialValueRef = useRef(initialValue);
   initialValueRef.current = initialValue;
 
@@ -114,8 +119,8 @@ export function useStorageState<T>(
 
   const [state, setState] = useState<T>(() => readValue());
 
-  const setValue = useCallback(
-    (value: SetStateAction<T>) => {
+  const setValue = useCallback<Dispatch<SetStateAction<T>>>(
+    (value) => {
       setState((prev) => {
         const next =
           typeof value === "function" ? (value as (prev: T) => T)(prev) : value;
@@ -142,20 +147,20 @@ export function useStorageState<T>(
 export function useLocalStorageState<T>(
   key: string,
   initialValue: T | (() => T),
-): [T, (value: SetStateAction<T>) => void] {
+): [T, Dispatch<SetStateAction<T>>] {
   return useStorageState(localStateStorage, key, initialValue);
 }
 
 export function useSessionStorageState<T>(
   key: string,
   initialValue: T | (() => T),
-): [T, (value: SetStateAction<T>) => void] {
+): [T, Dispatch<SetStateAction<T>>] {
   return useStorageState(sessionStateStorage, key, initialValue);
 }
 
 export function useMemoryState<T>(
   key: string,
   initialValue: T | (() => T),
-): [T, (value: SetStateAction<T>) => void] {
+): [T, Dispatch<SetStateAction<T>>] {
   return useStorageState(memoryStateStorage, key, initialValue);
 }

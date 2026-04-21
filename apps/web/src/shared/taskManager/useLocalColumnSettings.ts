@@ -1,8 +1,8 @@
 import { useMemo, useCallback } from "react";
 import type { z } from "zod";
+import { useLocalStorageState } from "@zodapp/react-storage";
 import {
   useColumnSettingsController,
-  useLocalStorageState,
   type ColumnSettingRef,
   type ColumnSettingData,
   type ColumnSettingsController,

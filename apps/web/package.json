@@ -30,6 +30,7 @@
     "@tanstack/react-form": "^1.28.6",
     "@tanstack/react-router": "^1.157.18",
     "@zodapp/caching-utilities": "workspace:*",
+    "@zodapp/react-storage": "workspace:*",
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-firebase": "workspace:*",
     "@zodapp/zod-firebase-browser": "workspace:*",

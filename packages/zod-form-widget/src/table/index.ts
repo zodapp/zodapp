@@ -32,9 +32,3 @@ export { getUnwrappedMeta } from "./table-types";
 export type { ColumnEntry } from "./table-types";
 export { extractSchemaColumns } from "./extract-schema-columns";
 export type { SchemaColumnDef } from "./extract-schema-columns";
-export {
-  useStorageState,
-  useLocalStorageState,
-  useSessionStorageState,
-  useMemoryState,
-} from "./useStorageState";
