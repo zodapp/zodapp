@@ -142,8 +142,6 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         <FormProvider form={form}>
           <ValidatePrecedingFieldsProvider>
             <Stack gap="md">
-              <Dynamic fieldPath="" schema={schema} readOnly={readOnly} />
-
               {!readOnly && normalizedActions.length > 0 && (
                 <Group justify="flex-end" mt="md">
                   {normalizedActions.map((action, index) => {
@@ -215,6 +213,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
                   )}
                 </Code>
               )}
+              <Dynamic fieldPath="" schema={schema} readOnly={readOnly} />
             </Stack>
           </ValidatePrecedingFieldsProvider>
         </FormProvider>

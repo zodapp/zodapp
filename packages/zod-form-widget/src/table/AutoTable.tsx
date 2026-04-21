@@ -36,6 +36,7 @@ import type {
 } from "./column-settings-controller";
 import { type ColumnEntry, getUnwrappedMeta } from "./table-types";
 import { extractSchemaColumns, type SchemaColumnDef } from "./extract-schema-columns";
+import { getDefaultOrderEntries } from "./default-column-order";
 import styles from "./AutoTable.module.css";
 
 export type CellAlign = "left" | "center" | "right";
@@ -396,6 +397,7 @@ function useTableResize({
 
 function getOrderEntries(
   schemaColumns: SchemaColumnDef[],
+  defaultFieldPaths: string[] | undefined,
   storageColumns: ColumnEntry[] | null,
   isPreviewing: boolean,
 ): OrderEntry[] {
@@ -416,9 +418,10 @@ function getOrderEntries(
 
   return (
     storageDerived ??
-    schemaColumns
-      .filter((col) => col.isDefault)
-      .map((col) => ({ fieldPath: col.fieldPath, key: col.fieldPath }))
+    getDefaultOrderEntries(schemaColumns, defaultFieldPaths).map((col) => ({
+      fieldPath: col.fieldPath,
+      key: col.fieldPath,
+    }))
   );
 }
 
@@ -503,6 +506,7 @@ function useAutoTableModel({
     const schemaColumns = extractSchemaColumns(schema, defaultFieldPaths ? { defaultFieldPaths } : undefined);
     const orderEntries = getOrderEntries(
       schemaColumns,
+      defaultFieldPaths,
       storageColumns,
       isPreviewing,
     );
