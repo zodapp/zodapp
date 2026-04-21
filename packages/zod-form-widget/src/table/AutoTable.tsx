@@ -105,6 +105,7 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   externalKeyActionResolver?: ExternalKeyActionResolver;
   resolverContext?: RegisteredResolverContext;
   collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
+  /** `false` の場合はヘッダーからのソート操作のみ無効化します */
   sortable?: boolean;
   defaultSortState?: SortState | null;
   scrollParent?: HTMLElement | null;
@@ -563,7 +564,7 @@ function useAutoTableModel<TItem extends TableRowData>({
   }, [defaultFieldPaths, isPreviewing, schema, storageColumns]);
 
   const sortedData = useMemo<TItem[]>(() => {
-    if (!sortable || !sortState) return data;
+    if (!sortState) return data;
 
     const sortField = fields.find(
       ({ propertyName }) => propertyName === sortState.sortKey,
@@ -582,7 +583,7 @@ function useAutoTableModel<TItem extends TableRowData>({
         return comparison !== 0 ? comparison : left.index - right.index;
       })
       .map(({ item }) => item);
-  }, [data, fields, sortState, sortable]);
+  }, [data, fields, sortState]);
 
   return { fields, sortedData, totalMinWidth };
 }
