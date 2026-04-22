@@ -555,4 +555,29 @@ describe('readOnlySchemaFieldsExcept', () => {
       expect(isReadOnlyField(getObjectField(option, 'secret'))).toBe(true);
     }
   });
+
+  it('restores date meta to the unwrapped schema', () => {
+    const schema = z.object({
+      createdAt: zf
+        .date()
+        .register(zf.date.registry, {
+          label: '着信日時',
+        })
+        .optional(),
+      isChecked: zf.boolean().register(zf.boolean.registry, {
+        label: '対応状態',
+      }),
+    });
+
+    const result = readOnlySchemaFieldsExcept(schema, { paths: ['isChecked'] });
+    const createdAtSchema = result.shape.createdAt;
+
+    expect(createdAtSchema).toBeInstanceOf(z.ZodOptional);
+    expect(getMeta(createdAtSchema)).toBeUndefined();
+    expect(getMeta(createdAtSchema.unwrap())).toMatchObject({
+      typeName: 'date',
+      label: '着信日時',
+      readOnly: true,
+    });
+  });
 });

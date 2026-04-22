@@ -23,9 +23,10 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   defaultValue,
   label: labelFromParent,
   required,
-  readOnly,
+  readOnly: readOnlyProp,
 }: ZodFormProps<ExternalKeySchema>) {
   const meta = getMeta(schema, "externalKey");
+  const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;
 
   const { options, isLoading } = useExternalKeyOptions(schema);

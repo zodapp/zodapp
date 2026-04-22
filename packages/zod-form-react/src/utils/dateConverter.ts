@@ -162,6 +162,7 @@ function detectSchemaType(schema: SupportedDateSchema): SchemaType {
 
   // TypeScript の exhaustive check
   const _exhaustive: never = schema;
+  console.error("Unsupported schema type:", _exhaustive);
   throw new Error(`Unsupported schema type: ${_exhaustive}`);
 }
 

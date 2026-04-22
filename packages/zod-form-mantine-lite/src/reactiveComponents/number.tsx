@@ -17,9 +17,11 @@ const NumberComponent = React.memo(function NumberComponent({
   defaultValue,
   label: labelFromParent,
   required,
-  readOnly,
+  readOnly: readOnlyProp,
 }: ZodFormProps<NumberSchema>) {
-  const { label: labelFromMeta } = getMeta(schema) ?? {};
+  const meta = getMeta(schema);
+  const labelFromMeta = meta?.label;
+  const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue =

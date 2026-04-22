@@ -6,7 +6,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import {
-  renderComputedValue,
+  renderComputedFieldValue,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
 
@@ -23,7 +23,6 @@ type DerivedMeta = NonNullable<
 const DerivedComponent = wrapComponent(function DerivedComponentImplement({
   schema,
   label: labelFromParent,
-  required,
   field,
 }: ZodFormInternalProps<DerivedSchema>) {
   const meta = getMetaReact(schema, "derived");
@@ -38,11 +37,10 @@ const DerivedComponent = wrapComponent(function DerivedComponentImplement({
   return (
     <InputWrapper
       label={label ?? undefined}
-      required={required !== false}
       labelElement="div"
       style={inputWrapperStyle}
     >
-      {renderComputedValue(content)}
+      {renderComputedFieldValue(content)}
     </InputWrapper>
   );
 });

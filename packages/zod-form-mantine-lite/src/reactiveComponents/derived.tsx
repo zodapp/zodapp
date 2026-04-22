@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
-import { renderComputedValue } from "../utils/renderComputedValue";
+import { renderComputedFieldValue } from "../utils/renderComputedValue";
 import { inputWrapperStyle } from "../utils/styles";
 
 type DerivedSchema = ReturnType<typeof zf.derived>;
@@ -19,7 +19,6 @@ const DerivedComponent = React.memo(function DerivedComponent({
   schema,
   defaultValue,
   label: labelFromParent,
-  required,
 }: ZodFormProps<DerivedSchema>) {
   const meta = getMetaReact(schema, "derived");
   const { label: labelFromMeta, compute } =
@@ -33,11 +32,10 @@ const DerivedComponent = React.memo(function DerivedComponent({
   return (
     <InputWrapper
       label={label ?? undefined}
-      required={required !== false}
       labelElement="div"
       style={inputWrapperStyle}
     >
-      {renderComputedValue(content)}
+      {renderComputedFieldValue(content)}
     </InputWrapper>
   );
 });

@@ -19,9 +19,12 @@ const EnumComponent = React.memo(function EnumComponent({
   defaultValue,
   label: labelFromParent,
   required,
-  readOnly,
+  readOnly: readOnlyProp,
 }: ZodFormProps<EnumSchema>) {
-  const { label: labelFromMeta, uiType } = getMeta(schema) ?? {};
+  const meta = getMeta(schema);
+  const labelFromMeta = meta?.label;
+  const uiType = meta?.uiType;
+  const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue = (defaultValue as string | undefined) ?? null;
