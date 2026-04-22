@@ -1,4 +1,7 @@
-import type { ComponentLibrary, DynamicZodFormDef } from "@zodapp/zod-form-react/common";
+import type {
+  ComponentLibrary,
+  DynamicZodFormDef,
+} from "@zodapp/zod-form-react/common";
 import { baseComponents } from "../baseComponents/index";
 
 // Named exports（個別 static import 用）
@@ -13,12 +16,15 @@ export { component as LiteralComponent } from "./literal.js";
 export { component as DerivedComponent } from "./derived.js";
 export { component as ObjectComponent } from "./object.js";
 export { component as RecordComponent } from "./record.js";
+export { component as ComputedComponent } from "./computed.js";
 
 // Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
 export const reactiveComponentLibrary: ComponentLibrary = {
   ...baseComponents,
+  computed: (() => import("./computed.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
-  string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
+  string_multiline: (() =>
+    import("./string_multiline.js")) as DynamicZodFormDef,
   number: (() => import("./number.js")) as DynamicZodFormDef,
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,

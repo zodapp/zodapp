@@ -29,9 +29,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
 
   const fields = order.flatMap((propertyName: string) => {
-    const fieldSchema = schema.shape[propertyName] as
-      | z.ZodTypeAny
-      | undefined;
+    const fieldSchema = schema.shape[propertyName] as z.ZodTypeAny | undefined;
     if (!fieldSchema) return [];
     const fieldMeta = getMeta(fieldSchema);
     if (fieldMeta?.hidden || fieldMeta?.typeName === "hidden") return [];
@@ -48,26 +46,40 @@ const ObjectComponent = React.memo(function ObjectComponent({
     (
       property: { propertyName: string; schema: z.ZodTypeAny },
       index: number,
-    ) => (
-      <div
-        key={index}
-        style={
-          isHorizontal ? { flex: "0 0 auto", minWidth: "150px" } : undefined
-        }
-      >
-        <Dynamic
-          fieldPath={joinFieldPath(fieldPath, property.propertyName)}
-          schema={property.schema}
-          defaultValue={
-            defaultValue && property.propertyName in defaultValue
-              ? defaultValue[property.propertyName]
-              : undefined
+    ) => {
+      const meta = getMeta(property.schema);
+      console.log(property.schema, meta);
+      const unwrappedSchema =
+        property.schema instanceof z.ZodOptional
+          ? (property.schema.unwrap() as z.ZodTypeAny)
+          : undefined;
+
+      const isComputed =
+        meta?.typeName === "computed" ||
+        (unwrappedSchema !== undefined &&
+          getMeta(unwrappedSchema)?.typeName === "computed");
+      const fieldDefaultValue = isComputed
+        ? defaultValue
+        : defaultValue && property.propertyName in defaultValue
+          ? defaultValue[property.propertyName]
+          : undefined;
+      return (
+        <div
+          key={index}
+          style={
+            isHorizontal ? { flex: "0 0 auto", minWidth: "150px" } : undefined
           }
-          required={undefined}
-          readOnly={readOnly}
-        />
-      </div>
-    ),
+        >
+          <Dynamic
+            fieldPath={joinFieldPath(fieldPath, property.propertyName)}
+            schema={property.schema}
+            defaultValue={fieldDefaultValue}
+            required={undefined}
+            readOnly={readOnly}
+          />
+        </div>
+      );
+    },
   );
 
   const wrappedPropertiesComponent = isHorizontal ? (
