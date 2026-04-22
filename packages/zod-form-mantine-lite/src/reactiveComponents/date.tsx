@@ -37,12 +37,11 @@ const DateComponent = React.memo(function DateComponent({
   defaultValue,
   label: labelFromParent,
   required,
-  readOnly,
+  readOnly: readOnlyProp,
 }: ZodFormProps<DateSchema>) {
   const { timezone } = useZodFormContext();
-  const meta = getMeta(schema) as
-    | { label?: string; unit?: DateUnit; encoding?: DateEncoding }
-    | undefined;
+  const meta = getMeta(schema, "date");
+  const readOnly = meta?.readOnly ?? readOnlyProp;
   const labelFromMeta = meta?.label;
   const unitFromMeta = meta?.unit;
   const encoding = meta?.encoding;

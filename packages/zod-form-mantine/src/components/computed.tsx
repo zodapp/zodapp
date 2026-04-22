@@ -9,8 +9,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import {
-  renderComputedValue,
-  ReadonlyText,
+  renderComputedFieldValue,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
 
@@ -72,11 +71,7 @@ const ComputedDisplay = React.memo(function ComputedDisplay({
       labelElement="div"
       style={inputWrapperStyle}
     >
-      {typeof content === "string" ? (
-        <ReadonlyText>{content}</ReadonlyText>
-      ) : (
-        renderComputedValue(content)
-      )}
+      {renderComputedFieldValue(content)}
     </InputWrapper>
   );
 });

@@ -74,16 +74,16 @@ const getSchemaRegistry = (schema: z.ZodTypeAny) => {
 
 const cloneAsReadOnly = (schema: z.ZodTypeAny): z.ZodTypeAny => {
   const { inner, rewrap } = unwrapSchema(schema);
-  const cloned = rewrap(cloneSchema(inner));
+  const clonedInner = cloneSchema(inner);
   const baseMeta =
-    (getMeta(schema) as Record<string, unknown> | undefined) ??
     (getMeta(inner) as Record<string, unknown> | undefined) ??
+    (getMeta(schema) as Record<string, unknown> | undefined) ??
     {};
-  cloned.register(getSchemaRegistry(inner), {
+  clonedInner.register(getSchemaRegistry(inner), {
     ...baseMeta,
     readOnly: true,
   });
-  return cloned;
+  return rewrap(clonedInner);
 };
 
 const isUnionSchema = (

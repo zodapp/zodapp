@@ -46,6 +46,18 @@ export function renderComputedValue(
   return inner;
 }
 
+/**
+ * computed / derived の表示で使う共通ラッパー。
+ * string は ReadonlyText、その他は同じ高さの Text block で包む。
+ */
+export function renderComputedFieldValue(content: unknown): React.ReactNode {
+  if (typeof content === "string") {
+    return <ReadonlyText>{content}</ReadonlyText>;
+  }
+
+  return <Text>{renderComputedValue(content)}</Text>;
+}
+
 function renderStructured(content: unknown): React.ReactNode {
   if (typeof content !== "object" || !("type" in (content as object))) {
     return null;

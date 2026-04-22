@@ -18,9 +18,11 @@ const StringComponent = React.memo(function StringComponent({
   defaultValue,
   label: labelFromParent,
   required,
-  readOnly,
+  readOnly: readOnlyProp,
 }: ZodFormProps<StringSchema>) {
-  const { label: labelFromMeta } = getMeta(schema) ?? {};
+  const meta = getMeta(schema);
+  const labelFromMeta = meta?.label;
+  const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue = typeof defaultValue === "string" ? defaultValue : "";

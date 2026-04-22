@@ -16,9 +16,12 @@ const BooleanComponent = React.memo(function BooleanComponent({
   defaultValue,
   label: labelFromParent,
   required,
-  readOnly,
+  readOnly: readOnlyProp,
 }: ZodFormProps<BooleanSchema>) {
-  const { uiType, label: labelFromMeta } = getMeta(schema) ?? {};
+  const meta = getMeta(schema);
+  const uiType = meta?.uiType;
+  const labelFromMeta = meta?.label;
+  const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue = !!defaultValue;
