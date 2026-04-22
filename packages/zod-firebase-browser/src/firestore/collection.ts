@@ -90,13 +90,15 @@ type FirestoreWriteMode = "create" | "merge";
 // Firestore へ書き込む前の正規化
 // - merge 書き込み: undefined は FieldValue.delete() に変換（フィールド削除）
 // - create 書き込み: undefined はキーごと落とす（add/set without merge で delete sentinel を避ける）
-// - 配列内の undefined は Firestore が受け付けないため null にする
-const convertForFirestoreWrite = (
+// - 配列要素そのものの undefined は Firestore が受け付けないため null にする
+// - 配列配下の object/map は要素単位 merge されないため、undefined を delete sentinel にせずキーごと落とす
+export const convertForFirestoreWrite = (
   value: unknown,
   mode: FirestoreWriteMode,
+  inArray = false,
 ): unknown => {
   if (value === undefined) {
-    return mode === "merge"
+    return mode === "merge" && !inArray
       ? firebase.firestore.FieldValue.delete()
       : undefined;
   }
@@ -106,7 +108,7 @@ const convertForFirestoreWrite = (
       if (v === undefined) {
         return null;
       }
-      return convertForFirestoreWrite(v, mode);
+      return convertForFirestoreWrite(v, mode, true);
     });
   }
 
@@ -115,11 +117,11 @@ const convertForFirestoreWrite = (
     return Object.fromEntries(
       Object.entries(obj).flatMap(([key, v]) => {
         if (v === undefined) {
-          return mode === "merge"
+          return mode === "merge" && !inArray
             ? [[key, firebase.firestore.FieldValue.delete()]]
             : [];
         }
-        return [[key, convertForFirestoreWrite(v, mode)]];
+        return [[key, convertForFirestoreWrite(v, mode, inArray)]];
       }),
     );
   }
