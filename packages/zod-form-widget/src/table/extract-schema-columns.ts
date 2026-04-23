@@ -14,14 +14,43 @@ export type SchemaColumnDef = {
   isDefault: boolean;
 };
 
+function getLazyGetter(schema: z.ZodTypeAny): (() => z.ZodTypeAny) | undefined {
+  return (
+    (schema as unknown as {
+      def?: { getter?: () => z.ZodTypeAny };
+      _def?: { getter?: () => z.ZodTypeAny };
+    }).def?.getter ??
+    (schema as unknown as {
+      def?: { getter?: () => z.ZodTypeAny };
+      _def?: { getter?: () => z.ZodTypeAny };
+    })._def?.getter
+  );
+}
+
 function unwrapWrappers(schema: z.ZodTypeAny): z.ZodTypeAny {
   let current = schema;
-  while (
-    current instanceof z.ZodOptional ||
-    current instanceof z.ZodNullable ||
-    current instanceof z.ZodDefault
-  ) {
-    current = current.unwrap() as z.ZodTypeAny;
+  const seen = new Set<z.ZodTypeAny>();
+
+  while (!seen.has(current)) {
+    seen.add(current);
+
+    if (
+      current instanceof z.ZodOptional ||
+      current instanceof z.ZodNullable ||
+      current instanceof z.ZodDefault
+    ) {
+      current = current.unwrap() as z.ZodTypeAny;
+      continue;
+    }
+
+    if (current instanceof z.ZodLazy) {
+      const getter = getLazyGetter(current);
+      if (!getter) break;
+      current = getter();
+      continue;
+    }
+
+    break;
   }
   return current;
 }
@@ -29,13 +58,24 @@ function unwrapWrappers(schema: z.ZodTypeAny): z.ZodTypeAny {
 function getUnwrappedUnionMeta(schema: z.ZodTypeAny) {
   let current = schema;
   let meta = getMetaReact(current, "union");
+  const seen = new Set<z.ZodTypeAny>();
 
-  while (
-    current instanceof z.ZodOptional ||
-    current instanceof z.ZodNullable ||
-    current instanceof z.ZodDefault
-  ) {
-    current = current.unwrap() as z.ZodTypeAny;
+  while (!seen.has(current)) {
+    seen.add(current);
+
+    if (
+      current instanceof z.ZodOptional ||
+      current instanceof z.ZodNullable ||
+      current instanceof z.ZodDefault
+    ) {
+      current = current.unwrap() as z.ZodTypeAny;
+    } else if (current instanceof z.ZodLazy) {
+      const getter = getLazyGetter(current);
+      if (!getter) break;
+      current = getter();
+    } else {
+      break;
+    }
 
     const innerMeta = getMetaReact(current, "union");
     meta = (
@@ -137,7 +177,14 @@ function collectFromObject(
     ) {
       collectColumns(fieldSchema, fieldKeys, result, isDefault);
     } else if (inner instanceof z.ZodArray) {
-      collectFromArray(inner, fieldSchema, fieldKeys, key, result, isDefault);
+      collectFromArray(
+        inner,
+        fieldSchema,
+        fieldKeys,
+        meta.label,
+        result,
+        isDefault,
+      );
     } else if (inner instanceof z.ZodRecord) {
       // record はテーブル列として抽出しない
     } else {
@@ -244,17 +291,150 @@ function collectColumns(
   }
 
   if (inner instanceof z.ZodIntersection) {
-    collectColumns(inner._def.left as z.ZodTypeAny, prefixKeys, result, isDefault);
-    collectColumns(inner._def.right as z.ZodTypeAny, prefixKeys, result, isDefault);
+    collectColumns(
+      inner._def.left as z.ZodTypeAny,
+      prefixKeys,
+      result,
+      isDefault,
+    );
+    collectColumns(
+      inner._def.right as z.ZodTypeAny,
+      prefixKeys,
+      result,
+      isDefault,
+    );
     return;
   }
 
   if (inner instanceof z.ZodArray) {
-    const currentKey =
-      prefixKeys.length > 0 ? prefixKeys[prefixKeys.length - 1] ?? "" : "";
-    collectFromArray(inner, schema, prefixKeys, currentKey, result, isDefault);
+    const meta = getUnwrappedMeta(schema);
+    collectFromArray(
+      inner,
+      schema,
+      prefixKeys,
+      meta.label ?? (prefixKeys[prefixKeys.length - 1] ?? ""),
+      result,
+      isDefault,
+    );
     return;
   }
+}
+
+function isArrayIndexKey(key: string): boolean {
+  return /^\d+$/.test(key);
+}
+
+function appendResolvedArrayIndex(segments: string[], index: string): string[] {
+  if (segments.length === 0) return [`[${index}]`];
+  const next = [...segments];
+  next[next.length - 1] = `${next[next.length - 1]}[${index}]`;
+  return next;
+}
+
+function buildFieldPathLabel(
+  schema: z.ZodTypeAny,
+  fieldKeys: string[],
+  segments: string[] = [],
+  suppressNextObjectPropertyLabel = false,
+): string | null {
+  if (fieldKeys.length === 0) {
+    return segments.filter(Boolean).join(".");
+  }
+
+  const currentKey = fieldKeys[0]!;
+  const restKeys = fieldKeys.slice(1);
+  const inner = unwrapWrappers(schema);
+
+  if (inner instanceof z.ZodObject) {
+    const fieldSchema = inner.shape[currentKey] as z.ZodTypeAny | undefined;
+    if (!fieldSchema) return null;
+
+    const meta = getUnwrappedMeta(fieldSchema);
+    const fieldInner = unwrapWrappers(fieldSchema);
+    const nextSegments =
+      ((fieldInner instanceof z.ZodObject && suppressNextObjectPropertyLabel) ||
+        fieldInner instanceof z.ZodUnion ||
+        fieldInner instanceof z.ZodDiscriminatedUnion ||
+        fieldInner instanceof z.ZodIntersection)
+        ? segments
+        : meta.label
+          ? [...segments, meta.label]
+          : segments;
+
+    return buildFieldPathLabel(fieldSchema, restKeys, nextSegments);
+  }
+
+  if (inner instanceof z.ZodArray) {
+    if (!isArrayIndexKey(currentKey)) return null;
+    const elementSchema = (inner as unknown as { element: z.ZodTypeAny }).element;
+    return buildFieldPathLabel(
+      elementSchema,
+      restKeys,
+      appendResolvedArrayIndex(segments, currentKey),
+    );
+  }
+
+  if (inner instanceof z.ZodDiscriminatedUnion) {
+    const discriminatorKey = (
+      (inner as unknown as { _def: { discriminator?: string } })._def.discriminator ??
+      (inner as unknown as { discriminator?: string }).discriminator ??
+      ""
+    );
+
+    if (currentKey === discriminatorKey) {
+      const unionMeta = getUnwrappedUnionMeta(schema);
+      const nextSegments = [
+        ...segments,
+        (unionMeta?.selectorLabel as string | undefined) ?? discriminatorKey,
+      ];
+      return restKeys.length === 0
+        ? nextSegments.filter(Boolean).join(".")
+        : null;
+    }
+
+    for (const option of inner.options as z.ZodTypeAny[]) {
+      const resolved = buildFieldPathLabel(
+        option,
+        fieldKeys,
+        segments,
+        true,
+      );
+      if (resolved) return resolved;
+    }
+    return null;
+  }
+
+  if (inner instanceof z.ZodUnion) {
+    for (const option of inner.options as z.ZodTypeAny[]) {
+      const resolved = buildFieldPathLabel(
+        option,
+        fieldKeys,
+        segments,
+        true,
+      );
+      if (resolved) return resolved;
+    }
+    return null;
+  }
+
+  if (inner instanceof z.ZodIntersection) {
+    return (
+      buildFieldPathLabel(
+        inner._def.left as z.ZodTypeAny,
+        fieldKeys,
+        segments,
+        suppressNextObjectPropertyLabel,
+      ) ??
+      buildFieldPathLabel(
+        inner._def.right as z.ZodTypeAny,
+        fieldKeys,
+        segments,
+        suppressNextObjectPropertyLabel,
+      )
+    );
+  }
+
+  return null;
 }
 
 export type ExtractSchemaColumnsOptions = {
@@ -267,7 +447,13 @@ export function extractSchemaColumns(
 ): SchemaColumnDef[] {
   const result = new Map<string, SchemaColumnDef>();
   collectColumns(schema, [], result);
-  const columns = Array.from(result.values());
+  const columns = Array.from(result.values()).map((col) => ({
+    ...col,
+    label:
+      buildFieldPathLabel(schema, col.fieldKeys) ??
+      col.label ??
+      col.fieldPath,
+  }));
 
   if (options?.defaultFieldPaths) {
     const defaultSet = new Set(options.defaultFieldPaths);
