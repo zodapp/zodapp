@@ -327,13 +327,23 @@ export function useTableSettingDrawer({
   );
 
   // --- schema columns ---
+  const selectedFieldPaths = useMemo(
+    () =>
+      (previewColumns ?? persistedColumns)
+        ?.map((column) => column.fieldPath)
+        .filter((fieldPath): fieldPath is string => Boolean(fieldPath)) ??
+      defaultFieldPaths?.filter(Boolean) ??
+      [],
+    [defaultFieldPaths, persistedColumns, previewColumns],
+  );
+
   const schemaColumns = useMemo(
     () =>
-      extractSchemaColumns(
-        schema,
-        defaultFieldPaths ? { defaultFieldPaths } : undefined,
-      ),
-    [schema, defaultFieldPaths],
+      extractSchemaColumns(schema, {
+        defaultFieldPaths,
+        selectedFieldPaths,
+      }),
+    [schema, defaultFieldPaths, selectedFieldPaths],
   );
 
   const fieldOptions = useMemo(() => {

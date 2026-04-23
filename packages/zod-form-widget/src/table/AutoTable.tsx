@@ -535,10 +535,15 @@ function buildSchemaFields({
   isPreviewing: boolean;
   isAction?: boolean;
 }) {
-  const schemaColumns = extractSchemaColumns(
-    schema,
-    defaultFieldPaths ? { defaultFieldPaths } : undefined,
-  );
+  const selectedFieldPaths =
+    storageColumns
+      ?.map((column) => column.fieldPath)
+      .filter((fieldPath): fieldPath is string => Boolean(fieldPath)) ??
+    defaultFieldPaths?.filter(Boolean);
+  const schemaColumns = extractSchemaColumns(schema, {
+    defaultFieldPaths,
+    selectedFieldPaths,
+  });
   const orderEntries = getOrderEntries(
     schemaColumns,
     defaultFieldPaths,
