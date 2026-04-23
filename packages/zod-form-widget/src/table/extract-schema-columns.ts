@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getUnwrappedMeta } from "./table-types";
 
 const DEFAULT_DISPLAY_LENGTH = 1;
+const MAX_DYNAMIC_ARRAY_INDEX = 9;
 
 export type SchemaColumnDef = {
   label: string;
@@ -12,6 +13,10 @@ export type SchemaColumnDef = {
   schema: z.ZodTypeAny;
   meta: ReturnType<typeof getUnwrappedMeta>;
   isDefault: boolean;
+};
+
+type CollectColumnsContext = {
+  maxSelectedArrayIndexByPrefix: ReadonlyMap<string, number>;
 };
 
 function getLazyGetter(schema: z.ZodTypeAny): (() => z.ZodTypeAny) | undefined {
@@ -86,17 +91,67 @@ function getUnwrappedUnionMeta(schema: z.ZodTypeAny) {
   return meta;
 }
 
+function buildMaxSelectedArrayIndexByPrefix(
+  selectedFieldPaths?: string[],
+): Map<string, number> {
+  const maxIndexByPrefix = new Map<string, number>();
+
+  for (const fieldPath of selectedFieldPaths ?? []) {
+    if (!fieldPath) continue;
+
+    const tokens = fieldPath.split(".").filter(Boolean);
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (!token || !isArrayIndexKey(token) || i === 0) continue;
+
+      const prefixKey = tokens.slice(0, i).join(".");
+      if (!prefixKey) continue;
+
+      const index = Number(token);
+      const prevMaxIndex = maxIndexByPrefix.get(prefixKey);
+      if (prevMaxIndex == null || index > prevMaxIndex) {
+        maxIndexByPrefix.set(prefixKey, index);
+      }
+    }
+  }
+
+  return maxIndexByPrefix;
+}
+
+function getArrayDisplayLength(
+  originalFieldSchema: z.ZodTypeAny,
+  prefixKeys: string[],
+  context: CollectColumnsContext,
+): number {
+  const arrayMeta = getMetaReact(originalFieldSchema, "array");
+  const displayLength =
+    (arrayMeta?.displayLength as number | undefined) ?? DEFAULT_DISPLAY_LENGTH;
+  const baseMaxIndex = Math.max(displayLength - 1, -1);
+  const selectedMaxIndex = context.maxSelectedArrayIndexByPrefix.get(
+    prefixKeys.join("."),
+  );
+  const expandedMaxIndex =
+    selectedMaxIndex == null
+      ? baseMaxIndex
+      : Math.max(baseMaxIndex, Math.min(selectedMaxIndex + 1, MAX_DYNAMIC_ARRAY_INDEX));
+
+  return Math.max(expandedMaxIndex + 1, 0);
+}
+
 function collectFromArray(
   arraySchema: z.ZodTypeAny,
   originalFieldSchema: z.ZodTypeAny,
   prefixKeys: string[],
   fieldLabel: string,
   result: Map<string, SchemaColumnDef>,
+  context: CollectColumnsContext,
   isDefault = true,
 ): void {
-  const arrayMeta = getMetaReact(originalFieldSchema, "array");
-  const displayLength: number =
-    (arrayMeta?.displayLength as number | undefined) ?? DEFAULT_DISPLAY_LENGTH;
+  const displayLength = getArrayDisplayLength(
+    originalFieldSchema,
+    prefixKeys,
+    context,
+  );
   const elementSchema = (arraySchema as unknown as { element: z.ZodTypeAny }).element;
   const elementInner = unwrapWrappers(elementSchema);
 
@@ -105,13 +160,13 @@ function collectFromArray(
     const elementKeys = [...prefixKeys, indexKey];
 
     if (elementInner instanceof z.ZodObject) {
-      collectFromObject(elementInner, elementKeys, result, isDefault);
+      collectFromObject(elementInner, elementKeys, result, context, isDefault);
     } else if (
       elementInner instanceof z.ZodUnion ||
       elementInner instanceof z.ZodDiscriminatedUnion ||
       elementInner instanceof z.ZodIntersection
     ) {
-      collectColumns(elementInner, elementKeys, result, isDefault);
+      collectColumns(elementInner, elementKeys, result, context, isDefault);
     } else if (elementInner instanceof z.ZodArray) {
       collectFromArray(
         elementInner,
@@ -119,6 +174,7 @@ function collectFromArray(
         elementKeys,
         fieldLabel,
         result,
+        context,
         isDefault,
       );
     } else {
@@ -142,6 +198,7 @@ function collectFromObject(
   schema: z.ZodObject<z.ZodRawShape>,
   prefixKeys: string[],
   result: Map<string, SchemaColumnDef>,
+  context: CollectColumnsContext,
   parentIsDefault = true,
 ): void {
   const tableMeta = getMetaReact(schema, "object");
@@ -169,13 +226,13 @@ function collectFromObject(
     const inner = unwrapWrappers(fieldSchema);
 
     if (inner instanceof z.ZodObject) {
-      collectFromObject(inner, fieldKeys, result, isDefault);
+      collectFromObject(inner, fieldKeys, result, context, isDefault);
     } else if (
       inner instanceof z.ZodUnion ||
       inner instanceof z.ZodDiscriminatedUnion ||
       inner instanceof z.ZodIntersection
     ) {
-      collectColumns(fieldSchema, fieldKeys, result, isDefault);
+      collectColumns(fieldSchema, fieldKeys, result, context, isDefault);
     } else if (inner instanceof z.ZodArray) {
       collectFromArray(
         inner,
@@ -183,6 +240,7 @@ function collectFromObject(
         fieldKeys,
         meta.label,
         result,
+        context,
         isDefault,
       );
     } else if (inner instanceof z.ZodRecord) {
@@ -231,12 +289,13 @@ function collectColumns(
   schema: z.ZodTypeAny,
   prefixKeys: string[],
   result: Map<string, SchemaColumnDef>,
+  context: CollectColumnsContext,
   isDefault = true,
 ): void {
   const inner = unwrapWrappers(schema);
 
   if (inner instanceof z.ZodObject) {
-    collectFromObject(inner, prefixKeys, result, isDefault);
+    collectFromObject(inner, prefixKeys, result, context, isDefault);
     return;
   }
 
@@ -277,7 +336,7 @@ function collectColumns(
 
     const options = inner.options as z.ZodTypeAny[];
     for (const option of options) {
-      collectColumns(option, prefixKeys, result, isDefault);
+      collectColumns(option, prefixKeys, result, context, isDefault);
     }
     return;
   }
@@ -285,7 +344,7 @@ function collectColumns(
   if (inner instanceof z.ZodUnion) {
     const options = inner.options as z.ZodTypeAny[];
     for (const option of options) {
-      collectColumns(option, prefixKeys, result, isDefault);
+      collectColumns(option, prefixKeys, result, context, isDefault);
     }
     return;
   }
@@ -295,12 +354,14 @@ function collectColumns(
       inner._def.left as z.ZodTypeAny,
       prefixKeys,
       result,
+      context,
       isDefault,
     );
     collectColumns(
       inner._def.right as z.ZodTypeAny,
       prefixKeys,
       result,
+      context,
       isDefault,
     );
     return;
@@ -314,6 +375,7 @@ function collectColumns(
       prefixKeys,
       meta.label ?? (prefixKeys[prefixKeys.length - 1] ?? ""),
       result,
+      context,
       isDefault,
     );
     return;
@@ -439,14 +501,20 @@ function buildFieldPathLabel(
 
 export type ExtractSchemaColumnsOptions = {
   defaultFieldPaths?: string[];
+  selectedFieldPaths?: string[];
 };
 
 export function extractSchemaColumns(
   schema: z.ZodTypeAny,
   options?: ExtractSchemaColumnsOptions,
 ): SchemaColumnDef[] {
+  const context: CollectColumnsContext = {
+    maxSelectedArrayIndexByPrefix: buildMaxSelectedArrayIndexByPrefix(
+      options?.selectedFieldPaths,
+    ),
+  };
   const result = new Map<string, SchemaColumnDef>();
-  collectColumns(schema, [], result);
+  collectColumns(schema, [], result, context);
   const columns = Array.from(result.values()).map((col) => ({
     ...col,
     label:
