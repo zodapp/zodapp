@@ -124,7 +124,7 @@ function collectFromObject(
 
     if (meta.hidden || meta.typeName === "hidden" || meta.tags?.includes("hidden")) continue;
     if (key.startsWith("__")) continue;
-    if (!meta.label) continue;
+    if (meta.label == null) continue;
 
     const inner = unwrapWrappers(fieldSchema);
 

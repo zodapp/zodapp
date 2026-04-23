@@ -113,6 +113,8 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   onScrollStateChange?: (state: AutoTableScrollState) => void;
   onRowClick?: (item: AutoTableItem<TSchema>) => void;
   getRowClassName?: (item: AutoTableItem<TSchema>) => string | undefined;
+  trailingSchema?: z.ZodTypeAny;
+  trailingDefaultFieldPaths?: string[];
 };
 
 type AutoTablePropsWithSchema<TSchema extends z.ZodTypeAny> =
@@ -473,6 +475,7 @@ function getOrderEntries(
 function buildFields(
   schemaColumns: SchemaColumnDef[],
   orderEntries: OrderEntry[],
+  options?: { isAction?: boolean },
 ): AutoTableField[] {
   const columnByPath = new Map<string, SchemaColumnDef>();
   for (const col of schemaColumns) {
@@ -490,7 +493,7 @@ function buildFields(
           width: entry.widthOverride ?? DEFAULT_WIDTH,
           align: DEFAULT_ALIGN,
           isSortTarget: false,
-          isAction: false,
+          isAction: options?.isAction ?? false,
           label: "",
         },
       ];
@@ -512,11 +515,42 @@ function buildFields(
         width,
         align,
         isSortTarget: isSortableFieldType(meta.schemaType),
-        isAction: false,
+        isAction: options?.isAction ?? false,
         label: colDef.label,
       },
     ];
   });
+}
+
+function buildSchemaFields({
+  schema,
+  defaultFieldPaths,
+  storageColumns,
+  isPreviewing,
+  isAction = false,
+}: {
+  schema: z.ZodTypeAny;
+  defaultFieldPaths?: string[];
+  storageColumns: ColumnEntry[] | null;
+  isPreviewing: boolean;
+  isAction?: boolean;
+}) {
+  const schemaColumns = extractSchemaColumns(
+    schema,
+    defaultFieldPaths ? { defaultFieldPaths } : undefined,
+  );
+  const orderEntries = getOrderEntries(
+    schemaColumns,
+    defaultFieldPaths,
+    storageColumns,
+    isPreviewing,
+  );
+  const fields = buildFields(schemaColumns, orderEntries, { isAction });
+
+  return {
+    fields,
+    totalMinWidth: fields.reduce((sum, field) => sum + field.width, 0),
+  };
 }
 
 const buildDefaultPreviewColumns = (fields: AutoTableField[]): ColumnEntry[] =>
@@ -530,38 +564,54 @@ const buildDefaultPreviewColumns = (fields: AutoTableField[]): ColumnEntry[] =>
 
 type UseAutoTableModelProps<TItem extends TableRowData> = {
   schema: z.ZodTypeAny;
+  trailingSchema?: z.ZodTypeAny;
   data: TItem[];
   defaultFieldPaths?: string[];
+  trailingDefaultFieldPaths?: string[];
   storageColumns: ColumnEntry[] | null;
   isPreviewing: boolean;
-  sortable: boolean;
   sortState: SortState | null;
 };
 
 function useAutoTableModel<TItem extends TableRowData>({
   schema,
+  trailingSchema,
   data,
   defaultFieldPaths,
+  trailingDefaultFieldPaths,
   storageColumns,
   isPreviewing,
-  sortable,
   sortState,
 }: UseAutoTableModelProps<TItem>) {
   const { fields, totalMinWidth } = useMemo(() => {
-    const schemaColumns = extractSchemaColumns(schema, defaultFieldPaths ? { defaultFieldPaths } : undefined);
-    const orderEntries = getOrderEntries(
-      schemaColumns,
+    const mainFields = buildSchemaFields({
+      schema,
       defaultFieldPaths,
       storageColumns,
       isPreviewing,
-    );
-    const nextFields = buildFields(schemaColumns, orderEntries);
+    });
+    const trailingFields = trailingSchema
+      ? buildSchemaFields({
+          schema: trailingSchema,
+          defaultFieldPaths: trailingDefaultFieldPaths,
+          storageColumns: null,
+          isPreviewing: false,
+          isAction: true,
+        })
+      : { fields: [], totalMinWidth: 0 };
 
     return {
-      fields: nextFields,
-      totalMinWidth: nextFields.reduce((sum, field) => sum + field.width, 0),
+      fields: [...mainFields.fields, ...trailingFields.fields],
+      totalMinWidth: mainFields.totalMinWidth + trailingFields.totalMinWidth,
     };
-  }, [defaultFieldPaths, isPreviewing, schema, storageColumns]);
+  }, [
+    defaultFieldPaths,
+    isPreviewing,
+    schema,
+    storageColumns,
+    trailingDefaultFieldPaths,
+    trailingSchema,
+  ]);
 
   const sortedData = useMemo<TItem[]>(() => {
     if (!sortState) return data;
@@ -1102,6 +1152,8 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     sortable = true,
     defaultSortState = null,
     controller,
+    trailingSchema,
+    trailingDefaultFieldPaths,
     scrollParent,
     virtualizeThreshold,
     onScrollStateChange,
@@ -1127,11 +1179,12 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
   );
   const { fields, sortedData, totalMinWidth } = useAutoTableModel({
     schema,
+    trailingSchema,
     data,
     defaultFieldPaths,
+    trailingDefaultFieldPaths,
     storageColumns,
     isPreviewing,
-    sortable,
     sortState,
   });
 
