@@ -23,7 +23,14 @@ import {
 } from "@tabler/icons-react";
 import { COLUMN_FOCUS_ZONE_CLASS } from "./AutoTable";
 import { type ColumnEntry } from "./table-types";
-import { extractSchemaColumns } from "./extract-schema-columns";
+import {
+  extractSchemaColumns,
+  extractSchemaRecordTemplates,
+  isSupportedRecordKeyInput,
+  matchesRecordTemplatePath,
+  resolveRecordTemplateConcretePath,
+  resolveRecordTemplateLabel,
+} from "./extract-schema-columns";
 import { getDefaultOrderEntries } from "./default-column-order";
 import type {
   ColumnSettingsController,
@@ -73,10 +80,17 @@ const createEmptyColumn = (): ColumnEntry => ({
 const ensureIds = (columns: ColumnEntry[]): ColumnEntry[] =>
   columns.map((col) => (col.id ? col : { ...col, id: generateId() }));
 
-type FieldOptionWithGroup = { value: string; label: string; group?: string };
+type FieldOptionWithGroup = {
+  value: string;
+  label: string;
+  group?: string;
+  width?: number;
+};
 type SelectDataItem =
   | { value: string; label: string }
   | { group: string; items: { value: string; label: string }[] };
+
+const RECORD_OPTION_GROUP = "レコード入力候補";
 
 const toSelectData = (options: FieldOptionWithGroup[]): SelectDataItem[] => {
   const ungrouped: { value: string; label: string }[] = [];
@@ -107,7 +121,9 @@ const toSelectData = (options: FieldOptionWithGroup[]): SelectDataItem[] => {
 interface SortableColumnProps {
   col: ColumnEntry;
   fieldOptions: SelectDataItem[];
+  searchValue: string;
   onFieldChange: (id: string, newFieldName: string | null) => void;
+  onSearchChange: (id: string, searchValue: string) => void;
   onWidthChange: (id: string, newWidth: string | number) => void;
   onAdd: (id: string) => void;
   onRemove: (id: string) => void;
@@ -122,7 +138,9 @@ interface SortableColumnProps {
 function SortableColumn({
   col,
   fieldOptions,
+  searchValue,
   onFieldChange,
+  onSearchChange,
   onWidthChange,
   onAdd,
   onRemove,
@@ -265,6 +283,8 @@ function SortableColumn({
           value={col.fieldPath || null}
           data={fieldOptions}
           onChange={(next) => onFieldChange(col.id, next)}
+          searchValue={searchValue}
+          onSearchChange={(next) => onSearchChange(col.id, next)}
           onFocus={() => onFocusColumn(col.id)}
           searchable
           allowDeselect
@@ -346,30 +366,24 @@ export function useTableSettingDrawer({
     [schema, defaultFieldPaths, selectedFieldPaths],
   );
 
+  const recordTemplates = useMemo(
+    () =>
+      extractSchemaRecordTemplates(schema, {
+        defaultFieldPaths,
+        selectedFieldPaths,
+      }),
+    [schema, defaultFieldPaths, selectedFieldPaths],
+  );
+
   const fieldOptions = useMemo(() => {
-    const schemaOptions: { value: string; label: string; group?: string }[] =
-      schemaColumns.map((col) => ({
-        value: col.fieldPath,
-        label: col.label,
-      }));
+    const schemaOptions: FieldOptionWithGroup[] = schemaColumns.map((col) => ({
+      value: col.fieldPath,
+      label: col.label,
+      width: col.meta.width,
+    }));
 
     if (!extraFieldOptions?.length) return schemaOptions;
     return [...schemaOptions, ...extraFieldOptions];
-  }, [schemaColumns, extraFieldOptions]);
-
-  const selectData = useMemo(() => toSelectData(fieldOptions), [fieldOptions]);
-
-  const defaultWidthByField = useMemo(() => {
-    const acc: Record<string, string> = {};
-    for (const col of schemaColumns) {
-      acc[col.fieldPath] = String(col.meta.width ?? DEFAULT_WIDTH);
-    }
-    if (extraFieldOptions) {
-      for (const opt of extraFieldOptions) {
-        acc[opt.value] = String(opt.width ?? DEFAULT_WIDTH);
-      }
-    }
-    return acc;
   }, [schemaColumns, extraFieldOptions]);
 
   const schemaDefaultColumns = useMemo<ColumnEntry[]>(
@@ -387,6 +401,93 @@ export function useTableSettingDrawer({
     const source = previewColumns ?? persistedColumns ?? schemaDefaultColumns;
     return ensureIds(source);
   }, [previewColumns, persistedColumns, schemaDefaultColumns]);
+
+  const [fieldSearchById, setFieldSearchById] = useState<Record<string, string>>({});
+
+  const resolveTemplateOption = useCallback(
+    (fieldPath: string): FieldOptionWithGroup | null => {
+      const matchedTemplate = recordTemplates.find((template) =>
+        matchesRecordTemplatePath(template.templatePath, fieldPath),
+      );
+      if (!matchedTemplate) return null;
+
+      return {
+        value: fieldPath,
+        label:
+          resolveRecordTemplateLabel(
+            matchedTemplate.label,
+            matchedTemplate.templatePath,
+            fieldPath,
+          ) ?? fieldPath,
+        group: RECORD_OPTION_GROUP,
+        width: matchedTemplate.meta.width,
+      };
+    },
+    [recordTemplates],
+  );
+
+  const buildFieldOptionsForColumn = useCallback(
+    (fieldPath: string | undefined, searchValue: string): FieldOptionWithGroup[] => {
+      const optionMap = new Map<string, FieldOptionWithGroup>(
+        fieldOptions.map((option) => [option.value, option]),
+      );
+
+      if (isSupportedRecordKeyInput(searchValue)) {
+        for (const template of recordTemplates) {
+          const concretePath = resolveRecordTemplateConcretePath(
+            template.templatePath,
+            searchValue,
+          );
+          if (!concretePath) continue;
+          optionMap.set(concretePath, {
+            value: concretePath,
+            label:
+              resolveRecordTemplateLabel(
+                template.label,
+                template.templatePath,
+                concretePath,
+              ) ?? concretePath,
+            group: RECORD_OPTION_GROUP,
+            width: template.meta.width,
+          });
+        }
+      }
+
+      if (fieldPath && !optionMap.has(fieldPath)) {
+        const templateOption = resolveTemplateOption(fieldPath);
+        if (templateOption) optionMap.set(fieldPath, templateOption);
+      }
+
+      return Array.from(optionMap.values());
+    },
+    [fieldOptions, recordTemplates, resolveTemplateOption],
+  );
+
+  const selectDataByColumnId = useMemo(() => {
+    const next: Record<string, SelectDataItem[]> = {};
+    for (const column of activeColumns) {
+      next[column.id] = toSelectData(
+        buildFieldOptionsForColumn(
+          column.fieldPath,
+          fieldSearchById[column.id] ?? "",
+        ),
+      );
+    }
+    return next;
+  }, [activeColumns, buildFieldOptionsForColumn, fieldSearchById]);
+
+  const resolveDefaultWidth = useCallback(
+    (fieldPath: string) => {
+      const exactOption = fieldOptions.find((option) => option.value === fieldPath);
+      if (exactOption?.width != null) return String(exactOption.width);
+
+      const templateOption = resolveTemplateOption(fieldPath);
+      if (templateOption?.width != null) return String(templateOption.width);
+
+      return String(DEFAULT_WIDTH);
+    },
+    [fieldOptions, resolveTemplateOption],
+  );
 
   const clearFocusedColumnId = useCallback(() => {
     setFocusedColumnId(undefined);
@@ -432,6 +533,9 @@ export function useTableSettingDrawer({
 
   const handleFieldChange = useCallback(
     (id: string, newFieldPath: string | null) => {
+      setFieldSearchById((prev) => (
+        prev[id] ? { ...prev, [id]: "" } : prev
+      ));
       setPreviewColumns((prev) =>
         resolvePreview(prev).map((col) =>
           col.id === id
@@ -439,15 +543,21 @@ export function useTableSettingDrawer({
                 ...col,
                 fieldPath: newFieldPath ?? "",
                 width: newFieldPath
-                  ? (defaultWidthByField[newFieldPath] ?? String(DEFAULT_WIDTH))
+                  ? resolveDefaultWidth(newFieldPath)
                   : String(DEFAULT_WIDTH),
               }
             : col,
         ),
       );
     },
-    [setPreviewColumns, resolvePreview, defaultWidthByField],
+    [resolveDefaultWidth, resolvePreview, setPreviewColumns],
   );
+
+  const handleFieldSearchChange = useCallback((id: string, searchValue: string) => {
+    setFieldSearchById((prev) => (
+      prev[id] === searchValue ? prev : { ...prev, [id]: searchValue }
+    ));
+  }, []);
 
   const handleWidthChange = useCallback(
     (id: string, newWidth: string | number) => {
@@ -756,8 +866,10 @@ export function useTableSettingDrawer({
                   <SortableColumn
                     key={col.id}
                     col={col}
-                    fieldOptions={selectData}
+                    fieldOptions={selectDataByColumnId[col.id] ?? []}
+                    searchValue={fieldSearchById[col.id] ?? ""}
                     onFieldChange={handleFieldChange}
+                    onSearchChange={handleFieldSearchChange}
                     onWidthChange={handleWidthChange}
                     onAdd={handleAdd}
                     onRemove={handleRemove}
