@@ -90,7 +90,7 @@ type SelectDataItem =
   | { value: string; label: string }
   | { group: string; items: { value: string; label: string }[] };
 
-const RECORD_OPTION_GROUP = "レコード入力候補";
+const RECORD_OPTION_GROUP = "入力候補";
 
 const toSelectData = (options: FieldOptionWithGroup[]): SelectDataItem[] => {
   const ungrouped: { value: string; label: string }[] = [];
@@ -388,12 +388,11 @@ export function useTableSettingDrawer({
 
   const schemaDefaultColumns = useMemo<ColumnEntry[]>(
     () =>
-      getDefaultOrderEntries(schemaColumns, defaultFieldPaths)
-        .map((col) => ({
-          fieldPath: col.fieldPath,
-          width: String(col.meta.width ?? DEFAULT_WIDTH),
-          id: col.fieldPath,
-        })),
+      getDefaultOrderEntries(schemaColumns, defaultFieldPaths).map((col) => ({
+        fieldPath: col.fieldPath,
+        width: String(col.meta.width ?? DEFAULT_WIDTH),
+        id: col.fieldPath,
+      })),
     [defaultFieldPaths, schemaColumns],
   );
 
@@ -402,7 +401,9 @@ export function useTableSettingDrawer({
     return ensureIds(source);
   }, [previewColumns, persistedColumns, schemaDefaultColumns]);
 
-  const [fieldSearchById, setFieldSearchById] = useState<Record<string, string>>({});
+  const [fieldSearchById, setFieldSearchById] = useState<
+    Record<string, string>
+  >({});
 
   const resolveTemplateOption = useCallback(
     (fieldPath: string): FieldOptionWithGroup | null => {
@@ -427,7 +428,10 @@ export function useTableSettingDrawer({
   );
 
   const buildFieldOptionsForColumn = useCallback(
-    (fieldPath: string | undefined, searchValue: string): FieldOptionWithGroup[] => {
+    (
+      fieldPath: string | undefined,
+      searchValue: string,
+    ): FieldOptionWithGroup[] => {
       const optionMap = new Map<string, FieldOptionWithGroup>(
         fieldOptions.map((option) => [option.value, option]),
       );
@@ -478,7 +482,9 @@ export function useTableSettingDrawer({
 
   const resolveDefaultWidth = useCallback(
     (fieldPath: string) => {
-      const exactOption = fieldOptions.find((option) => option.value === fieldPath);
+      const exactOption = fieldOptions.find(
+        (option) => option.value === fieldPath,
+      );
       if (exactOption?.width != null) return String(exactOption.width);
 
       const templateOption = resolveTemplateOption(fieldPath);
@@ -533,9 +539,7 @@ export function useTableSettingDrawer({
 
   const handleFieldChange = useCallback(
     (id: string, newFieldPath: string | null) => {
-      setFieldSearchById((prev) => (
-        prev[id] ? { ...prev, [id]: "" } : prev
-      ));
+      setFieldSearchById((prev) => (prev[id] ? { ...prev, [id]: "" } : prev));
       setPreviewColumns((prev) =>
         resolvePreview(prev).map((col) =>
           col.id === id
@@ -553,11 +557,14 @@ export function useTableSettingDrawer({
     [resolveDefaultWidth, resolvePreview, setPreviewColumns],
   );
 
-  const handleFieldSearchChange = useCallback((id: string, searchValue: string) => {
-    setFieldSearchById((prev) => (
-      prev[id] === searchValue ? prev : { ...prev, [id]: searchValue }
-    ));
-  }, []);
+  const handleFieldSearchChange = useCallback(
+    (id: string, searchValue: string) => {
+      setFieldSearchById((prev) =>
+        prev[id] === searchValue ? prev : { ...prev, [id]: searchValue },
+      );
+    },
+    [],
+  );
 
   const handleWidthChange = useCallback(
     (id: string, newWidth: string | number) => {
@@ -648,7 +655,12 @@ export function useTableSettingDrawer({
         void selectColumnSetting(setting);
       }
     },
-    [columnSettings, selectColumnSetting, isDefaultSelected, currentColumnSetting?.id],
+    [
+      columnSettings,
+      selectColumnSetting,
+      isDefaultSelected,
+      currentColumnSetting?.id,
+    ],
   );
 
   // --- Save confirm modal ---
@@ -684,7 +696,8 @@ export function useTableSettingDrawer({
     if (!trimmedSaveAsName || !saveAsScope) return false;
     return columnSettings.some(
       (setting) =>
-        setting.type === saveAsScope && setting.name.trim() === trimmedSaveAsName,
+        setting.type === saveAsScope &&
+        setting.name.trim() === trimmedSaveAsName,
     );
   }, [columnSettings, saveAsScope, trimmedSaveAsName]);
   const saveAsNameError = hasDuplicateSaveAsName
@@ -970,7 +983,9 @@ export function useTableSettingDrawer({
             <Button
               size="xs"
               onClick={handleSaveAsConfirm}
-              disabled={!trimmedSaveAsName || !saveAsScope || hasDuplicateSaveAsName}
+              disabled={
+                !trimmedSaveAsName || !saveAsScope || hasDuplicateSaveAsName
+              }
               loading={isSaving}
               styles={drawerActionButtonStyles}
             >

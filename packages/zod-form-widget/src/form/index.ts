@@ -1,4 +1,23 @@
 export { AutoForm } from './AutoForm';
-export type { AutoFormAction } from './autoFormActions';
+export {
+  createAutoFormActionComponent,
+  createAutoFormButtonAction,
+  createAutoFormResetAction,
+  createAutoFormSubmitAction
+} from './autoFormActions';
+export type {
+  AutoFormAction,
+  AutoFormActionComponent,
+  AutoFormActionComponentProps,
+  AutoFormActionFormState,
+  AutoFormActionResolver,
+  AutoFormActionResolverContext,
+  AutoFormActionResolverOrValue,
+  AutoFormButtonActionContext,
+  AutoFormButtonActionHelperProps,
+  AutoFormHandleSubmit,
+  AutoFormResetActionHelperProps,
+  AutoFormSubmitActionHelperProps
+} from './autoFormActions';
 export { AutoSearch } from './AutoSearch';
 export { ReactiveAutoForm, setNestedValue } from './ReactiveAutoForm';

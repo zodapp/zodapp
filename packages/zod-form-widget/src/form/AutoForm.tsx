@@ -7,7 +7,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { Button, Code, Group, Loader, Stack } from "@mantine/core";
+import { Code, Group, Loader } from "@mantine/core";
 import {
   componentLibrary,
   Dynamic,
@@ -25,14 +25,16 @@ import type {
 } from "@zodapp/zod-form-react";
 import type { z } from "zod";
 import {
-  normalizeAutoFormActions,
   type AutoFormAction,
+  type AutoFormActionComponent,
+  normalizeAutoFormActionComponents,
 } from "./autoFormActions";
 
 type AutoFormProps<T extends z.ZodTypeAny> = {
   schema: T;
   defaultValues?: z.input<T> | Partial<z.input<T>>;
   actions?: readonly AutoFormAction<T>[];
+  actionComponents?: readonly AutoFormActionComponent<T>[];
   onSubmit?: (data: z.output<T>) => void;
   onCancel?: (data: z.input<T>) => void;
   isLoading?: boolean;
@@ -52,6 +54,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   schema,
   defaultValues,
   actions,
+  actionComponents,
   onSubmit,
   onCancel,
   isLoading = false,
@@ -104,29 +107,37 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     return () => subscription.unsubscribe();
   }, [form, showPreview]);
 
-  const normalizedActions = useMemo(
+  const normalizedActionComponents = useMemo(
     () =>
-      normalizeAutoFormActions({
+      normalizeAutoFormActionComponents({
+        actionComponents,
         actions,
         onSubmit,
         onCancel,
         submitLabel,
         cancelLabel,
       }),
-    [actions, cancelLabel, onCancel, onSubmit, submitLabel],
+    [actionComponents, actions, cancelLabel, onCancel, onSubmit, submitLabel],
   );
 
-  const handleSubmitAction = useCallback(
-    async (handler: (data: z.output<T>) => void) => {
-      pendingSubmitHandlerRef.current = handler;
-      await form.handleSubmit();
-      if (!form.state.isValid) {
-        console.warn("[AutoForm] Validation errors:", form.getAllErrors());
-        pendingSubmitHandlerRef.current = undefined;
-      }
-    },
-    [form],
-  );
+  const handleSubmit = useCallback(() => {
+    return new Promise<z.output<T> | undefined>((resolve, reject) => {
+      pendingSubmitHandlerRef.current = (data: z.output<T>) => {
+        resolve(data);
+      };
+
+      void form
+        .handleSubmit()
+        .then(() => {
+          if (!form.state.isValid) {
+            console.warn("[AutoForm] Validation errors:", form.getAllErrors());
+            pendingSubmitHandlerRef.current = undefined;
+            resolve(undefined);
+          }
+        })
+        .catch(reject);
+    });
+  }, [form]);
 
   return (
     <Suspense fallback={<Loader />}>
@@ -142,58 +153,16 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         <FormProvider form={form}>
           <ValidatePrecedingFieldsProvider>
             <div>
-              {!readOnly && normalizedActions.length > 0 && (
+              {normalizedActionComponents.length > 0 && (
                 <Group justify="flex-end" mt="md">
-                  {normalizedActions.map((action, index) => {
-                    const disabled = isLoading || action.disabled;
-                    const loading = action.loading ?? false;
-
-                    if (action.type === "submit") {
-                      return (
-                        <Button
-                          key={index}
-                          variant={action.variant}
-                          color={action.color}
-                          onClick={() => handleSubmitAction(action.onSubmit)}
-                          type="button"
-                          loading={loading}
-                          disabled={disabled}
-                        >
-                          {action.label}
-                        </Button>
-                      );
-                    }
-
-                    if (action.type === "cancel") {
-                      return (
-                        <Button
-                          key={index}
-                          variant={action.variant}
-                          color={action.color}
-                          onClick={() => action.onCancel(form.state.values)}
-                          type="button"
-                          loading={loading}
-                          disabled={disabled}
-                        >
-                          {action.label}
-                        </Button>
-                      );
-                    }
-
+                  {normalizedActionComponents.map((ActionComponent, index) => {
                     return (
-                      <Button
+                      <ActionComponent
                         key={index}
-                        variant={action.variant}
-                        color={action.color}
-                        onClick={() =>
-                          action.onClick({ values: form.state.values })
-                        }
-                        type="button"
-                        loading={loading}
-                        disabled={disabled}
-                      >
-                        {action.label}
-                      </Button>
+                        form={form}
+                        handleSubmit={handleSubmit}
+                        isLoading={isLoading}
+                      />
                     );
                   })}
                 </Group>
