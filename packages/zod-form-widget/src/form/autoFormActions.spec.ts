@@ -29,7 +29,7 @@ describe('normalizeAutoFormActions', () => {
 
     expect(actions).toHaveLength(3);
     expect(actions[0]).toMatchObject({ type: 'submit', label: '新しい下書きを保存' });
-    expect(actions[1]).toMatchObject({ type: 'cancel', label: 'キャンセル', variant: 'default' });
+    expect(actions[1]).toMatchObject({ type: 'button', label: 'キャンセル', variant: 'default' });
     expect(actions[2]).toMatchObject({ type: 'submit', label: '保存' });
   });
 
@@ -39,7 +39,7 @@ describe('normalizeAutoFormActions', () => {
     const actions = normalizeAutoFormActions({
       actions: [
         {
-          type: 'custom',
+          type: 'button',
           label: '補助操作',
           onClick
         } satisfies AutoFormAction<typeof schema>
@@ -50,9 +50,29 @@ describe('normalizeAutoFormActions', () => {
 
     expect(actions).toEqual([
       {
-        type: 'custom',
+        type: 'button',
         label: '補助操作',
         onClick
+      }
+    ]);
+  });
+
+  it('keeps explicit reset actions unchanged', () => {
+    const actions = normalizeAutoFormActions({
+      actions: [
+        {
+          type: 'reset',
+          label: '初期値に戻す'
+        } satisfies AutoFormAction<typeof schema>
+      ],
+      submitLabel: '保存',
+      cancelLabel: 'キャンセル'
+    });
+
+    expect(actions).toEqual([
+      {
+        type: 'reset',
+        label: '初期値に戻す'
       }
     ]);
   });
