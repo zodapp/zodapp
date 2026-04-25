@@ -66,6 +66,7 @@ type SortState = {
   sortKey: string;
   order: SortOrder;
 };
+type AutoTableRowKey = string | number;
 
 export type AutoTableScrollState = {
   scrollTop: number;
@@ -113,6 +114,9 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   onScrollStateChange?: (state: AutoTableScrollState) => void;
   onRowClick?: (item: AutoTableItem<TSchema>) => void;
   getRowClassName?: (item: AutoTableItem<TSchema>) => string | undefined;
+  selectedRowKey?: AutoTableRowKey | null;
+  rowClassName?: string;
+  selectedRowClassName?: string;
   trailingSchema?: z.ZodTypeAny;
   trailingDefaultFieldPaths?: string[];
 };
@@ -213,6 +217,30 @@ const renderSortIcon = (sortOrder?: SortOrder) => {
   if (sortOrder === "desc") return <IconChevronDown size={16} stroke={2.5} />;
   return <IconSelector size={14} stroke={1.8} />;
 };
+
+const isSelectedRow = (
+  itemKey: unknown,
+  selectedRowKey?: AutoTableRowKey | null,
+) => selectedRowKey != null && itemKey === selectedRowKey;
+
+const resolveRowClassName = <TItem extends TableRowData>({
+  item,
+  isSelected,
+  getRowClassName,
+  rowClassName,
+  selectedRowClassName,
+}: {
+  item: TItem;
+  isSelected: boolean;
+  getRowClassName?: (item: TItem) => string | undefined;
+  rowClassName?: string;
+  selectedRowClassName?: string;
+}) =>
+  joinClassNames(
+    rowClassName,
+    isSelected && selectedRowClassName,
+    getRowClassName?.(item),
+  );
 
 const getNextSortState = (
   current: SortState | null,
@@ -884,6 +912,44 @@ function BodyCellInner({
 
 const BodyCell = memo(BodyCellInner);
 
+type RowCellsProps<TItem extends TableRowData> = {
+  fields: AutoTableField[];
+  item: TItem;
+  isPreviewing: boolean;
+  focusedColumnId: string | undefined;
+  activeResizeColumn: string | null;
+  onPreviewPointerDown: PreviewPointerDownHandler;
+};
+
+function RowCellsInner<TItem extends TableRowData>({
+  fields,
+  item,
+  isPreviewing,
+  focusedColumnId,
+  activeResizeColumn,
+  onPreviewPointerDown,
+}: RowCellsProps<TItem>) {
+  return (
+    <>
+      {fields.map((field) => (
+        <BodyCell
+          key={field.key}
+          field={field}
+          item={item}
+          isPreviewing={isPreviewing}
+          isFocused={focusedColumnId === field.key}
+          isResizing={activeResizeColumn === field.key}
+          onPreviewPointerDown={onPreviewPointerDown}
+        />
+      ))}
+    </>
+  );
+}
+
+const RowCells = memo(RowCellsInner) as <TItem extends TableRowData>(
+  props: RowCellsProps<TItem>,
+) => React.ReactElement;
+
 const DEFAULT_ITEM_HEIGHT = 38;
 
 type SharedViewProps<TItem extends TableRowData> = {
@@ -903,7 +969,71 @@ type SharedViewProps<TItem extends TableRowData> = {
   tableStyle: React.CSSProperties;
   onRowClick?: (item: TItem) => void;
   getRowClassName?: (item: TItem) => string | undefined;
+  selectedRowKey?: AutoTableRowKey | null;
+  rowClassName?: string;
+  selectedRowClassName?: string;
 };
+
+type BodyRowProps<TItem extends TableRowData> = {
+  item: TItem;
+  fields: AutoTableField[];
+  isPreviewing: boolean;
+  focusedColumnId: string | undefined;
+  activeResizeColumn: string | null;
+  onPreviewPointerDown: PreviewPointerDownHandler;
+  onRowClick?: (item: TItem) => void;
+  getRowClassName?: (item: TItem) => string | undefined;
+  isSelected: boolean;
+  rowClassName?: string;
+  selectedRowClassName?: string;
+};
+
+function BodyRowInner<TItem extends TableRowData>({
+  item,
+  fields,
+  isPreviewing,
+  focusedColumnId,
+  activeResizeColumn,
+  onPreviewPointerDown,
+  onRowClick,
+  getRowClassName,
+  isSelected,
+  rowClassName,
+  selectedRowClassName,
+}: BodyRowProps<TItem>) {
+  return (
+    <Table.Tr
+      className={resolveRowClassName({
+        item,
+        isSelected,
+        getRowClassName,
+        rowClassName,
+        selectedRowClassName,
+      })}
+      onClick={
+        onRowClick
+          ? (event) => {
+              if (!shouldHandleRowClick(event)) return;
+              onRowClick(item);
+            }
+          : undefined
+      }
+    >
+      <RowCells
+        fields={fields}
+        item={item}
+        isPreviewing={isPreviewing}
+        focusedColumnId={focusedColumnId}
+        activeResizeColumn={activeResizeColumn}
+        onPreviewPointerDown={onPreviewPointerDown}
+      />
+    </Table.Tr>
+  );
+}
+
+const BodyRow = memo(BodyRowInner) as <TItem extends TableRowData>(
+  props: BodyRowProps<TItem>,
+) => React.ReactElement;
 
 function LegacyTableView<TItem extends TableRowData>({
   fields,
@@ -922,6 +1052,9 @@ function LegacyTableView<TItem extends TableRowData>({
   tableStyle,
   onRowClick,
   getRowClassName,
+  selectedRowKey,
+  rowClassName,
+  selectedRowClassName,
   tableRefCallback,
 }: SharedViewProps<TItem> & {
   tableRefCallback: ReactRefCallbackLike<HTMLTableElement>;
@@ -959,30 +1092,20 @@ function LegacyTableView<TItem extends TableRowData>({
       </Table.Thead>
       <Table.Tbody>
         {sortedData.map((item) => (
-          <Table.Tr
+          <BodyRow
             key={String(item[keyField])}
-            className={getRowClassName?.(item)}
-            onClick={
-              onRowClick
-                ? (event) => {
-                    if (!shouldHandleRowClick(event)) return;
-                    onRowClick(item);
-                  }
-                : undefined
-            }
-          >
-            {fields.map((field) => (
-              <BodyCell
-                key={field.key}
-                field={field}
-                item={item}
-                isPreviewing={isPreviewing}
-                isFocused={focusedColumnId === field.key}
-                isResizing={activeResizeColumn === field.key}
-                onPreviewPointerDown={handlePreviewPointerDown}
-              />
-            ))}
-          </Table.Tr>
+            item={item}
+            fields={fields}
+            isPreviewing={isPreviewing}
+            focusedColumnId={focusedColumnId}
+            activeResizeColumn={activeResizeColumn}
+            onPreviewPointerDown={handlePreviewPointerDown}
+            onRowClick={onRowClick}
+            getRowClassName={getRowClassName}
+            isSelected={isSelectedRow(item[keyField], selectedRowKey)}
+            rowClassName={rowClassName}
+            selectedRowClassName={selectedRowClassName}
+          />
         ))}
       </Table.Tbody>
     </Table>
@@ -1006,6 +1129,9 @@ function VirtualizedTableView<TItem extends TableRowData>({
   tableStyle,
   onRowClick,
   getRowClassName,
+  selectedRowKey,
+  rowClassName,
+  selectedRowClassName,
   tableRefCallback,
   scrollParent,
   virtuosoRef,
@@ -1015,48 +1141,64 @@ function VirtualizedTableView<TItem extends TableRowData>({
   virtuosoRef: React.RefObject<TableVirtuosoHandle | null>;
 }) {
   type RowData = TItem;
-  const tableClassNameRef = useRef(tableClassName);
-  tableClassNameRef.current = tableClassName;
-  const tableStyleRef = useRef(tableStyle);
-  tableStyleRef.current = tableStyle;
-  const onRowClickRef = useRef(onRowClick);
-  onRowClickRef.current = onRowClick;
-  const getRowClassNameRef = useRef(getRowClassName);
-  getRowClassNameRef.current = getRowClassName;
-
   const components = useMemo<TableComponents<RowData>>(
-    () => ({
-      Table: React.forwardRef<
+    () => {
+      const VirtuosoTable = React.forwardRef<
         HTMLTableElement,
         React.ComponentPropsWithRef<"table">
       >(({ style, ...props }, _ref) => (
         <Table
           {...props}
           ref={tableRefCallback}
-          className={tableClassNameRef.current}
+          className={tableClassName}
           striped
           highlightOnHover
-          style={{ ...tableStyleRef.current, ...style }}
+          style={{ ...tableStyle, ...style }}
         />
-      )),
-      TableRow: ({ style, item, ...props }) => (
-        <tr
-          {...props}
-          className={item ? getRowClassNameRef.current?.(item) : undefined}
-          onClick={
-            item
-              ? (event) => {
-                  if (!shouldHandleRowClick(event)) return;
-                  onRowClickRef.current?.(item);
-                }
-              : undefined
-          }
-          style={style}
-          key={item ? String(item[keyField]) : undefined}
-        />
-      ),
-    }),
-    [keyField, tableRefCallback],
+      ));
+      VirtuosoTable.displayName = "AutoTableVirtuosoTable";
+
+      return {
+        Table: VirtuosoTable,
+        TableRow: ({ style, item, ...props }) => (
+          <tr
+            {...props}
+            className={
+              item
+                ? resolveRowClassName({
+                    item,
+                    isSelected: isSelectedRow(item[keyField], selectedRowKey),
+                    getRowClassName,
+                    rowClassName,
+                    selectedRowClassName,
+                  })
+                : undefined
+            }
+            onClick={
+              item
+                ? (event) => {
+                    if (!shouldHandleRowClick(event)) return;
+                    onRowClick?.(item);
+                  }
+                : undefined
+            }
+            style={style}
+            key={item ? String(item[keyField]) : undefined}
+          />
+        ),
+      };
+    },
+    [
+      getRowClassName,
+      keyField,
+      onRowClick,
+      rowClassName,
+      selectedRowClassName,
+      selectedRowKey,
+      tableClassName,
+      tableStyle,
+      tableRefCallback,
+    ],
   );
 
   const fixedHeaderContent = useCallback(
@@ -1099,19 +1241,14 @@ function VirtualizedTableView<TItem extends TableRowData>({
 
   const itemContent = useCallback(
     (_index: number, item: TItem) => (
-      <>
-        {fields.map((field) => (
-          <BodyCell
-            key={field.key}
-            field={field}
-            item={item}
-            isPreviewing={isPreviewing}
-            isFocused={focusedColumnId === field.key}
-            isResizing={activeResizeColumn === field.key}
-            onPreviewPointerDown={handlePreviewPointerDown}
-          />
-        ))}
-      </>
+      <RowCells
+        fields={fields}
+        item={item}
+        isPreviewing={isPreviewing}
+        focusedColumnId={focusedColumnId}
+        activeResizeColumn={activeResizeColumn}
+        onPreviewPointerDown={handlePreviewPointerDown}
+      />
     ),
     [
       fields,
@@ -1164,6 +1301,9 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     onScrollStateChange,
     onRowClick,
     getRowClassName,
+    selectedRowKey,
+    rowClassName,
+    selectedRowClassName,
   }: AutoTableProps<TSchema>,
   ref: React.ForwardedRef<AutoTableHandle>,
 ) => {
@@ -1386,6 +1526,9 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
           tableStyle={tableStyle}
           onRowClick={onRowClick}
           getRowClassName={getRowClassName}
+          selectedRowKey={selectedRowKey}
+          rowClassName={rowClassName}
+          selectedRowClassName={selectedRowClassName}
           tableRefCallback={tableRefCallback}
           scrollParent={scrollParent}
           virtuosoRef={virtuosoRef}
@@ -1408,6 +1551,9 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
           tableStyle={tableStyle}
           onRowClick={onRowClick}
           getRowClassName={getRowClassName}
+          selectedRowKey={selectedRowKey}
+          rowClassName={rowClassName}
+          selectedRowClassName={selectedRowClassName}
           tableRefCallback={tableRefCallback}
         />
       )}

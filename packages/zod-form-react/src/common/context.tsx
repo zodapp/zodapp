@@ -173,26 +173,52 @@ export const ZodFormContextProvider = ({
     return new Map([...parentMap.entries(), ...ownMap.entries()]);
   }, [collectionReferenceActions, merge, parentContext.collectionReferenceActionMap]);
 
-  const mergedContext = {
-    componentLibrary: merge
-      ? {
-          ...parentContext.componentLibrary,
-          ...componentLibrary,
-        }
-      : componentLibrary,
-    loadingComponent: loadingComponent || parentContext.loadingComponent,
-    notFoundComponent: notFoundComponent || parentContext.notFoundComponent,
-    externalKeyResolvers:
-      externalKeyResolvers ?? parentContext.externalKeyResolvers,
-    externalKeyActionResolver:
-      externalKeyActionResolver ?? parentContext.externalKeyActionResolver,
-    fileResolvers: fileResolvers ?? parentContext.fileResolvers,
-    mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
-    timezone: timezone ?? parentContext.timezone,
-    onFieldChange: onFieldChange ?? parentContext.onFieldChange,
-    resolverContext: resolverContext ?? parentContext.resolverContext,
-    collectionReferenceActionMap,
-  };
+  const mergedContext = useMemo(
+    () => ({
+      componentLibrary: merge
+        ? {
+            ...parentContext.componentLibrary,
+            ...componentLibrary,
+          }
+        : componentLibrary,
+      loadingComponent: loadingComponent || parentContext.loadingComponent,
+      notFoundComponent: notFoundComponent || parentContext.notFoundComponent,
+      externalKeyResolvers:
+        externalKeyResolvers ?? parentContext.externalKeyResolvers,
+      externalKeyActionResolver:
+        externalKeyActionResolver ?? parentContext.externalKeyActionResolver,
+      fileResolvers: fileResolvers ?? parentContext.fileResolvers,
+      mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
+      timezone: timezone ?? parentContext.timezone,
+      onFieldChange: onFieldChange ?? parentContext.onFieldChange,
+      resolverContext: resolverContext ?? parentContext.resolverContext,
+      collectionReferenceActionMap,
+    }),
+    [
+      collectionReferenceActionMap,
+      componentLibrary,
+      externalKeyActionResolver,
+      externalKeyResolvers,
+      fileResolvers,
+      loadingComponent,
+      mediaResolvers,
+      merge,
+      notFoundComponent,
+      onFieldChange,
+      parentContext.componentLibrary,
+      parentContext.externalKeyActionResolver,
+      parentContext.externalKeyResolvers,
+      parentContext.fileResolvers,
+      parentContext.loadingComponent,
+      parentContext.mediaResolvers,
+      parentContext.notFoundComponent,
+      parentContext.onFieldChange,
+      parentContext.resolverContext,
+      parentContext.timezone,
+      resolverContext,
+      timezone,
+    ],
+  );
   return (
     <ZodFormContext.Provider value={mergedContext}>
       {children}
