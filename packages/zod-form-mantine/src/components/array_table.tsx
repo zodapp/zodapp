@@ -9,6 +9,7 @@ import {
   getDefaultValue,
   useArray,
   ZodFormInternalProps,
+  ZodFormContextProvider,
   wrapComponent,
   useZodFormContext,
 } from "@zodapp/zod-form-react/common";
@@ -30,6 +31,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { tableComponentLibrary } from "@zodapp/zod-form-mantine-lite";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -40,6 +42,8 @@ const INSERT_BUTTON_OPACITY = {
   guideActive: 0.8,
   guideInactive: 0.35,
 };
+const CONTROL_COLUMN_WIDTH = 38;
+const DEFAULT_COLUMN_WIDTH = 140;
 const ROW_TOP_INSERT = "-0.5px";
 const ROW_BOTTOM_INSERT = "-0.5px";
 
@@ -205,8 +209,6 @@ function RowControls({
     <Table.Td
       style={{
         position: "relative",
-        width: 58,
-        minWidth: 58,
         paddingLeft: 37,
         verticalAlign: "top",
       }}
@@ -251,7 +253,8 @@ function RowControls({
 
 const getObjectColumns = (objectSchema: z.ZodObject): TableColumn[] => {
   const objectMeta =
-    getMeta(objectSchema, "object") ?? getMeta(unwrapSchema(objectSchema), "object");
+    getMeta(objectSchema, "object") ??
+    getMeta(unwrapSchema(objectSchema), "object");
   const shape = objectSchema.shape as Record<string, z.ZodTypeAny>;
   const order: string[] = objectMeta?.properties ?? Object.keys(shape);
 
@@ -288,6 +291,28 @@ const getDefaultCellValue = (
   const rowDefaultValue = defaultValue[index];
   if (!rowDefaultValue || typeof rowDefaultValue !== "object") return undefined;
   return (rowDefaultValue as Record<string, unknown>)[propertyName];
+};
+
+const getCellDisplayValue = (
+  value: unknown[] | undefined,
+  defaultValue: unknown,
+  index: number,
+  propertyName: string,
+) => {
+  const rowValue = value?.[index];
+  if (rowValue && typeof rowValue === "object" && propertyName in rowValue) {
+    return (rowValue as Record<string, unknown>)[propertyName];
+  }
+  return getDefaultCellValue(defaultValue, index, propertyName);
+};
+
+const getColumnWidth = (column: TableColumn) =>
+  column.width ?? DEFAULT_COLUMN_WIDTH;
+
+const getDistributedColumnWidth = (width: number, dataTotalWidth: number) => {
+  if (dataTotalWidth <= 0) return undefined;
+  const ratio = width / dataTotalWidth;
+  return `calc((100% - ${CONTROL_COLUMN_WIDTH}px) * ${ratio})`;
 };
 
 const ArrayTableComponent = wrapComponent(
@@ -332,6 +357,13 @@ const ArrayTableComponent = wrapComponent(
       () => (objectSchema ? getObjectColumns(objectSchema) : []),
       [objectSchema],
     );
+    const dataTotalWidth = useMemo(
+      () => columns.reduce((sum, column) => sum + getColumnWidth(column), 0),
+      [columns],
+    );
+    const totalMinWidth = useMemo(() => {
+      return CONTROL_COLUMN_WIDTH + dataTotalWidth;
+    }, [dataTotalWidth]);
     const activeIndex = activeId
       ? items.findIndex((item) => item.key === activeId)
       : -1;
@@ -392,13 +424,21 @@ const ArrayTableComponent = wrapComponent(
                   items={items.map((item) => item.key)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <Table withColumnBorders striped>
+                  <Table
+                    withColumnBorders
+                    striped
+                    style={{
+                      tableLayout: "fixed",
+                      width: "100%",
+                      minWidth: totalMinWidth,
+                    }}
+                  >
                     <Table.Thead>
                       <Table.Tr>
                         {!isDisabled && (
                           <Table.Th
                             style={{
-                              width: 58,
+                              width: CONTROL_COLUMN_WIDTH,
                               position: "relative",
                             }}
                           >
@@ -418,7 +458,10 @@ const ArrayTableComponent = wrapComponent(
                           <Table.Th
                             key={column.propertyName}
                             style={{
-                              width: column.width,
+                              width: getDistributedColumnWidth(
+                                getColumnWidth(column),
+                                dataTotalWidth,
+                              ),
                             }}
                           >
                             {column.label}
@@ -463,7 +506,8 @@ const ArrayTableComponent = wrapComponent(
                                   const childProps = {
                                     fieldPath: `${fieldPath}[${index}].${column.propertyName}`,
                                     schema: column.schema,
-                                    defaultValue: getDefaultCellValue(
+                                    defaultValue: getCellDisplayValue(
+                                      value,
                                       defaultValue,
                                       index,
                                       column.propertyName,
@@ -472,6 +516,15 @@ const ArrayTableComponent = wrapComponent(
                                     readOnly,
                                     label: false as const,
                                   };
+                                  const cellContent = (
+                                    <Suspense
+                                      fallback={
+                                        <LoadingComponent {...childProps} />
+                                      }
+                                    >
+                                      <Dynamic {...childProps} />
+                                    </Suspense>
+                                  );
 
                                   return (
                                     <Table.Td
@@ -481,13 +534,18 @@ const ArrayTableComponent = wrapComponent(
                                         textAlign: column.align,
                                       }}
                                     >
-                                      <Suspense
-                                        fallback={
-                                          <LoadingComponent {...childProps} />
-                                        }
-                                      >
-                                        <Dynamic {...childProps} />
-                                      </Suspense>
+                                      {readOnly ? (
+                                        <ZodFormContextProvider
+                                          merge
+                                          componentLibrary={
+                                            tableComponentLibrary
+                                          }
+                                        >
+                                          {cellContent}
+                                        </ZodFormContextProvider>
+                                      ) : (
+                                        cellContent
+                                      )}
                                     </Table.Td>
                                   );
                                 })}

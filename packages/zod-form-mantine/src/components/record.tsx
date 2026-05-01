@@ -27,11 +27,13 @@ const RecordComponent = wrapComponent(
     readOnly,
     label: labelFromParent,
     error,
+    field,
   }: ZodFormInternalProps<RecordSchema>) {
     const meta = getMeta(schema);
     const valueSchema = schema.def.valueType;
 
-    const keys = defaultValue ? Object.keys(defaultValue) : [];
+    const value = field.value ?? defaultValue;
+    const keys = value ? Object.keys(value) : [];
     const label = labelFromParent ?? meta?.label;
 
     const fieldsComponent = keys.map((key: string) => (
@@ -39,7 +41,7 @@ const RecordComponent = wrapComponent(
         <Dynamic
           fieldPath={joinFieldPath(fieldPath, key)}
           schema={valueSchema}
-          defaultValue={defaultValue?.[key]}
+          defaultValue={value?.[key]}
           required={undefined}
           readOnly={readOnly}
           label={key}
@@ -77,7 +79,6 @@ const RecordComponent = wrapComponent(
     isValidating: false,
     isTouched: false,
     isDirty: false,
-    field: false,
     invalid: false,
   },
 );
