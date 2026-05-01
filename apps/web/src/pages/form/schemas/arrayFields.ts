@@ -9,6 +9,44 @@ export const description = "配列型による動的なフィールド追加・�
 export const icon = IconBrackets;
 export const category = "Basic";
 
+const friendTableItemSchema = z
+  .object({
+    id: zf.string().register(zf.string.registry, { label: "ID", hidden: true }),
+    name: zf
+      .string()
+      .register(zf.string.registry, { label: "名前", width: 160 }),
+    comment: zf
+      .string()
+      .register(zf.string.registry, {
+        label: "コメント",
+        width: 240,
+      })
+      .optional(),
+    age: zf
+      .number()
+      .max(150)
+      .min(0)
+      .register(zf.number.registry, {
+        label: "年齢",
+        width: 100,
+        align: "right",
+      })
+      .optional(),
+    isMember: zf
+      .boolean()
+      .register(zf.boolean.registry, { label: "会員", width: 80 })
+      .optional(),
+  })
+  .register(zf.object.registry, {
+    label: "個人",
+    properties: ["name", "age", "isMember", "comment", "id"],
+  })
+  .default(() => ({
+    id: undefined as unknown as string,
+    name: "auto-name",
+    comment: "comment test",
+  }));
+
 export const schema = z
   .object({
     tags: zf
@@ -66,51 +104,20 @@ export const schema = z
         discriminator: "id",
       }),
     friendsTable: zf
-      .array(
-        z
-          .object({
-            id: zf
-              .string()
-              .register(zf.string.registry, { label: "ID", hidden: true }),
-            name: zf
-              .string()
-              .register(zf.string.registry, { label: "名前", width: 160 }),
-            comment: zf
-              .string()
-              .register(zf.string.registry, {
-                label: "コメント",
-                width: 240,
-              })
-              .optional(),
-            age: zf
-              .number()
-              .max(150)
-              .min(0)
-              .register(zf.number.registry, {
-                label: "年齢",
-                width: 100,
-                align: "right",
-              })
-              .optional(),
-            isMember: zf
-              .boolean()
-              .register(zf.boolean.registry, { label: "会員", width: 80 })
-              .optional(),
-          })
-          .register(zf.object.registry, {
-            label: "個人",
-            properties: ["name", "age", "isMember", "comment", "id"],
-          })
-          .default(() => ({
-            id: undefined as unknown as string,
-            name: "auto-name",
-            comment: "comment test",
-          })),
-      )
+      .array(friendTableItemSchema)
       .min(1)
       .register(zf.array.registry, {
         label: "友人（オブジェクト配列, table）",
         uiType: "table",
+        discriminator: "id",
+      }),
+    friendsTableReadOnly: zf
+      .array(friendTableItemSchema)
+      .min(1)
+      .register(zf.array.registry, {
+        label: "友人（オブジェクト配列, table, readOnly）",
+        uiType: "table",
+        readOnly: true,
         discriminator: "id",
       }),
     friendsReadOnly: zf
@@ -169,6 +176,10 @@ export const defaultValues: z.input<typeof schema> = {
     { id: "2", name: "佐藤", comment: "友人" },
   ],
   friendsTable: [
+    { id: "1", name: "田中", age: 32, isMember: true, comment: "同僚" },
+    { id: "2", name: "佐藤", age: 28, isMember: false, comment: "友人" },
+  ],
+  friendsTableReadOnly: [
     { id: "1", name: "田中", age: 32, isMember: true, comment: "同僚" },
     { id: "2", name: "佐藤", age: 28, isMember: false, comment: "友人" },
   ],
