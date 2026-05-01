@@ -10,6 +10,7 @@ type CommonMeta = {
   readOnly?: boolean;
   color?: string;
   width?: number;
+  widthWeight?: number;
   align?: "left" | "center" | "right";
 };
 type StringMeta = CommonMeta & {
@@ -29,6 +30,7 @@ describe("zod-form def/index", () => {
       label: "名前",
       uiType: "text",
       tags: ["a"],
+      widthWeight: 2,
       align: "center",
     });
     const meta = getMeta(schema);
@@ -37,6 +39,7 @@ describe("zod-form def/index", () => {
       label: "名前",
       uiType: "text",
       tags: ["a"],
+      widthWeight: 2,
       align: "center",
     });
     expectTypeOf(meta).toEqualTypeOf<

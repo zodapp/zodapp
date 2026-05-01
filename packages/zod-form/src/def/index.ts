@@ -44,6 +44,7 @@ export const zodExtendableCommonDefSchema = z.object({
   readOnly: z.boolean().optional(),
   color: z.string().optional(),
   width: z.number().optional(),
+  widthWeight: z.number().optional(),
   align: z.enum(["left", "center", "right"]).optional(),
 });
 
