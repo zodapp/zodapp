@@ -65,6 +65,54 @@ export const schema = z
         label: "友人（オブジェクト配列）",
         discriminator: "id",
       }),
+    friendsTable: zf
+      .array(
+        z
+          .object({
+            id: zf
+              .string()
+              .register(zf.string.registry, { label: "ID", hidden: true }),
+            name: zf
+              .string()
+              .register(zf.string.registry, { label: "名前", width: 160 }),
+            comment: zf
+              .string()
+              .register(zf.string.registry, {
+                label: "コメント",
+                width: 240,
+              })
+              .optional(),
+            age: zf
+              .number()
+              .max(150)
+              .min(0)
+              .register(zf.number.registry, {
+                label: "年齢",
+                width: 100,
+                align: "right",
+              })
+              .optional(),
+            isMember: zf
+              .boolean()
+              .register(zf.boolean.registry, { label: "会員", width: 80 })
+              .optional(),
+          })
+          .register(zf.object.registry, {
+            label: "個人",
+            properties: ["name", "age", "isMember", "comment", "id"],
+          })
+          .default(() => ({
+            id: undefined as unknown as string,
+            name: "auto-name",
+            comment: "comment test",
+          })),
+      )
+      .min(1)
+      .register(zf.array.registry, {
+        label: "友人（オブジェクト配列, table）",
+        uiType: "table",
+        discriminator: "id",
+      }),
     friendsReadOnly: zf
       .array(
         z
@@ -106,7 +154,7 @@ export const schema = z
       .derived()
       .register(zf.derived.registry, {
         compute: () =>
-          "配列フィールドでは、動的にアイテムの追加・削除ができます。タグは単純な文字列配列、友人はオブジェクト配列です。配列のIDは { hidden: true } 使って非表示にしています。",
+          "配列フィールドでは、動的にアイテムの追加・削除ができます。タグは単純な文字列配列、友人はオブジェクト配列です。uiType: table を指定すると、object 配列を表形式で編集できます。配列のIDは { hidden: true } 使って非表示にしています。",
       })
       .optional(),
   })
@@ -119,6 +167,10 @@ export const defaultValues: z.input<typeof schema> = {
   friends: [
     { id: "1", name: "田中", comment: "同僚" },
     { id: "2", name: "佐藤", comment: "友人" },
+  ],
+  friendsTable: [
+    { id: "1", name: "田中", age: 32, isMember: true, comment: "同僚" },
+    { id: "2", name: "佐藤", age: 28, isMember: false, comment: "友人" },
   ],
   friendsReadOnly: [
     { id: "1", name: "田中", comment: "同僚" },
