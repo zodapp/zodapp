@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, InputWrapper, Table, Text } from "@mantine/core";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
@@ -52,6 +52,7 @@ type TableColumn = {
   schema: z.ZodTypeAny;
   label: string;
   width?: number;
+  widthWeight?: number;
   align?: "left" | "center" | "right";
 };
 
@@ -271,6 +272,7 @@ const getObjectColumns = (objectSchema: z.ZodObject): TableColumn[] => {
         schema: fieldSchema,
         label: fieldMeta?.label ?? propertyName,
         width: fieldMeta?.width,
+        widthWeight: fieldMeta?.widthWeight,
         align: fieldMeta?.align,
       },
     ];
@@ -309,10 +311,18 @@ const getCellDisplayValue = (
 const getColumnWidth = (column: TableColumn) =>
   column.width ?? DEFAULT_COLUMN_WIDTH;
 
-const getDistributedColumnWidth = (width: number, dataTotalWidth: number) => {
-  if (dataTotalWidth <= 0) return undefined;
-  const ratio = width / dataTotalWidth;
-  return `calc((100% - ${CONTROL_COLUMN_WIDTH}px) * ${ratio})`;
+const getColumnWidthWeight = (column: TableColumn) =>
+  column.widthWeight ?? getColumnWidth(column);
+
+const getDistributedColumnWidth = (
+  width: number,
+  widthWeight: number,
+  extraWidth: number,
+  totalWidthWeight: number,
+) => {
+  if (extraWidth <= 0 || totalWidthWeight <= 0) return width;
+  const ratio = widthWeight / totalWidthWeight;
+  return width + extraWidth * ratio;
 };
 
 const ArrayTableComponent = wrapComponent(
@@ -328,6 +338,8 @@ const ArrayTableComponent = wrapComponent(
   }: ZodFormInternalProps<ArraySchema>) {
     const { loadingComponent: LoadingComponent } = useZodFormContext();
     const [activeId, setActiveId] = useState<string | null>(null);
+    const tableContainerRef = useRef<HTMLDivElement | null>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
 
     const value = field.value as unknown[] | undefined;
     const itemSchema = schema.element as z.ZodTypeAny;
@@ -361,9 +373,17 @@ const ArrayTableComponent = wrapComponent(
       () => columns.reduce((sum, column) => sum + getColumnWidth(column), 0),
       [columns],
     );
+    const totalWidthWeight = useMemo(
+      () =>
+        columns.reduce((sum, column) => sum + getColumnWidthWeight(column), 0),
+      [columns],
+    );
+    const controlColumnWidth = isDisabled ? 0 : CONTROL_COLUMN_WIDTH;
     const totalMinWidth = useMemo(() => {
-      return CONTROL_COLUMN_WIDTH + dataTotalWidth;
-    }, [dataTotalWidth]);
+      return controlColumnWidth + dataTotalWidth;
+    }, [controlColumnWidth, dataTotalWidth]);
+    const tableWidth = Math.max(totalMinWidth, containerWidth);
+    const extraWidth = Math.max(0, tableWidth - totalMinWidth);
     const activeIndex = activeId
       ? items.findIndex((item) => item.key === activeId)
       : -1;
@@ -395,6 +415,22 @@ const ArrayTableComponent = wrapComponent(
       setActiveId(null);
     };
 
+    useEffect(() => {
+      const element = tableContainerRef.current;
+      if (!element) return;
+
+      const updateContainerWidth = () => {
+        setContainerWidth(element.clientWidth);
+      };
+
+      updateContainerWidth();
+      if (typeof ResizeObserver === "undefined") return;
+
+      const observer = new ResizeObserver(updateContainerWidth);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }, []);
+
     return (
       <InputWrapper
         label={label || undefined}
@@ -409,7 +445,10 @@ const ArrayTableComponent = wrapComponent(
           </Text>
         ) : (
           <>
-            <div style={{ position: "relative" }}>
+            <div
+              ref={tableContainerRef}
+              style={{ position: "relative", overflowX: "auto" }}
+            >
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -429,10 +468,28 @@ const ArrayTableComponent = wrapComponent(
                     striped
                     style={{
                       tableLayout: "fixed",
-                      width: "100%",
+                      width: tableWidth,
                       minWidth: totalMinWidth,
                     }}
                   >
+                    <colgroup>
+                      {!isDisabled && (
+                        <col style={{ width: CONTROL_COLUMN_WIDTH }} />
+                      )}
+                      {columns.map((column) => (
+                        <col
+                          key={column.propertyName}
+                          style={{
+                            width: getDistributedColumnWidth(
+                              getColumnWidth(column),
+                              getColumnWidthWeight(column),
+                              extraWidth,
+                              totalWidthWeight,
+                            ),
+                          }}
+                        />
+                      ))}
+                    </colgroup>
                     <Table.Thead>
                       <Table.Tr>
                         {!isDisabled && (
@@ -460,7 +517,9 @@ const ArrayTableComponent = wrapComponent(
                             style={{
                               width: getDistributedColumnWidth(
                                 getColumnWidth(column),
-                                dataTotalWidth,
+                                getColumnWidthWeight(column),
+                                extraWidth,
+                                totalWidthWeight,
                               ),
                             }}
                           >

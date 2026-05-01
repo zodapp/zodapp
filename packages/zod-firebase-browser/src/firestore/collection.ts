@@ -310,7 +310,9 @@ type CollectionAccessorWithContext<TConfig extends CollectionConfigBase> = {
     (context: { runner: WriteBatch }): CollectionBatchAccessorResult<TConfig>;
     (
       context: AccessorWriteContext,
-    ): CollectionAccessorResult<TConfig> | CollectionBatchAccessorResult<TConfig>;
+    ):
+      | CollectionAccessorResult<TConfig>
+      | CollectionBatchAccessorResult<TConfig>;
   };
 };
 
@@ -789,7 +791,9 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
 const createExternalAccessor = <TConfig extends CollectionConfigBase>(
   core: CollectionAccessorInternal<TConfig>,
   context?: AccessorWriteContext,
-): CollectionAccessorResult<TConfig> | CollectionBatchAccessorResult<TConfig> => {
+):
+  | CollectionAccessorResult<TConfig>
+  | CollectionBatchAccessorResult<TConfig> => {
   const withContext = ((nextContext?: AccessorWriteContext) => {
     return createExternalAccessor(core, nextContext);
   }) as CollectionAccessorResult<TConfig>["withContext"];
@@ -797,12 +801,14 @@ const createExternalAccessor = <TConfig extends CollectionConfigBase>(
   const writeAccessor: CollectionBatchAccessorResult<TConfig> = {
     updateDoc: (docIdentityParams, data) =>
       core.updateDoc(docIdentityParams, data, context),
-    setDoc: (docIdentityParams, data) => core.setDoc(docIdentityParams, data, context),
+    setDoc: (docIdentityParams, data) =>
+      core.setDoc(docIdentityParams, data, context),
     createDoc: (collectionIdentityParams, data) =>
       core.createDoc(collectionIdentityParams, data, context),
     createDocWithId: (docIdentityParams, data) =>
       core.createDocWithId(docIdentityParams, data, context),
-    deleteDoc: (docIdentityParams) => core.deleteDoc(docIdentityParams, context),
+    deleteDoc: (docIdentityParams) =>
+      core.deleteDoc(docIdentityParams, context),
     withContext,
   };
 

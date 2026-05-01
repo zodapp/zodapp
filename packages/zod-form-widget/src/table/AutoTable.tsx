@@ -46,6 +46,7 @@ type AutoTableField = {
   schema: z.ZodTypeAny;
   meta: ReturnType<typeof getUnwrappedMeta>;
   width: number;
+  widthWeight: number;
   align: CellAlign;
   isSortTarget: boolean;
   isAction: boolean;
@@ -161,6 +162,11 @@ const USE_FIXED_WIDTH_IN_PREVIEW = true;
 
 const EMPTY_COLUMN_SCHEMA = z.string().optional();
 const EMPTY_COLUMN_META = getUnwrappedMeta(EMPTY_COLUMN_SCHEMA);
+
+const getWidthWeight = (
+  widthWeight: number | undefined,
+  fallbackWidth: number,
+) => widthWeight ?? fallbackWidth;
 
 const ALIGN_CLASS_NAMES: Record<CellAlign, string> = {
   left: styles.alignLeft ?? "",
@@ -519,6 +525,7 @@ function buildFields(
           schema: EMPTY_COLUMN_SCHEMA,
           meta: EMPTY_COLUMN_META,
           width: entry.widthOverride ?? DEFAULT_WIDTH,
+          widthWeight: entry.widthOverride ?? DEFAULT_WIDTH,
           align: DEFAULT_ALIGN,
           isSortTarget: false,
           isAction: options?.isAction ?? false,
@@ -532,6 +539,7 @@ function buildFields(
 
     const { meta } = colDef;
     const width = entry.widthOverride ?? meta.width ?? DEFAULT_WIDTH;
+    const widthWeight = getWidthWeight(meta.widthWeight, width);
     const align = (meta.align as CellAlign | undefined) ?? DEFAULT_ALIGN;
 
     return [
@@ -541,6 +549,7 @@ function buildFields(
         schema: colDef.schema,
         meta,
         width,
+        widthWeight,
         align,
         isSortTarget: isSortableFieldType(meta.schemaType),
         isAction: options?.isAction ?? false,
@@ -583,6 +592,7 @@ function buildSchemaFields({
   return {
     fields,
     totalMinWidth: fields.reduce((sum, field) => sum + field.width, 0),
+    totalWidthWeight: fields.reduce((sum, field) => sum + field.widthWeight, 0),
   };
 }
 
@@ -616,7 +626,7 @@ function useAutoTableModel<TItem extends TableRowData>({
   isPreviewing,
   sortState,
 }: UseAutoTableModelProps<TItem>) {
-  const { fields, totalMinWidth } = useMemo(() => {
+  const { fields, totalMinWidth, totalWidthWeight } = useMemo(() => {
     const mainFields = buildSchemaFields({
       schema,
       defaultFieldPaths,
@@ -631,11 +641,13 @@ function useAutoTableModel<TItem extends TableRowData>({
           isPreviewing: false,
           isAction: true,
         })
-      : { fields: [], totalMinWidth: 0 };
+      : { fields: [], totalMinWidth: 0, totalWidthWeight: 0 };
 
     return {
       fields: [...mainFields.fields, ...trailingFields.fields],
       totalMinWidth: mainFields.totalMinWidth + trailingFields.totalMinWidth,
+      totalWidthWeight:
+        mainFields.totalWidthWeight + trailingFields.totalWidthWeight,
     };
   }, [
     defaultFieldPaths,
@@ -668,7 +680,7 @@ function useAutoTableModel<TItem extends TableRowData>({
       .map(({ item }) => item);
   }, [data, fields, sortState]);
 
-  return { fields, sortedData, totalMinWidth };
+  return { fields, sortedData, totalMinWidth, totalWidthWeight };
 }
 
 type UseAutoTablePreviewProps = {
@@ -775,7 +787,7 @@ type ReactRefCallbackLike<T> = (node: T | null) => void;
 type HeaderCellProps = {
   field: AutoTableField;
   isPreviewing: boolean;
-  totalMinWidth: number;
+  totalWidthWeight: number;
   canSort: boolean;
   sortOrder?: SortOrder;
   isFocused: boolean;
@@ -788,7 +800,7 @@ type HeaderCellProps = {
 function HeaderCellInner({
   field,
   isPreviewing,
-  totalMinWidth,
+  totalWidthWeight,
   canSort,
   sortOrder,
   isFocused,
@@ -802,7 +814,9 @@ function HeaderCellInner({
   const headerWidth =
     isPreviewing && USE_FIXED_WIDTH_IN_PREVIEW
       ? field.width
-      : `${(field.width / totalMinWidth) * 100}%`;
+      : totalWidthWeight > 0
+        ? `${(field.widthWeight / totalWidthWeight) * 100}%`
+        : field.width;
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLTableCellElement>) => {
@@ -957,6 +971,7 @@ type SharedViewProps<TItem extends TableRowData> = {
   sortedData: TItem[];
   keyField: Extract<keyof TItem, string>;
   totalMinWidth: number;
+  totalWidthWeight: number;
   isPreviewing: boolean;
   sortable: boolean;
   sortState: SortState | null;
@@ -1039,7 +1054,7 @@ function LegacyTableView<TItem extends TableRowData>({
   fields,
   sortedData,
   keyField,
-  totalMinWidth,
+  totalWidthWeight,
   isPreviewing,
   sortable,
   sortState,
@@ -1075,7 +1090,7 @@ function LegacyTableView<TItem extends TableRowData>({
               field={field}
               cellRef={focusedColumnId === field.key ? focusedThRef : undefined}
               isPreviewing={isPreviewing}
-              totalMinWidth={totalMinWidth}
+              totalWidthWeight={totalWidthWeight}
               canSort={sortable && field.isSortTarget}
               sortOrder={
                 sortState?.sortKey === field.propertyName
@@ -1116,7 +1131,7 @@ function VirtualizedTableView<TItem extends TableRowData>({
   fields,
   sortedData,
   keyField,
-  totalMinWidth,
+  totalWidthWeight,
   isPreviewing,
   sortable,
   sortState,
@@ -1210,7 +1225,7 @@ function VirtualizedTableView<TItem extends TableRowData>({
             field={field}
             cellRef={focusedColumnId === field.key ? focusedThRef : undefined}
             isPreviewing={isPreviewing}
-            totalMinWidth={totalMinWidth}
+            totalWidthWeight={totalWidthWeight}
             canSort={sortable && field.isSortTarget}
             sortOrder={
               sortState?.sortKey === field.propertyName
@@ -1227,7 +1242,7 @@ function VirtualizedTableView<TItem extends TableRowData>({
     ),
     [
       fields,
-      totalMinWidth,
+      totalWidthWeight,
       isPreviewing,
       sortable,
       sortState,
@@ -1322,16 +1337,17 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
   const [sortState, setSortState] = useState<SortState | null>(
     defaultSortState,
   );
-  const { fields, sortedData, totalMinWidth } = useAutoTableModel({
-    schema,
-    trailingSchema,
-    data,
-    defaultFieldPaths,
-    trailingDefaultFieldPaths,
-    storageColumns,
-    isPreviewing,
-    sortState,
-  });
+  const { fields, sortedData, totalMinWidth, totalWidthWeight } =
+    useAutoTableModel({
+      schema,
+      trailingSchema,
+      data,
+      defaultFieldPaths,
+      trailingDefaultFieldPaths,
+      storageColumns,
+      isPreviewing,
+      sortState,
+    });
 
   const {
     activeResizeColumn,
@@ -1514,6 +1530,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
           sortedData={sortedData}
           keyField={keyField}
           totalMinWidth={totalMinWidth}
+          totalWidthWeight={totalWidthWeight}
           isPreviewing={isPreviewing}
           sortable={sortable}
           sortState={sortState}
@@ -1539,6 +1556,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
           sortedData={sortedData}
           keyField={keyField}
           totalMinWidth={totalMinWidth}
+          totalWidthWeight={totalWidthWeight}
           isPreviewing={isPreviewing}
           sortable={sortable}
           sortState={sortState}
