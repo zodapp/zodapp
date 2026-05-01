@@ -3,6 +3,7 @@ import { baseComponents } from "@zodapp/zod-form-mantine-lite";
 
 // Named exports（個別 static import 用）
 export { component as ArrayComponent } from "./array.js";
+export { component as ArrayTableComponent } from "./array_table.js";
 export { component as ArrayOfEnumComponent } from "./array_multipleEnum.js";
 export { component as ArrayOfExternalKeyComponent } from "./array_multipleExternalKey.js";
 export { component as ArrayOfStringComponent } from "./array_multipleString.js";
@@ -31,6 +32,7 @@ export { component as UnionComponent } from "./union.js";
 export const componentLibrary: ComponentLibrary = {
   ...baseComponents,
   array: (() => import("./array.js")) as DynamicZodFormDef,
+  array_table: (() => import("./array_table.js")) as DynamicZodFormDef,
   array_multipleEnum: (() => import("./array_multipleEnum.js")) as DynamicZodFormDef,
   array_multipleEnumBudge: (() => import("./array_multipleEnum.js")) as DynamicZodFormDef,
   array_multipleExternalKey: (() => import("./array_multipleExternalKey.js")) as DynamicZodFormDef,
