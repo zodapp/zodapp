@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Fieldset, Select, InputWrapper } from "@mantine/core";
 import z from "zod";
 
@@ -14,7 +20,10 @@ import {
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
 import { Suspense } from "react";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type UnionSchema = z.ZodUnion<[z.ZodTypeAny, ...z.ZodTypeAny[]]>;
 
@@ -113,9 +122,10 @@ const useValueAccessor = (
         setValue: (next, opts) => {
           if (opts?.dontValidate) {
             const current = field.api.form.state.values;
-            const merged = isRecord(current) && isRecord(next)
-              ? { ...current, ...next }
-              : next;
+            const merged =
+              isRecord(current) && isRecord(next)
+                ? { ...current, ...next }
+                : next;
             Object.entries(merged as Record<string, unknown>).forEach(
               ([key, val]) => {
                 field.api.form.setFieldValue(key, val as never, {
@@ -127,8 +137,7 @@ const useValueAccessor = (
             field.api.handleChange(next);
           }
         },
-        toAbsolutePath: (relative) =>
-          relative.filter(Boolean).join("."),
+        toAbsolutePath: (relative) => relative.filter(Boolean).join("."),
       };
     }
 
@@ -222,10 +231,7 @@ const UnionBody = React.memo(function UnionBody({
       const discriminator = schema.def.discriminator;
       const profileMap = new Map(
         optionSchemas.map((optionSchema, index) => {
-          const key = resolveArmDiscriminatorValue(
-            optionSchema,
-            discriminator,
-          );
+          const key = resolveArmDiscriminatorValue(optionSchema, discriminator);
           return [
             key,
             {
@@ -313,16 +319,11 @@ const UnionBody = React.memo(function UnionBody({
   const selectedProfile = useMemo(
     () =>
       compiledOptions.hasDiscriminator
-        ? compiledOptions.selector(
+        ? (compiledOptions.selector(
             selectedDiscriminator ?? discriminatorFromValue ?? "",
-          ) ?? compiledOptions.determinator(formValue)
+          ) ?? compiledOptions.determinator(formValue))
         : compiledOptions.determinator(formValue),
-    [
-      compiledOptions,
-      discriminatorFromValue,
-      formValue,
-      selectedDiscriminator,
-    ],
+    [compiledOptions, discriminatorFromValue, formValue, selectedDiscriminator],
   );
 
   const dynamicDefaultValue = useMemo(() => {
@@ -361,9 +362,7 @@ const UnionBody = React.memo(function UnionBody({
       const touched = new Set<string>();
 
       issues?.forEach((iss) => {
-        const name = accessor.toAbsolutePath(
-          (iss.path ?? []) as string[],
-        );
+        const name = accessor.toAbsolutePath((iss.path ?? []) as string[]);
         if (!name) return;
         touched.add(name);
 
@@ -447,11 +446,14 @@ const UnionBody = React.memo(function UnionBody({
   const shouldHideSelector = hideSelector === true;
   const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;
 
-  return (
-    <Fieldset legend={label || undefined} mt={10}>
-      {!shouldHideSelector && (
-        selectorIsReadOnly ? (
-          <InputWrapper label={selectorLabel ?? "タイプ"} style={inputWrapperStyle}>
+  const content = (
+    <>
+      {!shouldHideSelector &&
+        (selectorIsReadOnly ? (
+          <InputWrapper
+            label={selectorLabel ?? "タイプ"}
+            style={inputWrapperStyle}
+          >
             <ReadonlyText>{selectedProfile?.label}</ReadonlyText>
           </InputWrapper>
         ) : (
@@ -469,10 +471,9 @@ const UnionBody = React.memo(function UnionBody({
             allowDeselect={required === false}
             clearable={required === false}
           />
-        )
-      )}
+        ))}
       {selectedProfile?.schema && (
-        <div style={{ marginTop: 15, minHeight: 20, marginBottom: 15 }}>
+        <div style={{ marginTop: 1, minHeight: 20, marginBottom: 15 }}>
           <Suspense
             fallback={
               <LoadingComponent
@@ -497,6 +498,16 @@ const UnionBody = React.memo(function UnionBody({
           </Suspense>
         </div>
       )}
+    </>
+  );
+
+  if (!label) {
+    return content;
+  }
+
+  return (
+    <Fieldset legend={label} mt={10}>
+      {content}
     </Fieldset>
   );
 });
