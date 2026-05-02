@@ -244,7 +244,7 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
     >();
   });
 
-  it("型テスト: querySync / querySnapshotSync は QueryOptions を受け付ける", () => {
+  it("型テスト: querySync / querySnapshotSync は AccessorLevelQueryOptions を受け付ける", () => {
     const firestore = {} as unknown as firebase.firestore.Firestore;
     const storeKey = {};
     const _taskAccessor = getAccessor(firestore, tasksCollection, storeKey);
@@ -254,8 +254,8 @@ describe("firestore accessors（@zodapp/zod-firebase-browser）", () => {
       typeof _taskAccessor.querySnapshotSync
     >[1];
 
-    expectTypeOf<QuerySyncSecondArg>().toEqualTypeOf<QueryOptions>();
-    expectTypeOf<QuerySnapshotSyncSecondArg>().toEqualTypeOf<QueryOptions>();
+    expectTypeOf<QuerySyncSecondArg>().toEqualTypeOf<AccessorLevelQueryOptions>();
+    expectTypeOf<QuerySnapshotSyncSecondArg>().toEqualTypeOf<AccessorLevelQueryOptions>();
   });
 
   it("型テスト: withContext で transaction は full accessor、batch は write-only accessor になる", () => {

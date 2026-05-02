@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { stableStringify } from "@zodapp/caching-utilities";
-import type { CollectionConfigBase, QueryOptions } from "@zodapp/zod-firebase";
+import type { CollectionConfigBase } from "@zodapp/zod-firebase";
 import type { z } from "zod";
 import type firebase from "firebase/compat/app";
-import { getAccessor, type AccessorStoreKey } from "../firestore";
+import {
+  getAccessor,
+  type AccessorLevelQueryOptions,
+  type AccessorStoreKey,
+} from "../firestore";
 
 type Firestore = firebase.firestore.Firestore;
 
@@ -33,7 +37,7 @@ export type UseListOptions<TConfig extends CollectionConfigBase> = {
   storeKey: AccessorStoreKey;
   collection: TConfig;
   collectionIdentity?: z.infer<TConfig["collectionIdentitySchema"]>;
-  query?: QueryOptions;
+  query?: AccessorLevelQueryOptions;
   clientFilter?: (item: z.infer<TConfig["dataSchema"]>) => boolean;
 };
 
@@ -78,13 +82,7 @@ export function createUseList(firestore: Firestore) {
       () => collectionIdentity,
       [collectionIdentityKey],
     );
-    const stableQuery = useMemo(
-      () => ({
-        where: query?.where,
-        orderBy: query?.orderBy,
-      }),
-      [queryKey],
-    );
+    const stableQuery = useMemo(() => query ?? {}, [queryKey]);
 
     const accessor = useMemo(
       () => getAccessor(firestore, collection, storeKey),

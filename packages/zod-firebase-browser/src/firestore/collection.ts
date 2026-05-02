@@ -189,12 +189,12 @@ type CollectionAccessorInternal<TConfig extends CollectionConfigBase> = {
   ) => Promise<DocumentSnapshot[]>;
   querySync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
-    queryParams: QueryOptions,
+    queryParams: AccessorLevelQueryOptions,
     callback: (docs: z.infer<TConfig["dataSchema"]>[]) => void,
   ) => () => void;
   querySnapshotSync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
-    queryParams: QueryOptions,
+    queryParams: AccessorLevelQueryOptions,
     callback: (snapshot: QuerySnapshot<z.infer<TConfig["dataSchema"]>>) => void,
   ) => () => void;
   deleteDoc: (
@@ -273,12 +273,12 @@ type CollectionAccessorSharedMethods<TConfig extends CollectionConfigBase> = {
   ) => () => void;
   querySync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
-    queryParams: QueryOptions,
+    queryParams: AccessorLevelQueryOptions,
     callback: (docs: z.infer<TConfig["dataSchema"]>[]) => void,
   ) => () => void;
   querySnapshotSync: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
-    queryParams: QueryOptions,
+    queryParams: AccessorLevelQueryOptions,
     callback: (snapshot: QuerySnapshot<z.infer<TConfig["dataSchema"]>>) => void,
   ) => () => void;
   docToData: (
@@ -437,7 +437,7 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
 
   type EffectiveQuerySubscriptionParams = {
     collectionIdentityParams: CollIdentityParams;
-    effectiveQuery: QueryOptions;
+    effectiveQuery: AccessorLevelQueryOptions;
   };
   const collectionGroupName = (() => {
     const segments = config.path.split("/").filter(Boolean);
@@ -733,14 +733,17 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     },
     querySync: (
       collectionIdentityParams: CollIdentityParams,
-      queryParams: QueryOptions,
+      queryParams: AccessorLevelQueryOptions,
       callback: (docs: _DataType[]) => void,
     ) => {
-      const effectiveQuery = resolveScopedQueryOptions(
-        config,
-        collectionIdentityParams as Record<string, unknown>,
-        queryParams,
-      );
+      const effectiveQuery = {
+        ...resolveScopedQueryOptions(
+          config,
+          collectionIdentityParams as Record<string, unknown>,
+          queryParams,
+        ),
+        ...extractCursorOptions(queryParams),
+      };
       return querySubscriptionCache.subscribe(
         {
           collectionIdentityParams,
@@ -751,14 +754,17 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     },
     querySnapshotSync: (
       collectionIdentityParams: CollIdentityParams,
-      queryParams: QueryOptions,
+      queryParams: AccessorLevelQueryOptions,
       callback: (snapshot: QuerySnapshot<_DataType>) => void,
     ) => {
-      const effectiveQuery = resolveScopedQueryOptions(
-        config,
-        collectionIdentityParams as Record<string, unknown>,
-        queryParams,
-      );
+      const effectiveQuery = {
+        ...resolveScopedQueryOptions(
+          config,
+          collectionIdentityParams as Record<string, unknown>,
+          queryParams,
+        ),
+        ...extractCursorOptions(queryParams),
+      };
       return querySnapshotSubscriptionCache.subscribe(
         {
           collectionIdentityParams,
