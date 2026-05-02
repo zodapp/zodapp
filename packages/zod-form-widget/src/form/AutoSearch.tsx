@@ -18,9 +18,9 @@ import type {
 import type { z } from 'zod';
 import debounce from 'lodash/debounce';
 
-type AutoSearchProps<T extends z.ZodObject<z.ZodRawShape>> = {
+type AutoSearchProps<T extends z.ZodTypeAny> = {
   schema: T;
-  defaultValues?: Partial<z.input<T>>;
+  defaultValues?: z.input<T> | Partial<z.input<T>>;
   onChange?: (data: z.output<T>) => void;
   debounceMs?: number;
   showPreview?: boolean;
@@ -32,7 +32,7 @@ type AutoSearchProps<T extends z.ZodObject<z.ZodRawShape>> = {
   collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
 };
 
-const AutoSearchInner = <T extends z.ZodObject<z.ZodRawShape>>({
+const AutoSearchInner = <T extends z.ZodTypeAny>({
   schema,
   defaultValues,
   onChange,
