@@ -1,12 +1,19 @@
-import { Modal, Button, Group, Text, Alert, FileButton } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { IconUpload } from '@tabler/icons-react';
-import React, { useCallback, useMemo, useState } from 'react';
-import { z } from 'zod';
-import { csvToTable, fromTable, toTable, type Table as TabularTable } from '@zodapp/zod-tabular';
-import { TabularPreviewTable } from './TabularPreviewTable';
+import { Modal, Button, Group, Text, Alert } from "@mantine/core";
+import { Dropzone } from "@mantine/dropzone";
+import { useDisclosure } from "@mantine/hooks";
+import { IconFile, IconUpload, IconX } from "@tabler/icons-react";
+import React, { useCallback, useMemo, useState } from "react";
+import { z } from "zod";
+import {
+  csvToTable,
+  fromTable,
+  toTable,
+  type Table as TabularTable,
+} from "@zodapp/zod-tabular";
+import { TabularPreviewTable } from "./TabularPreviewTable";
 
 const PREVIEW_LIMIT = 20;
+const CSV_DROPZONE_ACCEPT = { "text/csv": [".csv"] };
 
 interface ImportProps<S extends z.ZodType> {
   schema: S;
@@ -14,7 +21,11 @@ interface ImportProps<S extends z.ZodType> {
   validateTable?: (table: TabularTable) => void;
 }
 
-function useImportState<S extends z.ZodType>({ schema, onImport, validateTable }: ImportProps<S>) {
+function useImportState<S extends z.ZodType>({
+  schema,
+  onImport,
+  validateTable,
+}: ImportProps<S>) {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filename, setFilename] = useState<string | null>(null);
@@ -40,7 +51,7 @@ function useImportState<S extends z.ZodType>({ schema, onImport, validateTable }
         if (table.length < 2) {
           setRows([]);
           setPreviewTable(table.slice(0, 1));
-          setError('CSVにデータ行がありません。');
+          setError("CSVにデータ行がありません。");
           return;
         }
 
@@ -50,7 +61,7 @@ function useImportState<S extends z.ZodType>({ schema, onImport, validateTable }
         if (importedRows.length === 0) {
           setRows([]);
           setPreviewTable(table.slice(0, 1));
-          setError('CSVから取り込めるデータがありません。');
+          setError("CSVから取り込めるデータがありません。");
           return;
         }
 
@@ -59,11 +70,22 @@ function useImportState<S extends z.ZodType>({ schema, onImport, validateTable }
       } catch (e) {
         setRows([]);
         setPreviewTable([]);
-        setError(e instanceof Error ? `CSV解析エラー: ${e.message}` : 'CSVの解析に失敗しました。');
+        setError(
+          e instanceof Error
+            ? `CSV解析エラー: ${e.message}`
+            : "CSVの解析に失敗しました。",
+        );
       }
     },
-    [schema, validateTable]
+    [schema, validateTable],
   );
+
+  const handleRejectFile = useCallback(() => {
+    setRows([]);
+    setPreviewTable([]);
+    setFilename(null);
+    setError("CSVファイルを選択してください。");
+  }, []);
 
   const executeImport = useCallback(async () => {
     if (rows.length === 0) return;
@@ -74,7 +96,9 @@ function useImportState<S extends z.ZodType>({ schema, onImport, validateTable }
       reset();
     } catch (e) {
       setError(
-        e instanceof Error ? `インポートエラー: ${e.message}` : 'インポートに失敗しました。'
+        e instanceof Error
+          ? `インポートエラー: ${e.message}`
+          : "インポートに失敗しました。",
       );
     } finally {
       setIsImporting(false);
@@ -93,7 +117,8 @@ function useImportState<S extends z.ZodType>({ schema, onImport, validateTable }
     previewHeaders,
     reset,
     handleSelectFile,
-    executeImport
+    handleRejectFile,
+    executeImport,
   };
 }
 
@@ -107,8 +132,8 @@ function ImportContent<S extends z.ZodType>({
   state,
   showCancel,
   onCancel,
-  submitLabel = 'CSVをインポート',
-  renderFooter
+  submitLabel = "CSVをインポート",
+  renderFooter,
 }: {
   state: ReturnType<typeof useImportState<S>>;
   showCancel?: boolean;
@@ -124,23 +149,61 @@ function ImportContent<S extends z.ZodType>({
     previewRows,
     previewHeaders,
     handleSelectFile,
-    executeImport
+    handleRejectFile,
+    executeImport,
   } = state;
 
   return (
     <>
-      <Group justify="space-between" mb="sm">
-        <Text size="sm" c="dimmed">
-          CSVファイルを選択して内容を確認後に取り込みます。
-        </Text>
-        <FileButton onChange={handleSelectFile} accept=".csv,text/csv">
-          {(props) => (
-            <Button {...props} leftSection={<IconUpload size={16} />} variant="default">
-              CSVを選択
-            </Button>
-          )}
-        </FileButton>
-      </Group>
+      <Text size="sm" c="dimmed" mb="sm">
+        CSVファイルを選択して内容を確認後に取り込みます。
+      </Text>
+
+      <Dropzone
+        onDrop={(files) => {
+          void handleSelectFile(files[0] ?? null);
+        }}
+        onReject={handleRejectFile}
+        accept={CSV_DROPZONE_ACCEPT}
+        multiple={false}
+        loading={isImporting}
+        disabled={isImporting}
+        mb="sm"
+      >
+        <Group
+          justify="center"
+          gap="xl"
+          mih={180}
+          style={{ pointerEvents: "none" }}
+        >
+          <Dropzone.Accept>
+            <IconUpload
+              size={52}
+              color="var(--mantine-color-blue-6)"
+              stroke={1.5}
+            />
+          </Dropzone.Accept>
+          <Dropzone.Reject>
+            <IconX size={52} color="var(--mantine-color-red-6)" stroke={1.5} />
+          </Dropzone.Reject>
+          <Dropzone.Idle>
+            <IconFile
+              size={52}
+              color="var(--mantine-color-dimmed)"
+              stroke={1.5}
+            />
+          </Dropzone.Idle>
+
+          <div>
+            <Text size="lg" inline>
+              ここにCSVファイルをドラッグ、またはクリックして選択
+            </Text>
+            <Text size="sm" c="dimmed" inline mt={7}>
+              CSV形式のファイルを1つ選択してください
+            </Text>
+          </div>
+        </Group>
+      </Dropzone>
 
       {filename && (
         <Text size="sm" mb="sm">
@@ -197,14 +260,20 @@ function ImportContent<S extends z.ZodType>({
 export function useImportModal<S extends z.ZodType>(props: ImportProps<S>) {
   const [opened, { open, close }] = useDisclosure(false);
   const state = useImportState(props);
+  const { reset } = state;
 
   const handleClose = useCallback(() => {
     close();
-    state.reset();
-  }, [close, state.reset]);
+    reset();
+  }, [close, reset]);
 
   const modal = (
-    <Modal opened={opened} onClose={handleClose} title="データインポート" size="calc(100vw - 3rem)">
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title="データインポート"
+      size="calc(100vw - 3rem)"
+    >
       <ImportContent state={state} showCancel onCancel={handleClose} />
     </Modal>
   );
@@ -224,5 +293,11 @@ export function ImportPanel<S extends z.ZodType>({
 }: ImportPanelProps<S>) {
   const state = useImportState(props);
 
-  return <ImportContent state={state} submitLabel={submitLabel} renderFooter={renderFooter} />;
+  return (
+    <ImportContent
+      state={state}
+      submitLabel={submitLabel}
+      renderFooter={renderFooter}
+    />
+  );
 }

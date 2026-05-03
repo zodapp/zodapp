@@ -223,7 +223,7 @@ const FileComponent = wrapComponent(function FileComponentImplement({
             </Dropzone.Idle>
 
             <div>
-              <Text size="xl" inline>
+              <Text size="lg" inline>
                 ここにファイルをドラッグ、またはクリックして選択
               </Text>
               <Text size="sm" c="dimmed" inline mt={7}>
