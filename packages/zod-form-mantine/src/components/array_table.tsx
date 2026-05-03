@@ -464,7 +464,6 @@ const ArrayTableComponent = wrapComponent(
                   strategy={verticalListSortingStrategy}
                 >
                   <Table
-                    withColumnBorders
                     striped
                     style={{
                       tableLayout: "fixed",
