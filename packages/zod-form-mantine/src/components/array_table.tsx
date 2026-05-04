@@ -46,6 +46,7 @@ const CONTROL_COLUMN_WIDTH = 38;
 const DEFAULT_COLUMN_WIDTH = 140;
 const ROW_TOP_INSERT = "-0.5px";
 const ROW_BOTTOM_INSERT = "-0.5px";
+const APPEND_INSERT_ROW_HEIGHT = 12;
 
 type TableColumn = {
   propertyName: string;
@@ -612,30 +613,48 @@ const ArrayTableComponent = wrapComponent(
                           </SortableRow>
                         );
                       })}
+                      {canInsert && !isDisabled && (
+                        <Table.Tr
+                          style={{
+                            height: APPEND_INSERT_ROW_HEIGHT,
+                          }}
+                        >
+                          <Table.Td
+                            style={{
+                              position: "relative",
+                              height: APPEND_INSERT_ROW_HEIGHT,
+                              paddingTop: 0,
+                              paddingBottom: 0,
+                              borderBottom: "none",
+                            }}
+                          >
+                            <InsertButton
+                              active
+                              top={ROW_TOP_INSERT}
+                              onClick={() => {
+                                const dv = getDefaultValue(itemSchema);
+                                append(dv);
+                              }}
+                            />
+                          </Table.Td>
+                          {columns.map((column) => (
+                            <Table.Td
+                              key={column.propertyName}
+                              style={{
+                                height: APPEND_INSERT_ROW_HEIGHT,
+                                paddingTop: 0,
+                                paddingBottom: 0,
+                                borderBottom: "none",
+                              }}
+                            />
+                          ))}
+                        </Table.Tr>
+                      )}
                     </Table.Tbody>
                   </Table>
                 </SortableContext>
               </DndContext>
             </div>
-            {canInsert && !isDisabled && (
-              <div
-                style={{
-                  position: "relative",
-                  minHeight: 24,
-                  marginTop: 5,
-                  marginBottom: 15,
-                }}
-              >
-                <InsertButton
-                  active
-                  top="-4px"
-                  onClick={() => {
-                    const dv = getDefaultValue(itemSchema);
-                    append(dv);
-                  }}
-                />
-              </div>
-            )}
           </>
         )}
       </InputWrapper>
