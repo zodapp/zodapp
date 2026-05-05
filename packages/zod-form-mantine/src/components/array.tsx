@@ -33,6 +33,7 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 type ArraySchema = ReturnType<typeof zf.array>;
 
 const DISABLE_DRAG_WHEN_SINGLE_ITEM = false;
+const SHOW_ITEM_BOX = true;
 
 function SortableItem({
   id,
@@ -167,6 +168,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   };
 
   const isSingleMaxItem = items.length === 1 && maxLength?.maximum === 1;
+  const isBoxedItem = SHOW_ITEM_BOX || isSingleMaxItem;
   const isDragDisabled =
     readOnly === true ||
     isSingleMaxItem ||
@@ -218,7 +220,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
             hideDisabledHandle={isSingleMaxItem}
             paddingLeftOverride={isSingleMaxItem ? 25 : undefined}
           >
-            {isSingleMaxItem ? (
+            {isBoxedItem ? (
               <div
                 style={{
                   border: "1px solid var(--mantine-color-gray-3)",
@@ -244,7 +246,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
           hideDisabledHandle={isSingleMaxItem}
           paddingLeftOverride={isSingleMaxItem ? 25 : undefined}
         >
-          {isSingleMaxItem ? (
+          {isBoxedItem ? (
             <div
               style={{
                 border: "1px solid var(--mantine-color-gray-3)",

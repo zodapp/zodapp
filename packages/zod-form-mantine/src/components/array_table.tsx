@@ -39,8 +39,8 @@ const INSERT_BUTTON_LAYOUT_GUIDES = true;
 const INSERT_BUTTON_OPACITY = {
   normalActive: 1,
   normalInactive: 0,
-  guideActive: 0.8,
-  guideInactive: 0.35,
+  guideActive: 1,
+  guideInactive: 1,
 };
 const CONTROL_COLUMN_WIDTH = 38;
 const DEFAULT_COLUMN_WIDTH = 140;
