@@ -61,7 +61,7 @@
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-transform": "workspace:*",
     "dayjs": "^1.11.13",
-    "zod": "4.4.3"
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
