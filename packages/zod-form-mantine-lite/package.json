@@ -67,7 +67,7 @@
     "@zodapp/zod-form-react": "workspace:*",
     "dayjs": "^1.11.19",
     "react-is": "^19.2.4",
-    "zod": "4.4.3"
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@mantine/core": "^8.2.7",

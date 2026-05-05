@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@zodapp/zod-propagating-registry": "workspace:*",
-    "zod": "4.4.3"
+    "zod": "^4.4.3"
   },
   "volta": {
     "extends": "../../package.json"

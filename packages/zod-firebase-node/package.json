@@ -50,7 +50,7 @@
     "@zodapp/caching-utilities": "workspace:*",
     "firebase-admin": "^13.5.0",
     "sorted-btree": "^2.1.0",
-    "zod": "4.4.3"
+    "zod": "^4.4.3"
   },
   "volta": {
     "extends": "../../package.json"
