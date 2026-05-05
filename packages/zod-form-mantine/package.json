@@ -69,7 +69,7 @@
     "dayjs": "^1.11.19",
     "lodash": "^4.17.21",
     "react-is": "^19.2.4",
-    "zod": "^4.3.6"
+    "zod": "4.4.3"
   },
   "peerDependencies": {
     "@mantine/core": "^8.2.7",

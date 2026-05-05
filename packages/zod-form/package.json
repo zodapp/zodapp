@@ -51,7 +51,7 @@
   "dependencies": {
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-transform": "workspace:*",
-    "zod": "^4.3.6"
+    "zod": "4.4.3"
   },
   "volta": {
     "extends": "../../package.json"

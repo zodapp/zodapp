@@ -54,7 +54,7 @@
     "@zodapp/zod-firebase-browser": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
     "uuid": "^13.0.0",
-    "zod": "^4.3.6"
+    "zod": "4.4.3"
   },
   "volta": {
     "extends": "../../package.json"
