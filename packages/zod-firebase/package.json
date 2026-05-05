@@ -50,7 +50,7 @@
   "dependencies": {
     "@zodapp/caching-utilities": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
-    "zod": "^4.3.6"
+    "zod": "4.4.3"
   },
   "volta": {
     "extends": "../../package.json"

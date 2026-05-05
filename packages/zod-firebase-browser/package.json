@@ -59,7 +59,7 @@
     "@zodapp/caching-utilities": "workspace:*",
     "@zodapp/zod-firebase": "workspace:*",
     "sorted-btree": "^2.1.0",
-    "zod": "^4.3.6"
+    "zod": "4.4.3"
   },
   "volta": {
     "extends": "../../package.json"
