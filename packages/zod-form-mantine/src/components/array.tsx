@@ -32,13 +32,21 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
+const DISABLE_DRAG_WHEN_SINGLE_ITEM = false;
+
 function SortableItem({
   id,
   disabled,
+  reserveHandleSpace,
+  hideDisabledHandle,
+  paddingLeftOverride,
   children,
 }: {
   id: string;
   disabled: boolean;
+  reserveHandleSpace?: boolean;
+  hideDisabledHandle?: boolean;
+  paddingLeftOverride?: number;
   children: React.ReactNode;
 }) {
   const {
@@ -50,7 +58,10 @@ function SortableItem({
     isDragging,
   } = useSortable({ id, disabled, animateLayoutChanges: () => false });
 
-  const paddingLeft = disabled ? 15 : 37;
+  const paddingLeft =
+    paddingLeftOverride ?? (disabled && !reserveHandleSpace ? 15 : 37);
+  const disabledHandleWidth = 5;
+  const disabledHandleRightGap = 5;
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -64,20 +75,21 @@ function SortableItem({
 
   return (
     <div ref={setNodeRef} style={style}>
-      {disabled ? (
+      {disabled && !hideDisabledHandle ? (
         <div
           style={{
             position: "absolute",
-            left: paddingLeft - 8,
+            left: paddingLeft - disabledHandleWidth - disabledHandleRightGap,
             top: 1,
             bottom: 1,
-            width: 5,
+            width: disabledHandleWidth,
             zIndex: 1,
+            backgroundColor: "var(--mantine-color-gray-3)",
             borderLeft: "1px solid var(--mantine-color-gray-3)",
             borderRight: "1px solid var(--mantine-color-gray-3)",
           }}
         />
-      ) : (
+      ) : !disabled ? (
         <div
           {...attributes}
           {...listeners}
@@ -95,7 +107,7 @@ function SortableItem({
             borderRadius: 4,
           }}
         />
-      )}
+      ) : null}
       {children}
     </div>
   );
@@ -154,7 +166,11 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
     }
   };
 
-  const isDragDisabled = readOnly === true;
+  const isSingleMaxItem = items.length === 1 && maxLength?.maximum === 1;
+  const isDragDisabled =
+    readOnly === true ||
+    isSingleMaxItem ||
+    (DISABLE_DRAG_WHEN_SINGLE_ITEM && items.length <= 1);
 
   const itemsWithInsertButtons = (items || []).flatMap((item) => {
     const index = item.index;
@@ -195,13 +211,55 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       <Suspense
         key={`item-${item.key}`}
         fallback={
-          <SortableItem id={item.key} disabled={isDragDisabled}>
-            <LoadingComponent {...childProps} />
+          <SortableItem
+            id={item.key}
+            disabled={isDragDisabled}
+            reserveHandleSpace={!readOnly}
+            hideDisabledHandle={isSingleMaxItem}
+            paddingLeftOverride={isSingleMaxItem ? 25 : undefined}
+          >
+            {isSingleMaxItem ? (
+              <div
+                style={{
+                  border: "1px solid var(--mantine-color-gray-3)",
+                  borderRadius: 4,
+                  paddingLeft: 12,
+                  paddingRight: 12,
+                  paddingTop: 4,
+                  paddingBottom: 4,
+                }}
+              >
+                <LoadingComponent {...childProps} />
+              </div>
+            ) : (
+              <LoadingComponent {...childProps} />
+            )}
           </SortableItem>
         }
       >
-        <SortableItem id={item.key} disabled={isDragDisabled}>
-          <Dynamic {...childProps} />
+        <SortableItem
+          id={item.key}
+          disabled={isDragDisabled}
+          reserveHandleSpace={!readOnly}
+          hideDisabledHandle={isSingleMaxItem}
+          paddingLeftOverride={isSingleMaxItem ? 25 : undefined}
+        >
+          {isSingleMaxItem ? (
+            <div
+              style={{
+                border: "1px solid var(--mantine-color-gray-3)",
+                borderRadius: 4,
+                paddingLeft: 12,
+                paddingRight: 12,
+                paddingTop: 4,
+                paddingBottom: 4,
+              }}
+            >
+              <Dynamic {...childProps} />
+            </div>
+          ) : (
+            <Dynamic {...childProps} />
+          )}
 
           {canRemove && !readOnly && (
             <ActionIcon

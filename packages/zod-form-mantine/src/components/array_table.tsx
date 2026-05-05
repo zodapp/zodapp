@@ -47,6 +47,9 @@ const DEFAULT_COLUMN_WIDTH = 140;
 const ROW_TOP_INSERT = "-0.5px";
 const ROW_BOTTOM_INSERT = "-0.5px";
 const APPEND_INSERT_ROW_HEIGHT = 12;
+const DISABLED_HANDLE_WIDTH = 5;
+const DISABLED_HANDLE_RIGHT_GAP = 5;
+const DISABLE_DRAG_WHEN_SINGLE_ITEM = false;
 
 type TableColumn = {
   propertyName: string;
@@ -116,7 +119,21 @@ function SortableRow({
     zIndex: isDragging ? 100 : 0,
   };
 
-  const dragHandle = disabled ? null : (
+  const dragHandle = disabled ? (
+    <div
+      style={{
+        position: "absolute",
+        left: 37 - DISABLED_HANDLE_WIDTH - DISABLED_HANDLE_RIGHT_GAP,
+        top: 1,
+        bottom: 1,
+        width: DISABLED_HANDLE_WIDTH,
+        zIndex: 1,
+        backgroundColor: "var(--mantine-color-gray-3)",
+        borderLeft: "1px solid var(--mantine-color-gray-3)",
+        borderRight: "1px solid var(--mantine-color-gray-3)",
+      }}
+    />
+  ) : (
     <div
       {...attributes}
       {...listeners}
@@ -389,6 +406,8 @@ const ArrayTableComponent = wrapComponent(
       ? items.findIndex((item) => item.key === activeId)
       : -1;
     const isDraggingItem = activeIndex !== -1;
+    const isDragDisabled =
+      isDisabled || (DISABLE_DRAG_WHEN_SINGLE_ITEM && items.length <= 1);
 
     const sensors = useSensors(
       useSensor(PointerSensor),
@@ -535,7 +554,7 @@ const ArrayTableComponent = wrapComponent(
                           <SortableRow
                             key={item.key}
                             id={item.key}
-                            disabled={isDisabled}
+                            disabled={isDragDisabled}
                           >
                             {(dragHandle) => (
                               <>
