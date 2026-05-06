@@ -83,7 +83,7 @@ export const useExternalKeyOptions = (
 
   const configType = config.type;
   const contextId = "contextId" in config
-    ? (config as { contextId: string }).contextId
+    ? (config as unknown as { contextId: string }).contextId
     : undefined;
   const { resolverContext } = useZodFormContext();
 
@@ -140,7 +140,7 @@ export const useExternalKeyAction = (
       return undefined;
     }
     if ("reference" in resolvedConfig) {
-      const ref = (resolvedConfig as { reference: object }).reference;
+      const ref = (resolvedConfig as unknown as { reference: object }).reference;
       return collectionReferenceActionMap.get(ref);
     }
     return undefined;

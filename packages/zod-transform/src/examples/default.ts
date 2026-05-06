@@ -4,7 +4,7 @@
  * あくまでサンプルであり、zod-formでは異なる実装が使われていることに注意してください。
  */
 
-import { PreprocessorDef, preprocess } from "@zodapp/zod-transform";
+import { PreprocessorDef, preprocess } from "../index";
 import z from "zod";
 
 import { $ZodCheckLengthEqualsDef, $ZodCheckMinLengthDef } from "zod/v4/core";

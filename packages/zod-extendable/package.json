@@ -14,17 +14,29 @@
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
-  "keywords": ["zod", "schema", "metadata", "extensible"],
+  "keywords": [
+    "zod",
+    "schema",
+    "metadata",
+    "extensible"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run",
@@ -40,6 +52,7 @@
     "eslint": "^9.34.0",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

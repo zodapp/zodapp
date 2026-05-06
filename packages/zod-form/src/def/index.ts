@@ -17,6 +17,7 @@ import {
   getMeta as getZodExtendableMeta,
   MetaOf,
   schemaType,
+  type ZodPropagatingRegistryType,
 } from "@zodapp/zod-extendable";
 
 import type {
@@ -257,6 +258,16 @@ type ZfRegistryKey = {
   [K in keyof typeof zf]: (typeof zf)[K] extends { registry: any } ? K : never;
 }[keyof typeof zf];
 
+type ZfRegistry<TypeName extends ZfRegistryKey> =
+  (typeof zf)[TypeName] extends { registry: infer Registry }
+    ? Registry
+    : never;
+
+type ZfMeta<TypeName extends ZfRegistryKey> =
+  ZfRegistry<TypeName> extends ZodPropagatingRegistryType<any, any, any>
+    ? MetaOf<ZfRegistry<TypeName>>
+    : never;
+
 // TypeNameがない場合は、すべての型のUNION
 const getMetaByType = <
   S extends z.ZodTypeAny,
@@ -264,10 +275,8 @@ const getMetaByType = <
 >(
   schema: S,
   _typeName?: TypeName,
-) => {
-  return getZodExtendableMeta(schema) as MetaOf<
-    (typeof zf)[TypeName]["registry"]
-  >;
+): ZfMeta<TypeName> => {
+  return getZodExtendableMeta(schema) as ZfMeta<TypeName>;
 };
 
 // TypeNameがない場合、schemaのtypeを利用できる場合は利用する
@@ -286,7 +295,7 @@ export const getMeta = <
 >(
   schema: S,
   _typeName?: TypeName,
-) => {
+): ZfMeta<TypeName> => {
   return getMetaByType<S, TypeName>(schema);
 };
 

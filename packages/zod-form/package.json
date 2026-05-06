@@ -14,24 +14,63 @@
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
-  "keywords": ["zod", "form", "validation"],
+  "keywords": [
+    "zod",
+    "form",
+    "validation"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./def": "./src/def/index.ts",
-    "./externalKey": "./src/externalKey/index.ts",
-    "./externalKey/types": "./src/externalKey/types.ts",
-    "./file": "./src/file/index.ts",
-    "./file/types": "./src/file/types.ts",
-    "./resolverContext": "./src/resolverContext/index.ts",
-    "./resolverContext/types": "./src/resolverContext/types.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./def": {
+      "types": "./dist/def/index.d.ts",
+      "import": "./dist/def/index.js",
+      "require": "./dist/def/index.cjs"
+    },
+    "./externalKey": {
+      "types": "./dist/externalKey/index.d.ts",
+      "import": "./dist/externalKey/index.js",
+      "require": "./dist/externalKey/index.cjs"
+    },
+    "./externalKey/types": {
+      "types": "./dist/externalKey/types.d.ts",
+      "import": "./dist/externalKey/types.js",
+      "require": "./dist/externalKey/types.cjs"
+    },
+    "./file": {
+      "types": "./dist/file/index.d.ts",
+      "import": "./dist/file/index.js",
+      "require": "./dist/file/index.cjs"
+    },
+    "./file/types": {
+      "types": "./dist/file/types.d.ts",
+      "import": "./dist/file/types.js",
+      "require": "./dist/file/types.cjs"
+    },
+    "./resolverContext": {
+      "types": "./dist/resolverContext/index.d.ts",
+      "import": "./dist/resolverContext/index.js",
+      "require": "./dist/resolverContext/index.cjs"
+    },
+    "./resolverContext/types": {
+      "types": "./dist/resolverContext/types.d.ts",
+      "import": "./dist/resolverContext/types.js",
+      "require": "./dist/resolverContext/types.cjs"
+    }
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run",
@@ -45,6 +84,7 @@
     "eslint": "^9.34.0",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

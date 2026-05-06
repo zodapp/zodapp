@@ -112,7 +112,7 @@ export type RegisteredExternalKeyConfig = ExternalKeyConfigRegistry extends {
   config: infer T;
 }
   ? T
-  : BaseExternalKeyConfig;
+  : BaseExternalKeyConfig & Record<string, unknown>;
 
 /**
  * 登録済みの外部キー action 設定型
