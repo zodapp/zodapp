@@ -23,14 +23,25 @@
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./examples/*": "./src/examples/*.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./examples/*": {
+      "types": "./dist/examples/*.d.ts",
+      "import": "./dist/examples/*.js",
+      "require": "./dist/examples/*.cjs"
+    }
   },
   "scripts": {
     "test": "vitest run",
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
@@ -43,6 +54,7 @@
     "firebase": "^12.9.0",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

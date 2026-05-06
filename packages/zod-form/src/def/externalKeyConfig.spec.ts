@@ -7,7 +7,7 @@
  * 注意: このテストは apps/web の declare module による型拡張が
  * 適用された状態でのみ正しく動作します。
  * packages/zod-form 単体では RegisteredExternalKeyConfig は
- * BaseExternalKeyConfig にフォールバックします。
+ * BaseExternalKeyConfig & Record<string, unknown> にフォールバックします。
  */
 import { describe, it, expectTypeOf } from "vitest";
 import { zf } from "./index";
@@ -21,6 +21,9 @@ import type {
   ExternalKeyConfigRegistry,
 } from "../externalKey/types";
 
+type UnregisteredExternalKeyConfigFallback = BaseExternalKeyConfig &
+  Record<string, unknown>;
+
 describe("ExternalKeyConfig 型テスト（base package）", () => {
   describe("ExternalKeyConfigRegistry の初期状態", () => {
     it("ExternalKeyConfigRegistry は初期状態では空オブジェクト型", () => {
@@ -29,10 +32,10 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       expectTypeOf<ExternalKeyConfigRegistry>().toEqualTypeOf<{}>();
     });
 
-    it("RegisteredExternalKeyConfig は未拡張時 BaseExternalKeyConfig にフォールバック", () => {
+    it("RegisteredExternalKeyConfig は未拡張時に拡張可能な BaseExternalKeyConfig にフォールバック", () => {
       // ExternalKeyConfigRegistry に config が定義されていない場合、
-      // RegisteredExternalKeyConfig は BaseExternalKeyConfig にフォールバック
-      expectTypeOf<RegisteredExternalKeyConfig>().toEqualTypeOf<BaseExternalKeyConfig>();
+      // RegisteredExternalKeyConfig は plugin 固有フィールドを許す fallback にする
+      expectTypeOf<RegisteredExternalKeyConfig>().toEqualTypeOf<UnregisteredExternalKeyConfigFallback>();
     });
 
     it("RegisteredExternalKeyActionConfig は未拡張時 BaseExternalKeyActionConfig にフォールバック", () => {
@@ -84,24 +87,23 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
     });
 
     /**
-     * 追加プロパティはエラーになる:
+     * 未拡張時も追加プロパティは指定できる:
      *
-     * BaseExternalKeyConfig は `{ type: TType }` のみを持つため、
-     * 追加プロパティを指定するとコンパイルエラーになります。
+     * zod-form core は plugin 側の具体フィールドを知らないため、
+     * BaseExternalKeyConfig に任意の追加プロパティを許す fallback にします。
      *
      * ```typescript
-     * // これはコンパイルエラー
      * zf.string().register(zf.externalKey.registry, {
      *   externalKeyConfig: {
      *     type: "customResolver",
-     *     customOption: "value", // Error: 余分なプロパティ
+     *     customOption: "value",
      *   },
      * });
      * ```
      *
      * アプリ側で declare module による型拡張を行い、
-     * 具体的な Config 型（FirestoreExternalKeyConfig など）を登録することで、
-     * 追加プロパティを持つ設定を使用できるようになります。
+     * 具体的な Config 型（FirestoreExternalKeyConfig など）を登録すると、
+     * plugin 固有フィールドも型安全に制限できます。
      */
   });
 
@@ -133,8 +135,8 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       // RegisteredExternalKeyConfig の型推論を確認
       type Registered = RegisteredExternalKeyConfig;
 
-      // 未拡張の場合は BaseExternalKeyConfig
-      expectTypeOf<Registered>().toEqualTypeOf<BaseExternalKeyConfig>();
+      // 未拡張の場合は plugin 固有フィールドを許す fallback
+      expectTypeOf<Registered>().toEqualTypeOf<UnregisteredExternalKeyConfigFallback>();
 
       // BaseExternalKeyConfig は type を持つ
       expectTypeOf<BaseExternalKeyConfig["type"]>().toEqualTypeOf<string>();

@@ -9,6 +9,7 @@ import {
 
 import { type MetaOf } from "@zodapp/zod-propagating-registry";
 export type { MetaOf };
+export type { ZodPropagatingRegistryType } from "@zodapp/zod-propagating-registry";
 
 const zodExtendableRegistryKey = Symbol.for("zodExtendable");
 
