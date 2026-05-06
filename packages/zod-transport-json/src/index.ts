@@ -11,7 +11,7 @@ import { z } from "zod";
 
 export type JsonTransport<TSchema extends z.ZodTypeAny> = {
   domainSchema: TSchema;
-  transportSchema: z.ZodTypeAny;
+  transportSchema: z.ZodType<unknown>;
   decode: (input: unknown) => z.infer<TSchema>;
   encode: (value: z.infer<TSchema>) => unknown;
 };
@@ -131,7 +131,7 @@ const isStringCompatibleMapKey = (schema: z.ZodTypeAny): boolean => {
   }
 };
 
-const toTransportSchema = (schema: z.ZodTypeAny): z.ZodTypeAny => {
+const toTransportSchema = (schema: z.ZodTypeAny): z.ZodType<unknown> => {
   const zodSchema = assertZodType(schema);
 
   switch (zodSchema.type) {
