@@ -215,6 +215,28 @@ function addSchemaColumn(
   });
 }
 
+function isSingleCellValueSchema(schema: z.ZodTypeAny): boolean {
+  const inner = unwrapWrappers(schema);
+
+  if (
+    inner instanceof z.ZodString ||
+    inner instanceof z.ZodNumber ||
+    inner instanceof z.ZodBoolean ||
+    inner instanceof z.ZodDate ||
+    inner instanceof z.ZodEnum ||
+    inner instanceof z.ZodLiteral ||
+    inner instanceof z.ZodNever
+  ) {
+    return true;
+  }
+
+  if (inner instanceof z.ZodUnion) {
+    return (inner.options as z.ZodTypeAny[]).every(isSingleCellValueSchema);
+  }
+
+  return false;
+}
+
 function isValidRecordKey(key: string): boolean {
   return key.length > 0 && !key.includes(".") && key !== "*";
 }
@@ -563,7 +585,15 @@ function collectRecordTemplatesFromRecord(
   const templateKeys = [...prefixKeys, "*"];
   const valueInner = unwrapWrappers(valueSchema);
 
-  if (valueInner instanceof z.ZodObject) {
+  if (isSingleCellValueSchema(valueSchema)) {
+    addRecordTemplate(
+      result,
+      templateKeys,
+      valueSchema,
+      buildPathDisplay(templateKeys),
+      isDefault,
+    );
+  } else if (valueInner instanceof z.ZodObject) {
     collectRecordTemplatesFromObject(
       valueInner,
       templateKeys,
@@ -765,6 +795,18 @@ function collectColumns(
   }
 
   if (inner instanceof z.ZodUnion) {
+    if (prefixKeys.length > 0 && isSingleCellValueSchema(schema)) {
+      const meta = getUnwrappedMeta(schema);
+      addSchemaColumn(
+        result,
+        prefixKeys,
+        schema,
+        meta.label ?? prefixKeys[prefixKeys.length - 1] ?? "",
+        isDefault,
+      );
+      return;
+    }
+
     const options = inner.options as z.ZodTypeAny[];
     for (const option of options) {
       collectColumns(option, prefixKeys, result, context, isDefault);
@@ -838,6 +880,17 @@ function collectRecordTemplates(
   }
 
   if (inner instanceof z.ZodUnion) {
+    if (prefixKeys.length > 0 && isSingleCellValueSchema(schema)) {
+      addRecordTemplate(
+        result,
+        prefixKeys,
+        schema,
+        buildPathDisplay(prefixKeys),
+        isDefault,
+      );
+      return;
+    }
+
     for (const option of inner.options as z.ZodTypeAny[]) {
       collectRecordTemplates(option, prefixKeys, result, context, isDefault);
     }

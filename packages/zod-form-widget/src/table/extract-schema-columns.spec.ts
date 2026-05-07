@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { zf } from "@zodapp/zod-form";
 import { z } from "zod";
+import { zf } from "@zodapp/zod-form";
 import {
   extractSchemaColumns,
   extractSchemaRecordTemplates,
@@ -8,6 +8,130 @@ import {
   resolveRecordTemplateLabel,
   resolveRecordTemplateConcretePath,
 } from "./extract-schema-columns";
+
+function unwrapWrappers(schema: z.ZodTypeAny): z.ZodTypeAny {
+  let current = schema;
+  while (
+    current instanceof z.ZodOptional ||
+    current instanceof z.ZodNullable ||
+    current instanceof z.ZodDefault
+  ) {
+    current = current.unwrap() as z.ZodTypeAny;
+  }
+  return current;
+}
+
+describe("extractSchemaColumns leaf union support", () => {
+  it("extracts record templates for single-cell value unions", () => {
+    const schema = z
+      .object({
+        slots: z
+          .record(z.string(), z.union([z.string(), z.number()]).optional())
+          .register(zf.record.registry, { label: "取得項目" })
+          .optional(),
+      })
+      .register(zf.object.registry, {});
+
+    const templates = extractSchemaRecordTemplates(schema);
+
+    expect(templates).toHaveLength(1);
+    expect(templates[0]?.templatePath).toBe("slots.*");
+    expect(unwrapWrappers(templates[0]!.schema)).toBeInstanceOf(z.ZodUnion);
+  });
+
+  it("restores selected record paths with the union schema intact", () => {
+    const schema = z
+      .object({
+        slots: z
+          .record(z.string(), z.union([z.string(), z.number()]).optional())
+          .register(zf.record.registry, { label: "取得項目" })
+          .optional(),
+      })
+      .register(zf.object.registry, {});
+
+    const columns = extractSchemaColumns(schema, {
+      selectedFieldPaths: ["slots.foo"],
+    });
+    const slotColumn = columns.find((column) => column.fieldPath === "slots.foo");
+
+    expect(slotColumn).toBeDefined();
+    expect(unwrapWrappers(slotColumn!.schema)).toBeInstanceOf(z.ZodUnion);
+  });
+
+  it("keeps object union field-path expansion behavior", () => {
+    const schema = z
+      .object({
+        payload: z
+          .union([
+            z
+              .object({
+                fooValue: zf
+                  .string()
+                  .register(zf.string.registry, { label: "Foo" }),
+              })
+              .register(zf.object.registry, {}),
+            z
+              .object({
+                barValue: zf
+                  .number()
+                  .register(zf.number.registry, { label: "Bar" }),
+              })
+              .register(zf.object.registry, {}),
+          ])
+          .register(zf.union.registry, { label: "Payload" }),
+      })
+      .register(zf.object.registry, {});
+
+    const fieldPaths = extractSchemaColumns(schema).map(
+      (column) => column.fieldPath,
+    );
+
+    expect(fieldPaths).toContain("payload.fooValue");
+    expect(fieldPaths).toContain("payload.barValue");
+    expect(fieldPaths).not.toContain("payload");
+  });
+
+  it("does not treat mixed object and scalar unions as single-cell values", () => {
+    const schema = z
+      .object({
+        value: z
+          .union([
+            z
+              .object({
+                child: zf
+                  .string()
+                  .register(zf.string.registry, { label: "Child" }),
+              })
+              .register(zf.object.registry, {}),
+            z.string(),
+          ])
+          .register(zf.union.registry, { label: "Value" }),
+      })
+      .register(zf.object.registry, {});
+
+    const fieldPaths = extractSchemaColumns(schema).map(
+      (column) => column.fieldPath,
+    );
+
+    expect(fieldPaths).toEqual(["value.child"]);
+  });
+
+  it("allows never arms in single-cell value unions", () => {
+    const schema = z
+      .object({
+        value: z
+          .union([z.never(), z.string()])
+          .register(zf.union.registry, { label: "Value" }),
+      })
+      .register(zf.object.registry, {});
+
+    const columns = extractSchemaColumns(schema);
+
+    expect(columns).toHaveLength(1);
+    expect(columns[0]?.fieldPath).toBe("value");
+    expect(columns[0]?.schema).toBeInstanceOf(z.ZodUnion);
+  });
+});
 
 const getFieldPaths = (selectedFieldPaths?: string[]) =>
   extractSchemaColumns(buildPropertiesSchema(), { selectedFieldPaths }).map(
