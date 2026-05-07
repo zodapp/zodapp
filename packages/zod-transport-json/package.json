@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@zodapp/zod-transform": "workspace:*",
+    "dayjs": "^1.11.20",
     "zod": "^4.4.3"
   },
   "volta": {
