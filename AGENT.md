@@ -17,18 +17,18 @@ pnpm build        # 全パッケージビルド
 
 ## 技術スタック
 
-| カテゴリ               | 技術                                  |
-| ---------------------- | ------------------------------------- |
-| パッケージマネージャー | pnpm 10.9.0                           |
-| Node.js                | 22.14.0 (Volta固定)                   |
-| フロントエンド         | React 19 + Vite 7                     |
-| ルーティング           | TanStack Router                       |
+| カテゴリ               | 技術                                     |
+| ---------------------- | ---------------------------------------- |
+| パッケージマネージャー | pnpm 10.9.0                              |
+| Node.js                | 22.22.0 (Volta固定)                      |
+| フロントエンド         | React 19 + Vite 7                        |
+| ルーティング           | TanStack Router                          |
 | フォーム               | TanStack Form + @zodapp/zod-form-mantine |
-| バリデーション         | Zod 4                                 |
-| UI                     | Mantine UI                            |
-| バックエンド           | Firebase (Firestore)                  |
-| テスト                 | Vitest                                |
-| Lint/Format            | ESLint + Prettier                     |
+| バリデーション         | Zod 4                                    |
+| UI                     | Mantine UI                               |
+| バックエンド           | Firebase (Firestore)                     |
+| テスト                 | Vitest                                   |
+| Lint/Format            | ESLint + Prettier                        |
 
 ## プロジェクト構造
 
@@ -103,24 +103,24 @@ type SchemaType = z.infer<typeof schema>;
 
 ### zf拡張の主要な型
 
-| 型                 | 説明                           |
-| ------------------ | ------------------------------ |
-| `zf.string()`      | 文字列入力                     |
-| `zf.number()`      | 数値入力                       |
-| `zf.boolean()`     | チェックボックス               |
-| `zf.date()`        | 日付入力                       |
-| `zf.bigint()`      | BigInt入力                     |
-| `zf.literal()`     | リテラル値                     |
-| `zf.enum()`        | 列挙型（セレクト）             |
-| `zf.array()`       | 配列                           |
-| `zf.tuple()`       | タプル                         |
-| `zf.object()`      | オブジェクト                   |
-| `zf.union()`       | ユニオン型（判別器付き）       |
-| `zf.externalKey()` | 外部キー参照                   |
-| `zf.file()`        | ファイルアップロード           |
-| `zf.message()`     | メッセージ表示（入力なし）     |
-| `zf.computed()`    | 計算フィールド（表示のみ）     |
-| `zf.hidden()`      | 非表示フィールド               |
+| 型                 | 説明                       |
+| ------------------ | -------------------------- |
+| `zf.string()`      | 文字列入力                 |
+| `zf.number()`      | 数値入力                   |
+| `zf.boolean()`     | チェックボックス           |
+| `zf.date()`        | 日付入力                   |
+| `zf.bigint()`      | BigInt入力                 |
+| `zf.literal()`     | リテラル値                 |
+| `zf.enum()`        | 列挙型（セレクト）         |
+| `zf.array()`       | 配列                       |
+| `zf.tuple()`       | タプル                     |
+| `zf.object()`      | オブジェクト               |
+| `zf.union()`       | ユニオン型（判別器付き）   |
+| `zf.externalKey()` | 外部キー参照               |
+| `zf.file()`        | ファイルアップロード       |
+| `zf.message()`     | メッセージ表示（入力なし） |
+| `zf.computed()`    | 計算フィールド（表示のみ） |
+| `zf.hidden()`      | 非表示フィールド           |
 
 ### コンポーネント
 
@@ -144,12 +144,12 @@ export const MyComponent = ({ title }: Props) => {
 
 #### ファイル命名規則
 
-| ファイル名          | 役割                                              |
-| ------------------- | ------------------------------------------------- |
-| `*.route.ts`        | ルート定義（`createRoute`の呼び出し）             |
-| `*.tsx`             | コンポーネント（`lazyRouteComponent`で遅延読み込み） |
-| `Layout.tsx`        | レイアウトコンポーネント                          |
-| `layout.route.ts`   | レイアウトルートの定義                            |
+| ファイル名        | 役割                                                 |
+| ----------------- | ---------------------------------------------------- |
+| `*.route.ts`      | ルート定義（`createRoute`の呼び出し）                |
+| `*.tsx`           | コンポーネント（`lazyRouteComponent`で遅延読み込み） |
+| `Layout.tsx`      | レイアウトコンポーネント                             |
+| `layout.route.ts` | レイアウトルートの定義                               |
 
 #### ルートツリーの構築
 
@@ -162,10 +162,7 @@ const routeTree = rootRoute.addChildren([
   formRoute.addChildren([formListRoute, formDetailRoute]),
   taskManagerRoute.addChildren([
     topLayoutRoute.addChildren([workspacesRoute]),
-    workspaceLayoutRoute.addChildren([
-      workspaceDetailRoute,
-      projectsRoute,
-    ]),
+    workspaceLayoutRoute.addChildren([workspaceDetailRoute, projectsRoute]),
   ]),
 ]);
 ```
@@ -185,11 +182,11 @@ const searchSchema = z.object({
 });
 
 export const formDetailRoute = createRoute({
-  getParentRoute: () => formRoute,  // 親ルートを指定
+  getParentRoute: () => formRoute, // 親ルートを指定
   path: "detail",
   validateSearch: (paramsTree: ParamsTree) =>
     fromParamsTree(paramsTree, searchSchema),
-  component: lazyRouteComponent(() => import("./detail")),  // 同名の.tsxを読み込み
+  component: lazyRouteComponent(() => import("./detail")), // 同名の.tsxを読み込み
 });
 ```
 
