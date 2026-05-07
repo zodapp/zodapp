@@ -13,6 +13,7 @@ export { component as ComputedComponent } from "./computed.js";
 export { component as DerivedComponent } from "./derived.js";
 export { component as ExternalKeyComponent } from "./externalKey.js";
 export { component as LiteralComponent } from "./literal.js";
+export { component as UnionComponent } from "./union.js";
 
 // Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
 export const tableComponentLibrary: ComponentLibrary = {
@@ -29,4 +30,5 @@ export const tableComponentLibrary: ComponentLibrary = {
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
   derived: (() => import("./derived.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
+  union: (() => import("./union.js")) as DynamicZodFormDef,
 };
