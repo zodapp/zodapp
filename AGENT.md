@@ -20,7 +20,7 @@ pnpm build        # 全パッケージビルド
 | カテゴリ               | 技術                                     |
 | ---------------------- | ---------------------------------------- |
 | パッケージマネージャー | pnpm 10.9.0                              |
-| Node.js                | 22.22.0 (Volta固定)                      |
+| Node.js                | 22.22.2 (Volta固定)                      |
 | フロントエンド         | React 19 + Vite 7                        |
 | ルーティング           | TanStack Router                          |
 | フォーム               | TanStack Form + @zodapp/zod-form-mantine |
