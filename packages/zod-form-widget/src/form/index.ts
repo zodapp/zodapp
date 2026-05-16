@@ -15,6 +15,7 @@ export type {
   AutoFormActionResolverOrValue,
   AutoFormButtonActionContext,
   AutoFormButtonActionHelperProps,
+  AutoFormCustomActionHelperProps,
   AutoFormHandleSubmit,
   AutoFormResetActionHelperProps,
   AutoFormSubmitActionHelperProps
