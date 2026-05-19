@@ -12,11 +12,13 @@ import { MantineProvider } from "@mantine/core";
 import { z } from "zod";
 
 import { component as StringComponent } from "./string";
+import { component as StringMultilineComponent } from "./string_multiline";
 import {
   ZodFormContextProvider,
   FormProvider,
   useZodForm,
 } from "@zodapp/zod-form-react/common";
+import { zf } from "@zodapp/zod-form";
 
 describe("StringComponent sanity", () => {
   beforeEach(() => {
@@ -135,6 +137,57 @@ describe("StringComponent sanity", () => {
       expect(
         container.querySelector(".mantine-TextInput-error"),
       ).not.toBeNull();
+    });
+  });
+
+  it("applies multiline string suggestion when clicked", async () => {
+    const formSchema = z.object({
+      enabled: zf.string().register(zf.string.registry, {
+        label: "Enabled",
+        uiType: "multiline",
+        suggestions: [
+          { label: "true", value: "true" },
+          { label: "false", value: "false" },
+        ],
+      }),
+    });
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: { enabled: "" } as z.infer<typeof formSchema>,
+        validators: {
+          onBlur: formSchema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              string_multiline: () => ({ component: StringMultilineComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <StringMultilineComponent
+                fieldPath="enabled"
+                schema={formSchema.shape.enabled}
+                required
+                readOnly={false}
+              />
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "true" }));
+
+    await waitFor(() => {
+      expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe(
+        "true",
+      );
     });
   });
 });

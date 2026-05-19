@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { InputWrapper, TextInput } from "@mantine/core";
+import { Autocomplete, InputWrapper, TextInput } from "@mantine/core";
 import {
   ZodFormInternalProps,
   wrapComponent,
@@ -8,6 +8,7 @@ import {
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
+import { normalizeStringSuggestions } from "./stringSuggestions.js";
 
 type StringSchema = z.ZodString;
 
@@ -20,14 +21,23 @@ const StringComponent = wrapComponent(function StringComponentImplement({
   error,
 }: ZodFormInternalProps<StringSchema>) {
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
+  const { label: labelFromMeta, formatter, suggestions } =
+    getMeta(schema, "string") ?? {};
   const label = labelFromParent ?? labelFromMeta;
+  const suggestionData = normalizeStringSuggestions(suggestions);
 
   const value = typeof field.value === "string" ? field.value : "";
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       field.onChange(event.target.value || undefined);
+    },
+    [field],
+  );
+
+  const onAutocompleteChange = useCallback(
+    (nextValue: string) => {
+      field.onChange(nextValue || undefined);
     },
     [field],
   );
@@ -42,7 +52,21 @@ const StringComponent = wrapComponent(function StringComponentImplement({
     );
   }
 
-  return (
+  return suggestionData.length > 0 ? (
+    <Autocomplete
+      ref={ref}
+      value={value}
+      data={suggestionData}
+      onChange={onAutocompleteChange}
+      onBlur={field.onBlur}
+      onFocus={onFocus}
+      label={label || undefined}
+      error={error?.message}
+      required={required !== false}
+      disabled={readOnly || field.disabled}
+      style={inputWrapperStyle}
+    />
+  ) : (
     <TextInput
       ref={ref}
       value={value}
