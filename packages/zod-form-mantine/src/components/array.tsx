@@ -35,6 +35,14 @@ type ArraySchema = ReturnType<typeof zf.array>;
 const DISABLE_DRAG_WHEN_SINGLE_ITEM = false;
 const SHOW_ITEM_BOX = true;
 
+const getArrayItemDefaultValue = (schema: z.ZodTypeAny): unknown => {
+  try {
+    return getDefaultValue(schema);
+  } catch (error) {
+    return undefined;
+  }
+};
+
 function SortableItem({
   id,
   disabled,
@@ -202,7 +210,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
               outline: "none",
             }}
             onClick={() => {
-              const dv = getDefaultValue(itemSchema);
+              const dv = getArrayItemDefaultValue(itemSchema);
               insert(index, dv);
             }}
           >
@@ -304,7 +312,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
             outline: "none",
           }}
           onClick={() => {
-            const dv = getDefaultValue(itemSchema);
+            const dv = getArrayItemDefaultValue(itemSchema);
             append(dv);
           }}
         >

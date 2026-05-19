@@ -513,6 +513,150 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     });
   });
 
+  it("clears selector and branch fields when selecting the current discriminator again", async () => {
+    const singleToolSchema = z
+      .discriminatedUnion("toolId", [
+        z
+          .object({
+            toolId: zf
+              .literal("builtIn-dataSource")
+              .register(zf.literal.registry, { hidden: true }),
+            outputKey: zf
+              .string()
+              .register(zf.string.registry, { label: "出力キー" }),
+          })
+          .register(zf.object.registry, { label: "データソース" }),
+      ])
+      .register(zf.union.registry, {
+        selectorLabel: "ツール種類",
+      });
+
+    const schema = z.object({
+      payload: singleToolSchema.optional(),
+    });
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          payload: undefined,
+        } as z.input<typeof schema>,
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Dynamic
+                  fieldPath="payload"
+                  schema={singleToolSchema}
+                  required={false}
+                />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    await openAndSelect("データソース");
+    expect(await screen.findByRole("textbox", { name: "出力キー" })).toBeTruthy();
+
+    await openAndSelect("データソース");
+
+    await waitFor(() => {
+      const selectInput = document.querySelector(
+        "input.mantine-Select-input",
+      ) as HTMLInputElement | null;
+      expect(selectInput?.value).toBe("");
+      expect(screen.queryByRole("textbox", { name: "出力キー" })).toBeNull();
+    });
+  });
+
+  it("keeps selector and branch fields when selecting the current required discriminator again", async () => {
+    const singleToolSchema = z
+      .discriminatedUnion("toolId", [
+        z
+          .object({
+            toolId: zf
+              .literal("builtIn-dataSource")
+              .register(zf.literal.registry, { hidden: true }),
+            outputKey: zf
+              .string()
+              .register(zf.string.registry, { label: "出力キー" }),
+          })
+          .register(zf.object.registry, { label: "データソース" }),
+      ])
+      .register(zf.union.registry, {
+        selectorLabel: "ツール種類",
+      });
+
+    const schema = z.object({
+      payload: singleToolSchema,
+    });
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          payload: { toolId: "builtIn-dataSource", outputKey: "" },
+        } as z.input<typeof schema>,
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Dynamic fieldPath="payload" schema={singleToolSchema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    expect(await screen.findByRole("textbox", { name: "出力キー" })).toBeTruthy();
+    await openAndSelect("データソース");
+
+    await waitFor(() => {
+      const selectInput = document.querySelector(
+        "input.mantine-Select-input",
+      ) as HTMLInputElement | null;
+      expect(selectInput?.value).toBe("データソース");
+      expect(screen.getByRole("textbox", { name: "出力キー" })).toBeTruthy();
+    });
+  });
+
   it("renders discriminator selector as readonly text while keeping editable fields interactive", async () => {
     const unionSchema = readOnlySchemaFieldsExcept(
       z

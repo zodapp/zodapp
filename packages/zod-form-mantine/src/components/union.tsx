@@ -304,10 +304,7 @@ const UnionBody = React.memo(function UnionBody({
       }
       return;
     }
-    if (
-      discriminatorFromValue !== undefined &&
-      discriminatorFromValue !== selectedDiscriminator
-    ) {
+    if (discriminatorFromValue !== selectedDiscriminator) {
       setSelectedDiscriminator(discriminatorFromValue);
     }
   }, [
@@ -404,11 +401,22 @@ const UnionBody = React.memo(function UnionBody({
 
   const handleSelect = useCallback(
     (id: string | null) => {
+      if (
+        id &&
+        required === false &&
+        compiledOptions.hasDiscriminator &&
+        id === selectedProfile?.value
+      ) {
+        setSelectedDiscriminator(undefined);
+        accessor.setValue(undefined, { dontValidate: true });
+        return;
+      }
+
       const profile = id ? compiledOptions.selector(id) : undefined;
       if (!profile) {
         if (compiledOptions.hasDiscriminator) {
           setSelectedDiscriminator(undefined);
-          field.onChange(undefined);
+          accessor.setValue(undefined, { dontValidate: true });
           return;
         } else {
           return;
@@ -441,7 +449,7 @@ const UnionBody = React.memo(function UnionBody({
         : undefined;
       field.onChange(normalized ?? undefined);
     },
-    [field, compiledOptions, formValue, accessor],
+    [field, compiledOptions, formValue, accessor, required, selectedProfile],
   );
   const shouldHideSelector = hideSelector === true;
   const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;
@@ -460,7 +468,7 @@ const UnionBody = React.memo(function UnionBody({
           <Select
             ref={ref}
             data={compiledOptions.profiles}
-            value={selectedProfile?.value}
+            value={selectedProfile?.value ?? null}
             onChange={handleSelect}
             onBlur={field.onBlur}
             onFocus={onFocus}
