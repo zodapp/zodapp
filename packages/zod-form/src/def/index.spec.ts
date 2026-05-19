@@ -1,6 +1,6 @@
 import z from "zod";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { getMeta, zf, type ComputedValue } from "./index";
+import { getMeta, zf, type ComputedValue, type StringSuggestion } from "./index";
 
 type CommonMeta = {
   label?: string;
@@ -15,6 +15,7 @@ type CommonMeta = {
 };
 type StringMeta = CommonMeta & {
   formatter?: (value: string) => ComputedValue;
+  suggestions?: StringSuggestion[];
 };
 type NumberMeta = CommonMeta & {
   formatter?: (value: number) => ComputedValue;
@@ -114,6 +115,23 @@ describe("zod-form def/index", () => {
     expect(meta?.label).toBe("電話番号");
     expect(meta?.formatter).toBe(fmt);
     expect(meta?.formatter?.("123")).toBe("+123");
+    expectTypeOf(meta).toEqualTypeOf<
+      ({ typeName: "string" } & StringMeta) | undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    >(undefined as any);
+  });
+
+  it("getMeta returns suggestions for string", () => {
+    const suggestions: StringSuggestion[] = [
+      "draft",
+      { label: "Published", value: "published" },
+    ];
+    const schema = zf.string().register(zf.string.registry, {
+      label: "Status",
+      suggestions,
+    });
+    const meta = getMeta(schema);
+    expect(meta?.suggestions).toEqual(suggestions);
     expectTypeOf(meta).toEqualTypeOf<
       ({ typeName: "string" } & StringMeta) | undefined
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

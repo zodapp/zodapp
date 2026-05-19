@@ -94,6 +94,16 @@ export type ComputedValue =
 
 const computedValueSchema = z.custom<ComputedValue>();
 
+export type StringSuggestion = string | { label: string; value: string };
+
+const stringSuggestionSchema = z.union([
+  z.string(),
+  z.object({
+    label: z.string(),
+    value: z.string(),
+  }),
+]);
+
 type ComputedMetaWithoutContext<TResult, TParent = any> = {
   contextId?: undefined;
   compute: (parent: TParent) => TResult;
@@ -121,6 +131,7 @@ const stringMetaSchema = zodExtendableCommonDefSchema.extend({
       output: computedValueSchema,
     })
     .optional(),
+  suggestions: z.array(stringSuggestionSchema).optional(),
 });
 
 // number 専用メタスキーマ（formatter で表示時の整形を指定可能）
