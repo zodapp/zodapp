@@ -21,6 +21,7 @@ export { component as NumberComponent } from "./number.js";
 export { component as NumberSliderComponent } from "./number_slider.js";
 export { component as ObjectComponent } from "./object.js";
 export { component as RecordComponent } from "./record.js";
+export { component as ResolvedComponent } from "./resolved.js";
 export { component as StringComponent } from "./string.js";
 export { component as StringLazyComponent } from "./string_lazy.js";
 export { component as StringMultilineComponent } from "./string_multiline.js";
@@ -52,6 +53,7 @@ export const componentLibrary: ComponentLibrary = {
   number_slider: (() => import("./number_slider.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
+  resolved: (() => import("./resolved.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
   string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
   string_lazy: (() => import("./string_lazy.js")) as DynamicZodFormDef,

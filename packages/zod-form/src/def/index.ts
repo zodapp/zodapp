@@ -29,6 +29,7 @@ import type { FileConfig, RegisteredFileConfig } from "../file/types";
 import type {
   RegisteredResolverContextId,
   RegisteredResolverContextMap,
+  RegisteredResolverContext,
 } from "../resolverContext/types";
 
 /**
@@ -112,16 +113,50 @@ type ComputedMetaWithoutContext<TResult, TParent = any> = {
 type ComputedMetaWithContext<TResult, TParent = any> = {
   [K in RegisteredResolverContextId]: {
     contextId: K;
-    compute: (parent: TParent, context: RegisteredResolverContextMap[K]) => TResult;
+    compute: (
+      parent: TParent,
+      context: RegisteredResolverContextMap[K],
+    ) => TResult;
   };
 }[RegisteredResolverContextId];
 
-export type ComputedMetaDef<TResult, TParent = any> =
-  z.infer<typeof zodExtendableCommonDefSchema> &
-    (
-      | ComputedMetaWithoutContext<TResult, TParent>
-      | ComputedMetaWithContext<TResult, TParent>
-    );
+export type ComputedMetaDef<TResult, TParent = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
+  (
+    | ComputedMetaWithoutContext<TResult, TParent>
+    | ComputedMetaWithContext<TResult, TParent>
+  );
+
+export type SchemaResolver<
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+> = (value: TValue, context: TContext) => z.ZodTypeAny | undefined;
+
+export type ResolvedSchemaResolver<
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+> = SchemaResolver<TValue, TContext>;
+
+export type ResolvedMetaDef<
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+> = z.infer<typeof zodExtendableCommonDefSchema> & {
+  resolve: ResolvedSchemaResolver<TValue, TContext>;
+};
+
+export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
+
+export const asRegistryValue = <TValue,>(
+  value: TValue,
+): RegistryValue<TValue> => value as unknown as RegistryValue<TValue>;
+
+export const asRegistrySchemaResolver = <
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+>(
+  resolver: SchemaResolver<TValue, TContext>,
+): RegistryValue<SchemaResolver<TValue, TContext>> => asRegistryValue(resolver);
 
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
@@ -163,7 +198,9 @@ const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
   externalKeyConfig: z.custom<ExternalKeyConfig<RegisteredExternalKeyConfig>>(),
   // action は runtime resolver が解釈するため、core では構造だけ受ける
-  externalKeyActionConfig: z.custom<RegisteredExternalKeyActionConfig>().optional(),
+  externalKeyActionConfig: z
+    .custom<RegisteredExternalKeyActionConfig>()
+    .optional(),
 });
 
 const externalKey = extendCustom(
@@ -224,6 +261,16 @@ const derived = extendCustom(
   schemaType<z.ZodType>(),
 );
 
+// resolved: 該当フィールドの現在値と resolverContext から実際に描画する schema を解決する
+const resolved = extendCustom(
+  z.never,
+  "resolved",
+  zodExtendableCommonDefSchema.extend({
+    resolve: z.custom<ResolvedSchemaResolver>(),
+  }) as z.ZodType<ResolvedMetaDef>,
+  schemaType<z.ZodType>(),
+);
+
 /**
  * zf - React非依存のZodスキーマ拡張
  * computed: 親オブジェクトを受け取る（複数フィールド横断の計算）
@@ -263,6 +310,7 @@ const zf = {
   file,
   computed,
   derived,
+  resolved,
 };
 
 type ZfRegistryKey = {
@@ -270,9 +318,7 @@ type ZfRegistryKey = {
 }[keyof typeof zf];
 
 type ZfRegistry<TypeName extends ZfRegistryKey> =
-  (typeof zf)[TypeName] extends { registry: infer Registry }
-    ? Registry
-    : never;
+  (typeof zf)[TypeName] extends { registry: infer Registry } ? Registry : never;
 
 type ZfMeta<TypeName extends ZfRegistryKey> =
   ZfRegistry<TypeName> extends ZodPropagatingRegistryType<any, any, any>
