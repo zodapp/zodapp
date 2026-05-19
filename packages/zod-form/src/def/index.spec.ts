@@ -1,6 +1,13 @@
 import z from "zod";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { getMeta, zf, type ComputedValue, type StringSuggestion } from "./index";
+import {
+  getMeta,
+  zf,
+  asRegistrySchemaResolver,
+  type ComputedValue,
+  type ResolvedSchemaResolver,
+  type StringSuggestion,
+} from "./index";
 
 type CommonMeta = {
   label?: string;
@@ -189,5 +196,25 @@ describe("zod-form def/index", () => {
     const big = z.bigint();
     expect(getMeta(plain)).toBeUndefined();
     expect(getMeta(big)).toBeUndefined();
+  });
+
+  it("getMeta returns resolved schema resolver", () => {
+    const fallback = z.object({ type: z.literal("fallback") });
+    const resolved = z.object({
+      type: z.literal("resolved"),
+    });
+    const schema = fallback.register(zf.resolved.registry, {
+      label: "Resolved",
+      resolve: asRegistrySchemaResolver(() => resolved),
+    });
+
+    const meta = getMeta(schema, "resolved");
+
+    expect(meta?.typeName).toBe("resolved");
+    expect(meta?.label).toBe("Resolved");
+    expect(meta?.resolve(undefined, {})).toBe(resolved);
+    expectTypeOf(meta?.resolve).toEqualTypeOf<
+      ResolvedSchemaResolver | undefined
+    >();
   });
 });
