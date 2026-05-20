@@ -131,7 +131,10 @@ export type ComputedMetaDef<TResult, TParent = any> = z.infer<
 export type SchemaResolver<
   TValue = unknown,
   TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = (value: TValue, context: TContext) => z.ZodTypeAny | undefined;
+> = (
+  value: TValue,
+  context: TContext,
+) => z.ZodTypeAny | Promise<z.ZodTypeAny | undefined> | undefined;
 
 export type ResolvedSchemaResolver<
   TValue = unknown,

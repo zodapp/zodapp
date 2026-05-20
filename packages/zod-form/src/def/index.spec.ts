@@ -217,4 +217,21 @@ describe("zod-form def/index", () => {
       ResolvedSchemaResolver | undefined
     >();
   });
+
+  it("getMeta accepts async resolved schema resolver", async () => {
+    const fallback = z.object({ type: z.literal("fallback") });
+    const resolved = z.object({
+      type: z.literal("resolved"),
+    });
+    const schema = fallback.register(zf.resolved.registry, {
+      resolve: asRegistrySchemaResolver(async () => resolved),
+    });
+
+    const meta = getMeta(schema, "resolved");
+
+    await expect(meta?.resolve(undefined, {})).resolves.toBe(resolved);
+    expectTypeOf(meta?.resolve).toEqualTypeOf<
+      ResolvedSchemaResolver | undefined
+    >();
+  });
 });
