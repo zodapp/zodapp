@@ -77,6 +77,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
 
   // 外部からの defaultValues 変更（Firestoreリスナー等）を反映
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 外部 defaultValues の変更を内部の楽観更新 state に同期する
     setValues((defaultValues ?? {}) as Record<string, unknown>);
   }, [defaultValues]);
 
@@ -95,6 +96,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
       <LoadingOverlay visible={isLoading} />
       <ZodFormContextProvider
         componentLibrary={reactiveComponentLibrary}
+        mergeMode="fallback"
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}
