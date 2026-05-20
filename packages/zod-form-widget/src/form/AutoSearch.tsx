@@ -2,7 +2,7 @@ import { Suspense, useMemo, useEffect, useState, memo } from 'react';
 import { Code, Loader, Stack } from '@mantine/core';
 import {
   componentLibrary,
-  Dynamic,
+  Switch,
   FormProvider,
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
@@ -99,7 +99,7 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
         <FormProvider form={form}>
           <ValidatePrecedingFieldsProvider>
             <Stack gap="md">
-              <Dynamic fieldPath="" schema={schema} />
+              <Switch fieldPath="" schema={schema} />
 
               {/* デモ・デバッグ用: リアクティブに現在の値を表示 */}
               {showPreview && (

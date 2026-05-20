@@ -23,7 +23,7 @@ const defaultLazyFactory: LazyComponentFactory = (importFn) => {
 const LazyContext = createContext<LazyComponentFactory>(defaultLazyFactory);
 
 /**
- * `Dynamic` 等で使う lazy factory を Context で提供します。
+ * `Switch` 等で使う lazy factory を Context で提供します。
  *
  * `lazyFactory` を差し替えることで、Suspense 以外の遅延ロード戦略も選べます。
  */

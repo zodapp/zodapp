@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import z from "zod";
 import {
-  Dynamic,
+  Switch,
   ZodFormInternalProps,
   wrapComponent,
   useFormValues,
@@ -11,15 +11,15 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 
-type ResolvedSchema = z.ZodTypeAny;
-type ResolvedSchemaResult =
-  | ResolvedSchema
-  | Promise<ResolvedSchema | undefined>
+type DynamicSchema = z.ZodTypeAny;
+type DynamicSchemaResult =
+  | DynamicSchema
+  | Promise<DynamicSchema | undefined>
   | undefined;
 
 const componentCache = new WeakMap<
   DynamicZodFormDef,
-  React.ComponentType<ZodFormInternalProps<ResolvedSchema>>
+  React.ComponentType<ZodFormInternalProps<DynamicSchema>>
 >();
 
 const getLazyComponent = (
@@ -32,13 +32,13 @@ const getLazyComponent = (
   const result = componentDef();
   const Component = (
     result instanceof Promise ? lazyFactory(() => result) : result.component
-  ) as React.ComponentType<ZodFormInternalProps<ResolvedSchema>>;
+  ) as React.ComponentType<ZodFormInternalProps<DynamicSchema>>;
 
   componentCache.set(componentDef, Component);
   return Component;
 };
 
-const FallbackDynamic = (props: ZodFormInternalProps<ResolvedSchema>) => {
+const FallbackSwitch = (props: ZodFormInternalProps<DynamicSchema>) => {
   const lazyFactory = useLazyFactory();
   const { componentLibrary, notFoundComponent: NotFoundComponent } =
     useZodFormContext();
@@ -57,7 +57,7 @@ const FallbackDynamic = (props: ZodFormInternalProps<ResolvedSchema>) => {
   return <Component {...props} />;
 };
 
-const ResolvedRootValueProvider = React.memo(function ResolvedRootValueProvider({
+const DynamicRootValueProvider = React.memo(function DynamicRootValueProvider({
   children,
 }: {
   children: (value: unknown) => React.ReactNode;
@@ -66,14 +66,14 @@ const ResolvedRootValueProvider = React.memo(function ResolvedRootValueProvider(
   return <>{children(value)}</>;
 });
 
-const ResolvedNestedValueProvider = React.memo(
-  function ResolvedNestedValueProvider({
+const DynamicNestedValueProvider = React.memo(
+  function DynamicNestedValueProvider({
     fieldPath,
     field,
     children,
   }: {
     fieldPath: string;
-    field: ZodFormInternalProps<ResolvedSchema>["field"];
+    field: ZodFormInternalProps<DynamicSchema>["field"];
     children: (value: unknown) => React.ReactNode;
   }) {
     const value = field.api.form.getFieldValue(fieldPath);
@@ -81,25 +81,25 @@ const ResolvedNestedValueProvider = React.memo(
   },
 );
 
-const ResolvedBody = React.memo(function ResolvedBody({
+const DynamicBody = React.memo(function DynamicBody({
   value,
   ...props
-}: ZodFormInternalProps<ResolvedSchema> & { value: unknown }) {
+}: ZodFormInternalProps<DynamicSchema> & { value: unknown }) {
   const { resolverContext } = useZodFormContext();
-  const meta = getMeta(props.schema, "resolved");
+  const meta = getMeta(props.schema, "dynamic");
   const requestIdRef = useRef(0);
-  const [resolvedSchema, setResolvedSchema] = useState<ResolvedSchema>();
+  const [dynamicSchema, setDynamicSchema] = useState<DynamicSchema>();
 
   useEffect(() => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     let active = true;
 
-    const applyResult = (schema: ResolvedSchema | undefined) => {
+    const applyResult = (schema: DynamicSchema | undefined) => {
       if (!active || requestIdRef.current !== requestId) return;
-      setResolvedSchema(schema);
+      setDynamicSchema(schema);
     };
-    const scheduleResult = (schema: ResolvedSchema | undefined) => {
+    const scheduleResult = (schema: DynamicSchema | undefined) => {
       void Promise.resolve().then(() => applyResult(schema));
     };
 
@@ -109,7 +109,7 @@ const ResolvedBody = React.memo(function ResolvedBody({
       const result = meta?.resolve(
         value,
         resolverContext ?? {},
-      ) as ResolvedSchemaResult;
+      ) as DynamicSchemaResult;
 
       if (result instanceof Promise) {
         result.then(applyResult).catch((error: unknown) => {
@@ -133,29 +133,29 @@ const ResolvedBody = React.memo(function ResolvedBody({
     };
   }, [meta, resolverContext, value]);
 
-  if (!resolvedSchema || resolvedSchema === props.schema) {
-    return <FallbackDynamic {...props} defaultValue={value} />;
+  if (!dynamicSchema || dynamicSchema === props.schema) {
+    return <FallbackSwitch {...props} defaultValue={value} />;
   }
 
-  return <Dynamic {...props} schema={resolvedSchema} defaultValue={value} />;
+  return <Switch {...props} schema={dynamicSchema} defaultValue={value} />;
 });
 
-const ResolvedComponent = wrapComponent(function ResolvedComponentImplement(
-  props: ZodFormInternalProps<ResolvedSchema>,
+const DynamicComponent = wrapComponent(function DynamicComponentImplement(
+  props: ZodFormInternalProps<DynamicSchema>,
 ) {
   if (props.fieldPath === "") {
     return (
-      <ResolvedRootValueProvider>
-        {(value) => <ResolvedBody {...props} value={value} />}
-      </ResolvedRootValueProvider>
+      <DynamicRootValueProvider>
+        {(value) => <DynamicBody {...props} value={value} />}
+      </DynamicRootValueProvider>
     );
   }
 
   return (
-    <ResolvedNestedValueProvider fieldPath={props.fieldPath} field={props.field}>
-      {(value) => <ResolvedBody {...props} value={value} />}
-    </ResolvedNestedValueProvider>
+    <DynamicNestedValueProvider fieldPath={props.fieldPath} field={props.field}>
+      {(value) => <DynamicBody {...props} value={value} />}
+    </DynamicNestedValueProvider>
   );
 });
 
-export { ResolvedComponent as component };
+export { DynamicComponent as component };

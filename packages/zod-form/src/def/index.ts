@@ -136,16 +136,16 @@ export type SchemaResolver<
   context: TContext,
 ) => z.ZodTypeAny | Promise<z.ZodTypeAny | undefined> | undefined;
 
-export type ResolvedSchemaResolver<
+export type DynamicSchemaResolver<
   TValue = unknown,
   TContext extends RegisteredResolverContext = RegisteredResolverContext,
 > = SchemaResolver<TValue, TContext>;
 
-export type ResolvedMetaDef<
+export type DynamicMetaDef<
   TValue = unknown,
   TContext extends RegisteredResolverContext = RegisteredResolverContext,
 > = z.infer<typeof zodExtendableCommonDefSchema> & {
-  resolve: ResolvedSchemaResolver<TValue, TContext>;
+  resolve: DynamicSchemaResolver<TValue, TContext>;
 };
 
 export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
@@ -264,13 +264,13 @@ const derived = extendCustom(
   schemaType<z.ZodType>(),
 );
 
-// resolved: 該当フィールドの現在値と resolverContext から実際に描画する schema を解決する
-const resolved = extendCustom(
+// dynamic: 該当フィールドの現在値と resolverContext から実際に描画する schema を解決する
+const dynamic = extendCustom(
   z.never,
-  "resolved",
+  "dynamic",
   zodExtendableCommonDefSchema.extend({
-    resolve: z.custom<ResolvedSchemaResolver>(),
-  }) as z.ZodType<ResolvedMetaDef>,
+    resolve: z.custom<DynamicSchemaResolver>(),
+  }) as z.ZodType<DynamicMetaDef>,
   schemaType<z.ZodType>(),
 );
 
@@ -313,7 +313,7 @@ const zf = {
   file,
   computed,
   derived,
-  resolved,
+  dynamic,
 };
 
 type ZfRegistryKey = {

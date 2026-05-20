@@ -23,7 +23,7 @@ import {
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import {
   ZodFormContextProvider,
-  Dynamic,
+  Switch,
   tableComponentLibrary,
   ExternalKeyResolvers,
 } from "@zodapp/zod-form-mantine";
@@ -908,7 +908,7 @@ function BodyCellInner({
       <div className={isPreviewing ? styles.previewContent : undefined}>
         {field.propertyName ? (
           <Suspense fallback={<Loader size="xs" />}>
-            <Dynamic
+            <Switch
               fieldPath={field.propertyName}
               schema={field.schema}
               defaultValue={

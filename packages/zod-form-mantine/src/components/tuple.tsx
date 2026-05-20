@@ -4,7 +4,7 @@ import z from "zod";
 import {
   ZodFormInternalProps,
   wrapComponent,
-  Dynamic,
+  Switch,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -39,7 +39,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
     const itemSchema = baseItems[index] ?? restSchema;
     if (!itemSchema) return null;
     return (
-      <Dynamic
+      <Switch
         key={index}
         fieldPath={`${fieldPath}[${index}]`}
         schema={itemSchema as z.ZodTypeAny}

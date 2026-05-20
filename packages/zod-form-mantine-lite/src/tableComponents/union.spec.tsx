@@ -43,7 +43,7 @@ describe("table union component", () => {
     expect(props.schema).toBe(schema.options[1]);
   });
 
-  it("delegates matching values to object arms and lets Dynamic resolve display support", () => {
+  it("delegates matching values to object arms and lets Switch resolve display support", () => {
     const schema = z.union([
       z.object({ child: z.string() }),
       z.string(),

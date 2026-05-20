@@ -10,7 +10,7 @@ import {
 import { Code, Group, Loader } from "@mantine/core";
 import {
   componentLibrary,
-  Dynamic,
+  Switch,
   FormProvider,
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
@@ -182,7 +182,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
                   )}
                 </Code>
               )}
-              <Dynamic fieldPath="" schema={schema} readOnly={readOnly} />
+              <Switch fieldPath="" schema={schema} readOnly={readOnly} />
             </div>
           </ValidatePrecedingFieldsProvider>
         </FormProvider>

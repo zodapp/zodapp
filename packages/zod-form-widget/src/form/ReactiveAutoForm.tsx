@@ -1,6 +1,6 @@
 import { Suspense, memo, useCallback, useEffect, useState } from 'react';
 import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
-import { Dynamic, ZodFormContextProvider } from '@zodapp/zod-form-mantine';
+import { Switch, ZodFormContextProvider } from '@zodapp/zod-form-mantine';
 import { reactiveComponentLibrary } from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
@@ -104,7 +104,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
         onFieldChange={handleFieldChange}
       >
         <Stack gap="md">
-          <Dynamic
+          <Switch
             fieldPath=""
             schema={schema}
             defaultValue={values as z.input<T>}
