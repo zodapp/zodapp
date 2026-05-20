@@ -14,6 +14,7 @@ export {
   useOnFieldChange,
   type DynamicZodFormDef,
   type ComponentLibrary,
+  type ZodFormContextMergeMode,
   type ExternalKeyActionWrapper,
   type BaseExternalKeyActionResolver,
   type ExternalKeyActionResolver,

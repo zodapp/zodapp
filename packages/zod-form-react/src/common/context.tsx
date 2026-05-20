@@ -63,6 +63,40 @@ export type DynamicZodFormDef =
  */
 export type ComponentLibrary = Record<string, DynamicZodFormDef>;
 
+export type ZodFormContextMergeMode = "replace" | "override" | "fallback";
+
+const getMergeMode = (
+  mergeMode: ZodFormContextMergeMode | undefined,
+  merge: boolean | undefined,
+): ZodFormContextMergeMode => mergeMode ?? (merge ? "override" : "replace");
+
+const mergeComponentLibrary = ({
+  parentComponentLibrary,
+  componentLibrary,
+  mergeMode,
+}: {
+  parentComponentLibrary: ComponentLibrary;
+  componentLibrary?: ComponentLibrary;
+  mergeMode: ZodFormContextMergeMode;
+}): ComponentLibrary => {
+  const ownComponentLibrary = componentLibrary ?? {};
+
+  switch (mergeMode) {
+    case "override":
+      return {
+        ...parentComponentLibrary,
+        ...ownComponentLibrary,
+      };
+    case "fallback":
+      return {
+        ...ownComponentLibrary,
+        ...parentComponentLibrary,
+      };
+    case "replace":
+      return ownComponentLibrary;
+  }
+};
+
 export type ExternalKeyActionWrapper = (
   children: React.ReactNode,
 ) => React.ReactNode;
@@ -119,7 +153,10 @@ const ZodFormContext = createContext<ZodFormContextType>({
 /**
  * ZodForm の実行コンテキスト（ComponentLibrary / resolvers / timezone など）を提供します。
  *
- * `merge=true` の場合、親の `componentLibrary` に対して差分をマージできます。
+ * `mergeMode="override"` の場合、親の `componentLibrary` に対して差分を上書きできます。
+ * `mergeMode="fallback"` の場合、親の `componentLibrary` を優先しつつ差分を補完できます。
+ *
+ * `merge=true` は後方互換のため `mergeMode="override"` として扱います。
  */
 export const ZodFormContextProvider = ({
   componentLibrary,
@@ -135,6 +172,7 @@ export const ZodFormContextProvider = ({
   collectionReferenceActions,
   children,
   merge,
+  mergeMode,
 }: {
   loadingComponent?: ZodForm;
   notFoundComponent?: ZodForm;
@@ -152,14 +190,20 @@ export const ZodFormContextProvider = ({
   collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
   children: React.ReactNode;
   merge?: boolean;
+  mergeMode?: ZodFormContextMergeMode;
 } & (
   | { componentLibrary: ComponentLibrary }
   | {
       componentLibrary?: ComponentLibrary;
       merge: true;
     }
+  | {
+      componentLibrary?: ComponentLibrary;
+      mergeMode: "override" | "fallback";
+    }
 )) => {
   const parentContext = React.useContext(ZodFormContext);
+  const effectiveMergeMode = getMergeMode(mergeMode, merge);
 
   const collectionReferenceActionMap = useMemo(() => {
     const parentMap = parentContext.collectionReferenceActionMap;
@@ -167,20 +211,26 @@ export const ZodFormContextProvider = ({
       return parentMap;
     }
     const ownMap = toCollectionReferenceActionMap(collectionReferenceActions);
-    if (!merge || !parentMap?.size) {
+    if (effectiveMergeMode === "replace" || !parentMap?.size) {
       return ownMap;
     }
+    if (effectiveMergeMode === "fallback") {
+      return new Map([...ownMap.entries(), ...parentMap.entries()]);
+    }
     return new Map([...parentMap.entries(), ...ownMap.entries()]);
-  }, [collectionReferenceActions, merge, parentContext.collectionReferenceActionMap]);
+  }, [
+    collectionReferenceActions,
+    effectiveMergeMode,
+    parentContext.collectionReferenceActionMap,
+  ]);
 
   const mergedContext = useMemo(
     () => ({
-      componentLibrary: merge
-        ? {
-            ...parentContext.componentLibrary,
-            ...componentLibrary,
-          }
-        : componentLibrary,
+      componentLibrary: mergeComponentLibrary({
+        parentComponentLibrary: parentContext.componentLibrary,
+        componentLibrary,
+        mergeMode: effectiveMergeMode,
+      }),
       loadingComponent: loadingComponent || parentContext.loadingComponent,
       notFoundComponent: notFoundComponent || parentContext.notFoundComponent,
       externalKeyResolvers:
@@ -197,12 +247,12 @@ export const ZodFormContextProvider = ({
     [
       collectionReferenceActionMap,
       componentLibrary,
+      effectiveMergeMode,
       externalKeyActionResolver,
       externalKeyResolvers,
       fileResolvers,
       loadingComponent,
       mediaResolvers,
-      merge,
       notFoundComponent,
       onFieldChange,
       parentContext.componentLibrary,

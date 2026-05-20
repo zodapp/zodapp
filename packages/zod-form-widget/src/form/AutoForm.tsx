@@ -151,6 +151,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     <Suspense fallback={<Loader />}>
       <ZodFormContextProvider
         componentLibrary={componentLibrary}
+        mergeMode="fallback"
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}
