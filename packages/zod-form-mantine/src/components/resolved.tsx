@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import z from "zod";
 import {
   Dynamic,
@@ -12,6 +12,10 @@ import {
 import { getMeta } from "@zodapp/zod-form";
 
 type ResolvedSchema = z.ZodTypeAny;
+type ResolvedSchemaResult =
+  | ResolvedSchema
+  | Promise<ResolvedSchema | undefined>
+  | undefined;
 
 const componentCache = new WeakMap<
   DynamicZodFormDef,
@@ -83,11 +87,51 @@ const ResolvedBody = React.memo(function ResolvedBody({
 }: ZodFormInternalProps<ResolvedSchema> & { value: unknown }) {
   const { resolverContext } = useZodFormContext();
   const meta = getMeta(props.schema, "resolved");
+  const requestIdRef = useRef(0);
+  const [resolvedSchema, setResolvedSchema] = useState<ResolvedSchema>();
 
-  const resolvedSchema = useMemo(
-    () => meta?.resolve(value, resolverContext ?? {}),
-    [meta, resolverContext, value],
-  );
+  useEffect(() => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    let active = true;
+
+    const applyResult = (schema: ResolvedSchema | undefined) => {
+      if (!active || requestIdRef.current !== requestId) return;
+      setResolvedSchema(schema);
+    };
+    const scheduleResult = (schema: ResolvedSchema | undefined) => {
+      void Promise.resolve().then(() => applyResult(schema));
+    };
+
+    scheduleResult(undefined);
+
+    try {
+      const result = meta?.resolve(
+        value,
+        resolverContext ?? {},
+      ) as ResolvedSchemaResult;
+
+      if (result instanceof Promise) {
+        result.then(applyResult).catch((error: unknown) => {
+          if (!active || requestIdRef.current !== requestId) return;
+          console.warn("Failed to resolve zod-form schema", error);
+          applyResult(undefined);
+        });
+        return () => {
+          active = false;
+        };
+      }
+
+      scheduleResult(result);
+    } catch (error) {
+      console.warn("Failed to resolve zod-form schema", error);
+      scheduleResult(undefined);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [meta, resolverContext, value]);
 
   if (!resolvedSchema || resolvedSchema === props.schema) {
     return <FallbackDynamic {...props} defaultValue={value} />;

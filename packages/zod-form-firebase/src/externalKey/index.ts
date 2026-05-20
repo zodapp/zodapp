@@ -73,11 +73,13 @@ export function createFirestoreResolver<TType extends string = "firestore">({
       const resolved = config.getQuery("", ctx);
       const collectionIdentityKeys = config.reference.collection
         .collectionIdentityKeys as readonly string[];
-      const identityParams = Object.fromEntries(
-        collectionIdentityKeys
-          .filter((key) => key in ctx)
-          .map((key) => [key, String(ctx[key])]),
-      );
+      const identityParams =
+        config.getCollectionIdentity?.(ctx) ??
+        Object.fromEntries(
+          collectionIdentityKeys
+            .filter((key) => key in ctx)
+            .map((key) => [key, String(ctx[key])]),
+        );
       const queryOptions = { where: resolved.where ?? [] };
 
       return {
