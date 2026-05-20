@@ -130,6 +130,14 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         .handleSubmit()
         .then(() => {
           if (!form.state.isValid) {
+            const parsed = schema.safeParse(form.state.values);
+            if (parsed.success) {
+              const handler = pendingSubmitHandlerRef.current;
+              pendingSubmitHandlerRef.current = undefined;
+              handler?.(parsed.data as z.output<T>);
+              resolve(parsed.data as z.output<T>);
+              return;
+            }
             console.warn("[AutoForm] Validation errors:", form.getAllErrors());
             pendingSubmitHandlerRef.current = undefined;
             resolve(undefined);
@@ -137,7 +145,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         })
         .catch(reject);
     });
-  }, [form]);
+  }, [form, schema]);
 
   return (
     <Suspense fallback={<Loader />}>

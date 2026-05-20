@@ -354,6 +354,22 @@ const UnionBody = React.memo(function UnionBody({
       ? unionError.errors?.[selectedProfile.index]
       : undefined;
 
+  const directIssues = useMemo(
+    () =>
+      !unionError &&
+      error &&
+      Array.isArray((error as any).path) &&
+      (error as any).path.length > 0
+        ? [error]
+        : undefined,
+    [error, unionError],
+  );
+
+  const distributableIssues = useMemo(
+    () => optionIssues ?? directIssues,
+    [directIssues, optionIssues],
+  );
+
   useEffect(() => {
     const redistributeIssues = (issues: any[] | undefined) => {
       const touched = new Set<string>();
@@ -394,10 +410,10 @@ const UnionBody = React.memo(function UnionBody({
       prevInjectedRef.current = Array.from(touched);
     };
 
-    redistributeIssues(optionIssues);
+    redistributeIssues(distributableIssues);
 
     return () => redistributeIssues(undefined);
-  }, [optionIssues, accessor, field.api.form]);
+  }, [distributableIssues, accessor, field.api.form]);
 
   const handleSelect = useCallback(
     (id: string | null) => {
