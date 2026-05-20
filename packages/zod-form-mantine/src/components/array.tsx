@@ -5,7 +5,7 @@ import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import { $ZodCheckMaxLengthDef, $ZodCheckMinLengthDef } from "zod/v4/core";
 import z from "zod";
 import {
-  Dynamic,
+  Switch,
   getDefaultValue,
   useArray,
   ZodFormInternalProps,
@@ -265,10 +265,10 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
                 paddingBottom: 4,
               }}
             >
-              <Dynamic {...childProps} />
+              <Switch {...childProps} />
             </div>
           ) : (
-            <Dynamic {...childProps} />
+            <Switch {...childProps} />
           )}
 
           {canRemove && !readOnly && (

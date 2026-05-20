@@ -44,7 +44,7 @@ const toCollectionReferenceActionMap = (
   new Map(entries.map(({ reference, action }) => [reference, action] as const));
 
 /**
- * 動的ローダ（Dynamic loader）の型。
+ * switch loader の型。
  *
  * コンポーネント定義 `{ component }` もしくはその Promise を返します。
  * `ComponentLibrary` の各エントリはこの型で表現され、必要に応じて遅延ロードされます。

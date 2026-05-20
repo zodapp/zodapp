@@ -2,7 +2,7 @@ import React from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
-import { Dynamic } from "@zodapp/zod-form-react/common";
+import { Switch } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "../utils/styles";
 
@@ -32,7 +32,7 @@ const RecordComponent = React.memo(function RecordComponent({
 
   const fieldsComponent = keys.map((key: string) => (
     <div key={key}>
-      <Dynamic
+      <Switch
         fieldPath={joinFieldPath(fieldPath, key)}
         schema={valueSchema}
         defaultValue={defaultValue?.[key]}

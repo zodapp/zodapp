@@ -11,7 +11,7 @@ import z from "zod";
 import {
   ZodFormInternalProps,
   wrapComponent,
-  Dynamic,
+  Switch,
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
@@ -494,7 +494,7 @@ const UnionBody = React.memo(function UnionBody({
               />
             }
           >
-            <Dynamic
+            <Switch
               key={selectedProfile.value}
               fieldPath={fieldPath}
               schema={selectedProfile.schema}

@@ -5,7 +5,7 @@ import {
   zf,
   asRegistrySchemaResolver,
   type ComputedValue,
-  type ResolvedSchemaResolver,
+  type DynamicSchemaResolver,
   type StringSuggestion,
 } from "./index";
 
@@ -198,40 +198,40 @@ describe("zod-form def/index", () => {
     expect(getMeta(big)).toBeUndefined();
   });
 
-  it("getMeta returns resolved schema resolver", () => {
+  it("getMeta returns dynamic schema resolver", () => {
     const fallback = z.object({ type: z.literal("fallback") });
-    const resolved = z.object({
-      type: z.literal("resolved"),
+    const dynamic = z.object({
+      type: z.literal("dynamic"),
     });
-    const schema = fallback.register(zf.resolved.registry, {
-      label: "Resolved",
-      resolve: asRegistrySchemaResolver(() => resolved),
+    const schema = fallback.register(zf.dynamic.registry, {
+      label: "動的スキーマ",
+      resolve: asRegistrySchemaResolver(() => dynamic),
     });
 
-    const meta = getMeta(schema, "resolved");
+    const meta = getMeta(schema, "dynamic");
 
-    expect(meta?.typeName).toBe("resolved");
-    expect(meta?.label).toBe("Resolved");
-    expect(meta?.resolve(undefined, {})).toBe(resolved);
+    expect(meta?.typeName).toBe("dynamic");
+    expect(meta?.label).toBe("動的スキーマ");
+    expect(meta?.resolve(undefined, {})).toBe(dynamic);
     expectTypeOf(meta?.resolve).toEqualTypeOf<
-      ResolvedSchemaResolver | undefined
+      DynamicSchemaResolver | undefined
     >();
   });
 
-  it("getMeta accepts async resolved schema resolver", async () => {
+  it("getMeta accepts async dynamic schema resolver", async () => {
     const fallback = z.object({ type: z.literal("fallback") });
-    const resolved = z.object({
-      type: z.literal("resolved"),
+    const dynamic = z.object({
+      type: z.literal("dynamic"),
     });
-    const schema = fallback.register(zf.resolved.registry, {
-      resolve: asRegistrySchemaResolver(async () => resolved),
+    const schema = fallback.register(zf.dynamic.registry, {
+      resolve: asRegistrySchemaResolver(async () => dynamic),
     });
 
-    const meta = getMeta(schema, "resolved");
+    const meta = getMeta(schema, "dynamic");
 
-    await expect(meta?.resolve(undefined, {})).resolves.toBe(resolved);
+    await expect(meta?.resolve(undefined, {})).resolves.toBe(dynamic);
     expectTypeOf(meta?.resolve).toEqualTypeOf<
-      ResolvedSchemaResolver | undefined
+      DynamicSchemaResolver | undefined
     >();
   });
 });

@@ -13,7 +13,7 @@ import { z } from "zod";
 
 import { readOnlySchemaFieldsExcept, zf } from "@zodapp/zod-form";
 import {
-  Dynamic,
+  Switch,
   FormProvider,
   ZodFormContextProvider,
   useZodForm,
@@ -150,7 +150,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={schema} />
+                <Switch fieldPath="" schema={schema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -249,7 +249,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={schema} />
+                <Switch fieldPath="" schema={schema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -345,7 +345,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={schema} />
+                <Switch fieldPath="" schema={schema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -434,7 +434,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={topLevelSchema} />
+                <Switch fieldPath="" schema={topLevelSchema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -560,7 +560,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic
+                <Switch
                   fieldPath="payload"
                   schema={singleToolSchema}
                   required={false}
@@ -635,7 +635,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="payload" schema={singleToolSchema} />
+                <Switch fieldPath="payload" schema={singleToolSchema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -728,7 +728,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={schema} />
+                <Switch fieldPath="" schema={schema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -815,7 +815,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={schema} />
+                <Switch fieldPath="" schema={schema} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
