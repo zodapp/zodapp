@@ -472,6 +472,85 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     });
   });
 
+  it("redistributes direct discriminatedUnion issues to the selected branch field", async () => {
+    const schema = z
+      .discriminatedUnion("type", [
+        z
+          .object({
+            phoneNumber: zf
+              .string()
+              .register(zf.string.registry, { label: "電話番号" }),
+            type: zf
+              .literal("proxy")
+              .register(zf.literal.registry, { hidden: true }),
+            url: zf.string().register(zf.string.registry, { label: "URL" }),
+          })
+          .register(zf.object.registry, { label: "プロキシ" }),
+        z
+          .object({
+            phoneNumber: zf
+              .string()
+              .register(zf.string.registry, { label: "電話番号" }),
+            type: zf
+              .literal("scenario")
+              .register(zf.literal.registry, { hidden: true }),
+            scenarioId: z
+              .string({ error: "シナリオを選択してください" })
+              .register(zf.string.registry, { label: "シナリオID" }),
+          })
+          .register(zf.object.registry, { label: "シナリオ" }),
+      ])
+      .register(zf.union.registry, {
+        label: "発信先タイプ",
+        selectorLabel: "タイプ",
+      });
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          type: "scenario",
+          phoneNumber: "123",
+        } as z.input<typeof schema>,
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>
+                  Submit
+                </button>
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("シナリオを選択してください")).toBeTruthy();
+    });
+  });
+
   it("keeps common field value after switching discriminator at top level", async () => {
     renderTopLevel({
       type: "proxy",
