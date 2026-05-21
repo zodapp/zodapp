@@ -9,7 +9,6 @@ import {
 } from "react";
 import { Code, Group, Loader } from "@mantine/core";
 import {
-  componentLibrary,
   Switch,
   FormProvider,
   ZodFormContextProvider,
@@ -150,8 +149,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   return (
     <Suspense fallback={<Loader />}>
       <ZodFormContextProvider
-        componentLibrary={componentLibrary}
-        mergeMode="fallback"
+        merge
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}

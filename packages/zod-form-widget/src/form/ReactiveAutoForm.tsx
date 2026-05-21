@@ -1,7 +1,6 @@
 import { Suspense, memo, useCallback, useEffect, useState } from 'react';
 import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
 import { Switch, ZodFormContextProvider } from '@zodapp/zod-form-mantine';
-import { reactiveComponentLibrary } from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
 import type {
@@ -95,8 +94,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
     <Suspense fallback={<Loader />}>
       <LoadingOverlay visible={isLoading} />
       <ZodFormContextProvider
-        componentLibrary={reactiveComponentLibrary}
-        mergeMode="fallback"
+        merge
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}
