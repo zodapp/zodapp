@@ -4,7 +4,6 @@ import type { ComponentType, ReactElement } from "react";
 import {
   type ComponentLibrary,
   type DynamicZodFormDef,
-  type ZodFormContextMergeMode,
   useZodFormContext,
   ZodFormContextProvider,
 } from "./context";
@@ -36,7 +35,6 @@ const renderContext = (
 describe("ZodFormContextProvider", () => {
   type ChildProviderProps = {
     merge?: true;
-    mergeMode?: ZodFormContextMergeMode;
   };
 
   const renderNestedContext = ({
@@ -59,7 +57,7 @@ describe("ZodFormContextProvider", () => {
       </ZodFormContextProvider>
     ));
 
-  it('uses the parent component for duplicate keys with mergeMode="fallback"', () => {
+  it("merges parent and child component libraries with merge=true", () => {
     const parentShared = createDef();
     const childShared = createDef();
     const parentOnly = createDef();
@@ -73,52 +71,6 @@ describe("ZodFormContextProvider", () => {
       childComponentLibrary: {
         shared: childShared,
         childOnly,
-      },
-      childProviderProps: {
-        mergeMode: "fallback",
-      },
-    });
-
-    expect(context.componentLibrary.shared).toBe(parentShared);
-    expect(context.componentLibrary.parentOnly).toBe(parentOnly);
-    expect(context.componentLibrary.childOnly).toBe(childOnly);
-  });
-
-  it('uses the child component for duplicate keys with mergeMode="override"', () => {
-    const parentShared = createDef();
-    const childShared = createDef();
-    const parentOnly = createDef();
-    const childOnly = createDef();
-
-    const context = renderNestedContext({
-      parentComponentLibrary: {
-        shared: parentShared,
-        parentOnly,
-      },
-      childComponentLibrary: {
-        shared: childShared,
-        childOnly,
-      },
-      childProviderProps: {
-        mergeMode: "override",
-      },
-    });
-
-    expect(context.componentLibrary.shared).toBe(childShared);
-    expect(context.componentLibrary.parentOnly).toBe(parentOnly);
-    expect(context.componentLibrary.childOnly).toBe(childOnly);
-  });
-
-  it("keeps merge=true compatible with override behavior", () => {
-    const parentShared = createDef();
-    const childShared = createDef();
-
-    const context = renderNestedContext({
-      parentComponentLibrary: {
-        shared: parentShared,
-      },
-      childComponentLibrary: {
-        shared: childShared,
       },
       childProviderProps: {
         merge: true,
@@ -126,9 +78,11 @@ describe("ZodFormContextProvider", () => {
     });
 
     expect(context.componentLibrary.shared).toBe(childShared);
+    expect(context.componentLibrary.parentOnly).toBe(parentOnly);
+    expect(context.componentLibrary.childOnly).toBe(childOnly);
   });
 
-  it('replaces the parent component library with mergeMode="replace"', () => {
+  it("replaces the parent component library without merge", () => {
     const parentShared = createDef();
     const childShared = createDef();
     const parentOnly = createDef();
@@ -142,9 +96,6 @@ describe("ZodFormContextProvider", () => {
       childComponentLibrary: {
         shared: childShared,
         childOnly,
-      },
-      childProviderProps: {
-        mergeMode: "replace",
       },
     });
 
