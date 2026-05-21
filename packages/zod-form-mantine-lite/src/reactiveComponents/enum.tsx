@@ -28,7 +28,7 @@ const EnumComponent = React.memo(function EnumComponent({
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue = (defaultValue as string | undefined) ?? null;
-  const { value, onChange, hasPendingChange, onConfirm, onCancel } =
+  const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath);
 
   const data = useEnumData(schema);
@@ -53,6 +53,7 @@ const EnumComponent = React.memo(function EnumComponent({
       data={data}
       renderOption={uiType === "badge" ? renderSelectOption : undefined}
       onChange={(next) => onChange(next)}
+      onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
       required={required !== false}

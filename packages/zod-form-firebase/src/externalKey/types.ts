@@ -26,6 +26,7 @@ export type FirestoreExternalKeyConfigCore<
   reference: LooseCollectionReferenceBase;
   contextId: TContextId;
   getQuery: (value: string, context: TContext) => QueryOptions;
+  getCollectionIdentity?: (context: TContext) => Record<string, string>;
 };
 
 /**

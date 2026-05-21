@@ -1,6 +1,13 @@
 import z from "zod";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { getMeta, zf, type ComputedValue } from "./index";
+import {
+  getMeta,
+  zf,
+  asRegistrySchemaResolver,
+  type ComputedValue,
+  type DynamicSchemaResolver,
+  type StringSuggestion,
+} from "./index";
 
 type CommonMeta = {
   label?: string;
@@ -15,6 +22,7 @@ type CommonMeta = {
 };
 type StringMeta = CommonMeta & {
   formatter?: (value: string) => ComputedValue;
+  suggestions?: StringSuggestion[];
 };
 type NumberMeta = CommonMeta & {
   formatter?: (value: number) => ComputedValue;
@@ -120,6 +128,23 @@ describe("zod-form def/index", () => {
     >(undefined as any);
   });
 
+  it("getMeta returns suggestions for string", () => {
+    const suggestions: StringSuggestion[] = [
+      "draft",
+      { label: "Published", value: "published" },
+    ];
+    const schema = zf.string().register(zf.string.registry, {
+      label: "Status",
+      suggestions,
+    });
+    const meta = getMeta(schema);
+    expect(meta?.suggestions).toEqual(suggestions);
+    expectTypeOf(meta).toEqualTypeOf<
+      ({ typeName: "string" } & StringMeta) | undefined
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    >(undefined as any);
+  });
+
   it("getMeta returns no formatter when string is registered without one", () => {
     const schema = zf.string().register(zf.string.registry, {
       label: "名前",
@@ -171,5 +196,42 @@ describe("zod-form def/index", () => {
     const big = z.bigint();
     expect(getMeta(plain)).toBeUndefined();
     expect(getMeta(big)).toBeUndefined();
+  });
+
+  it("getMeta returns dynamic schema resolver", () => {
+    const fallback = z.object({ type: z.literal("fallback") });
+    const dynamic = z.object({
+      type: z.literal("dynamic"),
+    });
+    const schema = fallback.register(zf.dynamic.registry, {
+      label: "動的スキーマ",
+      resolve: asRegistrySchemaResolver(() => dynamic),
+    });
+
+    const meta = getMeta(schema, "dynamic");
+
+    expect(meta?.typeName).toBe("dynamic");
+    expect(meta?.label).toBe("動的スキーマ");
+    expect(meta?.resolve(undefined, {})).toBe(dynamic);
+    expectTypeOf(meta?.resolve).toEqualTypeOf<
+      DynamicSchemaResolver | undefined
+    >();
+  });
+
+  it("getMeta accepts async dynamic schema resolver", async () => {
+    const fallback = z.object({ type: z.literal("fallback") });
+    const dynamic = z.object({
+      type: z.literal("dynamic"),
+    });
+    const schema = fallback.register(zf.dynamic.registry, {
+      resolve: asRegistrySchemaResolver(async () => dynamic),
+    });
+
+    const meta = getMeta(schema, "dynamic");
+
+    await expect(meta?.resolve(undefined, {})).resolves.toBe(dynamic);
+    expectTypeOf(meta?.resolve).toEqualTypeOf<
+      DynamicSchemaResolver | undefined
+    >();
   });
 });

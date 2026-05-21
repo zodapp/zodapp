@@ -63,7 +63,7 @@ const DateComponent = React.memo(function DateComponent({
     return converter.toPickerValue(defaultValue);
   }, [converter, defaultValue]);
 
-  const { value, onChange, hasPendingChange, onConfirm, onCancel } =
+  const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(pickerDefault, fieldPath);
 
   if (readOnly) {
@@ -78,6 +78,7 @@ const DateComponent = React.memo(function DateComponent({
     <DateInput
       value={value}
       onChange={(next) => onChange(next)}
+      onBlur={() => void onBlur()}
       valueFormat={valueFormat}
       locale="ja"
       label={label || undefined}

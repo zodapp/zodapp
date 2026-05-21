@@ -23,7 +23,7 @@ import {
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import {
   ZodFormContextProvider,
-  Dynamic,
+  Switch,
   tableComponentLibrary,
   ExternalKeyResolvers,
 } from "@zodapp/zod-form-mantine";
@@ -159,6 +159,13 @@ const DEFAULT_ALIGN: CellAlign = "left";
 export const COLUMN_FOCUS_ZONE_CLASS = "autoTable-columnFocusZone";
 const SCROLL_EDGE_THRESHOLD = 8;
 const USE_FIXED_WIDTH_IN_PREVIEW = true;
+const STRIPED_ROW_STYLE: React.CSSProperties = {
+  backgroundColor: "var(--table-striped-color)",
+};
+const VIRTUALIZED_ROW_BORDER_STYLE: React.CSSProperties = {
+  borderBottom:
+    "calc(0.0625rem * var(--mantine-scale)) solid var(--mantine-color-gray-3)",
+};
 
 const EMPTY_COLUMN_SCHEMA = z.string().optional();
 const EMPTY_COLUMN_META = getUnwrappedMeta(EMPTY_COLUMN_SCHEMA);
@@ -908,7 +915,7 @@ function BodyCellInner({
       <div className={isPreviewing ? styles.previewContent : undefined}>
         {field.propertyName ? (
           <Suspense fallback={<Loader size="xs" />}>
-            <Dynamic
+            <Switch
               fieldPath={field.propertyName}
               schema={field.schema}
               defaultValue={
@@ -999,6 +1006,7 @@ type BodyRowProps<TItem extends TableRowData> = {
   onRowClick?: (item: TItem) => void;
   getRowClassName?: (item: TItem) => string | undefined;
   isSelected: boolean;
+  isStripedRow: boolean;
   rowClassName?: string;
   selectedRowClassName?: string;
 };
@@ -1013,6 +1021,7 @@ function BodyRowInner<TItem extends TableRowData>({
   onRowClick,
   getRowClassName,
   isSelected,
+  isStripedRow,
   rowClassName,
   selectedRowClassName,
 }: BodyRowProps<TItem>) {
@@ -1033,6 +1042,7 @@ function BodyRowInner<TItem extends TableRowData>({
             }
           : undefined
       }
+      style={isStripedRow ? STRIPED_ROW_STYLE : undefined}
     >
       <RowCells
         fields={fields}
@@ -1078,7 +1088,6 @@ function LegacyTableView<TItem extends TableRowData>({
     <Table
       ref={tableRefCallback}
       className={tableClassName}
-      striped
       highlightOnHover
       style={tableStyle}
     >
@@ -1106,22 +1115,27 @@ function LegacyTableView<TItem extends TableRowData>({
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
-        {sortedData.map((item) => (
-          <BodyRow
-            key={String(item[keyField])}
-            item={item}
-            fields={fields}
-            isPreviewing={isPreviewing}
-            focusedColumnId={focusedColumnId}
-            activeResizeColumn={activeResizeColumn}
-            onPreviewPointerDown={handlePreviewPointerDown}
-            onRowClick={onRowClick}
-            getRowClassName={getRowClassName}
-            isSelected={isSelectedRow(item[keyField], selectedRowKey)}
-            rowClassName={rowClassName}
-            selectedRowClassName={selectedRowClassName}
-          />
-        ))}
+        {sortedData.map((item, index) => {
+          const isSelected = isSelectedRow(item[keyField], selectedRowKey);
+
+          return (
+            <BodyRow
+              key={String(item[keyField])}
+              item={item}
+              fields={fields}
+              isPreviewing={isPreviewing}
+              focusedColumnId={focusedColumnId}
+              activeResizeColumn={activeResizeColumn}
+              onPreviewPointerDown={handlePreviewPointerDown}
+              onRowClick={onRowClick}
+              getRowClassName={getRowClassName}
+              isSelected={isSelected}
+              isStripedRow={!isSelected && index % 2 === 0}
+              rowClassName={rowClassName}
+              selectedRowClassName={selectedRowClassName}
+            />
+          );
+        })}
       </Table.Tbody>
     </Table>
   );
@@ -1166,7 +1180,6 @@ function VirtualizedTableView<TItem extends TableRowData>({
           {...props}
           ref={tableRefCallback}
           className={tableClassName}
-          striped
           highlightOnHover
           style={{ ...tableStyle, ...style }}
         />
@@ -1175,32 +1188,46 @@ function VirtualizedTableView<TItem extends TableRowData>({
 
       return {
         Table: VirtuosoTable,
-        TableRow: ({ style, item, ...props }) => (
-          <tr
-            {...props}
-            className={
-              item
-                ? resolveRowClassName({
-                    item,
-                    isSelected: isSelectedRow(item[keyField], selectedRowKey),
-                    getRowClassName,
-                    rowClassName,
-                    selectedRowClassName,
-                  })
-                : undefined
-            }
-            onClick={
-              item
-                ? (event) => {
-                    if (!shouldHandleRowClick(event)) return;
-                    onRowClick?.(item);
-                  }
-                : undefined
-            }
-            style={style}
-            key={item ? String(item[keyField]) : undefined}
-          />
-        ),
+        TableRow: ({ style, item, ...props }) => {
+          const itemKey = item ? String(item[keyField]) : undefined;
+          const rowIndex = props["data-index"];
+          const isSelected = item
+            ? isSelectedRow(item[keyField], selectedRowKey)
+            : false;
+          const isStripedRow =
+            !isSelected && Number.isInteger(rowIndex) && rowIndex % 2 === 0;
+
+          return (
+            <tr
+              {...props}
+              className={
+                item
+                  ? resolveRowClassName({
+                      item,
+                      isSelected,
+                      getRowClassName,
+                      rowClassName,
+                      selectedRowClassName,
+                    })
+                  : undefined
+              }
+              onClick={
+                item
+                  ? (event) => {
+                      if (!shouldHandleRowClick(event)) return;
+                      onRowClick?.(item);
+                    }
+                  : undefined
+              }
+              style={{
+                ...style,
+                ...VIRTUALIZED_ROW_BORDER_STYLE,
+                ...(isStripedRow ? STRIPED_ROW_STYLE : {}),
+              }}
+              key={itemKey}
+            />
+          );
+        },
       };
     },
     [

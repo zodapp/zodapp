@@ -36,9 +36,9 @@ const getLazyComponent = (
  * スキーマ meta（`getMeta`）から UI コンポーネントを動的に選択して描画します。
  *
  * `componentLibrary` から `typeName_uiType`（なければ `typeName`）で検索し、
- * Dynamic loader が Promise を返す場合は `LazyComponentFactory` で遅延ロードします。
+ * switch loader が Promise を返す場合は `LazyComponentFactory` で遅延ロードします。
  */
-export const Dynamic: ZodForm = (props: ZodFormProps) => {
+export const Switch: ZodForm = (props: ZodFormProps) => {
   const lazyFactory = useLazyFactory();
 
   const { schema } = props;

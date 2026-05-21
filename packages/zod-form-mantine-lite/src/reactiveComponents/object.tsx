@@ -2,7 +2,7 @@ import React from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
 import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
-import { Dynamic } from "@zodapp/zod-form-react/common";
+import { Switch } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "../utils/styles";
 
@@ -70,7 +70,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
             isHorizontal ? { flex: "0 0 auto", minWidth: "150px" } : undefined
           }
         >
-          <Dynamic
+          <Switch
             fieldPath={joinFieldPath(fieldPath, property.propertyName)}
             schema={property.schema}
             defaultValue={fieldDefaultValue}

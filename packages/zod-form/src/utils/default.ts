@@ -71,6 +71,22 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
         );
       },
     } as PreprocessorDef,
+    {
+      processor: {
+        union: (obj, schema, context) => {
+          const options = schema.def.options as z.ZodTypeAny[];
+          if (obj === undefined) {
+            const matchedOption = options.find((option) =>
+              option.safeParse(obj).success,
+            );
+            return matchedOption
+              ? context.transform(obj, matchedOption)
+              : undefined;
+          }
+          return context.transform(obj, options);
+        },
+      },
+    },
   );
 };
 

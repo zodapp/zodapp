@@ -1,6 +1,6 @@
 export { getDefaultValue } from "@zodapp/zod-form";
 export { useArray } from "./array";
-export { Dynamic } from "./dynamic";
+export { Switch } from "./switch";
 export { wrapComponent, type ZodFormInternalProps } from "./wrapper";
 export type { ZodFormProps, ZodForm, ZodFormDef } from "../utils/type";
 export {
@@ -11,7 +11,6 @@ export {
   useMediaResolvers,
   useResolverContext,
   useAllResolverContext,
-  useOnFieldChange,
   type DynamicZodFormDef,
   type ComponentLibrary,
   type ExternalKeyActionWrapper,

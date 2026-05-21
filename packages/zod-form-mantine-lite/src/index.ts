@@ -1,6 +1,12 @@
 export { baseComponents } from "./baseComponents";
 export { tableComponentLibrary } from "./tableComponents";
-export { reactiveComponentLibrary } from "./reactiveComponents";
+export {
+  reactiveComponentLibrary,
+  ReactiveFormContextProvider,
+  useReactiveFormContext,
+  type ReactiveFieldEvent,
+  type ReactiveFormContextValue,
+} from "./reactiveComponents";
 export {
   defaultMediaResolvers,
   DataBasedPreview,

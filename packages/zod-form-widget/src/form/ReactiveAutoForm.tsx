@@ -1,7 +1,11 @@
 import { Suspense, memo, useCallback, useEffect, useState } from 'react';
 import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
-import { Dynamic, ZodFormContextProvider } from '@zodapp/zod-form-mantine';
-import { reactiveComponentLibrary } from '@zodapp/zod-form-mantine';
+import {
+  ReactiveFormContextProvider,
+  Switch,
+  ZodFormContextProvider,
+  type ReactiveFieldEvent
+} from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
 import type {
@@ -43,9 +47,17 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   /**
    * フィールド値の確定時に呼ばれるコールバック。
    * 親側で Firestore への保存等を行う。
-   * 内部では楽観更新で即座に UI に反映し、次の defaultValues 変更で正式に同期される。
    */
-  onFieldChange?: (fieldPath: string, value: unknown) => void;
+  onConfirm?: (fieldPath: string, value: unknown) => void | Promise<void>;
+  /**
+   * blur 時の未確定変更の扱いを判断するガード。
+   * true で確定、false で破棄、undefined で pending を維持する。
+   */
+  onBlur?: (
+    fieldPath: string,
+    value: unknown,
+    previousValue: unknown
+  ) => boolean | undefined | Promise<boolean | undefined>;
   isLoading?: boolean;
   showPreview?: boolean;
   externalKeyResolvers?: ExternalKeyResolvers;
@@ -60,7 +72,8 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
 const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   schema,
   defaultValues,
-  onFieldChange,
+  onConfirm,
+  onBlur,
   isLoading = false,
   showPreview = false,
   externalKeyResolvers,
@@ -77,55 +90,65 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
 
   // 外部からの defaultValues 変更（Firestoreリスナー等）を反映
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 外部 defaultValues の変更を内部の楽観更新 state に同期する
     setValues((defaultValues ?? {}) as Record<string, unknown>);
   }, [defaultValues]);
 
-  const handleFieldChange = useCallback(
-    (fieldPath: string, value: unknown) => {
-      // 楽観更新: 内部stateを即座に反映
+  const handleConfirm = useCallback(
+    async ({ fieldPath, value }: ReactiveFieldEvent) => {
+      await onConfirm?.(fieldPath, value);
       setValues((prev) => setNestedValue(prev, fieldPath, value));
-      // 親に通知（Firestore保存用）
-      onFieldChange?.(fieldPath, value);
     },
-    [onFieldChange]
+    [onConfirm]
+  );
+
+  const handleBlur = useCallback(
+    ({ fieldPath, value, previousValue }: ReactiveFieldEvent) => {
+      return onBlur?.(fieldPath, value, previousValue);
+    },
+    [onBlur]
   );
 
   return (
     <Suspense fallback={<Loader />}>
       <LoadingOverlay visible={isLoading} />
       <ZodFormContextProvider
-        componentLibrary={reactiveComponentLibrary}
+        merge
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
         resolverContext={resolverContext}
         collectionReferenceActions={collectionReferenceActions}
-        onFieldChange={handleFieldChange}
       >
-        <Stack gap="md">
-          <Dynamic
-            fieldPath=""
-            schema={schema}
-            defaultValue={values as z.input<T>}
-            readOnly={readOnly}
-          />
+        <ReactiveFormContextProvider
+          onBlur={handleBlur}
+          onConfirm={handleConfirm}
+        >
+          <Stack gap="md">
+            <Switch
+              fieldPath=""
+              schema={schema}
+              defaultValue={values as z.input<T>}
+              readOnly={readOnly}
+            />
 
-          {showPreview && (
-            <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
-              {JSON.stringify(
-                values,
-                (_key, v) => {
-                  if (typeof v === 'bigint') {
-                    return v.toString();
-                  }
-                  return v;
-                },
-                2
-              )}
-            </Code>
-          )}
-        </Stack>
+            {showPreview && (
+              <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
+                {JSON.stringify(
+                  values,
+                  (_key, v) => {
+                    if (typeof v === 'bigint') {
+                      return v.toString();
+                    }
+                    return v;
+                  },
+                  2
+                )}
+              </Code>
+            )}
+          </Stack>
+        </ReactiveFormContextProvider>
       </ZodFormContextProvider>
     </Suspense>
   );

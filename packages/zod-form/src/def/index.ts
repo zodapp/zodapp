@@ -29,6 +29,7 @@ import type { FileConfig, RegisteredFileConfig } from "../file/types";
 import type {
   RegisteredResolverContextId,
   RegisteredResolverContextMap,
+  RegisteredResolverContext,
 } from "../resolverContext/types";
 
 /**
@@ -94,6 +95,16 @@ export type ComputedValue =
 
 const computedValueSchema = z.custom<ComputedValue>();
 
+export type StringSuggestion = string | { label: string; value: string };
+
+const stringSuggestionSchema = z.union([
+  z.string(),
+  z.object({
+    label: z.string(),
+    value: z.string(),
+  }),
+]);
+
 type ComputedMetaWithoutContext<TResult, TParent = any> = {
   contextId?: undefined;
   compute: (parent: TParent) => TResult;
@@ -102,16 +113,53 @@ type ComputedMetaWithoutContext<TResult, TParent = any> = {
 type ComputedMetaWithContext<TResult, TParent = any> = {
   [K in RegisteredResolverContextId]: {
     contextId: K;
-    compute: (parent: TParent, context: RegisteredResolverContextMap[K]) => TResult;
+    compute: (
+      parent: TParent,
+      context: RegisteredResolverContextMap[K],
+    ) => TResult;
   };
 }[RegisteredResolverContextId];
 
-export type ComputedMetaDef<TResult, TParent = any> =
-  z.infer<typeof zodExtendableCommonDefSchema> &
-    (
-      | ComputedMetaWithoutContext<TResult, TParent>
-      | ComputedMetaWithContext<TResult, TParent>
-    );
+export type ComputedMetaDef<TResult, TParent = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
+  (
+    | ComputedMetaWithoutContext<TResult, TParent>
+    | ComputedMetaWithContext<TResult, TParent>
+  );
+
+export type SchemaResolver<
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+> = (
+  value: TValue,
+  context: TContext,
+) => z.ZodTypeAny | Promise<z.ZodTypeAny | undefined> | undefined;
+
+export type DynamicSchemaResolver<
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+> = SchemaResolver<TValue, TContext>;
+
+export type DynamicMetaDef<
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+> = z.infer<typeof zodExtendableCommonDefSchema> & {
+  resolve: DynamicSchemaResolver<TValue, TContext>;
+};
+
+export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
+
+export const asRegistryValue = <TValue,>(
+  value: TValue,
+): RegistryValue<TValue> => value as unknown as RegistryValue<TValue>;
+
+export const asRegistrySchemaResolver = <
+  TValue = unknown,
+  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+>(
+  resolver: SchemaResolver<TValue, TContext>,
+): RegistryValue<SchemaResolver<TValue, TContext>> => asRegistryValue(resolver);
 
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
@@ -121,6 +169,7 @@ const stringMetaSchema = zodExtendableCommonDefSchema.extend({
       output: computedValueSchema,
     })
     .optional(),
+  suggestions: z.array(stringSuggestionSchema).optional(),
 });
 
 // number 専用メタスキーマ（formatter で表示時の整形を指定可能）
@@ -152,7 +201,9 @@ const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
   externalKeyConfig: z.custom<ExternalKeyConfig<RegisteredExternalKeyConfig>>(),
   // action は runtime resolver が解釈するため、core では構造だけ受ける
-  externalKeyActionConfig: z.custom<RegisteredExternalKeyActionConfig>().optional(),
+  externalKeyActionConfig: z
+    .custom<RegisteredExternalKeyActionConfig>()
+    .optional(),
 });
 
 const externalKey = extendCustom(
@@ -213,6 +264,16 @@ const derived = extendCustom(
   schemaType<z.ZodType>(),
 );
 
+// dynamic: 該当フィールドの現在値と resolverContext から実際に描画する schema を解決する
+const dynamic = extendCustom(
+  z.never,
+  "dynamic",
+  zodExtendableCommonDefSchema.extend({
+    resolve: z.custom<DynamicSchemaResolver>(),
+  }) as z.ZodType<DynamicMetaDef>,
+  schemaType<z.ZodType>(),
+);
+
 /**
  * zf - React非依存のZodスキーマ拡張
  * computed: 親オブジェクトを受け取る（複数フィールド横断の計算）
@@ -252,6 +313,7 @@ const zf = {
   file,
   computed,
   derived,
+  dynamic,
 };
 
 type ZfRegistryKey = {
@@ -259,9 +321,7 @@ type ZfRegistryKey = {
 }[keyof typeof zf];
 
 type ZfRegistry<TypeName extends ZfRegistryKey> =
-  (typeof zf)[TypeName] extends { registry: infer Registry }
-    ? Registry
-    : never;
+  (typeof zf)[TypeName] extends { registry: infer Registry } ? Registry : never;
 
 type ZfMeta<TypeName extends ZfRegistryKey> =
   ZfRegistry<TypeName> extends ZodPropagatingRegistryType<any, any, any>

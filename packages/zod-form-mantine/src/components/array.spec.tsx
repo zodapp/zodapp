@@ -19,7 +19,7 @@ import {
   ZodFormContextProvider,
   FormProvider,
   useZodForm,
-  Dynamic,
+  Switch,
 } from "@zodapp/zod-form-react/common";
 import { zf } from "@zodapp/zod-form";
 
@@ -85,9 +85,9 @@ describe("ArrayComponent integration (tanstack form)", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Dynamic fieldPath="" schema={formSchema} />
+                <Switch fieldPath="" schema={formSchema} />
                 {/* 
-              ArrayComponentを直接呼べばテストが通るが、Dynamicで呼ぶとテストが通らない 
+              ArrayComponentを直接呼べばテストが通るが、Switchで呼ぶとテストが通らない 
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items}

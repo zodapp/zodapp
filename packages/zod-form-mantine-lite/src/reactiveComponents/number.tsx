@@ -26,8 +26,15 @@ const NumberComponent = React.memo(function NumberComponent({
 
   const rawValue =
     typeof defaultValue === "number" ? defaultValue : ("" as string | number);
-  const { value, onChange, hasPendingChange, onConfirm, onCancel, onKeyDown } =
-    useConfirmableState(rawValue, fieldPath);
+  const {
+    value,
+    onChange,
+    hasPendingChange,
+    onConfirm,
+    onBlur,
+    onCancel,
+    onKeyDown,
+  } = useConfirmableState(rawValue, fieldPath);
 
   if (readOnly) {
     return (
@@ -48,6 +55,7 @@ const NumberComponent = React.memo(function NumberComponent({
         const numeric = typeof next === "number" ? next : Number(next);
         onChange(Number.isNaN(numeric) ? ("" as string | number) : numeric);
       }}
+      onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
       required={required !== false}
