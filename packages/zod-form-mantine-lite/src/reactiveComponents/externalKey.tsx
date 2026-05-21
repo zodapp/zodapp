@@ -32,7 +32,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   const { options, isLoading } = useExternalKeyOptions(schema);
 
   const rawValue = (defaultValue as string | undefined) ?? null;
-  const { value, onChange, hasPendingChange, onConfirm, onCancel } =
+  const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath);
   const actionWrapper = useExternalKeyAction(schema, value);
 
@@ -106,6 +106,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
       value={value}
       data={options}
       onChange={(next) => onChange(next)}
+      onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
       required={required !== false}

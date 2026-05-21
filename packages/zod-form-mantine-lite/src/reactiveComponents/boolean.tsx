@@ -25,13 +25,14 @@ const BooleanComponent = React.memo(function BooleanComponent({
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue = !!defaultValue;
-  const { value, onChange, hasPendingChange, onConfirm, onCancel } =
+  const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath);
 
   const switchElement = (
     <Switch
       checked={value}
       onChange={(event) => onChange(event.currentTarget.checked)}
+      onBlur={() => void onBlur()}
       disabled={readOnly}
       size="md"
       required={required !== false}
@@ -45,6 +46,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
           <Switch
             checked={value}
             onChange={(event) => onChange(event.currentTarget.checked)}
+            onBlur={() => void onBlur()}
             disabled={readOnly}
             label={label || undefined}
             labelPosition="left"
