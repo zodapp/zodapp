@@ -3,7 +3,7 @@ import { Fieldset, InputWrapper } from "@mantine/core";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
-  Dynamic,
+  Switch,
   ZodFormInternalProps,
   wrapComponent,
 } from "@zodapp/zod-form-react/common";
@@ -38,7 +38,7 @@ const RecordComponent = wrapComponent(
 
     const fieldsComponent = keys.map((key: string) => (
       <div key={key}>
-        <Dynamic
+        <Switch
           fieldPath={joinFieldPath(fieldPath, key)}
           schema={valueSchema}
           defaultValue={value?.[key]}

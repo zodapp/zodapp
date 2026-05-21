@@ -11,7 +11,7 @@ import z from "zod";
 import {
   ZodFormInternalProps,
   wrapComponent,
-  Dynamic,
+  Switch,
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
@@ -304,10 +304,7 @@ const UnionBody = React.memo(function UnionBody({
       }
       return;
     }
-    if (
-      discriminatorFromValue !== undefined &&
-      discriminatorFromValue !== selectedDiscriminator
-    ) {
+    if (discriminatorFromValue !== selectedDiscriminator) {
       setSelectedDiscriminator(discriminatorFromValue);
     }
   }, [
@@ -357,6 +354,22 @@ const UnionBody = React.memo(function UnionBody({
       ? unionError.errors?.[selectedProfile.index]
       : undefined;
 
+  const directIssues = useMemo(
+    () =>
+      !unionError &&
+      error &&
+      Array.isArray((error as any).path) &&
+      (error as any).path.length > 0
+        ? [error]
+        : undefined,
+    [error, unionError],
+  );
+
+  const distributableIssues = useMemo(
+    () => optionIssues ?? directIssues,
+    [directIssues, optionIssues],
+  );
+
   useEffect(() => {
     const redistributeIssues = (issues: any[] | undefined) => {
       const touched = new Set<string>();
@@ -397,18 +410,29 @@ const UnionBody = React.memo(function UnionBody({
       prevInjectedRef.current = Array.from(touched);
     };
 
-    redistributeIssues(optionIssues);
+    redistributeIssues(distributableIssues);
 
     return () => redistributeIssues(undefined);
-  }, [optionIssues, accessor, field.api.form]);
+  }, [distributableIssues, accessor, field.api.form]);
 
   const handleSelect = useCallback(
     (id: string | null) => {
+      if (
+        id &&
+        required === false &&
+        compiledOptions.hasDiscriminator &&
+        id === selectedProfile?.value
+      ) {
+        setSelectedDiscriminator(undefined);
+        accessor.setValue(undefined, { dontValidate: true });
+        return;
+      }
+
       const profile = id ? compiledOptions.selector(id) : undefined;
       if (!profile) {
         if (compiledOptions.hasDiscriminator) {
           setSelectedDiscriminator(undefined);
-          field.onChange(undefined);
+          accessor.setValue(undefined, { dontValidate: true });
           return;
         } else {
           return;
@@ -441,7 +465,7 @@ const UnionBody = React.memo(function UnionBody({
         : undefined;
       field.onChange(normalized ?? undefined);
     },
-    [field, compiledOptions, formValue, accessor],
+    [field, compiledOptions, formValue, accessor, required, selectedProfile],
   );
   const shouldHideSelector = hideSelector === true;
   const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;
@@ -460,7 +484,7 @@ const UnionBody = React.memo(function UnionBody({
           <Select
             ref={ref}
             data={compiledOptions.profiles}
-            value={selectedProfile?.value}
+            value={selectedProfile?.value ?? null}
             onChange={handleSelect}
             onBlur={field.onBlur}
             onFocus={onFocus}
@@ -486,7 +510,7 @@ const UnionBody = React.memo(function UnionBody({
               />
             }
           >
-            <Dynamic
+            <Switch
               key={selectedProfile.value}
               fieldPath={fieldPath}
               schema={selectedProfile.schema}

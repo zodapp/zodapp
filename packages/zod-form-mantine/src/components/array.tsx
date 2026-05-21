@@ -5,7 +5,7 @@ import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import { $ZodCheckMaxLengthDef, $ZodCheckMinLengthDef } from "zod/v4/core";
 import z from "zod";
 import {
-  Dynamic,
+  Switch,
   getDefaultValue,
   useArray,
   ZodFormInternalProps,
@@ -34,6 +34,14 @@ type ArraySchema = ReturnType<typeof zf.array>;
 
 const DISABLE_DRAG_WHEN_SINGLE_ITEM = false;
 const SHOW_ITEM_BOX = true;
+
+const getArrayItemDefaultValue = (schema: z.ZodTypeAny): unknown => {
+  try {
+    return getDefaultValue(schema);
+  } catch (error) {
+    return undefined;
+  }
+};
 
 function SortableItem({
   id,
@@ -202,7 +210,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
               outline: "none",
             }}
             onClick={() => {
-              const dv = getDefaultValue(itemSchema);
+              const dv = getArrayItemDefaultValue(itemSchema);
               insert(index, dv);
             }}
           >
@@ -257,10 +265,10 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
                 paddingBottom: 4,
               }}
             >
-              <Dynamic {...childProps} />
+              <Switch {...childProps} />
             </div>
           ) : (
-            <Dynamic {...childProps} />
+            <Switch {...childProps} />
           )}
 
           {canRemove && !readOnly && (
@@ -304,7 +312,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
             outline: "none",
           }}
           onClick={() => {
-            const dv = getDefaultValue(itemSchema);
+            const dv = getArrayItemDefaultValue(itemSchema);
             append(dv);
           }}
         >

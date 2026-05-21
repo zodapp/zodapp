@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { InputWrapper, Textarea } from "@mantine/core";
+import { Button, Group, InputWrapper, Textarea } from "@mantine/core";
 import {
   ZodFormInternalProps,
   wrapComponent,
@@ -13,6 +13,7 @@ import {
   renderComputedValue,
 } from "@zodapp/zod-form-mantine-lite/utils";
 import multilineStyles from "@zodapp/zod-form-mantine-lite/utils/stringMultiline.module.css";
+import { normalizeStringSuggestions } from "./stringSuggestions.js";
 
 type StringSchema = z.ZodString;
 
@@ -26,14 +27,23 @@ const StringMultilineComponent = wrapComponent(
     error,
   }: ZodFormInternalProps<StringSchema>) {
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
+    const { label: labelFromMeta, formatter, suggestions } =
+      getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
+    const suggestionData = normalizeStringSuggestions(suggestions);
 
     const value = typeof field.value === "string" ? field.value : "";
 
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         field.onChange(event.target.value || undefined);
+      },
+      [field],
+    );
+
+    const setSuggestionValue = useCallback(
+      (nextValue: string) => {
+        field.onChange(nextValue || undefined);
       },
       [field],
     );
@@ -53,21 +63,38 @@ const StringMultilineComponent = wrapComponent(
     }
 
     return (
-      <Textarea
-        ref={ref}
-        value={value}
-        onChange={onChange}
-        onBlur={field.onBlur}
-        onFocus={onFocus}
-        label={label || undefined}
-        error={error?.message}
-        required={required !== false}
-        disabled={readOnly || field.disabled}
-        style={inputWrapperStyle}
-        autosize
-        minRows={3}
-        classNames={{ input: multilineStyles.input }}
-      />
+      <>
+        <Textarea
+          ref={ref}
+          value={value}
+          onChange={onChange}
+          onBlur={field.onBlur}
+          onFocus={onFocus}
+          label={label || undefined}
+          error={error?.message}
+          required={required !== false}
+          disabled={readOnly || field.disabled}
+          style={inputWrapperStyle}
+          autosize
+          minRows={3}
+          classNames={{ input: multilineStyles.input }}
+        />
+        {suggestionData.length > 0 && (
+          <Group gap="xs" mt="xs">
+            {suggestionData.map((suggestion) => (
+              <Button
+                key={suggestion.value}
+                type="button"
+                size="xs"
+                variant="light"
+                onClick={() => setSuggestionValue(suggestion.value)}
+              >
+                {suggestion.label}
+              </Button>
+            ))}
+          </Group>
+        )}
+      </>
     );
   },
 );

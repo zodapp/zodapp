@@ -1,5 +1,5 @@
 import { Text } from "@mantine/core";
-import { Dynamic, type ZodFormProps } from "@zodapp/zod-form-react";
+import { Switch, type ZodFormProps } from "@zodapp/zod-form-react";
 import z from "zod";
 
 type UnionSchema = z.ZodUnion<readonly [z.ZodTypeAny, ...z.ZodTypeAny[]]>;
@@ -24,7 +24,7 @@ const UnionComponent = ({
     return <EmptyValue />;
   }
 
-  return <Dynamic {...props} schema={matchedSchema} defaultValue={defaultValue} />;
+  return <Switch {...props} schema={matchedSchema} defaultValue={defaultValue} />;
 };
 
 export { UnionComponent as component };

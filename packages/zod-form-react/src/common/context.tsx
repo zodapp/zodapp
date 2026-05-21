@@ -44,7 +44,7 @@ const toCollectionReferenceActionMap = (
   new Map(entries.map(({ reference, action }) => [reference, action] as const));
 
 /**
- * 動的ローダ（Dynamic loader）の型。
+ * switch loader の型。
  *
  * コンポーネント定義 `{ component }` もしくはその Promise を返します。
  * `ComponentLibrary` の各エントリはこの型で表現され、必要に応じて遅延ロードされます。
@@ -89,8 +89,6 @@ type ZodFormContextType = {
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（timestamp encoding 時に使用） */
   timezone: string;
-  /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
-  onFieldChange?: (fieldPath: string, value: unknown) => void;
   /** resolver 共通の runtime context（contextId ごとの namespaced map） */
   resolverContext?: RegisteredResolverContext;
   /** CollectionReference をキーにした default action の Map */
@@ -130,7 +128,6 @@ export const ZodFormContextProvider = ({
   fileResolvers,
   mediaResolvers,
   timezone,
-  onFieldChange,
   resolverContext,
   collectionReferenceActions,
   children,
@@ -144,8 +141,6 @@ export const ZodFormContextProvider = ({
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（省略時はブラウザのローカルTZ） */
   timezone?: string;
-  /** reactiveComponentLibrary 用: フィールド値の変更を通知するコールバック */
-  onFieldChange?: (fieldPath: string, value: unknown) => void;
   /** resolver 共通の runtime context（contextId ごとの namespaced map） */
   resolverContext?: RegisteredResolverContext;
   /** CollectionReference をキーにした default action 配列 */
@@ -190,7 +185,6 @@ export const ZodFormContextProvider = ({
       fileResolvers: fileResolvers ?? parentContext.fileResolvers,
       mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
       timezone: timezone ?? parentContext.timezone,
-      onFieldChange: onFieldChange ?? parentContext.onFieldChange,
       resolverContext: resolverContext ?? parentContext.resolverContext,
       collectionReferenceActionMap,
     }),
@@ -204,7 +198,6 @@ export const ZodFormContextProvider = ({
       mediaResolvers,
       merge,
       notFoundComponent,
-      onFieldChange,
       parentContext.componentLibrary,
       parentContext.externalKeyActionResolver,
       parentContext.externalKeyResolvers,
@@ -212,7 +205,6 @@ export const ZodFormContextProvider = ({
       parentContext.loadingComponent,
       parentContext.mediaResolvers,
       parentContext.notFoundComponent,
-      parentContext.onFieldChange,
       parentContext.resolverContext,
       parentContext.timezone,
       resolverContext,
@@ -357,13 +349,4 @@ export function useResolverContext(contextId?: string) {
 export const useAllResolverContext = () => {
   const { resolverContext } = useZodFormContext();
   return resolverContext;
-};
-
-/**
- * onFieldChangeコールバックを取得するフック
- * reactiveComponentLibrary のコンポーネントが確定時にフィールド値を通知するために使用
- */
-export const useOnFieldChange = () => {
-  const { onFieldChange } = useZodFormContext();
-  return onFieldChange;
 };

@@ -70,10 +70,15 @@ export type AutoFormResetActionHelperProps<T extends z.ZodTypeAny> =
     keepDefaultValues?: boolean;
   };
 
+export type AutoFormCustomActionHelperProps<T extends z.ZodTypeAny> = {
+  render: AutoFormActionComponent<T>;
+};
+
 export type AutoFormAction<T extends z.ZodTypeAny> =
   | ({ type: 'submit' } & AutoFormSubmitActionHelperProps<T>)
   | ({ type: 'button' } & AutoFormButtonActionHelperProps<T>)
-  | ({ type: 'reset' } & AutoFormResetActionHelperProps<T>);
+  | ({ type: 'reset' } & AutoFormResetActionHelperProps<T>)
+  | ({ type: 'custom' } & AutoFormCustomActionHelperProps<T>);
 
 export type NormalizeAutoFormActionsOptions<T extends z.ZodTypeAny> = {
   actions?: readonly AutoFormAction<T>[];
@@ -272,6 +277,8 @@ export const createAutoFormActionComponent = <T extends z.ZodTypeAny>(
       return createAutoFormButtonAction(action);
     case 'reset':
       return createAutoFormResetAction(action);
+    case 'custom':
+      return action.render;
   }
 };
 
