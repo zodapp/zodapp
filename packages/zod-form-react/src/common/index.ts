@@ -11,7 +11,6 @@ export {
   useMediaResolvers,
   useResolverContext,
   useAllResolverContext,
-  useOnFieldChange,
   type DynamicZodFormDef,
   type ComponentLibrary,
   type ExternalKeyActionWrapper,

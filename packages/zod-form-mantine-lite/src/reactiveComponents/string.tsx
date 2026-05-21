@@ -26,8 +26,15 @@ const StringComponent = React.memo(function StringComponent({
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue = typeof defaultValue === "string" ? defaultValue : "";
-  const { value, onChange, hasPendingChange, onConfirm, onCancel, onKeyDown } =
-    useConfirmableState(rawValue, fieldPath);
+  const {
+    value,
+    onChange,
+    hasPendingChange,
+    onConfirm,
+    onBlur,
+    onCancel,
+    onKeyDown,
+  } = useConfirmableState(rawValue, fieldPath);
 
   if (readOnly) {
     return (
@@ -41,6 +48,7 @@ const StringComponent = React.memo(function StringComponent({
     <TextInput
       value={value}
       onChange={(event) => onChange(event.currentTarget.value)}
+      onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
       required={required !== false}

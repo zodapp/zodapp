@@ -1,7 +1,7 @@
 import { ActionIcon, Group } from "@mantine/core";
 import { IconCheck, IconArrowBackUp } from "@tabler/icons-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { useOnFieldChange } from "@zodapp/zod-form-react/common";
+import { useReactiveFormContext } from "../context";
 
 type ConfirmableInputActionsProps = {
   onConfirm: () => void;
@@ -18,6 +18,7 @@ export const ConfirmableInputActions = ({
       variant="light"
       color="green"
       aria-label="Confirm"
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onConfirm}
     >
       <IconCheck size={14} />
@@ -27,6 +28,7 @@ export const ConfirmableInputActions = ({
       variant="light"
       color="red"
       aria-label="Cancel"
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onCancel}
     >
       <IconArrowBackUp size={14} />
@@ -37,13 +39,15 @@ export const ConfirmableInputActions = ({
 /**
  * 任意の値型に対応する confirmable state hook。
  *
- * - ローカルに値を管理し、confirm 時に `onFieldChange(fieldPath, value)` を呼ぶ
+ * - ローカルに値を管理し、confirm 時に `onConfirm` を呼ぶ
+ * - blur 時は `onBlur` ガードの返り値で confirm / revert / 維持を決める
  * - pending がなければ親からの `defaultValue` 変更を同期する
  * - Escape でキャンセル、Ctrl+Enter で確定
  */
 export const useConfirmableState = <T,>(defaultValue: T, fieldPath: string) => {
-  const onFieldChange = useOnFieldChange();
+  const reactiveForm = useReactiveFormContext();
   const baseValueRef = useRef(defaultValue);
+  const valueRef = useRef(defaultValue);
   const [value, setValue] = useState(defaultValue);
   const [hasPendingChange, setHasPendingChange] = useState(false);
   const hasPendingChangeRef = useRef(hasPendingChange);
@@ -57,29 +61,79 @@ export const useConfirmableState = <T,>(defaultValue: T, fieldPath: string) => {
       return;
     }
     baseValueRef.current = defaultValue;
+    valueRef.current = defaultValue;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setValue(defaultValue);
   }, [defaultValue]);
 
   const onChange = (nextValue: T) => {
+    valueRef.current = nextValue;
     setValue(nextValue);
     if (nextValue !== baseValueRef.current) {
+      hasPendingChangeRef.current = true;
       setHasPendingChange(true);
     } else {
+      hasPendingChangeRef.current = false;
       setHasPendingChange(false);
     }
   };
 
-  const onConfirm = () => {
-    baseValueRef.current = value;
+  const commitValue = async () => {
+    if (!hasPendingChangeRef.current) {
+      return;
+    }
+
+    const nextValue = valueRef.current;
+    const previousValue = baseValueRef.current;
+
+    await reactiveForm.onConfirm?.({
+      fieldPath,
+      value: nextValue,
+      previousValue,
+    });
+
+    baseValueRef.current = nextValue;
+    hasPendingChangeRef.current = false;
     setHasPendingChange(false);
-    onFieldChange?.(fieldPath, value);
+  };
+
+  const revertValue = () => {
+    const previousValue = baseValueRef.current;
+    valueRef.current = previousValue;
+    setValue(previousValue);
+    hasPendingChangeRef.current = false;
+    setHasPendingChange(false);
+  };
+
+  const onConfirm = async () => {
+    await commitValue();
+  };
+
+  const onBlur = async () => {
+    if (!hasPendingChangeRef.current) {
+      return;
+    }
+
+    const nextValue = valueRef.current;
+    const previousValue = baseValueRef.current;
+    const shouldConfirm = await reactiveForm.onBlur?.({
+      fieldPath,
+      value: nextValue,
+      previousValue,
+    });
+
+    if (shouldConfirm === true) {
+      await commitValue();
+      return;
+    }
+
+    if (shouldConfirm === false) {
+      revertValue();
+    }
   };
 
   const onCancel = () => {
-    baseValueRef.current = defaultValue;
-    setValue(defaultValue);
-    setHasPendingChange(false);
+    revertValue();
   };
 
   const onKeyDown = (
@@ -97,11 +151,19 @@ export const useConfirmableState = <T,>(defaultValue: T, fieldPath: string) => {
 
     if (event.key === "Enter" && event.ctrlKey) {
       event.preventDefault();
-      onConfirm();
+      void onConfirm();
     }
   };
 
-  return { value, onChange, hasPendingChange, onConfirm, onCancel, onKeyDown };
+  return {
+    value,
+    onChange,
+    hasPendingChange,
+    onConfirm,
+    onBlur,
+    onCancel,
+    onKeyDown,
+  };
 };
 
 const BASE_WIDTH = 64;

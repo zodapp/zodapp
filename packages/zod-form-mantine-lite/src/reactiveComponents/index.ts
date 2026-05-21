@@ -5,6 +5,12 @@ import type {
 import { baseComponents } from "../baseComponents/index";
 
 // Named exports（個別 static import 用）
+export {
+  ReactiveFormContextProvider,
+  useReactiveFormContext,
+  type ReactiveFieldEvent,
+  type ReactiveFormContextValue,
+} from "./context";
 export { component as StringComponent } from "./string.js";
 export { component as StringMultilineComponent } from "./string_multiline.js";
 export { component as NumberComponent } from "./number.js";
