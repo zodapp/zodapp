@@ -10,6 +10,17 @@ import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zo
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
+const toNumberValue = (value: unknown): number | undefined => {
+  if (typeof value === "number") return value;
+  if (typeof value !== "string") return undefined;
+
+  const trimmed = value.trim();
+  if (trimmed === "") return undefined;
+
+  const numeric = Number(trimmed);
+  return Number.isNaN(numeric) ? undefined : numeric;
+};
+
 const NumberComponent = wrapComponent(function NumberComponentImplement({
   schema,
   field,
@@ -21,8 +32,9 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta, formatter } = getMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;
+  const rawValue = field.value as unknown;
 
-  const value = typeof field.value === "number" ? field.value : undefined;
+  const value = toNumberValue(rawValue);
 
   const onChange = useCallback(
     (value: string | number | null | undefined) => {
