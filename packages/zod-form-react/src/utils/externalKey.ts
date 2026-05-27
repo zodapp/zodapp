@@ -82,13 +82,15 @@ export const useExternalKeyOptions = (
   resolverResultRef.current = resolverResult;
 
   const configType = config.type;
-  const contextId = "contextId" in config
-    ? (config as unknown as { contextId: string }).contextId
-    : undefined;
+  const contextId =
+    "contextId" in config
+      ? (config as unknown as { contextId: string }).contextId
+      : undefined;
   const { resolverContext } = useZodFormContext();
 
   // subscribeしてoptionsを取得
   useEffect(() => {
+    setOptions(null);
     const unsubscribe = resolverResultRef.current.subscribe((newOptions) => {
       // valueの重複を排除
       const normalizedOptions = Object.values(
@@ -98,7 +100,7 @@ export const useExternalKeyOptions = (
     });
 
     return unsubscribe;
-  }, [configType, contextId, resolverContext]);
+  }, [configType, contextId, resolverContext, config]);
 
   if (options === null) {
     return { options: null, isLoading: true };
@@ -136,11 +138,16 @@ export const useExternalKeyAction = (
   );
 
   const referenceActionConfig = useMemo(() => {
-    if (explicitActionConfig || !collectionReferenceActionMap || !resolvedConfig) {
+    if (
+      explicitActionConfig ||
+      !collectionReferenceActionMap ||
+      !resolvedConfig
+    ) {
       return undefined;
     }
     if ("reference" in resolvedConfig) {
-      const ref = (resolvedConfig as unknown as { reference: object }).reference;
+      const ref = (resolvedConfig as unknown as { reference: object })
+        .reference;
       return collectionReferenceActionMap.get(ref);
     }
     return undefined;
@@ -159,5 +166,11 @@ export const useExternalKeyAction = (
       newTab,
       resolverContext: resolverContext ?? {},
     });
-  }, [resolvedActionConfig, externalKeyActionResolver, newTab, value, resolverContext]);
+  }, [
+    resolvedActionConfig,
+    externalKeyActionResolver,
+    newTab,
+    value,
+    resolverContext,
+  ]);
 };
