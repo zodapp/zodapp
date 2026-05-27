@@ -48,7 +48,6 @@ const ObjectComponent = React.memo(function ObjectComponent({
       index: number,
     ) => {
       const meta = getMeta(property.schema);
-      console.log(property.schema, meta);
       const unwrappedSchema =
         property.schema instanceof z.ZodOptional
           ? (property.schema.unwrap() as z.ZodTypeAny)
