@@ -11,7 +11,7 @@ export {
   type GrowingListState,
   type FetchState,
   type ItemChangeEvent,
-} from "./firestore/intrinsitGrowingList";
+} from "./firestore/intrinsicGrowingList";
 
 export {
   createFilteredGrowingList,

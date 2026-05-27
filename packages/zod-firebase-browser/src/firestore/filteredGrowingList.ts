@@ -9,7 +9,7 @@ import {
   type FetchState,
   type GrowingListState,
   type ItemChangeEvent,
-} from "./intrinsitGrowingList";
+} from "./intrinsicGrowingList";
 import { createCachedGrowingList } from "./cachedGrowingList";
 import { createSortTools } from "./sortTools";
 

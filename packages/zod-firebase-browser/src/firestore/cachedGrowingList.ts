@@ -12,7 +12,7 @@ import type { AccessorStoreKey } from ".";
 import {
   createIntrinsicGrowingList,
   type IntrinsicGrowingList,
-} from "./intrinsitGrowingList";
+} from "./intrinsicGrowingList";
 
 type Firestore = firebase.firestore.Firestore;
 type WhereFilterOp = firebase.firestore.WhereFilterOp;
