@@ -80,7 +80,7 @@ export function createFirestoreResolver<TType extends string = "firestore">({
             .filter((key) => key in ctx)
             .map((key) => [key, String(ctx[key])]),
         );
-      const queryOptions = { where: resolved.where ?? [] };
+      const queryOptions = resolved;
 
       return {
         subscribe: (callback: ExternalKeyOptionsHandler) => {
