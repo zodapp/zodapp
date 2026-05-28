@@ -22,7 +22,12 @@ export const ReadonlyText = ({ children, ...props }: ReadonlyTextProps) => {
   const { style, ...restProps } = props;
 
   return (
-    <Text size="sm" style={{ ...readonlyTextStyle, ...style }} {...restProps}>
+    <Text
+      component="div"
+      size="sm"
+      style={{ ...readonlyTextStyle, ...style }}
+      {...restProps}
+    >
       {children}
     </Text>
   );

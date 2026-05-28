@@ -28,12 +28,16 @@ export function renderComputedValue(
     }
     if (variant === "table") {
       return (
-        <Text size="sm" lineClamp={1}>
+        <Text component="div" size="sm" lineClamp={1}>
           {content}
         </Text>
       );
     }
-    return <Text size="sm">{content}</Text>;
+    return (
+      <Text component="div" size="sm">
+        {content}
+      </Text>
+    );
   }
 
   const inner = renderStructured(content);
@@ -55,7 +59,7 @@ export function renderComputedFieldValue(content: unknown): React.ReactNode {
     return <ReadonlyText>{content}</ReadonlyText>;
   }
 
-  return <Text>{renderComputedValue(content)}</Text>;
+  return <Text component="div">{renderComputedValue(content)}</Text>;
 }
 
 function renderStructured(content: unknown): React.ReactNode {
@@ -80,7 +84,7 @@ function renderStructured(content: unknown): React.ReactNode {
       { type: "icon" }
     >;
     return (
-      <Text size="sm" style={{ color }}>
+      <Text component="div" size="sm" style={{ color }}>
         <span className={icon} />
         {label && <> {label}</>}
       </Text>
