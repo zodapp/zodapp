@@ -44,7 +44,11 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
 
   if (readOnly || field.disabled) {
     return (
-      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
+      <InputWrapper
+        label={label || undefined}
+        labelElement="div"
+        style={inputWrapperStyle}
+      >
         <ReadonlyText>{displayLabel}</ReadonlyText>
       </InputWrapper>
     );

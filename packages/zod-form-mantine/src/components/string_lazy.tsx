@@ -64,7 +64,11 @@ const StringLazyComponent = wrapComponent(
 
     if (readOnly || field.disabled) {
       return (
-        <InputWrapper label={label || undefined} style={inputWrapperStyle}>
+        <InputWrapper
+          label={label || undefined}
+          labelElement="div"
+          style={inputWrapperStyle}
+        >
           {value && formatter
             ? renderComputedValue(formatter(value), "readOnly")
             : <ReadonlyText>{value}</ReadonlyText>}

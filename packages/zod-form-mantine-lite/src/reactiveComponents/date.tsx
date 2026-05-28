@@ -68,7 +68,11 @@ const DateComponent = React.memo(function DateComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
+      <InputWrapper
+        label={label || undefined}
+        labelElement="div"
+        style={inputWrapperStyle}
+      >
         <ReadonlyText>{value ?? ""}</ReadonlyText>
       </InputWrapper>
     );

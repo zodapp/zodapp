@@ -38,7 +38,11 @@ const StringComponent = React.memo(function StringComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
+      <InputWrapper
+        labelElement="div"
+        label={label || undefined}
+        style={inputWrapperStyle}
+      >
         <ReadonlyText>{value}</ReadonlyText>
       </InputWrapper>
     );

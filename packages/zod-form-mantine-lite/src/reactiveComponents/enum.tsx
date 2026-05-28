@@ -41,7 +41,11 @@ const EnumComponent = React.memo(function EnumComponent({
 
   if (readOnly) {
     return (
-      <InputWrapper label={label || undefined} style={inputWrapperStyle}>
+      <InputWrapper
+        label={label || undefined}
+        labelElement="div"
+        style={inputWrapperStyle}
+      >
         <ReadonlyText>{displayLabel}</ReadonlyText>
       </InputWrapper>
     );

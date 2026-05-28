@@ -71,7 +71,11 @@ const ExternalKeyComponent = wrapComponent(
 
     if (readOnly || field.disabled) {
       return (
-        <InputWrapper label={label || undefined} style={inputWrapperStyle}>
+        <InputWrapper
+          label={label || undefined}
+          labelElement="div"
+          style={inputWrapperStyle}
+        >
           <Group gap="0" wrap="nowrap" align="center">
             <ReadonlyText style={{ flex: 1 }}>{displayLabel}</ReadonlyText>
             {actionContent}

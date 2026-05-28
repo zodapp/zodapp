@@ -476,6 +476,7 @@ const UnionBody = React.memo(function UnionBody({
         (selectorIsReadOnly ? (
           <InputWrapper
             label={selectorLabel ?? "タイプ"}
+            labelElement="div"
             style={inputWrapperStyle}
           >
             <ReadonlyText>{selectedProfile?.label}</ReadonlyText>
