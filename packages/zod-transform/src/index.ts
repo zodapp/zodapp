@@ -277,37 +277,49 @@ const _preprocess = (
   }[] = [];
   const _schemas = isZodTypeArray(schemas) ? schemas : [schemas];
   for (const schema of _schemas) {
-    const preprocessValue = applyPreprocessor(obj, schema, transformDef);
-    const processedValue = applyProcessor(
-      preprocessValue,
-      schema,
-      transformDef,
-      {
-        transform: (value, schema, path) =>
-          _preprocess(
-            value,
-            schema,
-            transformDef,
-            path !== undefined ? [...paths, path] : paths,
-          ),
-        mode: "preprocess",
-        paths,
-      },
-    );
-    if (_schemas.length > 1) {
-      const parseResult = schema.safeParse(
-        $Remove.stripRemoveByDefault(processedValue, undefined),
+    try {
+      const preprocessValue = applyPreprocessor(obj, schema, transformDef);
+      const processedValue = applyProcessor(
+        preprocessValue,
+        schema,
+        transformDef,
+        {
+          transform: (value, schema, path) =>
+            _preprocess(
+              value,
+              schema,
+              transformDef,
+              path !== undefined ? [...paths, path] : paths,
+            ),
+          mode: "preprocess",
+          paths,
+        },
       );
-      if (!parseResult.success) {
+      if (_schemas.length > 1) {
+        const parseResult = schema.safeParse(
+          $Remove.stripRemoveByDefault(processedValue, undefined),
+        );
+        if (!parseResult.success) {
+          errorLogs.push({
+            schema,
+            error: parseResult.error,
+            value: processedValue,
+          });
+          continue;
+        }
+      }
+      return processedValue;
+    } catch (error) {
+      if (_schemas.length > 1 && error instanceof z.ZodError) {
         errorLogs.push({
           schema,
-          error: parseResult.error,
-          value: processedValue,
+          error,
+          value: obj,
         });
         continue;
       }
+      throw error;
     }
-    return processedValue;
   }
   throw new z.ZodError([
     {
