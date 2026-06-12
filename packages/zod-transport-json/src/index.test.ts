@@ -4,6 +4,10 @@ import { z } from "zod";
 import { createJsonTransport } from "./index";
 
 describe("createJsonTransport", () => {
+  const getDescription = (
+    schema: z.ZodTypeAny | undefined,
+  ): string | undefined => schema?.description;
+
   it("decodes JSON wire values into domain values", () => {
     const schema = z.object({
       createdAt: z.date(),
@@ -72,6 +76,63 @@ describe("createJsonTransport", () => {
       transport.transportSchema.parse({ createdAt: new Date() }),
     ).toThrow();
     expect(() => transport.decode({ createdAt: "not-a-date" })).toThrow();
+  });
+
+  it("copies source schema descriptions to generated transport schemas", () => {
+    const transport = createJsonTransport(
+      z.object({
+        createdAt: z.date().describe("Created timestamp"),
+        amount: z.bigint().describe("Amount"),
+        nested: z
+          .object({ dueAt: z.date().describe("Due timestamp") })
+          .describe("Nested"),
+      }),
+    );
+    const shape = (transport.transportSchema as z.ZodObject<z.ZodRawShape>)
+      .shape;
+
+    expect(getDescription(shape.createdAt as z.ZodTypeAny | undefined)).toBe(
+      "Created timestamp",
+    );
+    expect(getDescription(shape.amount as z.ZodTypeAny | undefined)).toBe(
+      "Amount",
+    );
+    expect(getDescription(shape.nested as z.ZodTypeAny | undefined)).toBe(
+      "Nested",
+    );
+    expect(
+      getDescription(
+        (shape.nested as z.ZodObject<z.ZodRawShape>).shape.dueAt as
+          | z.ZodTypeAny
+          | undefined,
+      ),
+    ).toBe("Due timestamp");
+  });
+
+  it("uses descriptionResolver when the source schema has no description", () => {
+    const titleSchema = z.string();
+    const createdAtSchema = z.date().describe("Explicit timestamp");
+    const transport = createJsonTransport(
+      z.object({
+        title: titleSchema,
+        createdAt: createdAtSchema,
+      }),
+      {
+        descriptionResolver: (schema) =>
+          schema === titleSchema || schema === createdAtSchema
+            ? "Resolved label"
+            : undefined,
+      },
+    );
+    const shape = (transport.transportSchema as z.ZodObject<z.ZodRawShape>)
+      .shape;
+
+    expect(getDescription(shape.title as z.ZodTypeAny | undefined)).toBe(
+      "Resolved label",
+    );
+    expect(getDescription(shape.createdAt as z.ZodTypeAny | undefined)).toBe(
+      "Explicit timestamp",
+    );
   });
 
   it("does not materialize absent optional fields while decoding", () => {
