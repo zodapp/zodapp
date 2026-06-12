@@ -24,6 +24,7 @@ export type JsonTransport<TSchema extends z.ZodTypeAny> = {
 
 export type JsonTransportOptions = {
   allowLocalDateTime?: boolean;
+  descriptionResolver?: (schema: z.ZodTypeAny) => string | undefined;
 };
 
 export type JsonTransportContext = {
@@ -39,7 +40,8 @@ const localDateTimeSchema = z.iso.datetime({ local: true });
 const offsetDateTimeSchema = z.iso.datetime({ offset: true });
 
 const isLocalDateTimeString = (value: string): boolean =>
-  !offsetDateTimeSchema.safeParse(value).success && localDateTimeSchema.safeParse(value).success;
+  !offsetDateTimeSchema.safeParse(value).success &&
+  localDateTimeSchema.safeParse(value).success;
 
 const createJsonPreprocessors = (context?: JsonTransportContext) =>
   ({
@@ -47,7 +49,9 @@ const createJsonPreprocessors = (context?: JsonTransportContext) =>
       if (value instanceof Date) return value;
       if (isLocalDateTimeString(value)) {
         if (!context?.timeZone) {
-          throw new Error("timeZone is required to decode local datetime strings");
+          throw new Error(
+            "timeZone is required to decode local datetime strings",
+          );
         }
         return dayjs.tz(value, context.timeZone).toDate();
       }
@@ -107,7 +111,10 @@ const stripUndefinedObjectFields = (value: unknown): unknown => {
   return Object.fromEntries(
     Object.entries(value)
       .filter(([, entryValue]) => entryValue !== undefined)
-      .map(([key, entryValue]) => [key, stripUndefinedObjectFields(entryValue)]),
+      .map(([key, entryValue]) => [
+        key,
+        stripUndefinedObjectFields(entryValue),
+      ]),
   );
 };
 
@@ -119,8 +126,9 @@ const jsonProcessors = {
 
     const result: Record<string, unknown> = Object.create(null);
     for (const key of Object.keys(value)) {
-      const childSchema = (schema.shape[key] ??
-        schema.def.catchall) as z.ZodTypeAny | undefined;
+      const childSchema = (schema.shape[key] ?? schema.def.catchall) as
+        | z.ZodTypeAny
+        | undefined;
       result[key] = childSchema
         ? context.transform(value[key], childSchema, key)
         : value[key];
@@ -162,98 +170,143 @@ const isStringCompatibleMapKey = (schema: z.ZodTypeAny): boolean => {
   }
 };
 
+const getTransportDescription = (
+  schema: z.ZodTypeAny,
+  options: JsonTransportOptions,
+): string | undefined =>
+  schema.description ?? options.descriptionResolver?.(schema);
+
+const applyTransportDescription = <TSchema extends z.ZodTypeAny>(
+  sourceSchema: z.ZodTypeAny,
+  transportSchema: TSchema,
+  options: JsonTransportOptions,
+): TSchema => {
+  const description = getTransportDescription(sourceSchema, options);
+  return description !== undefined
+    ? (transportSchema.describe(description) as TSchema)
+    : transportSchema;
+};
+
 const toTransportSchema = (
   schema: z.ZodTypeAny,
   options: JsonTransportOptions,
 ): z.ZodType<unknown> => {
   const zodSchema = assertZodType(schema);
 
-  switch (zodSchema.type) {
-    case "date":
-      return options.allowLocalDateTime
-        ? z.union([z.iso.datetime({ offset: true }), z.iso.datetime({ local: true })])
-        : z.iso.datetime({ offset: true });
-    case "bigint":
-      return z.string();
-    case "array":
-      return z.array(toTransportSchema(zodSchema.def.element as z.ZodTypeAny, options));
-    case "tuple": {
-      const items = (zodSchema.def.items as z.ZodTypeAny[]).map((item) =>
-        toTransportSchema(item, options),
-      );
-      const rest = zodSchema.def.rest as z.ZodTypeAny | undefined;
-      const tupleSchema =
-        items.length === 0
-          ? z.tuple([])
-          : z.tuple(items as [z.ZodTypeAny, ...z.ZodTypeAny[]]);
-      return rest ? tupleSchema.rest(toTransportSchema(rest, options)) : tupleSchema;
-    }
-    case "set":
-      return z.array(toTransportSchema(zodSchema.def.valueType as z.ZodTypeAny, options));
-    case "map": {
-      const keyType = zodSchema.def.keyType as z.ZodTypeAny;
-      if (!isStringCompatibleMapKey(keyType)) {
-        throw new Error("JSON transport only supports string-compatible Map keys");
+  const transportSchema = (() => {
+    switch (zodSchema.type) {
+      case "date":
+        return options.allowLocalDateTime
+          ? z.union([
+              z.iso.datetime({ offset: true }),
+              z.iso.datetime({ local: true }),
+            ])
+          : z.iso.datetime({ offset: true });
+      case "bigint":
+        return z.string();
+      case "array":
+        return z.array(
+          toTransportSchema(zodSchema.def.element as z.ZodTypeAny, options),
+        );
+      case "tuple": {
+        const items = (zodSchema.def.items as z.ZodTypeAny[]).map((item) =>
+          toTransportSchema(item, options),
+        );
+        const rest = zodSchema.def.rest as z.ZodTypeAny | undefined;
+        const tupleSchema =
+          items.length === 0
+            ? z.tuple([])
+            : z.tuple(items as [z.ZodTypeAny, ...z.ZodTypeAny[]]);
+        return rest
+          ? tupleSchema.rest(toTransportSchema(rest, options))
+          : tupleSchema;
       }
-      return z.record(
-        z.string(),
-        toTransportSchema(zodSchema.def.valueType as z.ZodTypeAny, options),
-      );
+      case "set":
+        return z.array(
+          toTransportSchema(zodSchema.def.valueType as z.ZodTypeAny, options),
+        );
+      case "map": {
+        const keyType = zodSchema.def.keyType as z.ZodTypeAny;
+        if (!isStringCompatibleMapKey(keyType)) {
+          throw new Error(
+            "JSON transport only supports string-compatible Map keys",
+          );
+        }
+        return z.record(
+          z.string(),
+          toTransportSchema(zodSchema.def.valueType as z.ZodTypeAny, options),
+        );
+      }
+      case "record":
+        return z.record(
+          z.string(),
+          toTransportSchema(zodSchema.def.valueType as z.ZodTypeAny, options),
+        );
+      case "object": {
+        const shape = zodSchema.def.shape as z.ZodRawShape;
+        const transportShape = Object.fromEntries(
+          Object.entries(shape).map(([key, value]) => [
+            key,
+            toTransportSchema(value as z.ZodTypeAny, options),
+          ]),
+        );
+        const objectSchema = z.object(transportShape);
+        const catchall = zodSchema.def.catchall as z.ZodTypeAny | undefined;
+        return catchall
+          ? objectSchema.catchall(toTransportSchema(catchall, options))
+          : objectSchema;
+      }
+      case "union": {
+        const transportOptions = (zodSchema.def.options as z.ZodTypeAny[]).map(
+          (option) => toTransportSchema(option, options),
+        );
+        return z.union(
+          transportOptions as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]],
+        );
+      }
+      case "intersection":
+        return z.intersection(
+          toTransportSchema(zodSchema.def.left as z.ZodTypeAny, options),
+          toTransportSchema(zodSchema.def.right as z.ZodTypeAny, options),
+        );
+      case "optional":
+        return toTransportSchema(
+          zodSchema.def.innerType as z.ZodTypeAny,
+          options,
+        ).optional();
+      case "nullable":
+        return toTransportSchema(
+          zodSchema.def.innerType as z.ZodTypeAny,
+          options,
+        ).nullable();
+      case "default":
+        return toTransportSchema(
+          zodSchema.def.innerType as z.ZodTypeAny,
+          options,
+        ).default(zodSchema.def.defaultValue);
+      case "catch":
+        return toTransportSchema(
+          zodSchema.def.innerType as z.ZodTypeAny,
+          options,
+        ).catch(zodSchema.def.catchValue);
+      case "readonly":
+        return toTransportSchema(
+          zodSchema.def.innerType as z.ZodTypeAny,
+          options,
+        ).readonly();
+      case "pipe":
+        return z.pipe(
+          toTransportSchema(zodSchema.def.in as z.ZodTypeAny, options),
+          toTransportSchema(zodSchema.def.out as z.ZodTypeAny, options),
+        );
+      case "lazy":
+        return z.lazy(() => toTransportSchema(zodSchema.def.getter(), options));
+      default:
+        return schema;
     }
-    case "record":
-      return z.record(
-        z.string(),
-        toTransportSchema(zodSchema.def.valueType as z.ZodTypeAny, options),
-      );
-    case "object": {
-      const shape = zodSchema.def.shape as z.ZodRawShape;
-      const transportShape = Object.fromEntries(
-        Object.entries(shape).map(([key, value]) => [
-          key,
-          toTransportSchema(value as z.ZodTypeAny, options),
-        ]),
-      );
-      const objectSchema = z.object(transportShape);
-      const catchall = zodSchema.def.catchall as z.ZodTypeAny | undefined;
-      return catchall
-        ? objectSchema.catchall(toTransportSchema(catchall, options))
-        : objectSchema;
-    }
-    case "union": {
-      const transportOptions = (zodSchema.def.options as z.ZodTypeAny[]).map(
-        (option) => toTransportSchema(option, options),
-      );
-      return z.union(transportOptions as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]);
-    }
-    case "intersection":
-      return z.intersection(
-        toTransportSchema(zodSchema.def.left as z.ZodTypeAny, options),
-        toTransportSchema(zodSchema.def.right as z.ZodTypeAny, options),
-      );
-    case "optional":
-      return toTransportSchema(zodSchema.def.innerType as z.ZodTypeAny, options).optional();
-    case "nullable":
-      return toTransportSchema(zodSchema.def.innerType as z.ZodTypeAny, options).nullable();
-    case "default":
-      return toTransportSchema(zodSchema.def.innerType as z.ZodTypeAny, options).default(
-        zodSchema.def.defaultValue,
-      );
-    case "catch":
-      return toTransportSchema(zodSchema.def.innerType as z.ZodTypeAny, options).catch(
-        zodSchema.def.catchValue,
-      );
-    case "readonly":
-      return toTransportSchema(zodSchema.def.innerType as z.ZodTypeAny, options).readonly();
-    case "pipe":
-      return z.pipe(
-        toTransportSchema(zodSchema.def.in as z.ZodTypeAny, options),
-        toTransportSchema(zodSchema.def.out as z.ZodTypeAny, options),
-      );
-    case "lazy":
-      return z.lazy(() => toTransportSchema(zodSchema.def.getter(), options));
-    default:
-      return schema;
-  }
+  })();
+
+  return applyTransportDescription(schema, transportSchema, options);
 };
 
 export const createJsonTransport = <TSchema extends z.ZodTypeAny>(
@@ -277,7 +330,9 @@ export const createJsonTransport = <TSchema extends z.ZodTypeAny>(
           processor: jsonProcessors,
         },
       );
-      return stripUndefinedObjectFields(domainSchema.parse(domainValue)) as z.infer<TSchema>;
+      return stripUndefinedObjectFields(
+        domainSchema.parse(domainValue),
+      ) as z.infer<TSchema>;
     },
     encode: (value: z.infer<TSchema>, context?: JsonTransportContext) => {
       const domainValue = domainSchema.parse(value);
