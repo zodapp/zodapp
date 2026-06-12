@@ -148,6 +148,17 @@ export type DynamicMetaDef<
   resolve: DynamicSchemaResolver<TValue, TContext>;
 };
 
+export type ExternalKeyMetaDef = z.infer<
+  typeof zodExtendableCommonDefSchema
+> & {
+  externalKeyConfig: ExternalKeyConfig<RegisteredExternalKeyConfig>;
+  externalKeyActionConfig?: RegisteredExternalKeyActionConfig;
+};
+
+export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
+  fileConfig: FileConfig<RegisteredFileConfig>;
+};
+
 export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
 
 export const asRegistryValue = <TValue,>(
@@ -204,7 +215,7 @@ const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   externalKeyActionConfig: z
     .custom<RegisteredExternalKeyActionConfig>()
     .optional(),
-});
+}) as z.ZodType<ExternalKeyMetaDef>;
 
 const externalKey = extendCustom(
   z.string,
@@ -217,7 +228,7 @@ const externalKey = extendCustom(
 const fileConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredFileConfig を使用（declare module で拡張可能）
   fileConfig: z.custom<FileConfig<RegisteredFileConfig>>(),
-});
+}) as z.ZodType<FileMetaDef>;
 
 const file = extendCustom(
   z.string,
