@@ -47,6 +47,8 @@ type CollectionIdentity<
 > = CollectionPathParamsFromPath<Path> &
   Record<NonPathKeysOf<Path, FieldKeys>, string>;
 
+type DeleteHookResult = Partial<Record<string, unknown>> | void;
+
 export type CollectionDefinition<
   Path extends string,
   FieldKeys extends string = never,
@@ -70,6 +72,12 @@ export type CollectionDefinition<
     documentIdentity: DocumentIdentity<Path, FieldKeys>,
     data: Partial<Record<string, unknown>>,
   ) => Partial<Record<string, unknown>> | void;
+  onNotifyDelete?: (
+    documentIdentity: DocumentIdentity<Path, FieldKeys>,
+  ) => DeleteHookResult;
+  onDelete?: (
+    documentIdentity: DocumentIdentity<Path, FieldKeys>,
+  ) => DeleteHookResult;
 };
 
 type CollectionIdentityKeys<Path extends string, FieldKeys extends string> =
@@ -260,6 +268,8 @@ export const getCollectionConfigBare = <
     storeSchema,
     createSchema,
     onInit: config.onInit,
+    onNotifyDelete: config.onNotifyDelete,
+    onDelete: config.onDelete,
     beforeGenerate: <T>(
       documentIdentity: DocumentIdentity<Path, FieldKeys>,
       inputData: T,
@@ -445,6 +455,12 @@ export type CollectionConfigMethods<
   >;
   readonly createSchema: CreateSchemaTypeFor<IntrinsicSchema>;
   readonly onInit: (() => Partial<z.infer<IntrinsicSchema>>) | undefined;
+  readonly onNotifyDelete:
+    | ((documentIdentity: DocumentIdentity<Path, FieldKeys>) => DeleteHookResult)
+    | undefined;
+  readonly onDelete:
+    | ((documentIdentity: DocumentIdentity<Path, FieldKeys>) => DeleteHookResult)
+    | undefined;
   readonly beforeGenerate: <T>(
     documentIdentity: DocumentIdentity<Path, FieldKeys>,
     inputData: T,

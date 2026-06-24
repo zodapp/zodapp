@@ -438,12 +438,23 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
     deleteDoc: async (docIdentityParams: DocIdentityParams) => {
       const docPath = config.buildDocumentPath(docIdentityParams);
       const docRef = db.doc(docPath);
-      const _data = config.beforeWrite(docIdentityParams, {
-        deleted: true,
-        deletedAt: new Date(),
-      });
-      // イベントをlistenしている相手に削除を通知してから実際に削除する
-      await docRef.set(_data, { merge: true });
+      if (config.onNotifyDelete) {
+        let _data = config.beforeWrite(
+          docIdentityParams,
+          config.onNotifyDelete(docIdentityParams) ?? {},
+        );
+        _data = convertForFirestoreWrite(_data, "merge") as typeof _data;
+        await docRef.set(_data, { merge: true });
+      }
+      if (config.onDelete) {
+        let _data = config.beforeWrite(
+          docIdentityParams,
+          config.onDelete(docIdentityParams) ?? {},
+        );
+        _data = convertForFirestoreWrite(_data, "merge") as typeof _data;
+        await docRef.set(_data, { merge: true });
+        return;
+      }
       await docRef.delete();
     },
     docToData,
