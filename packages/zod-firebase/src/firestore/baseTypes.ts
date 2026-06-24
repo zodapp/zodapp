@@ -81,6 +81,10 @@ export interface CollectionConfigBase {
   readonly onCreate?: (documentIdentity: any, inputData: any) => any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onWrite?: (documentIdentity: any, data: any) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly onNotifyDelete?: (documentIdentity: any) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly onDelete?: (documentIdentity: any) => any;
 }
 
 /**
@@ -162,4 +166,8 @@ export interface LooseCollectionConfigBase {
   readonly onCreate?: (documentIdentity: any, inputData: any) => any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly onWrite?: (documentIdentity: any, data: any) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly onNotifyDelete?: (documentIdentity: any) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly onDelete?: (documentIdentity: any) => any;
 }
