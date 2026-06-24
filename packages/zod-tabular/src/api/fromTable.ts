@@ -36,11 +36,15 @@ export function fromTable<S extends z.ZodType>(
       }
     }
 
-    const raw = readRow(compiled, cells, allColKeys);
-    const coerced = coerceRow(schema, raw, options);
-    const parsed = schema.safeParse(coerced);
-    if (parsed.success) {
-      results.push(parsed.data);
+    try {
+      const raw = readRow(compiled, cells, allColKeys);
+      const coerced = coerceRow(schema, raw, options);
+      const parsed = schema.safeParse(coerced);
+      if (parsed.success) {
+        results.push(parsed.data);
+      }
+    } catch {
+      // Invalid rows are ignored, matching safeParse failures.
     }
   }
 
