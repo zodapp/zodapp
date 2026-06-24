@@ -70,10 +70,11 @@ function useImportState<S extends z.ZodType>({
       } catch (e) {
         setRows([]);
         setPreviewTable([]);
+        console.error("CSV import parse failed", e);
         setError(
           e instanceof Error
             ? `CSV解析エラー: ${e.message}`
-            : "CSVの解析に失敗しました。",
+            : `CSV解析エラー: ${String(e) || "CSVの解析に失敗しました。"}`,
         );
       }
     },

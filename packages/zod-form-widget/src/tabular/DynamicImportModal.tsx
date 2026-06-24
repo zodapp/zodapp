@@ -75,8 +75,11 @@ function useDynamicImportState({
       } catch (e) {
         setInternalValue(null);
         onChange?.(null);
+        console.error('Dynamic tabular import parse failed', e);
         const message =
-          e instanceof Error ? `解析エラー: ${e.message}` : 'ファイルの解析に失敗しました。';
+          e instanceof Error
+            ? `解析エラー: ${e.message}`
+            : `解析エラー: ${String(e) || 'ファイルの解析に失敗しました。'}`;
         setError(message);
         onError?.(message);
       }
