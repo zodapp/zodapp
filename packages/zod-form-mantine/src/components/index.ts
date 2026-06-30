@@ -10,6 +10,7 @@ export { component as ArrayOfStringComponent } from "./array_multipleString.js";
 export { component as BigIntComponent } from "./bigint.js";
 export { component as BooleanComponent } from "./boolean.js";
 export { component as BooleanCheckboxComponent } from "./boolean_checkbox.js";
+export { component as BooleanSelectComponent } from "./boolean_select.js";
 export { component as ComputedComponent } from "./computed.js";
 export { component as DateComponent } from "./date.js";
 export { component as DerivedComponent } from "./derived.js";
@@ -41,6 +42,7 @@ export const componentLibrary: ComponentLibrary = {
   bigint: (() => import("./bigint.js")) as DynamicZodFormDef,
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
   boolean_checkbox: (() => import("./boolean_checkbox.js")) as DynamicZodFormDef,
+  boolean_select: (() => import("./boolean_select.js")) as DynamicZodFormDef,
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
   date: (() => import("./date.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,
