@@ -193,6 +193,11 @@ const numberMetaSchema = zodExtendableCommonDefSchema.extend({
     .optional(),
 });
 
+const booleanMetaSchema = zodExtendableCommonDefSchema.extend({
+  trueLabel: z.string().optional(),
+  falseLabel: z.string().optional(),
+});
+
 const common = extendCustom(
   z.never,
   "common",
@@ -296,7 +301,7 @@ const zf = {
   number: extendNumber(numberMetaSchema),
   bigint: extendBigint(zodExtendableCommonDefSchema),
   date, // extendCustom パターンに変更
-  boolean: extendBoolean(zodExtendableCommonDefSchema),
+  boolean: extendBoolean(booleanMetaSchema),
   array: extendArray(
     zodExtendableCommonDefSchema.extend({
       discriminator: z.string().optional(),
