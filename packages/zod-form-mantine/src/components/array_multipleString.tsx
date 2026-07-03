@@ -28,7 +28,12 @@ const ArrayOfStringComponent = wrapComponent(
     const label = labelFromParent ?? labelFromMeta;
 
     const value = useMemo(
-      () => (Array.isArray(field.value) ? field.value : []),
+      () =>
+        Array.isArray(field.value)
+          ? field.value.filter(
+              (item): item is string => typeof item === "string",
+            )
+          : [],
       [field.value],
     );
 
