@@ -103,8 +103,6 @@ const DynamicBody = React.memo(function DynamicBody({
       void Promise.resolve().then(() => applyResult(schema));
     };
 
-    scheduleResult(undefined);
-
     try {
       const result = meta?.resolve(
         value,
