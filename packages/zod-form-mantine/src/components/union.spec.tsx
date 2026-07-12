@@ -114,7 +114,6 @@ describe("UnionComponent discriminatedUnion regression", () => {
         label: "発信先タイプ",
         selectorLabel: "タイプ",
       });
-
     const schema = z
       .object({
         payload: destinationSchema,
@@ -193,6 +192,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
               .register(zf.literal.registry, { hidden: true }),
             url: zf.string().register(zf.string.registry, { label: "URL" }),
           })
+          .strict()
           .register(zf.object.registry, { label: "プロキシ" }),
         z
           .object({
@@ -204,14 +204,17 @@ describe("UnionComponent discriminatedUnion regression", () => {
               .register(zf.literal.registry, { hidden: true }),
             scenarioId: zf
               .string()
-              .register(zf.string.registry, { label: "シナリオID" }),
+              .register(zf.string.registry, { label: "シナリオID" })
+              .optional(),
           })
+          .strict()
           .register(zf.object.registry, { label: "シナリオ" }),
       ])
       .register(zf.union.registry, {
         label: "発信先タイプ",
         selectorLabel: "タイプ",
       });
+    const onSubmit = vi.fn();
 
     const schema = z
       .object({
@@ -229,6 +232,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
     const FormUnderTest = () => {
       const form = useZodForm({
         defaultValues,
+        onSubmit: ({ value }) => onSubmit(value),
         validators: {
           onChange: schema,
           onBlur: schema,
@@ -250,6 +254,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
             <FormProvider form={form}>
               <Suspense fallback={null}>
                 <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -274,6 +279,16 @@ describe("UnionComponent discriminatedUnion regression", () => {
       "input.mantine-Select-input",
     ) as HTMLInputElement | null;
     expect(selectInput?.value).toBe("シナリオ");
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        payload: {
+          type: "scenario",
+          phoneNumber: "09011112222",
+        },
+      });
+    });
   });
 
   it("allows editing common field after switching discriminator", async () => {
@@ -390,6 +405,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
             .register(zf.literal.registry, { hidden: true }),
           url: zf.string().register(zf.string.registry, { label: "URL" }),
         })
+        .strict()
         .register(zf.object.registry, { label: "プロキシ" }),
       z
         .object({
@@ -401,8 +417,10 @@ describe("UnionComponent top-level discriminatedUnion", () => {
             .register(zf.literal.registry, { hidden: true }),
           scenarioId: zf
             .string()
-            .register(zf.string.registry, { label: "シナリオID" }),
+            .register(zf.string.registry, { label: "シナリオID" })
+            .optional(),
         })
+        .strict()
         .register(zf.object.registry, { label: "シナリオ" }),
     ])
     .register(zf.union.registry, {
@@ -410,10 +428,14 @@ describe("UnionComponent top-level discriminatedUnion", () => {
       selectorLabel: "タイプ",
     });
 
-  const renderTopLevel = (defaultValues: z.input<typeof topLevelSchema>) => {
+  const renderTopLevel = (
+    defaultValues: z.input<typeof topLevelSchema>,
+    onSubmit?: (value: z.output<typeof topLevelSchema>) => void,
+  ) => {
     const FormUnderTest = () => {
       const form = useZodForm({
         defaultValues,
+        onSubmit: ({ value }) => onSubmit?.(value),
         validators: {
           onChange: topLevelSchema,
           onBlur: topLevelSchema,
@@ -435,6 +457,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
             <FormProvider form={form}>
               <Suspense fallback={null}>
                 <Switch fieldPath="" schema={topLevelSchema} />
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -532,9 +555,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
             <FormProvider form={form}>
               <Suspense fallback={null}>
                 <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>
-                  Submit
-                </button>
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -552,11 +573,15 @@ describe("UnionComponent top-level discriminatedUnion", () => {
   });
 
   it("keeps common field value after switching discriminator at top level", async () => {
-    renderTopLevel({
-      type: "proxy",
-      phoneNumber: "09011112222",
-      url: "https://example.com",
-    });
+    const onSubmit = vi.fn();
+    renderTopLevel(
+      {
+        type: "proxy",
+        phoneNumber: "09011112222",
+        url: "https://example.com",
+      },
+      onSubmit,
+    );
 
     expect(await screen.findByDisplayValue("09011112222")).toBeTruthy();
     await openAndSelect("シナリオ");
@@ -573,6 +598,14 @@ describe("UnionComponent top-level discriminatedUnion", () => {
       "input.mantine-Select-input",
     ) as HTMLInputElement | null;
     expect(selectInput?.value).toBe("シナリオ");
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        type: "scenario",
+        phoneNumber: "09011112222",
+      });
+    });
   });
 
   it("allows editing common field after switching discriminator at top level", async () => {
@@ -654,7 +687,9 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     render(<FormUnderTest />);
 
     await openAndSelect("データソース");
-    expect(await screen.findByRole("textbox", { name: "出力キー" })).toBeTruthy();
+    expect(
+      await screen.findByRole("textbox", { name: "出力キー" }),
+    ).toBeTruthy();
 
     await openAndSelect("データソース");
 
@@ -713,7 +748,11 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Switch fieldPath="payload" schema={toolSchema} required={false} />
+                <Switch
+                  fieldPath="payload"
+                  schema={toolSchema}
+                  required={false}
+                />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
@@ -739,7 +778,9 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     await openAndSelect("データソースツール");
 
     await waitFor(() => {
-      expect(formRef?.getFieldMeta("payload")?.errorMap.onChange).toBeUndefined();
+      expect(
+        formRef?.getFieldMeta("payload")?.errorMap.onChange,
+      ).toBeUndefined();
       expect(formRef?.getFieldMeta("payload")?.errorMap.onBlur).toBeUndefined();
     });
   });
@@ -801,7 +842,9 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
     render(<FormUnderTest />);
 
-    expect(await screen.findByRole("textbox", { name: "出力キー" })).toBeTruthy();
+    expect(
+      await screen.findByRole("textbox", { name: "出力キー" }),
+    ).toBeTruthy();
     await openAndSelect("データソース");
 
     await waitFor(() => {
@@ -983,7 +1026,9 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
     expect(screen.getByText("プロキシ")).toBeTruthy();
     expect(document.querySelector("input.mantine-Select-input")).toBeNull();
-    const versionLabelInput = screen.getByRole("textbox", { name: "バージョン名" });
+    const versionLabelInput = screen.getByRole("textbox", {
+      name: "バージョン名",
+    });
     fireEvent.change(versionLabelInput, { target: { value: "v2" } });
     await waitFor(() => {
       expect(screen.getByDisplayValue("v2")).toBeTruthy();
