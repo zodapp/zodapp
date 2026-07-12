@@ -667,6 +667,83 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     });
   });
 
+  it("clears stale validation errors after selecting a discriminator", async () => {
+    const toolSchema = z
+      .discriminatedUnion("toolId", [
+        z
+          .object({
+            toolId: zf
+              .literal("data-source")
+              .register(zf.literal.registry, { hidden: true }),
+            outputKey: zf
+              .string()
+              .register(zf.string.registry, { label: "出力キー" }),
+          })
+          .register(zf.object.registry, { label: "データソースツール" }),
+      ])
+      .register(zf.union.registry, {
+        selectorLabel: "ツール種類",
+      });
+    const schema = z.object({
+      payload: toolSchema.optional(),
+    });
+    let formRef: ReturnType<typeof useZodForm> | undefined;
+
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: { payload: undefined } as z.input<typeof schema>,
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+      formRef = form;
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="payload" schema={toolSchema} required={false} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+    formRef?.setFieldMeta("payload", (meta) => ({
+      ...meta,
+      errorMap: {
+        ...meta.errorMap,
+        onChange: { message: "必ず入力してください。" },
+        onBlur: { message: "必ず入力してください。" },
+      },
+      errorSourceMap: {
+        ...meta.errorSourceMap,
+        onChange: "form",
+        onBlur: "form",
+      },
+    }));
+
+    await openAndSelect("データソースツール");
+
+    await waitFor(() => {
+      expect(formRef?.getFieldMeta("payload")?.errorMap.onChange).toBeUndefined();
+      expect(formRef?.getFieldMeta("payload")?.errorMap.onBlur).toBeUndefined();
+    });
+  });
+
   it("keeps selector and branch fields when selecting the current required discriminator again", async () => {
     const singleToolSchema = z
       .discriminatedUnion("toolId", [
