@@ -417,6 +417,27 @@ const UnionBody = React.memo(function UnionBody({
 
   const handleSelect = useCallback(
     (id: string | null) => {
+      const setValueWithoutValidation = (nextValue: unknown) => {
+        accessor.setValue(nextValue, { dontValidate: true });
+        queueMicrotask(() => {
+          const errorMap = field.api.state.meta.errorMap;
+          if (!errorMap?.onChange && !errorMap?.onBlur) return;
+          field.api.setMeta((prev) => ({
+            ...prev,
+            errorMap: {
+              ...prev.errorMap,
+              onChange: undefined,
+              onBlur: undefined,
+            },
+            errorSourceMap: {
+              ...prev.errorSourceMap,
+              onChange: undefined,
+              onBlur: undefined,
+            },
+          }));
+        });
+      };
+
       if (
         id &&
         required === false &&
@@ -424,7 +445,7 @@ const UnionBody = React.memo(function UnionBody({
         id === selectedProfile?.value
       ) {
         setSelectedDiscriminator(undefined);
-        accessor.setValue(undefined, { dontValidate: true });
+        setValueWithoutValidation(undefined);
         return;
       }
 
@@ -432,7 +453,7 @@ const UnionBody = React.memo(function UnionBody({
       if (!profile) {
         if (compiledOptions.hasDiscriminator) {
           setSelectedDiscriminator(undefined);
-          accessor.setValue(undefined, { dontValidate: true });
+          setValueWithoutValidation(undefined);
           return;
         } else {
           return;
@@ -456,7 +477,7 @@ const UnionBody = React.memo(function UnionBody({
           [compiledOptions.discriminator]: profile.value,
         };
 
-        accessor.setValue(nextValue, { dontValidate: true });
+        setValueWithoutValidation(nextValue);
         return;
       }
 
