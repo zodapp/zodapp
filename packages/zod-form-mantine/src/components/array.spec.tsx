@@ -15,11 +15,13 @@ import { component as ArrayComponent } from "./array";
 import { OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
+import { component as UnionComponent } from "./union";
 import {
   ZodFormContextProvider,
   FormProvider,
   useZodForm,
   Switch,
+  type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
 import { zf } from "@zodapp/zod-form";
 
@@ -41,6 +43,14 @@ describe("ArrayComponent integration (tanstack form)", () => {
           dispatchEvent: vi.fn(),
         })),
       });
+    }
+    if (!globalThis.ResizeObserver) {
+      class ResizeObserverMock {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver;
     }
   });
 
@@ -73,7 +83,6 @@ describe("ArrayComponent integration (tanstack form)", () => {
           onBlur: formSchema,
         },
       });
-
       return (
         <MantineProvider>
           <ZodFormContextProvider
@@ -145,6 +154,76 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
     await waitFor(() => {
       expect(screen.queryByText("items must have 2")).not.toBeNull();
+    });
+  });
+
+  it("does not repeat an item field error on the array wrapper", async () => {
+    const selectorSchema = z
+      .object({
+        toolId: z.literal("dataSource"),
+        indexId: zf
+          .string()
+          .min(1, "index is required")
+          .register(zf.string.registry, { label: "Index" }),
+      })
+      .register(zf.object.registry, { uiType: "testSelector" });
+    const itemSchema = z
+      .discriminatedUnion("toolId", [selectorSchema])
+      .register(zf.union.registry, { selectorLabel: "Tool type" });
+    const formSchema = z.object({
+      items: z
+        .array(itemSchema)
+        .register(zf.array.registry, { label: "Items" }),
+    });
+    const defaultValues = { items: [{ toolId: "dataSource" as const, indexId: "" }] };
+
+    const TestSelector = ({
+      fieldPath,
+      schema,
+      readOnly,
+    }: ZodFormProps<typeof selectorSchema>) => (
+      <StringComponent
+        fieldPath={`${fieldPath}.indexId`}
+        schema={schema.shape.indexId}
+        readOnly={readOnly}
+      />
+    );
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues,
+        validators: {
+          onSubmit: formSchema,
+        },
+      });
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+              object_testSelector: () => ({ component: TestSelector }),
+            }}
+          >
+            <FormProvider form={form}>
+              <ArrayComponent
+                fieldPath="items"
+                schema={formSchema.shape.items}
+                required
+                readOnly={false}
+              />
+              <button onClick={() => form.handleSubmit()}>Submit</button>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+    screen.getByText("Submit").click();
+
+    await waitFor(() => {
+      expect(screen.queryAllByText("index is required")).toHaveLength(1);
     });
   });
 

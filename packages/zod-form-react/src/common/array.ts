@@ -11,6 +11,55 @@ type ArrayItem = {
   index: number;
 };
 
+type ArrayFieldError = {
+  message?: string;
+};
+
+type PathSegment = string | number;
+
+const parseFieldPath = (fieldPath: string): PathSegment[] =>
+  fieldPath
+    .replace(/\[(\d+)\]/g, ".$1")
+    .split(".")
+    .filter(Boolean)
+    .map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
+
+const getIssuePath = (error: unknown): PathSegment[] | undefined => {
+  if (!error || typeof error !== "object" || !("path" in error)) return undefined;
+  const path = (error as { path?: unknown }).path;
+  if (!Array.isArray(path)) return undefined;
+  return path.flatMap((segment) => {
+    if (typeof segment === "string" || typeof segment === "number") {
+      return [segment];
+    }
+    if (segment && typeof segment === "object" && "key" in segment) {
+      const key = (segment as { key?: unknown }).key;
+      return typeof key === "string" || typeof key === "number" ? [key] : [];
+    }
+    return [];
+  });
+};
+
+const pathsEqual = (left: readonly PathSegment[], right: readonly PathSegment[]) =>
+  left.length === right.length && left.every((segment, index) => segment === right[index]);
+
+export const getArrayFieldError = (
+  errors: unknown,
+  fieldPath: string,
+): ArrayFieldError | undefined => {
+  if (!Array.isArray(errors)) return undefined;
+  const ownPath = parseFieldPath(fieldPath);
+  const error = errors.flat(Number.POSITIVE_INFINITY).find((candidate) => {
+    if (typeof candidate === "string") return true;
+    if (!candidate || typeof candidate !== "object") return false;
+    const issuePath = getIssuePath(candidate);
+    return issuePath === undefined || pathsEqual(issuePath, ownPath);
+  });
+
+  if (typeof error === "string") return { message: error };
+  return error as ArrayFieldError | undefined;
+};
+
 /**
  * TanStack Form の FieldApi ネイティブ配列操作（insertValue / removeValue /
  * pushValue / moveValue）を利用する配列フィールド用フック。
@@ -118,6 +167,10 @@ export const useArray = (
 
   return {
     items,
+    error:
+      fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted
+        ? getArrayFieldError(fieldApi.state.meta.errors, fieldApi.name)
+        : undefined,
     ...ops,
   };
 };
