@@ -129,7 +129,6 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   readOnly,
   label: labelFromParent,
   field,
-  error,
   defaultValue,
 }: ZodFormInternalProps<ArraySchema>) {
   const { loadingComponent: LoadingComponent } = useZodFormContext();
@@ -152,7 +151,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   const canRemove = value && value.length > (minLength?.minimum ?? 0);
   const label = labelFromParent ?? labelFromMeta;
 
-  const { items, insert, remove, append, move } = useArray(
+  const { items, insert, remove, append, move, error: arrayError } = useArray(
     field.api,
     discriminator,
   );
@@ -326,7 +325,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
     <InputWrapper
       label={label || undefined}
       required={required !== false}
-      error={error?.message}
+      error={arrayError?.message}
       labelElement="div"
       style={inputWrapperStyle}
     >
