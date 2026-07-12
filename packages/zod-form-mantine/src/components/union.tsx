@@ -41,6 +41,31 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
+const getArmPropertyKeys = (schema: z.ZodTypeAny): Set<string> => {
+  if (schema instanceof z.ZodObject) {
+    return new Set(Object.keys(schema.shape));
+  }
+  if (schema instanceof z.ZodUnion) {
+    return new Set(
+      (schema.def.options as z.ZodTypeAny[]).flatMap((option) =>
+        Array.from(getArmPropertyKeys(option)),
+      ),
+    );
+  }
+  return new Set();
+};
+
+const stripPropertiesOutsideArm = (
+  value: unknown,
+  schema: z.ZodTypeAny,
+): Record<string, unknown> => {
+  if (!isRecord(value)) return {};
+  const propertyKeys = getArmPropertyKeys(schema);
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => propertyKeys.has(key)),
+  );
+};
+
 const isDiscriminatedUnion = (
   schema: z.ZodUnion,
 ): schema is z.ZodDiscriminatedUnion => {
@@ -121,18 +146,10 @@ const useValueAccessor = (
         getValue: () => field.api.form.state.values,
         setValue: (next, opts) => {
           if (opts?.dontValidate) {
-            const current = field.api.form.state.values;
-            const merged =
-              isRecord(current) && isRecord(next)
-                ? { ...current, ...next }
-                : next;
-            Object.entries(merged as Record<string, unknown>).forEach(
-              ([key, val]) => {
-                field.api.form.setFieldValue(key, val as never, {
-                  dontValidate: true,
-                });
-              },
-            );
+            field.api.form.baseStore.setState((state) => ({
+              ...state,
+              values: next,
+            }));
           } else {
             field.api.handleChange(next);
           }
@@ -473,7 +490,9 @@ const UnionBody = React.memo(function UnionBody({
         }
         const nextValue = {
           ...defaults,
-          ...(isRecord(currentValue) ? currentValue : {}),
+          ...(profile.schema
+            ? stripPropertiesOutsideArm(currentValue, profile.schema)
+            : {}),
           [compiledOptions.discriminator]: profile.value,
         };
 
