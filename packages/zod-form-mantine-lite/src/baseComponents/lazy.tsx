@@ -9,7 +9,7 @@ const LazyComponent = (props: ZodFormProps<LazySchema>) => {
     () => props.schema.def.getter() as z.ZodTypeAny,
     [props.schema],
   );
-  return <Switch {...props} schema={schema} required={false} />;
+  return <Switch {...props} schema={schema} />;
 };
 
 export { LazyComponent as component };

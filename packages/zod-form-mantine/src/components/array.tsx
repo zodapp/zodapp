@@ -38,7 +38,7 @@ const SHOW_ITEM_BOX = true;
 const getArrayItemDefaultValue = (schema: z.ZodTypeAny): unknown => {
   try {
     return getDefaultValue(schema);
-  } catch (error) {
+  } catch {
     return undefined;
   }
 };
@@ -187,7 +187,9 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       fieldPath: `${fieldPath}[${index}]`,
       schema: itemSchema,
       defaultValue: defaultValue?.[index],
-      required,
+      // 配列自体のoptional性は要素へ伝播させない。
+      // 要素のoptional性はitemSchema（ZodOptional）だけで決まる。
+      required: undefined,
       readOnly,
       label: false as const,
     };

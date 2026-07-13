@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
+import type { AnyFormApi } from "@tanstack/react-form";
 import { z } from "zod";
 
 import { readOnlySchemaFieldsExcept, zf } from "@zodapp/zod-form";
@@ -722,7 +723,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     const schema = z.object({
       payload: toolSchema.optional(),
     });
-    let formRef: ReturnType<typeof useZodForm> | undefined;
+    let formRef: Pick<AnyFormApi, "getFieldMeta" | "setFieldMeta"> | undefined;
 
     const FormUnderTest = () => {
       const form = useZodForm({
@@ -733,7 +734,9 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           onSubmit: schema,
         },
       });
-      formRef = form;
+      React.useEffect(() => {
+        formRef = form;
+      }, [form]);
 
       return (
         <MantineProvider>
