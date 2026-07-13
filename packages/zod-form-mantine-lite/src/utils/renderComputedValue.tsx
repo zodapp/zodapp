@@ -1,10 +1,12 @@
 import React from "react";
-import { Badge, Text, Title } from "@mantine/core";
+import { ActionIcon, Anchor, Badge, Group, Text, Title } from "@mantine/core";
+import { IconExternalLink } from "@tabler/icons-react";
 import { isElement } from "react-is";
 import type { ComputedValue } from "@zodapp/zod-form";
 import { ReadonlyText } from "./text";
 
 export type RenderComputedValueVariant = "table" | "readOnly";
+type LinkComputedValue = { type: "link"; label: string; href: string };
 
 /**
  * ComputedValue | ReactNode をMantine UIコンポーネントにレンダリングする共通ユーティリティ。
@@ -40,6 +42,18 @@ export function renderComputedValue(
     );
   }
 
+  const link = getLinkValue(content);
+  if (link) {
+    if (variant === "readOnly") {
+      return <ReadonlyLink {...link} />;
+    }
+    return (
+      <Anchor href={link.href} target="_blank" rel="noopener noreferrer">
+        {link.label}
+      </Anchor>
+    );
+  }
+
   const inner = renderStructured(content);
   if (inner === null) return null;
 
@@ -59,7 +73,49 @@ export function renderComputedFieldValue(content: unknown): React.ReactNode {
     return <ReadonlyText>{content}</ReadonlyText>;
   }
 
+  const link = getLinkValue(content);
+  if (link) {
+    return <ReadonlyLink {...link} />;
+  }
+
   return <Text component="div">{renderComputedValue(content)}</Text>;
+}
+
+function getLinkValue(
+  content: unknown,
+): LinkComputedValue | undefined {
+  if (
+    typeof content !== "object" ||
+    content === null ||
+    !("type" in content) ||
+    content.type !== "link"
+  ) {
+    return undefined;
+  }
+  return content as LinkComputedValue;
+}
+
+function ReadonlyLink({ label, href }: LinkComputedValue) {
+  return (
+    <Group gap="0" wrap="nowrap" align="center">
+      <ReadonlyText style={{ flex: 1 }}>{label}</ReadonlyText>
+      <Anchor
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ lineHeight: 0 }}
+      >
+        <ActionIcon
+          component="span"
+          size="md"
+          variant="subtle"
+          aria-label={`${label}を開く`}
+        >
+          <IconExternalLink size={16} />
+        </ActionIcon>
+      </Anchor>
+    </Group>
+  );
 }
 
 function renderStructured(content: unknown): React.ReactNode {

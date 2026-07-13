@@ -79,6 +79,7 @@ const dateMetaSchema = zodExtendableCommonDefSchema.extend({
  */
 export type ComputedValue =
   | string
+  | { type: "link"; label: string; href: string }
   | { type: "badge"; label: string; color?: string; value?: string }
   | {
       type: "icon";
@@ -126,6 +127,29 @@ export type ComputedMetaDef<TResult, TParent = any> = z.infer<
   (
     | ComputedMetaWithoutContext<TResult, TParent>
     | ComputedMetaWithContext<TResult, TParent>
+  );
+
+type DerivedMetaWithoutContext<TResult, TValue = any> = {
+  contextId?: undefined;
+  compute: (value: TValue) => TResult;
+};
+
+type DerivedMetaWithContext<TResult, TValue = any> = {
+  [K in RegisteredResolverContextId]: {
+    contextId: K;
+    compute: (
+      value: TValue,
+      context: RegisteredResolverContextMap[K],
+    ) => TResult;
+  };
+}[RegisteredResolverContextId];
+
+export type DerivedMetaDef<TResult, TValue = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
+  (
+    | DerivedMetaWithoutContext<TResult, TValue>
+    | DerivedMetaWithContext<TResult, TValue>
   );
 
 export type SchemaResolver<
@@ -268,15 +292,18 @@ const computed = extendCustom(
 );
 
 // derived: 該当フィールドの値を受け取り ComputedValue を返す
+// contextId を指定すると compute(value, context) の形で resolverContext slice が渡される
+// contextId を省略すると context は渡されない
 const derived = extendCustom(
   z.never,
   "derived",
   zodExtendableCommonDefSchema.extend({
+    contextId: z.custom<RegisteredResolverContextId>().optional(),
     compute: z.function({
-      input: [z.any()],
+      input: [z.any(), z.any().optional()],
       output: computedValueSchema,
     }),
-  }),
+  }) as z.ZodType<DerivedMetaDef<ComputedValue>>,
   schemaType<z.ZodType>(),
 );
 

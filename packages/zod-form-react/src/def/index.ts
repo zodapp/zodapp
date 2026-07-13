@@ -13,7 +13,11 @@ import {
   MetaOf,
 } from "@zodapp/zod-extendable";
 import { zf, zodExtendableCommonDefSchema } from "@zodapp/zod-form";
-import type { ComputedMetaDef, ComputedValue } from "@zodapp/zod-form";
+import type {
+  ComputedMetaDef,
+  ComputedValue,
+  DerivedMetaDef,
+} from "@zodapp/zod-form";
 import type { RegisteredResolverContextId } from "@zodapp/zod-form/resolverContext/types";
 import { reactNodeSchema } from "./reactNode";
 
@@ -43,15 +47,18 @@ const computed = extendCustom(
 
 // derived: 該当フィールドの値を受け取り ComputedValue | ReactNode を返す
 // zf.derived を上書きし、JSX（ReactNode）も返せるように拡張
+// contextId を指定すると compute(value, context) の形で resolverContext slice が渡される
+// contextId を省略すると context は渡されない
 const derived = extendCustom(
   z.never,
   "derived",
   zodExtendableCommonDefSchema.extend({
+    contextId: z.custom<RegisteredResolverContextId>().optional(),
     compute: z.function({
-      input: [z.any()],
+      input: [z.any(), z.any().optional()],
       output: computedOrReactNodeSchema,
     }),
-  }),
+  }) as z.ZodType<DerivedMetaDef<ComputedValue | ReactNode>>,
   schemaType<z.ZodType>(),
 );
 

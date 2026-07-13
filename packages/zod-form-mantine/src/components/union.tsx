@@ -545,7 +545,7 @@ const UnionBody = React.memo(function UnionBody({
                 fieldPath={fieldPath}
                 schema={selectedProfile.schema}
                 defaultValue={dynamicDefaultValue}
-                required={required}
+                required={undefined}
                 readOnly={readOnly}
                 label={false}
               />
@@ -556,7 +556,7 @@ const UnionBody = React.memo(function UnionBody({
               fieldPath={fieldPath}
               schema={selectedProfile.schema}
               defaultValue={dynamicDefaultValue}
-              required={required}
+              required={undefined}
               readOnly={readOnly}
               label={false}
             />

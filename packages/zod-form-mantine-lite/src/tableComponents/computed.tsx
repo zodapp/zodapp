@@ -25,7 +25,10 @@ const runComputed = (
   if (context === undefined) {
     throw new Error(`resolverContext["${meta.contextId}"] is required for computed`);
   }
-  return meta.compute(parent, context as Parameters<typeof meta.compute>[1]);
+  return (meta.compute as (value: unknown, resolverContext: unknown) => unknown)(
+    parent,
+    context,
+  );
 };
 
 const ComputedComponent = ({
