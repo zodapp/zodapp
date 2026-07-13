@@ -691,6 +691,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     expect(
       await screen.findByRole("textbox", { name: "出力キー" }),
     ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "削除" })).toBeNull();
 
     await openAndSelect("データソース");
 
