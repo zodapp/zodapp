@@ -12,7 +12,10 @@ import { z } from "zod";
 import { MantineProvider } from "@mantine/core";
 
 import { component as ArrayComponent } from "./array";
-import { OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
+import {
+  LazyComponent,
+  OptionalComponent,
+} from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
 import { component as UnionComponent } from "./union";
@@ -446,5 +449,97 @@ describe("ArrayComponent integration (tanstack form)", () => {
     await waitFor(() => {
       expect(container.querySelector(".mantine-TextInput-error")).toBeNull();
     });
+  });
+
+  it("does not propagate optional array required state to object items", async () => {
+    const itemSchema = z.lazy(() =>
+      z.object({
+        name: zf.string().register(zf.string.registry, { label: "Name" }),
+      }),
+    );
+    const formSchema = z.object({
+      items: z.array(itemSchema).optional(),
+    });
+    const defaultValues: z.input<typeof formSchema> = {
+      items: [{ name: "initial" }],
+    };
+
+    const FormUnderTest = () => {
+      const form = useZodForm({ defaultValues });
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              array: () => ({ component: ArrayComponent }),
+              lazy: () => ({ component: LazyComponent }),
+              object: () => ({ component: ObjectComponent }),
+              optional: () => ({ component: OptionalComponent }),
+              string: () => ({ component: StringComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <ArrayComponent
+                fieldPath="items"
+                schema={formSchema.shape.items.unwrap()}
+                required={false}
+                readOnly={false}
+              />
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    expect(await screen.findByDisplayValue("initial")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "削除" })).toBeNull();
+  });
+
+  it("keeps optional object item UI when the item schema itself is optional", async () => {
+    const itemSchema = z
+      .lazy(() =>
+        z.object({
+          name: zf.string().register(zf.string.registry, { label: "Name" }),
+        }),
+      )
+      .optional();
+    const formSchema = z.object({
+      items: z.array(itemSchema),
+    });
+    const defaultValues: z.input<typeof formSchema> = {
+      items: [{ name: "initial" }],
+    };
+
+    const FormUnderTest = () => {
+      const form = useZodForm({ defaultValues });
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              array: () => ({ component: ArrayComponent }),
+              lazy: () => ({ component: LazyComponent }),
+              object: () => ({ component: ObjectComponent }),
+              optional: () => ({ component: OptionalComponent }),
+              string: () => ({ component: StringComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <ArrayComponent
+                fieldPath="items"
+                schema={formSchema.shape.items}
+                required
+                readOnly={false}
+              />
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+
+    render(<FormUnderTest />);
+
+    expect(await screen.findByDisplayValue("initial")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "削除" })).toBeTruthy();
   });
 });
