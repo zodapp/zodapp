@@ -15,16 +15,15 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
-import { useFormApi } from "./form";
 
 /**
  * Minimal metadata tracked for each registered field.
- * - `fieldPath` is the form control path used by react-hook-form.
  * - `node` stores the current DOM element so we can compare document positions.
+ * - `handleBlur` triggers the field's blur lifecycle and validation.
  */
 type FieldRecord = {
-  fieldPath?: string;
   node?: HTMLElement | null | undefined;
+  handleBlur?: () => void;
 };
 
 /**
@@ -55,7 +54,6 @@ export const ValidatePrecedingFieldsProvider = ({
   children: ReactNode;
 }) => {
   const fieldRecordsRef = useRef<Set<FieldRecord>>(new Set());
-  const form = useFormApi();
   const contextValue = useMemo(() => {
     if (disabled) {
       return undefined;
@@ -76,22 +74,18 @@ export const ValidatePrecedingFieldsProvider = ({
           if (
             other === fieldRecord ||
             !other.node ||
-            !other.fieldPath ||
             other.node === targetNode
           ) {
             return;
           }
           const position = other.node.compareDocumentPosition(targetNode);
           if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
-            const fieldApi = form.fieldInfo[other.fieldPath];
-            if (fieldApi) {
-              fieldApi.instance?.handleBlur();
-            }
+            other.handleBlur?.();
           }
         });
       },
     };
-  }, [form, disabled]);
+  }, [disabled]);
   return (
     <ValidatePrecedingFieldsContext.Provider value={contextValue}>
       {children}
@@ -105,19 +99,21 @@ export const ValidatePrecedingFieldsProvider = ({
  * - `ref` should wrap the component's DOM ref so the provider can track document order.
  * - `onFocus` should be wired to the field's focus handler to validate preceding fields.
  *
- * @param field - Subset of `ControllerRenderProps` containing `name` and `ref`.
+ * @param field - Adapted field containing its DOM ref and TanStack Form API.
  * @returns Handlers to attach to the controlled input.
  */
 export function useValidatePrecedingFields(field: {
-  name?: string;
   ref: (node: HTMLElement | null) => void;
+  api: {
+    handleBlur: () => void;
+  };
 }): {
   ref: (node: HTMLElement | null) => void;
   onFocus: () => void;
 } {
   const context = useContext(ValidatePrecedingFieldsContext);
   const fieldRecordRef = useRef<FieldRecord>({});
-  fieldRecordRef.current.fieldPath = field.name;
+  fieldRecordRef.current.handleBlur = field.api.handleBlur;
 
   useEffect(() => {
     // いったん固定のスタブを登録することで、register/unregisterの整合性を保つ。
