@@ -1,4 +1,7 @@
-import type { ComponentLibrary, DynamicZodFormDef } from "@zodapp/zod-form-react/common";
+import type {
+  ComponentLibrary,
+  DynamicZodFormDef,
+} from "@zodapp/zod-form-react/common";
 import { baseComponents } from "@zodapp/zod-form-mantine-lite";
 
 // Named exports（個別 static import 用）
@@ -22,6 +25,7 @@ export { component as NumberComponent } from "./number.js";
 export { component as NumberSliderComponent } from "./number_slider.js";
 export { component as ObjectComponent } from "./object.js";
 export { component as RecordComponent } from "./record.js";
+export { component as RecordEntriesComponent } from "./record_entries.js";
 export { component as DynamicComponent } from "./dynamic.js";
 export { component as StringComponent } from "./string.js";
 export { component as StringLazyComponent } from "./string_lazy.js";
@@ -35,13 +39,18 @@ export const componentLibrary: ComponentLibrary = {
   ...baseComponents,
   array: (() => import("./array.js")) as DynamicZodFormDef,
   array_table: (() => import("./array_table.js")) as DynamicZodFormDef,
-  array_multipleEnum: (() => import("./array_multipleEnum.js")) as DynamicZodFormDef,
-  array_multipleEnumBudge: (() => import("./array_multipleEnum.js")) as DynamicZodFormDef,
-  array_multipleExternalKey: (() => import("./array_multipleExternalKey.js")) as DynamicZodFormDef,
-  array_multipleString: (() => import("./array_multipleString.js")) as DynamicZodFormDef,
+  array_multipleEnum: (() =>
+    import("./array_multipleEnum.js")) as DynamicZodFormDef,
+  array_multipleEnumBudge: (() =>
+    import("./array_multipleEnum.js")) as DynamicZodFormDef,
+  array_multipleExternalKey: (() =>
+    import("./array_multipleExternalKey.js")) as DynamicZodFormDef,
+  array_multipleString: (() =>
+    import("./array_multipleString.js")) as DynamicZodFormDef,
   bigint: (() => import("./bigint.js")) as DynamicZodFormDef,
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
-  boolean_checkbox: (() => import("./boolean_checkbox.js")) as DynamicZodFormDef,
+  boolean_checkbox: (() =>
+    import("./boolean_checkbox.js")) as DynamicZodFormDef,
   boolean_select: (() => import("./boolean_select.js")) as DynamicZodFormDef,
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
   date: (() => import("./date.js")) as DynamicZodFormDef,
@@ -55,9 +64,11 @@ export const componentLibrary: ComponentLibrary = {
   number_slider: (() => import("./number_slider.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
+  record_entries: (() => import("./record_entries.js")) as DynamicZodFormDef,
   dynamic: (() => import("./dynamic.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
-  string_multiline: (() => import("./string_multiline.js")) as DynamicZodFormDef,
+  string_multiline: (() =>
+    import("./string_multiline.js")) as DynamicZodFormDef,
   string_lazy: (() => import("./string_lazy.js")) as DynamicZodFormDef,
   string_password: (() => import("./string_password.js")) as DynamicZodFormDef,
   tuple: (() => import("./tuple.js")) as DynamicZodFormDef,
