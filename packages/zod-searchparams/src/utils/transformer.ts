@@ -12,6 +12,12 @@ const parseArrayLike = (value: unknown) => {
   if (Array.isArray(value)) {
     return value;
   }
+  // union の分岐判定では、その分岐にしか存在しないキーが undefined で渡ることがある。
+  // ここで throw すると ZodError にならず分岐の試行自体が失敗するため、空配列を返して
+  // 判定を Zod の safeParse に委ねる。
+  if (value === null || value === undefined) {
+    return [];
+  }
   const arr: unknown[] = [];
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
     if (key.match(/^\d+$/)) {
@@ -41,7 +47,12 @@ export const fromParamsTree = <T extends z.ZodObject<z.ZodRawShape>>(
       return dayjs.utc(value, dateFormatString).toDate();
     },
     bigint: (value: string) => {
-      return BigInt(value);
+      try {
+        return BigInt(value);
+      } catch {
+        // union判定のために値をそのまま返し、次のスキーマに委ねる
+        return value as unknown as bigint;
+      }
     },
     number: (value: string) => {
       return Number(value);
@@ -59,7 +70,8 @@ export const fromParamsTree = <T extends z.ZodObject<z.ZodRawShape>>(
     boolean: (value: string) => {
       if (value === "true") return true;
       if (value === "false") return false;
-      throw new Error("Invalid value for ZodBoolean");
+      // union判定のために値をそのまま返し、次のスキーマに委ねる
+      return value as unknown as boolean;
     },
     array: (value: unknown) => {
       return parseArrayLike(value);

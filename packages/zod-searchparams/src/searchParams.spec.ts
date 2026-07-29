@@ -447,4 +447,75 @@ describe("searchParamsUtil", () => {
       "end must be after start",
     );
   });
+
+  // union の分岐判定では、その分岐にしか存在しないキーが undefined のまま preprocessor に
+  // 渡る。preprocessor が ZodError 以外を投げると分岐の試行自体が失敗し、正しい分岐へ
+  // 進めなくなるため、判定を Zod に委ねられる値を返す必要がある。
+  describe("union branch resolution", () => {
+    const schema = z.object({
+      value: z.union([
+        z.object({ kind: z.literal("list"), items: z.array(z.string()) }),
+        z.object({ kind: z.literal("flag"), enabled: z.boolean() }),
+        z.object({ kind: z.literal("count"), amount: z.bigint() }),
+        z.object({ kind: z.literal("plain"), text: z.string() }),
+      ]),
+    });
+
+    // 先行する分岐の array / boolean / bigint キーがいずれも undefined で渡るケース。
+    it("resolves a later branch when keys typed by earlier branches are absent", () => {
+      const encoded = new URLSearchParams({
+        "value.kind": "plain",
+        "value.text": "hello",
+      });
+
+      expect(decodeSearchParams(encoded, schema)).toEqual({
+        value: { kind: "plain", text: "hello" },
+      });
+    });
+
+    // fromParamsTree は最終 parse をしないため、分岐外のキーは値に残る（除去されない）。
+    // ここで確認したいのは、型の合わない値でも分岐の試行が壊れないこと。
+    it("resolves a branch even when keys hold values of another branch's type", () => {
+      const encoded = new URLSearchParams({
+        "value.kind": "plain",
+        "value.text": "x",
+        "value.enabled": "not-a-boolean",
+        "value.amount": "not-a-bigint",
+      });
+
+      expect(decodeSearchParams(encoded, schema)).toMatchObject({
+        value: { kind: "plain", text: "x" },
+      });
+    });
+
+    it("still decodes each branch with its own value types", () => {
+      expect(
+        decodeSearchParams(
+          new URLSearchParams({
+            "value.kind": "list",
+            "value.items.0": "a",
+            "value.items.1": "b",
+          }),
+          schema,
+        ),
+      ).toEqual({ value: { kind: "list", items: ["a", "b"] } });
+
+      expect(
+        decodeSearchParams(
+          new URLSearchParams({
+            "value.kind": "flag",
+            "value.enabled": "true",
+          }),
+          schema,
+        ),
+      ).toEqual({ value: { kind: "flag", enabled: true } });
+
+      expect(
+        decodeSearchParams(
+          new URLSearchParams({ "value.kind": "count", "value.amount": "42" }),
+          schema,
+        ),
+      ).toEqual({ value: { kind: "count", amount: 42n } });
+    });
+  });
 });
