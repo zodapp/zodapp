@@ -129,6 +129,14 @@ type CollectionAccessorResult<TConfig extends CollectionConfigBase> = {
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     data: z.infer<TConfig["createSchema"]>,
   ) => Promise<string>;
+  /**
+   * document id を呼び出し側で指定して作成する。事前採番した id や、
+   * 固定 id (dynamicTable の "live" など) で作りたい場合に使う。
+   */
+  createDocWithId: (
+    docIdentityParams: z.infer<TConfig["documentIdentitySchema"]>,
+    data: z.infer<TConfig["createSchema"]>,
+  ) => Promise<string>;
   query: (
     collectionIdentityParams: z.infer<TConfig["collectionIdentitySchema"]>,
     queryOptions?: AccessorLevelQueryOptions,
@@ -355,6 +363,20 @@ const getAccessorInternal = <TConfig extends CollectionConfigBase>(
       let _data = config.beforeGenerate(documentIdentity, data);
       _data = convertForFirestoreWrite(_data, "create") as typeof _data;
       await db.collection(collectionPath).doc(docId).set(_data);
+      return docId;
+    },
+    createDocWithId: async (
+      docIdentityParams: DocIdentityParams,
+      data: z.infer<TConfig["createSchema"]>,
+    ) => {
+      const docPath = config.buildDocumentPath(docIdentityParams);
+      const docId = String(
+        (docIdentityParams as Record<string, unknown>)[config.documentKey],
+      );
+      // beforeGenerate(documentIdentity, inputData) で onCreate -> onWrite を適用
+      let _data = config.beforeGenerate(docIdentityParams, data);
+      _data = convertForFirestoreWrite(_data, "create") as typeof _data;
+      await db.doc(docPath).set(_data);
       return docId;
     },
     query: async (
