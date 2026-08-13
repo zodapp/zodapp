@@ -15,6 +15,7 @@ import type {
   ExternalKeyActionResolver,
   CollectionReferenceActionEntry
 } from '@zodapp/zod-form-react';
+import type { StandardSchemaV1 } from '@tanstack/react-form';
 import type { z } from 'zod';
 import debounce from 'lodash/debounce';
 
@@ -47,11 +48,19 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
 }: AutoSearchProps<T>) => {
   const initialValues = useMemo(() => (defaultValues ?? {}) as z.input<T>, [defaultValues]);
 
+  // TanStack Form 1.33 以降の validators は `RejectPromiseValidator<T>` を要求する。
+  // これは naked type parameter に対する conditional type なので、`T` が未解決の
+  // ジェネリックのままでは TS が解決できず assignable にならない。zod schema は
+  // 関数型ではないため実体としては常に許容される。validators が受け取れるもう一方の形
+  // (standard schema) へ明示的に落として渡す。`StandardSchemaV1` は 1.28 系にも
+  // 同じ形で存在するため、この書き方は両バージョンで通る。
+  const validator = schema as StandardSchemaV1<z.input<T>, unknown>;
+
   const form = useZodForm({
     defaultValues: initialValues,
     validators: {
-      onChange: schema,
-      onBlur: schema
+      onChange: validator,
+      onBlur: validator
     }
   });
 
