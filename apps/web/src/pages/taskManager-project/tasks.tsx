@@ -12,6 +12,7 @@ import {
   Button,
   Paper,
   Text,
+  Select,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -19,6 +20,7 @@ import {
   IconDotsVertical,
   IconDownload,
   IconUpload,
+  IconFileUnknown,
   IconSeeding,
   IconSettings,
   IconRestore,
@@ -61,6 +63,9 @@ import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import {
   useExportModal,
   useImportModal,
+  DynamicImportPanel,
+  type DynamicImportValue,
+  type DynamicTabularRow,
 } from "@zodapp/zod-form-widget/tabular";
 import { useStoreKey } from "../../shared/auth";
 import type { GrowingListQuerySpec } from "../../shared/taskManager/listQuerySpec";
@@ -441,6 +446,103 @@ const TasksPage = () => {
     onImport: handleImport,
   });
 
+  // ---- スキーマレス（任意ヘッダ）CSV 取込 ----
+  // useImportModal はスキーマのプロパティ名がヘッダの CSV を前提とするのに
+  // 対し、DynamicImportPanel は任意ヘッダの CSV をそのまま読み込み、
+  // 取り込み時に列マッピングを行う。外部ツールからのエクスポートなど、
+  // ヘッダを制御できないファイルの取り込みに使う
+  const [
+    dynamicImportOpened,
+    { open: openDynamicImport, close: closeDynamicImport },
+  ] = useDisclosure(false);
+  const [dynamicImportValue, setDynamicImportValue] =
+    useState<DynamicImportValue | null>(null);
+  const [columnMapping, setColumnMapping] = useState<
+    Record<string, string | null>
+  >({});
+
+  const headers = dynamicImportValue?.parsed.headers ?? [];
+
+  // ヘッダ名からの自動マッピング推測
+  const guessMapping = useCallback((headerList: string[]) => {
+    const guess = (candidates: string[]) =>
+      headerList.find((header) =>
+        candidates.some((candidate) =>
+          header.toLowerCase().includes(candidate),
+        ),
+      ) ?? null;
+    return {
+      title: guess(["title", "タスク", "名前", "件名"]) ?? headerList[0] ?? null,
+      description: guess(["desc", "説明", "詳細", "内容"]),
+      status: guess(["status", "ステータス", "状態"]),
+      dueAt: guess(["due", "期限", "締切"]),
+    };
+  }, []);
+
+  const handleDynamicImportChange = useCallback(
+    (value: DynamicImportValue | null) => {
+      setDynamicImportValue(value);
+      setColumnMapping(value ? guessMapping(value.parsed.headers) : {});
+    },
+    [guessMapping],
+  );
+
+  const statusLabelToValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const literal of taskStatusLiterals) {
+      const value = literal.value as string;
+      map.set(value, value);
+      const label = getMeta(literal, "literal")?.label;
+      if (label) map.set(label, value);
+    }
+    return map;
+  }, []);
+
+  const handleDynamicImport = useCallback(
+    async (value: DynamicImportValue) => {
+      const pick = (row: DynamicTabularRow, key: string) => {
+        const header = columnMapping[key];
+        const cell = header ? row[header] : undefined;
+        return cell == null ? undefined : String(cell);
+      };
+      for (const row of value.parsed.rows) {
+        const title = pick(row, "title")?.trim();
+        if (!title) continue; // タイトルなしの行はスキップ
+        const statusRaw = pick(row, "status");
+        const dueAtRaw = pick(row, "dueAt");
+        const dueAt = dueAtRaw ? new Date(dueAtRaw) : undefined;
+        const input: z.infer<typeof tasksCollection.createSchema> = {
+          title,
+          description: pick(row, "description"),
+          status:
+            (statusRaw && statusLabelToValue.get(statusRaw)
+              ? (statusLabelToValue.get(statusRaw) as z.infer<
+                  typeof tasksCollection.createSchema
+                >["status"])
+              : undefined) ?? "todo",
+          priority: "medium",
+          labels: [],
+          deletedAt: null,
+          dueAt:
+            dueAt && !Number.isNaN(dueAt.getTime()) ? dueAt : undefined,
+        };
+        // createSchema でバリデーションしてから登録する
+        const parsed = tasksCollection.createSchema.safeParse(input);
+        if (!parsed.success) continue;
+        await taskAccessor.createDoc(collectionIdentity, input);
+      }
+      closeDynamicImport();
+      setDynamicImportValue(null);
+    },
+    [
+      columnMapping,
+      statusLabelToValue,
+      taskAccessor,
+      collectionIdentity,
+      closeDynamicImport,
+    ],
+  );
+
   const activeController = useLocalColumnSettings({
     storageKey: TASK_TABLE_STORAGE_KEY,
     schema: taskTableSchema,
@@ -537,6 +639,12 @@ const TasksPage = () => {
                 onClick={openImport}
               >
                 CSVインポート
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconFileUnknown size={16} />}
+                onClick={openDynamicImport}
+              >
+                CSVインポート（任意ヘッダ）
               </Menu.Item>
               <Menu.Divider />
               <Menu.Item
@@ -681,6 +789,63 @@ const TasksPage = () => {
           externalKeyResolvers={externalKeyResolvers}
           resolverContext={resolverContext}
           showPreview={true}
+        />
+      </Modal>
+
+      <Modal
+        opened={dynamicImportOpened}
+        onClose={() => {
+          closeDynamicImport();
+          setDynamicImportValue(null);
+        }}
+        title="CSVインポート（任意ヘッダ）"
+        size="calc(100vw - 3rem)"
+      >
+        <DynamicImportPanel
+          value={dynamicImportValue}
+          onChange={handleDynamicImportChange}
+          onImport={handleDynamicImport}
+          renderFooter={({ executeImport, isImporting, rowCount }) => (
+            <Box mt="md">
+              {headers.length > 0 && (
+                <Group gap="md" mb="md" align="flex-end">
+                  {(
+                    [
+                      { key: "title", label: "タスク名（必須）" },
+                      { key: "description", label: "説明" },
+                      { key: "status", label: "ステータス" },
+                      { key: "dueAt", label: "期限" },
+                    ] as const
+                  ).map(({ key, label }) => (
+                    <Select
+                      key={key}
+                      size="xs"
+                      label={label}
+                      placeholder="対応する列を選択"
+                      data={headers}
+                      value={columnMapping[key] ?? null}
+                      onChange={(next) =>
+                        setColumnMapping((prev) => ({ ...prev, [key]: next }))
+                      }
+                      clearable
+                    />
+                  ))}
+                </Group>
+              )}
+              <Group justify="flex-end">
+                <Text size="sm" c="dimmed">
+                  {rowCount} 行
+                </Text>
+                <Button
+                  onClick={() => void executeImport()}
+                  loading={isImporting}
+                  disabled={rowCount === 0 || !columnMapping.title}
+                >
+                  マッピングして取り込む
+                </Button>
+              </Group>
+            </Box>
+          )}
         />
       </Modal>
 
