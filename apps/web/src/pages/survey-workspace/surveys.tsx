@@ -17,10 +17,10 @@ import {
   IconPlus,
   IconDotsVertical,
   IconSettings,
-  IconSeeding,
+  IconFlask,
   IconRestore,
 } from "@tabler/icons-react";
-import { useParams, useNavigate } from "@tanstack/react-router";
+import { Link, useParams, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
 import { firestore } from "@repo/firebase";
@@ -48,7 +48,7 @@ import { createActionSchema } from "../../components/createActionSchema";
 import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { surveysRoute } from "./surveys.route";
 import { surveyEditRoute } from "./survey/edit.route";
-import { populateSurveySeed } from "./seed";
+import { surveyTestDataRoute } from "./testData.route";
 
 import pageCode from "./surveys.tsx?raw";
 import collectionCode from "../../shared/survey/collections/survey.ts?raw";
@@ -204,18 +204,6 @@ const SurveysPage = () => {
     [surveyAccessor, collectionIdentity, closeModal, navigate, workspaceId],
   );
 
-  const [isSeeding, setIsSeeding] = useState(false);
-  const handleSeed = useCallback(async () => {
-    setIsSeeding(true);
-    try {
-      await populateSurveySeed(async (data) => {
-        await surveyAccessor.createDoc(collectionIdentity, data);
-      });
-    } finally {
-      setIsSeeding(false);
-    }
-  }, [surveyAccessor, collectionIdentity]);
-
   const { trigger: codeViewerTrigger, modal: codeViewerModal } =
     useCodeViewerModal({ pageCode, collectionCode });
 
@@ -262,11 +250,14 @@ const SurveysPage = () => {
               <Menu.Divider />
               <Menu.Label>データ操作</Menu.Label>
               <Menu.Item
-                leftSection={<IconSeeding size={16} />}
-                onClick={() => void handleSeed()}
-                disabled={isSeeding}
+                component={Link}
+                to={surveyTestDataRoute.to}
+                // 別タブで開くことで、この一覧を表示したまま投入できる
+                target="_blank"
+                {...({ params: { workspaceId } } as object)}
+                leftSection={<IconFlask size={16} />}
               >
-                サンプルアンケート追加
+                テストデータ
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>

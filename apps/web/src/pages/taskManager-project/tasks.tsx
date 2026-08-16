@@ -21,12 +21,12 @@ import {
   IconDownload,
   IconUpload,
   IconFileUnknown,
-  IconSeeding,
+  IconFlask,
   IconSettings,
   IconRestore,
   IconArchive,
 } from "@tabler/icons-react";
-import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
+import { Link, useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
@@ -56,7 +56,7 @@ import {
 import { useProfileColumnSettings } from "../../shared/taskManager/useProfileColumnSettings";
 import { taskDetailRoute } from "./task/detail.route";
 import { tasksRoute, searchFilterSchema } from "./tasks.route";
-import { populateSeed } from "./seed";
+import { taskTestDataRoute } from "./testData.route";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
 import { useCodeViewerModal } from "../../components/useCodeViewerModal";
@@ -399,18 +399,6 @@ const TasksPage = () => {
     [taskAccessor, collectionIdentity, closeModal],
   );
 
-  const [isSeeding, setIsSeeding] = useState(false);
-  const handleSeed = useCallback(async () => {
-    setIsSeeding(true);
-    await populateSeed(
-      async (data) => {
-        await taskAccessor.createDoc(collectionIdentity, data);
-      },
-      30,
-      () => setIsSeeding(false),
-    );
-  }, [taskAccessor, collectionIdentity]);
-
   const handleSearchChange = useCallback(
     (data: z.infer<typeof searchFilterSchema>) => {
       navigate({
@@ -651,11 +639,15 @@ const TasksPage = () => {
               </Menu.Item>
               <Menu.Divider />
               <Menu.Item
-                leftSection={<IconSeeding size={16} />}
-                onClick={handleSeed}
-                disabled={isSeeding}
+                component={Link}
+                to={taskTestDataRoute.to}
+                // 別タブで開くことで、この一覧を表示したまま投入でき、
+                // GrowingList のリアルタイム更新を観察できる
+                target="_blank"
+                {...({ params: { workspaceId, projectId } } as object)}
+                leftSection={<IconFlask size={16} />}
               >
-                ダミーデータ追加
+                テストデータ
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
