@@ -1,12 +1,16 @@
-# アンケートフォームアプリ（第3デモ）実装プラン
+# アンケートフォームアプリ（第3デモ）実装プラン【詳細版】
 
 apps/web に「フォームデモ」「タスク管理」と並ぶ第3のデモとして、
 **アンケートフォームアプリ（Survey）** を追加するための handover プラン。
 
-- ステータス: 計画（実装未着手）
-- 対象ブランチ: `claude/zodapp-sample-improvement-77f920`（このプランと同じブランチに実装を積む想定）
-- 由来: aibpo-core 側のサンプル改善計画（`docs/plans/zodapp-improvement/03-new-sample-apps.md` の N3「フォームビルダー」）を、
-  レビューを経て「taskManager と並ぶアンケートフォームアプリ」として再定義したもの
+- ステータス: 詳細設計済み（実装未着手）
+- 対象ブランチ: `claude/zodapp-sample-improvement-77f920`（このプランと同じブランチに実装を積む）
+- 由来: aibpo-core 側のサンプル改善計画（N3「フォームビルダー」）をレビューを経て
+  「taskManager と並ぶアンケートフォームアプリ」として再定義したもの
+- 本詳細版は、taskManager の実装（レイアウト/ルーティング/認可/ページ慣例）と
+  ライブラリ実装（union 配列編集・record 動的列・フォーム手組み API）の
+  **コード調査に基づいて**設計を確定させている。「調査済み」と記した挙動は
+  ソースで確認済みのもの
 
 ---
 
@@ -15,21 +19,16 @@ apps/web に「フォームデモ」「タスク管理」と並ぶ第3のデモ�
 ### なぜこのサンプルを作るのか
 
 zodapp は「Zod スキーマを単一情報源として、フォーム UI / テーブル UI / Firestore 連携を
-自動生成する」フレームワークだが、既存サンプル（フォームデモ / タスク管理）はいずれも
-**開発時に静的に定義したスキーマ**を使っている。
+自動生成する」フレームワークだが、既存サンプルはいずれも**開発時に静的に定義した
+スキーマ**を使っている。
 
 アンケートフォームアプリは、**ユーザーがフォームを設計 → 定義を JSON（DSL）として
-Firestore に保存 → 実行時にスキーマを再構築して回答フォームを自動生成 → 回答を集計**
+Firestore に保存 → 実行時にスキーマを再構築して回答フォームを自動生成 → 回答を蓄積**
 という流れで、zodapp の「スキーマ＝データ」という思想の応用形
 （**ランタイムスキーマ生成**）を示すフラッグシップサンプルとなる。
-
-実運用プロジェクト（aibpo-core）ではこのパターンが本番稼働しており
-（DSL → zf スキーマの実行時構築、壊れたフィールドのみ落として描画継続する
-エラーセンチネル等）、OSS サンプルとして一般化する価値が実証済み。
+実運用プロジェクト（aibpo-core）で本番稼働実績のあるパターンの一般化。
 
 ### このブランチの現状（前提となる完成済みの土台）
-
-`claude/zodapp-sample-improvement-77f920` には既に以下が入っており、本アプリはこれらを再利用する:
 
 | 土台 | 場所 |
 | --- | --- |
@@ -37,11 +36,8 @@ Firestore に保存 → 実行時にスキーマを再構築して回答フォ�
 | マルチテナント（workspaces / members、collectionGroup 所属検索） | `apps/web/src/shared/taskManager/collections/*`, `pages/taskManager-top/*` |
 | firestore バインド済み hooks（useList / useGrowingList / useDoc / useCollectionGroupList） | `apps/web/src/shared/taskManager/hooks/index.ts` |
 | 列設定プロファイル 3 スコープ永続化 | `apps/web/src/shared/taskManager/useProfileColumnSettings.ts` |
-| AutoForm の `componentLibrary` prop / スキーマモジュールの `Component` 拡張点 | `packages/zod-form-widget/src/form/AutoForm.tsx`, `apps/web/src/pages/form/detail.tsx` |
-| カスタムアクション（draft/publish、disabled 述語）デモ | `apps/web/src/pages/form/schemas/formActions.tsx` |
-| zf.dynamic（実行時スキーマ解決）デモ | `apps/web/src/pages/form/schemas/dynamicSchema.ts` |
-| エミュレータモード（`VITE_FIREBASE_EMULATOR=1`、本番プロジェクト不要） | `packages/firebase/src/index.ts`, `firebase.json` |
-| Playwright E2E の実績（エミュレータ + メール認証で全フロー検証） | コミットメッセージおよび AGENT.md 参照 |
+| AutoForm の `componentLibrary` prop / カスタムアクション / zf.dynamic デモ | `packages/zod-form-widget`, `apps/web/src/pages/form/schemas/*` |
+| エミュレータモード（`VITE_FIREBASE_EMULATOR=1`） | `packages/firebase/src/index.ts`, `firebase.json` |
 
 ---
 
@@ -49,295 +45,725 @@ Firestore に保存 → 実行時にスキーマを再構築して回答フォ�
 
 1. **マルチテナント**: taskManager と同様の仕組みとする
 2. **テナントごとに複数のアンケートを作成できる**
-3. **回答の保存**: アンケートに回答すると「回答」に保存される。
-   **アンケートと回答はサブコレクションではなく同じ階層**とすることで、
+3. **回答の保存**: アンケートと回答は**サブコレクションではなく同じ階層**とし、
    アンケート横断検索もできるようにする
-4. **アンケート作成画面は 2 カラム構成**: 左に設定、右にプレビュー
-   （aibpo-core と同じ構成。**このサンプルとしての意味が大きい＝最重要要件**）
-5. **分析機能は将来スコープ**（今回はスコープ外。ただしデータモデルは分析を妨げない形にする）
+4. **アンケート作成画面は 2 カラム構成**（設定 + プレビュー）。
+   aibpo-core と同じ構成で、**このサンプルとしての意味が最も大きい**
+5. **分析機能は将来スコープ**（データモデルは分析を妨げない形にする）
+
+追加の全体方針（今回の指示）: **デザイン・UI・認可まわりの仕組みは taskManager に揃える。**
 
 ---
 
-## 3. 設計
+## 3. 全体像
 
-### 3.1 配置とルーティング
-
-apps/web 内の第3セクションとして追加する（新規アプリは作らない）。
-taskManager のディレクトリ/ルート構成に倣う。
+### 3.1 画面フロー
 
 ```
-/survey/login → taskManager と共通のログインへ誘導（後述）
-/survey/workspaces                                  … ワークスペース一覧（taskManager と共通データ）
-/survey/workspaces/:workspaceId/surveys             … アンケート一覧
-/survey/workspaces/:workspaceId/surveys/:surveyId   … アンケート編集（2カラムビルダー）
-/survey/workspaces/:workspaceId/surveys/:surveyId/answer … 回答フォーム
-/survey/workspaces/:workspaceId/responses           … 回答一覧（アンケート横断）
+トップナビ「アンケートデモ」
+  └ /survey/workspaces …………………………… ワークスペース一覧（taskManager と同一データ）
+      └ /survey/workspaces/:wid/surveys ……… アンケート一覧（作成/複製/ゴミ箱）
+          ├ …/surveys/:sid ……………………… ビルダー（2カラム: 設定+プレビュー）★中核
+          └ …/surveys/:sid/answer …………… 回答フォーム（published のみ）
+      └ /survey/workspaces/:wid/responses … 回答一覧（アンケート横断 / 絞り込み）
 ```
 
-- ディレクトリは `apps/web/src/pages/survey-top/`, `survey-workspace/`, `survey-item/` の
-  ような taskManager- 系と同じ粒度で分割する
-- トップナビ（`pages/top/Layout.tsx` の CommonLayout navItems）に「アンケートデモ」を追加する
+### 3.2 ルートツリー（router.tsx への追加。taskManager の構造を踏襲・調査済み）
 
-### 3.2 マルチテナント: taskManager のワークスペースを共用する
+taskManager は「セクション root（redirect 用 index）→ id 付き layout route（AuthGuard +
+CommonLayout）→ 各ページ route」の 3 層構成（`pages/router.tsx` 参照）。同じ形で追加する:
 
-**推奨: workspaces / members コレクションと認証まわりを taskManager と共用する。**
+```tsx
+// router.tsx への追加イメージ
+surveyRoute.addChildren([                       // path: "survey"（index は workspaces へ Navigate）
+  surveyTopLayoutRoute.addChildren([            // id: "survey-top"
+    surveyWorkspacesRoute,                      // path: "workspaces"
+  ]),
+  surveyWorkspaceLayoutRoute.addChildren([      // path: "workspaces/$workspaceId"
+    surveysRoute,                               // path: "surveys"
+    surveyEditRoute,                            // path: "surveys/$surveyId"
+    surveyAnswerRoute,                          // path: "surveys/$surveyId/answer"
+    responsesRoute,                             // path: "responses"
+  ]),
+]),
+```
 
-- 要求仕様の「taskManager と同様の仕組み」を最も直接的に満たし、
-  「同じテナント基盤の上に複数アプリを載せられる」ことのデモにもなる
-- `shared/taskManager/` 配下のコレクション定義・hooks はそのまま import する
-  （必要なら共有部分を `shared/workspace/` へリネームする改名リファクタは任意。
-  実施する場合は独立コミットにすること）
-- ワークスペース一覧ページは taskManager のものとほぼ同一になるため、
-  一覧テーブル部分を共通コンポーネント化して両セクションから使うとよい
+- ログイン系ルートは追加しない（3.4 参照）
+- `surveyRoute` の index コンポーネントは `taskManager-top/index.tsx` と同じ
+  「セクション直アクセスで workspaces へ `Navigate`」パターン
 
-### 3.3 データモデル
+### 3.3 ディレクトリ構成（新規ファイル一覧）
 
-#### surveys（アンケート定義）
+taskManager- 系と同じ粒度で分割する:
+
+```
+apps/web/src/shared/survey/
+  collections/
+    survey.ts            … surveysCollection + reference/queries/mutations
+    response.ts          … responsesCollection + queries
+    index.ts
+  fieldDefs.ts           … DSL（SurveyFieldDef）の zf メタスキーマ & 型
+  buildSurveySchema.ts   … DSL → zf スキーマのランタイムビルダー
+  buildSurveySchema.test.ts
+
+apps/web/src/pages/survey-top/
+  index.route.ts / index.tsx        … /survey（workspaces へ redirect）
+  layout.route.ts / Layout.tsx      … AuthGuard + CommonLayout（backLink: トップ）
+  workspaces.route.ts / workspaces.tsx … ワークスペース一覧（survey 系へのリンク）
+
+apps/web/src/pages/survey-workspace/
+  layout.route.ts / Layout.tsx      … AuthGuard + CommonLayout（nav: アンケート/回答）
+  surveys.route.ts / surveys.tsx    … アンケート一覧
+  responses.route.ts / responses.tsx … 回答一覧（横断）
+  survey/
+    edit.route.ts / edit.tsx        … 2カラムビルダー ★
+    answer.route.ts / answer.tsx    … 回答フォーム
+  seed.ts                           … サンプルアンケート投入
+```
+
+---
+
+## 4. taskManager との整合（デザイン・UI・認可の対応表）
+
+「揃える」の具体的な意味を対応表で固定する。実装時はこの表に従うこと。
+
+| 項目 | taskManager での実装 | Survey での適用 |
+| --- | --- | --- |
+| セクション root | `taskManager-top/index.tsx`（直アクセスで workspaces へ Navigate） | 同形式の `survey-top/index.tsx` |
+| レイアウト | 各階層の `Layout.tsx` = `AuthGuard` で包んだ `CommonLayout`（navItems + backLink） | 同じ。survey-top は backLink「トップに戻る」+ nav「ワークスペース一覧」。survey-workspace は backLink「ワークスペース一覧」+ nav「アンケート一覧」「回答一覧」 |
+| 認可 | `AuthGuard`（未ログインは `loginRoute` へ Navigate）。ログイン画面は taskManager-nonmember | **同じ AuthGuard・同じログイン画面を共用**。survey 用のログイン画面は作らない（ログイン後は taskManager workspaces に着地し、トップナビから survey へ入る。リダイレクト先の記憶は本デモのスコープ外） |
+| テナント | workspaces / members コレクション + collectionGroup 所属検索（`useUserWorkspaces`） | **同一コレクションを共用**。`shared/taskManager/collections` と `useUserWorkspaces` をそのまま import（改名リファクタはしない） |
+| ページヘッダ | `Container` + `Group justify="space-between"` + `Title order={2}` + 右側に codeViewerTrigger / 新規作成 ActionIcon（IconPlus, radius="xl"）/ IconDotsVertical メニュー | 同じ構成（`tasks.tsx` / `projects.tsx` を雛形にする） |
+| 検索エリア | `Box`（gray-0/dark-6 背景, radius 8px）内に `AutoSearch` | 回答一覧で同じ |
+| 一覧テーブル | `AutoTable` + `useProfileColumnSettings` + `useTableSettingDrawer`、アクション列は `createActionSchema` | 同じ。アンケート一覧は extendSchemaSafe 方式（tasks と同じ） |
+| コード表示 | 各ページ右上の `useCodeViewerModal({ pageCode, collectionCode })`（`?raw` import） | 全ページに付ける（ビルダーは pageCode + fieldDefs/buildSurveySchema のコードも見せたいので、必要なら CodeViewerModal をタブ追加できる形に軽微拡張してよい） |
+| 新規作成 | モーダル + `AutoForm` + `createSchema` + `onInit()` | アンケート作成も同じ（作成後にビルダーへ遷移） |
+| 論理削除 | `deletedAt` + `softDelete`/`restore` mutations + `active`/`deleted` named query + ゴミ箱 SegmentedControl | surveys に同じ規約を適用（responses は対象外・6.2 参照） |
+| ダミーデータ | メニュー「ダミーデータ追加」+ `seed.ts` | 「サンプルアンケート追加」（6 種の質問を含むアンケート 1 件 + published 済み 1 件） |
+| Firestore ルール | workspaces 配下で members のロールによる制御（isMember / canWriteTask / isAdmin） | surveys / responses を同じヘルパで制御（7 章） |
+| 列設定 | `useProfileColumnSettings`（3 スコープ） | 同じ（tableKey は 9.3 参照） |
+
+---
+
+## 5. データモデル
+
+### 5.1 surveys（アンケート定義）
 
 ```
 /workspaces/:workspaceId/surveys/:surveyId
 ```
 
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| title | string（必須） | アンケート名 |
-| description | string?（multiline） | 説明（回答フォームの冒頭に表示） |
-| status | enum: draft / published / closed | 公開状態。published のみ回答可能 |
-| fields | SurveyFieldDef[]（後述の DSL） | フィールド定義。JSON として保存 |
-| revision | number | publish のたびにインクリメント（回答との突合用） |
-| createdAt / updatedAt / publishedAt | date | 慣例どおり onCreate / onWrite / mutation で付与 |
-| deletedAt | date \| null | 論理削除（taskManager と同じ規約） |
+```ts
+// shared/survey/collections/survey.ts（スケッチ）
+export const surveyStatusLiterals = [
+  z.literal("draft").register(zf.literal.registry,     { label: "下書き", color: "gray" }),
+  z.literal("published").register(zf.literal.registry, { label: "公開中", color: "green" }),
+  z.literal("closed").register(zf.literal.registry,    { label: "終了",   color: "orange" }),
+] as const;
 
-- `createCollectionMutations`: `publish`（status→published, revision+1, publishedAt）/
-  `close` / `reopen` / `softDelete` / `restore`
-- `createCollectionQueries`: `active` / `published`
-- `createCollectionReference(surveysCollection, { labelField: "title" })`
-  … 回答一覧の surveyId 外部キー表示に使う
+const surveyDataSchema = z.object({
+  title: zf.string().min(1).register(zf.string.registry, { label: "アンケート名", width: 200 }),
+  description: zf.string().register(zf.string.registry,
+    { label: "説明", uiType: "multiline" }).optional(),
+  status: zf.enum(surveyStatusLiterals).register(zf.enum.registry,
+    { label: "状態", uiType: "badge", width: 80 }).default("draft"),
+  fields: surveyFieldsSchema,          // ← 6 章の DSL メタスキーマ
+  deletedAt: zf.date().register(zf.date.registry, { label: "削除日" })
+    .nullable().register(zf.common.registry, { hidden: true }),
+}).register(zf.object.registry, {});
 
-#### responses（回答）— アンケートと同階層
+const surveyCreateExcludedSchema = z.object({
+  revision:    zf.number().register(zf.number.registry, { label: "公開版", readOnly: true, width: 70 }).optional(),
+  publishedAt: zf.date().register(zf.date.registry, { label: "公開日", readOnly: true, width: 100 }).optional(),
+  createdAt:   zf.date().register(zf.date.registry, { label: "作成日", readOnly: true, width: 100 }).optional(),
+  updatedAt:   zf.date().register(zf.date.registry, { label: "更新日", readOnly: true, width: 100 }).optional(),
+});
+
+export const surveysCollection = collectionConfig({
+  path: "/workspaces/:workspaceId/surveys/:surveyId" as const,
+  fieldKeys: [] as const,
+  schema: surveyDataSchema,
+  createExcludedSchema: surveyCreateExcludedSchema,
+  onCreate: () => ({ createdAt: new Date(), revision: 0 }),
+  onWrite:  () => ({ updatedAt: new Date() }),
+  onInit:   () => ({ status: "draft" as const, fields: [], deletedAt: null }),
+});
+
+export const surveysReference = createCollectionReference(surveysCollection, {
+  labelField: "title",   // 回答一覧の surveyId 外部キー表示に使う
+});
+
+export const surveyMutations = createCollectionMutations(surveysCollection, {
+  softDelete: () => ({ deletedAt: new Date() }),
+  restore:    () => ({ deletedAt: null }),
+  close:      () => ({ status: "closed" as const }),
+  reopen:     () => ({ status: "published" as const }),
+  // publish は revision インクリメントを伴うため mutation（引数なし固定値）では
+  // 表現できない。ページ側で現在値を読み updateDoc する（8.2 参照）
+});
+
+export const surveyQueries = createCollectionQueries(surveysCollection, {
+  active:    () => ({ where: [{ field: "deletedAt", operator: "==" as const, value: null }] }),
+  deleted:   () => ({
+    where: [{ field: "deletedAt", operator: "!=" as const, value: null }],
+    orderBy: [{ field: "deletedAt", direction: "desc" as const }],
+  }),
+  published: () => ({ where: [
+    { field: "deletedAt", operator: "==" as const, value: null },
+    { field: "status", operator: "==" as const, value: "published" },
+  ] }),
+});
+```
+
+### 5.2 responses(回答)— アンケートと同階層
 
 ```
 /workspaces/:workspaceId/responses/:responseId
 ```
 
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| surveyId | string（externalKey → surveys） | どのアンケートへの回答か |
-| surveyRevision | number | 回答時点のアンケート revision |
-| answers | Record<fieldId, unknown> | 回答本体。キーは SurveyFieldDef.id |
-| respondentName | string? | 回答者表示名（MVP はログインユーザーの displayName を自動設定） |
-| submittedAt | date | onCreate |
-
-**設計上の要点（要求仕様 3 の実現方法）**:
-
-- surveys と responses を**兄弟コレクション**にし、responses 側に `surveyId` を
-  **通常のスキーマフィールド**として持たせる。
-  これにより `/workspaces/:id/responses` への 1 クエリでアンケート横断検索ができ、
-  `bySurvey(surveyId)` named query で特定アンケートに絞り込める
-- **注意: `fieldKeys: ["surveyId"]`（nonPathKeys）にはしないこと。**
-  nonPathKeys は documentIdentity の必須キーになり autoQuery で常に
-  `surveyId ==` が強制されるため、「surveyId 指定なしの横断クエリ」が
-  アクセサの型上できなくなる（`packages/zod-firebase/README.ja.md` の
-  nonPathKeys / autoQuery の節を参照）。横断検索要件と両立しない
-- `surveyId` は `zf.externalKey.registry` + `surveysReference` で貼り、
-  回答一覧でアンケート名が自動解決される形にする（既存の assigneeId と同じパターン）
-- `answers` は `zf.record` とし、回答一覧テーブルでは
-  **record 動的列テンプレート**（`extractSchemaRecordTemplates`、
-  `@zodapp/zod-form-widget/table`）で列を実行時に決定する。
-  ここが zod-form-widget の未実演機能（record 動的列）の実演ポイント
-
-#### Firestore ルール
-
-taskManager の members ベースの権限をそのまま使う:
-
-- surveys: read = isMember、write = canWriteTask 相当（owner/admin/member）
-- responses: read = isMember、**create = isMember**（MVP。公開回答は将来スコープ）、
-  update/delete = isAdmin（回答改竄防止のため一般メンバーには不可）
-- `apps/web/tests/firestore.rules.test.ts` にケースを追加する
-  （既存 29 テストと同じ流儀。emulator は `pnpm emulator:test` で自動起動）
-
-### 3.4 フィールド定義 DSL
-
-MVP のフィールド種別は 6 種。**判別付き union（type で判別）の配列**として保存する。
-
 ```ts
-type SurveyFieldDef =
-  | { type: "text";      id: string; label: string; required?: boolean; placeholder?: string }
-  | { type: "multiline"; id: string; label: string; required?: boolean }
-  | { type: "number";    id: string; label: string; required?: boolean; min?: number; max?: number }
-  | { type: "select";    id: string; label: string; required?: boolean; options: { value: string; label: string }[] }
-  | { type: "boolean";   id: string; label: string; required?: boolean }   // 同意チェック等
-  | { type: "date";      id: string; label: string; required?: boolean };
+// shared/survey/collections/response.ts（スケッチ）
+const responseDataSchema = z.object({
+  surveyId: zf.string().register(zf.externalKey.registry, {
+    label: "アンケート",
+    externalKeyConfig: {
+      type: "firestore",
+      reference: surveysReference,
+      contextId: "workspace",
+      getQuery: () => surveyQueries.queries.active(),
+    },
+    width: 180,
+  }),
+  surveyRevision: zf.number().register(zf.number.registry,
+    { label: "回答時の版", readOnly: true, width: 90 }).optional(),
+  respondentId: zf.string().register(zf.externalKey.registry, {
+    label: "回答者",
+    externalKeyConfig: {
+      type: "firestore",
+      reference: membersReference,      // taskManager の members を共用
+      contextId: "workspace",
+      getQuery: () => memberQueries.queries.all(),
+    },
+    width: 140,
+  }).optional(),
+  answers: z.record(zf.string(), z.unknown())
+    .register(zf.record.registry, { label: "回答" }),
+}).register(zf.object.registry, {});
+
+const responseCreateExcludedSchema = z.object({
+  submittedAt: zf.date().register(zf.date.registry,
+    { label: "回答日時", readOnly: true, width: 130 }).optional(),
+  createdAt: zf.date().register(zf.date.registry, { label: "作成日", readOnly: true }).optional(),
+  updatedAt: zf.date().register(zf.date.registry, { label: "更新日", readOnly: true }).optional(),
+});
+
+export const responsesCollection = collectionConfig({
+  path: "/workspaces/:workspaceId/responses/:responseId" as const,
+  fieldKeys: [] as const,
+  schema: responseDataSchema,
+  createExcludedSchema: responseCreateExcludedSchema,
+  onCreate: () => ({ createdAt: new Date(), submittedAt: new Date() }),
+  onWrite:  () => ({ updatedAt: new Date() }),
+});
+
+export const responseQueries = createCollectionQueries(responsesCollection, {
+  all:      () => ({}),
+  bySurvey: (surveyId: string) => ({
+    where: [{ field: "surveyId", operator: "==" as const, value: surveyId }],
+  }),
+});
 ```
 
-- **DSL 自体も zf スキーマで定義する**（`zf.array(zf.union([...討別 union...]))` +
-  `discriminator: "id"`）。つまり「フィールド定義を編集するフォーム」も AutoForm で
-  自動生成される — メタスキーマのデモ
-- `id` は追加時に自動採番（`crypto.randomUUID()` の短縮など）。ユーザーには編集させない
-  （回答の answers キーとの整合を守るため）
-- aibpo-core の `buildParamsSchema` は**移植しない**。上記 6 種に対する最小の
-  `buildSurveySchema` を新規に書く（下記）
+**設計上の要点（要求仕様 3 の実現方法・確定）**
 
-### 3.5 ランタイムスキーマ生成（buildSurveySchema）
+- surveys と responses は**兄弟コレクション**。responses の `surveyId` は
+  **通常のスキーマフィールド + named query**（`bySurvey`）とする
+- **`fieldKeys: ["surveyId"]`（nonPathKeys）にはしない（調査済み・確定）**:
+  nonPathKeys は `documentIdentityKeys = documentPathKeys + nonPathKeys` として
+  **識別キーの必須要素**になり、autoQuery で常に `surveyId ==` が付与される
+  （`packages/zod-firebase/README.ja.md` の nonPathKeys / autoQuery 節）。
+  「surveyId 指定なしの横断クエリ」がアクセサの型上不可能になるため、
+  横断検索要件と両立しない
+- `surveyId` / `respondentId` は externalKey として貼り、一覧でアンケート名 /
+  回答者名が自動解決される（tasks の `assigneeId` と同一パターン）
+- `respondentId` には回答時にログインユーザーの member docId（= email。
+  members の `onCreateId` 仕様）を自動設定する
+- responses は**作成のみで更新・削除 UI を持たない**（MVP）。論理削除規約も適用しない
+- `answers` のキーは SurveyFieldDef の `id`（6 章）。値は `z.unknown()` で受け、
+  解釈は表示側（9 章）で行う
+
+### 5.3 firestore.indexes.json への追加
+
+useGrowingList（orderBy + ストリーム）と bySurvey 絞り込みの組み合わせに対応する:
+
+| collectionGroup | fields |
+| --- | --- |
+| surveys | (deletedAt ASC, createdAt DESC, __name__ DESC) / (deletedAt ASC, updatedAt ASC, __name__ ASC) |
+| surveys | (deletedAt ASC, status ASC, createdAt DESC, __name__ DESC) / (…, updatedAt ASC, …) |
+| responses | (surveyId ASC, submittedAt DESC, __name__ DESC) / (surveyId ASC, updatedAt ASC, __name__ ASC) |
+
+（横断一覧の `orderBy submittedAt desc` 単独は単一フィールドのため不要。
+エミュレータはインデックス強制がないため、実機デプロイ時の再現性のために入れておく）
+
+---
+
+## 6. フィールド定義 DSL
+
+### 6.1 型と メタスキーマ（fieldDefs.ts）
+
+MVP のフィールド種別は 6 種。**discriminatedUnion の配列**として保存する。
+DSL 自体を zf メタスキーマで定義することで、
+**「フィールド定義を編集するフォーム」も AutoForm で自動生成される**（メタスキーマのデモ）。
 
 ```ts
-// apps/web/src/shared/survey/buildSurveySchema.ts（新規）
-type BuildResult = {
-  schema: z.ZodObject<...>;      // answers 用の zf スキーマ（キーは field.id）
-  warnings: string[];            // 描画は継続するが注意を出す事項
-  fieldErrors: { id: string; message: string }[]; // 復元不能フィールド
+// 共通 shape（全種別に含める）
+const fieldBaseShape = {
+  type: z.literal(...).register(zf.literal.registry, { hidden: true }),
+  // id は回答（answers のキー）との対応に使う内部識別子。
+  // hidden + .default(() => generateFieldId()) にすることで、
+  // 種別選択時に自動採番される（下記 6.3 の調査結果により成立）
+  id: zf.string().register(zf.string.registry, { hidden: true })
+       .default(() => generateFieldId()),
+  label: zf.string().min(1).register(zf.string.registry, { label: "質問文" }),
+  required: zf.boolean().register(zf.boolean.registry,
+    { label: "必須", uiType: "checkbox" }).default(false),
 };
-export function buildSurveySchema(fields: SurveyFieldDef[]): BuildResult;
+
+export const surveyFieldSchema = z.discriminatedUnion("type", [
+  z.object({ ...fieldBaseShape("text"),
+    placeholder: zf.string().register(zf.string.registry, { label: "プレースホルダ" }).optional(),
+  }).register(zf.object.registry, { label: "短文テキスト" }),
+  z.object({ ...fieldBaseShape("multiline") })
+    .register(zf.object.registry, { label: "長文テキスト" }),
+  z.object({ ...fieldBaseShape("number"),
+    min: zf.number().register(zf.number.registry, { label: "最小値" }).optional(),
+    max: zf.number().register(zf.number.registry, { label: "最大値" }).optional(),
+  }).register(zf.object.registry, { label: "数値" }),
+  z.object({ ...fieldBaseShape("select"),
+    options: zf.array(
+      z.object({
+        value: zf.string().register(zf.string.registry, { hidden: true })
+                .default(() => generateFieldId()),
+        label: zf.string().min(1).register(zf.string.registry, { label: "選択肢" }),
+      }).register(zf.object.registry, { uiType: "horizontal" }),
+    ).min(1).register(zf.array.registry, { label: "選択肢", discriminator: "value" }),
+  }).register(zf.object.registry, { label: "単一選択" }),
+  z.object({ ...fieldBaseShape("boolean") })
+    .register(zf.object.registry, { label: "チェック（はい/いいえ）" }),
+  z.object({ ...fieldBaseShape("date") })
+    .register(zf.object.registry, { label: "日付" }),
+]).register(zf.union.registry, {
+  selectorLabel: "質問の種類",
+  unselectedLabel: "種類を選択…",
+});
+
+export const surveyFieldsSchema = zf.array(surveyFieldSchema)
+  .register(zf.array.registry, { label: "質問", discriminator: "id" })
+  .default([]);
+
+export type SurveyFieldDef = z.infer<typeof surveyFieldSchema>;
 ```
 
-- フィールド 1 件が不正でも**全体を失敗させず**、そのフィールドだけ
-  `zf.common()` + 独自 uiType のエラーセンチネル（「表示できない項目」プレースホルダ）に
-  差し替えて描画を継続する。`{schema, warnings, fieldErrors}` の 3 分割は
-  aibpo-core で実証済みのパターンの一般化
-- required でない場合は `.optional()`、select は `zf.enum`（options から literal 生成 +
-  label メタ）、multiline は `uiType: "multiline"` … と、DSL → zf メタの対応を
-  1 箇所に閉じ込める
-- 単体テスト（vitest）を必ず付ける: 正常系 6 種 / 不正フィールド混入 /
-  空配列 / options 空の select など
+実装注意:
+- `fieldBaseShape` はスケッチ。実際は「type literal を引数に取るヘルパ関数」か
+  各アームで素直に書き下す（`pages/form/schemas/discriminatedUnion.ts` が
+  discriminatedUnion + メタ登録の正準例）
+- `generateFieldId()` は `crypto.randomUUID().slice(0, 8)` 程度の短縮 ID
+- Firestore は `undefined` を保存できないため、保存前に AutoForm の出力を
+  そのまま渡してよいか確認する（optional 未入力は `undefined` → accessor の
+  transform で落ちるか要確認。問題があれば保存前に JSON 正規化）
 
-### 3.6 アンケート編集画面（2 カラムビルダー）— 最重要
+### 6.2 ビルダーでの編集 UI が成立する根拠（調査済み）
 
-aibpo-core と同じ「左: 設定 / 右: プレビュー」の 2 カラム構成。
+以下はすべて **zod-form-mantine の現行実装で確認済み**。カスタムウィジェットなしで
+フィールド定義エディタが成立する:
 
+1. **配列への項目追加**: array コンポーネントの「+」は
+   `getDefaultValue(itemSchema)` を試み、union では undefined になるため
+   **「種類未選択」の項目が追加され、union セレクタ（`unselectedLabel`）が出る**
+   （`array.tsx` の `getArrayItemDefaultValue` / `append`）
+2. **種類選択で初期値が入る**: union セレクタで arm を選ぶと
+   `getDefaultValue(profile.schema)` がマージされる（`union.tsx` の `handleSelect`）。
+   これにより **`.default(() => generateFieldId())` の `id` 自動採番が発火**し、
+   `required: false` などのデフォルトも入る
+3. **種類を切り替えても id が保持される**: arm 切替時は
+   `{...defaults, ...stripPropertiesOutsideArm(currentValue, arm)}` の順でマージされ、
+   全アーム共通の `id` / `label` / `required` は現在値が優先される
+4. **並べ替え**: array は dnd-kit による DnD 並べ替えを標準装備。
+   `discriminator: "id"` メタで安定キーが効く
+5. **選択肢（select の options）**: ネスト配列も同じ仕組みで追加/削除/並べ替え可能
+
+### 6.3 buildSurveySchema（ランタイムビルダー）
+
+```ts
+// shared/survey/buildSurveySchema.ts
+export type BuildSurveySchemaResult = {
+  schema: z.ZodObject<z.ZodRawShape>;   // answers 用スキーマ（キーは field.id）
+  warnings: string[];
+  fieldErrors: { id: string; message: string }[];
+};
+export function buildSurveySchema(fields: unknown): BuildSurveySchemaResult;
 ```
-+--------------------------------+--------------------------------+
-| 設定（編集フォーム）           | プレビュー（回答フォーム）     |
-|  - タイトル / 説明 / ステータス |  buildSurveySchema(fields) の  |
-|  - フィールド定義の配列編集    |  結果を AutoForm で描画        |
-|    （追加/削除/並べ替え/種別）  |  （fieldErrors はセンチレル表示)|
-|  [破棄] [下書き保存] [公開]    |  ※ 送信ボタンなし readOnly不可 |
-+--------------------------------+--------------------------------+
-```
 
-- 左カラム: `AutoForm` + surveys の updateSchema。
-  fields は判別 union 配列なので、**配列の DnD 並べ替え / 種別セレクタ付き追加**が
-  zod-form-mantine の標準機能でそのまま出る（array + discriminatedUnion デモ）
-- 右カラム: 左フォームの**編集中の値**（保存前）からリアルタイムに
-  `buildSurveySchema` してプレビューを再構築する。
-  実装方式: 左の AutoForm に `onChange` 相当がないため、
-  `actions` ではなく **左右を 1 つの親コンポーネントで持ち、
-  AutoForm の Form API（`useFormValues`）を使うか、
-  フォームを `FormProvider` + `Switch` で手組みして値を購読する**。
-  最小実装としては「左フォームの保存済み値 + 明示的な『プレビュー更新』」でもよいが、
-  ライブプレビューが本命（実装検討メモ参照）
-- アクションバー: `AutoFormAction` で「変更を破棄 / 下書き保存 / 公開する」。
-  公開は `formState.isDefaultValue`（未保存変更なし）のときだけ有効 —
-  `pages/form/schemas/formActions.tsx` の実運用版
-- レイアウトは Mantine `Grid` / `Flex` の 2 カラム。狭幅では縦積み
+変換表（DSL → zf）:
 
-**実装検討メモ（ライブプレビュー）**: `zod-form-widget` の AutoForm は
-フォーム値の外部購読手段として `showPreview`（内部 JSON 表示）しか持たない。
-ライブプレビューには次のどちらかを選ぶ:
-1. ビルダー左側を `useZodForm` + `FormProvider` + `Switch fieldPath=""` で手組みし、
-   `useFormValues()` で値を購読して右側に渡す（`@zodapp/zod-form-react` の
-   基盤 API の実演になるのでこちらを推奨）
-2. AutoForm に `onValuesChange?: (values) => void` prop をライブラリ側に追加する
-   （小さな追加。やる場合は `fix/feat(zod-form-widget)` として独立コミット）
-
-### 3.7 回答フォーム画面
-
-- `/surveys/:surveyId/answer`。published のアンケートのみ回答可（draft/closed は案内表示）
-- `buildSurveySchema(survey.fields)` → `AutoForm` → onSubmit で
-  `responsesCollection.createDoc({workspaceId}, { surveyId, surveyRevision, answers, ... })`
-- 送信後はサンクス表示 + 「もう一度回答」
-- MVP はログインメンバーのみ（AuthGuard 配下）。匿名回答は将来スコープ
-
-### 3.8 回答一覧画面（アンケート横断）
-
-- `/responses`: ワークスペース内の全回答を `useGrowingList` で一覧
-  - AutoSearch: surveyId（externalKey / surveysReference で名前解決）、期間
-  - answers の record 動的列 + 列設定プロファイル（`useProfileColumnSettings`）
-  - CSV エクスポート（`useExportModal` + `useExportFetchAll` の既存パターン）
-- アンケート編集画面からは「このアンケートの回答一覧」リンクで
-  `?q.surveyId=...` 付きの同一ページへ遷移（横断/絞り込みが同じ画面で済むことを見せる）
-
----
-
-## 4. このサンプルが新たに実演する zodapp API（カバレッジ観点）
-
-| API / パターン | 現状 | 本アプリでの実演箇所 |
+| type | 生成スキーマ | メタ |
 | --- | --- | --- |
-| DSL → zf ランタイムスキーマ生成（3 分割 + エラーセンチネル） | 露出ゼロ | buildSurveySchema |
-| record 動的列テンプレート（extractSchemaRecordTemplates 系） | 露出ゼロ | 回答一覧の answers 列 |
-| 判別 union 配列の編集 UI（DnD + discriminator + 種別追加） | フォームデモに断片のみ | フィールド定義エディタ |
-| FormProvider + Switch + useFormValues による手組みフォーム | 露出ゼロ | ビルダー左カラム（ライブプレビュー方式 1 の場合） |
-| AutoFormAction の実運用（publish ワークフロー） | デモのみ | ビルダーのアクションバー |
-| 兄弟コレクション + named query による横断/絞り込み設計 | — | responses |
+| text | `zf.string()`（required なら `.min(1)`、それ以外 `.optional()`） | label, placeholder は suggestions ではなく Mantine 側未対応のため label に含めない（将来 uiType 拡張） |
+| multiline | `zf.string()` | `uiType: "multiline"` |
+| number | `zf.number()` + min/max | label |
+| select | `zf.enum(options から literal 生成)` | 各 literal に `label`、enum に `label` |
+| boolean | `zf.boolean()`（required は `z.literal(true)` + boolean 強制。`basicInput.ts` の `isConfirmed` パターン） | `uiType: "checkbox"` |
+| date | `zf.date()` | label |
+
+堅牢性（aibpo-core 実証パターンの一般化）:
+
+- 入力 `fields` は**まず `surveyFieldsSchema.safeParse` で 1 件ずつ検証**し、
+  壊れた要素だけ `fieldErrors` に落とす。パースできた要素のみスキーマ化
+- 復元不能な要素の位置には `zf.common()` ベースの**エラーセンチネル**
+  （`label: "表示できない質問"`, `readOnly: true` のプレースホルダ）を挿入し、
+  **フォーム全体の描画は継続**する
+- `id` 重複や select の options 空は `warnings` に載せる（描画は継続）
+- 純関数・React 非依存で実装し、**vitest 単体テストを必須**とする:
+  正常系 6 種 / required 反映 / 不正要素混入（フィールド単位で落ちる）/
+  空配列 / options 空 / id 重複 / fields が配列でない
 
 ---
 
-## 5. 実装フェーズ（コミット粒度の目安）
+## 7. Firestore ルール（firestore.rules への追加）
 
-1. **P1: データ層** — surveys / responses コレクション定義、DSL 型、
-   buildSurveySchema + 単体テスト、firestore.rules + ルールテスト
-2. **P2: 一覧と CRUD の骨格** — ルーティング一式、アンケート一覧
-   （作成/削除/複製、status バッジ列）、ナビ追加
-3. **P3: 2 カラムビルダー** — 設定フォーム + ライブプレビュー + publish アクション
-   （最重要。ライブプレビュー方式はここで確定させる）
-4. **P4: 回答フロー** — 回答フォーム + 回答一覧（横断検索 / 動的列 / CSV）
-5. **P5: 仕上げ** — E2E（Playwright + エミュレータ）、AGENT.md 逆引き追記、
-   README 追記、シードデータ（サンプルアンケート投入メニュー）
+`match /workspaces/{workspaceId}` ブロック内に追加（既存ヘルパをそのまま使用）:
+
+```
+// surveys サブコレクション
+match /surveys/{surveyId} {
+  allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+  allow write: if canWriteTask(workspaceId) || isWorkspaceOwner(workspaceId);
+}
+
+// responses サブコレクション（回答は作成のみ。改竄防止のため update/delete は admin）
+match /responses/{responseId} {
+  allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+  allow create: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+  allow update, delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+}
+```
+
+`apps/web/tests/firestore.rules.test.ts` に追加するケース（既存 29 件と同じ流儀）:
+
+- member は survey を作成/読める、viewer は読めるが作成できない
+- member は response を作成できる、作成後に member は更新できない（admin は可）
+- outsider は surveys / responses を読めない
+
+---
+
+## 8. 画面仕様
+
+### 8.1 ワークスペース一覧（/survey/workspaces）
+
+- `taskManager-top/workspaces.tsx` を雛形にした survey 専用ページ
+  （`useUserWorkspaces` / `WorkspaceCreate` ウィザードは **import で共用**）
+- 相違点はアクション列の遷移先（`surveysRoute`）のみ
+- 列設定 tableKey は taskManager と共有しない（`"survey-workspace"`）
+
+### 8.2 アンケート一覧（/survey/workspaces/:wid/surveys）
+
+`tasks.tsx` を雛形にする（ヘッダ / メニュー / ゴミ箱 SegmentedControl / コード表示）。
+
+- 一覧: `useList`（アンケート数は多くない想定。`active()` + orderBy createdAt desc）
+  - 列: title / status(badge) / revision / 回答数? は集計になるためスコープ外 /
+    createdAt / updatedAt / _action（extendSchemaSafe + createActionSchema →
+    ビルダーへ）
+- 新規作成: モーダル + `AutoForm`（createSchema, `onInit()`）→ 作成後
+  `navigate` でビルダーへ
+- 行メニュー相当の操作はビルダー側に寄せ、一覧のメニューは
+  「列設定 / サンプルアンケート追加」のみ
+- 複製: ビルダー内アクション（8.3）として提供（一覧側には置かない。シンプル優先）
+- ゴミ箱ビュー: tasks と同じ（`deleted` query + 復元列 + 楽観的除外）
+
+### 8.3 ビルダー（/survey/workspaces/:wid/surveys/:sid）★中核
+
+**2 カラム構成（設定 + ライブプレビュー）**。狭幅（`md` 未満）では縦積み。
+
+```
+Container size="xl"
+├ ヘッダ: Title「アンケート編集」 + status Badge + codeViewerTrigger + Menu
+│   Menu: 複製 / 終了(close) / 再公開(reopen) / ゴミ箱へ
+├ Grid
+│  ├ Grid.Col span={{base:12, md:6}}  … 左: 設定フォーム（手組み）
+│  └ Grid.Col span={{base:12, md:6}}  … 右: ライブプレビュー
+└ アクションバー（左カラム下）: 変更を破棄 / 下書き保存 / 公開する
+```
+
+**左カラム（設定フォーム）— 手組み方式で確定**
+
+AutoForm はフォーム値の外部購読手段を持たないため（調査済み）、ビルダーは
+`@zodapp/zod-form-react` の基盤 API で手組みする。これ自体が
+**FormProvider + Switch + useFormValues の実演**（露出ゼロだった API 群）になる:
+
+```tsx
+// AutoForm.tsx の内部実装（調査済み）を踏襲した骨格
+const editorSchema = hideSchemaFields(surveysCollection.updateSchema, { paths: ["status"] });
+const validator = editorSchema as StandardSchemaV1<z.input<typeof editorSchema>, unknown>;
+const form = useZodForm({
+  defaultValues: survey,          // useDoc の item
+  validators: { onChange: validator, onBlur: validator, onSubmit: validator },
+  onSubmit: ({ value }) => saveDraft(value),
+});
+…
+<ZodFormContextProvider merge componentLibrary={componentLibrary} resolverContext={...}>
+  <FormProvider form={form}>
+    <ValidatePrecedingFieldsProvider>
+      <Switch fieldPath="" schema={editorSchema} />
+    </ValidatePrecedingFieldsProvider>
+    <BuilderActions form={form} …/>      // 下記
+  </FormProvider>
+</ZodFormContextProvider>
+```
+
+- `componentLibrary` は `@zodapp/zod-form-mantine` の `componentLibrary` を明示的に渡す
+  （手組みの場合 AutoForm のデフォルト注入が効かないため必須）
+- status はフォームから隠し、ヘッダの Badge + メニュー/公開アクションで制御する
+
+**右カラム（ライブプレビュー）**
+
+```tsx
+const values = useFormValues<z.input<typeof editorSchema>>();   // FormProvider 配下で購読
+const { schema, warnings, fieldErrors } = useMemo(
+  () => buildSurveySchema(values.fields ?? []),
+  [values.fields],
+);
+<AutoForm key={hash(values.fields)} schema={schema} showPreview={false} />
+```
+
+- プレビューは**編集中（未保存）の値**から再構築する。`useFormValues` は
+  FormProvider 配下でしか使えないため、右カラムは FormProvider の内側に置く
+  （Grid ごと FormProvider で包む構成にする）
+- `key` に fields のハッシュ（`stableStringify` を `@zodapp/caching-utilities` から
+  利用可）を渡して、スキーマが変わったらフォーム状態をリセットする
+- 送信ボタンは出さない（`actions: []` を渡す）。`warnings` / `fieldErrors` は
+  プレビュー上部に `Alert` で表示
+- 再構築頻度が問題になる場合のみ `useDeferredValue` で遅延（初手では入れない）
+
+**アクションバー（AutoFormAction の手動レンダリング）**
+
+手組みフォームでは AutoForm の `actions` prop が使えないため、
+`createAutoFormSubmitAction` / `createAutoFormResetAction` /
+`createAutoFormButtonAction`（`@zodapp/zod-form-widget/form`）で
+ActionComponent を作り、`{ form, handleSubmit, isLoading }` を渡して自前で並べる
+（AutoForm 内部の `normalizedActionComponents.map(...)` と同じ呼び出し形。調査済み）。
+`handleSubmit` は AutoForm 内部実装と同様に `form.handleSubmit()` + バリデーション
+結果の Promise 化で用意する。
+
+- 変更を破棄: reset action、`disabled: ({formState}) => formState.isDefaultValue`
+- 下書き保存: submit action（`updateDoc`。status は変更しない）
+- 公開する: button action、
+  `disabled: ({formState}) => !formState.isDefaultValue`（未保存変更があるうちは不可）。
+  実行内容: `updateDoc(identity, { status: "published", revision: (survey.revision ?? 0) + 1, publishedAt: new Date() })`
+- published 状態で fields に未保存変更がある場合、アクションバー付近に
+  「公開中のアンケートです。保存すると回答者に即時反映されます」の `Alert` を出す
+  （revision は publish 時のみ上がる。完全なスナップショット分離は将来スコープ）
+
+**データ購読**: `useDoc({ collection: surveysCollection, documentIdentity })`。
+form の defaultValues には**初回取得値**を使い、購読更新でフォームをリセットしない
+（taskManager の編集ページと同じ挙動）。
+
+### 8.4 回答フォーム（/survey/workspaces/:wid/surveys/:sid/answer）
+
+- `useDoc` で survey を購読。`status !== "published"` は案内 `Alert` のみ表示
+- `buildSurveySchema(survey.fields)` → `AutoForm`（通常の onSubmit 型）
+- onSubmit:
+  ```ts
+  responseAccessor.createDoc({ workspaceId }, {
+    surveyId, surveyRevision: survey.revision,
+    respondentId: user.email,          // members の docId 規約（onCreateId）と一致
+    answers: data,                      // buildSurveySchema の出力そのまま
+  });
+  ```
+  ※ answers 内の `undefined`（未入力 optional）と `Date` の Firestore 変換は
+  accessor の transform に任せる。undefined が保存エラーになる場合は
+  createDoc 前に除去する（P4 で確認）
+- 送信後: サンクス表示 + 「もう一度回答する」「回答一覧を見る」
+- ビルダーのヘッダから「回答ページを開く」リンクを付ける
+
+### 8.5 回答一覧（/survey/workspaces/:wid/responses）★横断検索
+
+`tasks.tsx` を雛形にした一覧ページ:
+
+- `useGrowingList`（streamField: "updatedAt"、orderBy submittedAt desc）
+- **検索**（AutoSearch + URL searchParams。tasks.route.ts と同じ `q` 規約）:
+  ```ts
+  const searchFilterSchema = zf.object({
+    surveyId: zf.string().register(zf.externalKey.registry, {
+      label: "アンケート",
+      externalKeyConfig: { type: "firestore", reference: surveysReference,
+        contextId: "workspace", getQuery: () => surveyQueries.queries.active() },
+    }).nullable().optional(),
+    submittedAt: zf.object({
+      $gte: zf.date().register(zf.date.registry, { label: "回答日（From）" }).optional(),
+      $lte: zf.date().register(zf.date.registry, { label: "回答日（To）" }).optional(),
+    }).register(zf.object.registry, { uiType: "horizontal-wrap" }).optional(),
+  }).register(zf.object.registry, { uiType: "horizontal-wrap" });
+  ```
+  - surveyId は **Firestore where（`bySurvey`）**に反映（横断⇔絞り込みが 1 画面）
+  - submittedAt 範囲はクライアント mingo（tasks と同じ分担。
+    サーバ絞り込みへの拡張は tasks の filterMode デモに委ねる）
+- **answers 列（2 モード。9 章の調査結果に基づく設計）**
+- CSV エクスポート: `useExportModal` + `useExportFetchAll`（既存パターン）
+- 回答は編集しない（詳細ページなし。行アクション列も MVP では省略可）
+
+---
+
+## 9. answers 列の表示設計（record 動的列の実演）
+
+### 9.1 ライブラリの実挙動（調査済み）
+
+- `zf.record` のフィールドは列設定ドロワーで **record テンプレート**
+  （`answers.*`）として扱われ、**ユーザーがキー文字列を入力すると
+  `answers.<キー>` の具体列を追加できる**（`TableSettingDrawer.tsx` の
+  `buildFieldOptionsForColumn` + `resolveRecordTemplateConcretePath`）
+- 列ヘッダは「record の label + キー」（`resolveRecordTemplateLabel`）。
+  **データから列が自動生成されるわけではない**
+
+### 9.2 2 モードの列構成（確定）
+
+**(a) 横断モード（surveyId フィルタなし）**
+
+- テーブルスキーマ: `responsesCollection.dataSchema` +
+  `_action` 等はなし。answers は record のまま
+- 既定列: surveyId / respondentId / surveyRevision / submittedAt
+- answers の個別列が欲しい上級者は、列設定ドロワーでキー（fieldId）を入力して
+  record テンプレート列を追加できる（これが record 動的列の素の実演になる）
+
+**(b) アンケート絞り込みモード（q.surveyId あり）**
+
+- 対象 survey を `useDoc` で取得し、
+  `buildSurveySchema(survey.fields).schema` を **`extendSchemaSafe` で
+  `answers` キーに上書き**した実スキーマをテーブルスキーマにする:
+  ```ts
+  const tableSchema = extendSchemaSafe(responsesCollection.dataSchema, {
+    answers: builtAnswersSchema.optional(),
+  });
+  ```
+  （extendSchemaSafe は**既存キーの上書きのみ許可**するヘルパなのでこの用途に適合。調査済み）
+- これにより answers 配下が**ネストオブジェクト列**（`answers.<fieldId>`）として
+  展開され、**列ヘッダに DSL の質問文（label）が乗る**
+- 既定列: respondentId / submittedAt / `answers.<fieldId>` × 全質問
+- **列設定コントローラの注意（調査済み）**: `useColumnSettingsProfileController` は
+  初回ロードを ref でガードしているため、**tableKey / スキーマが変わっても
+  プロファイル一覧を再ロードしない**。モード(b) のテーブル+コントローラは
+  `key={q.surveyId ?? "all"}` で**コンポーネントごと remount**する
+
+### 9.3 列設定 tableKey
+
+| テーブル | tableKey |
+| --- | --- |
+| survey ワークスペース一覧 | `survey-workspace` |
+| アンケート一覧 | `survey` / ゴミ箱: `survey-trash` |
+| 回答一覧（横断） | `response` |
+| 回答一覧（survey 絞り込み） | `response:<surveyId>` |
+
+---
+
+## 10. E2E シナリオ（Playwright + エミュレータ）
+
+既存デモと同じ手順で自動化する（メール認証・`/opt/pw-browsers/chromium`）:
+
+1. サインアップ → taskManager workspaces に着地 → トップナビ「アンケートデモ」
+2. （workspaces 空なら）ワークスペース作成ウィザード
+3. アンケート作成 → ビルダーへ遷移
+4. 質問を追加（+ → 種類「短文テキスト」選択 → 質問文入力。
+   さらに「単一選択」を追加し選択肢 2 件入力）
+5. **右プレビューに質問がライブ反映されることを確認**（ラベル文字列の出現）
+6. 下書き保存 → 「公開する」が有効化 → 公開（status Badge が「公開中」に）
+7. 「回答ページを開く」→ 回答入力 → 送信 → サンクス表示
+8. 回答一覧（横断）で 1 件表示、アンケート名が外部キー解決されている
+9. アンケートで絞り込み → answers 列が質問文ヘッダで展開されている
+10. CSV エクスポートのモーダルが開く（ダウンロードはモーダル表示まで）
+
+検証コマンド（確立済み）:
+
+```bash
+npx firebase emulators:start --only auth,firestore,storage --project demo-zodapp
+cd apps/web && VITE_FIREBASE_EMULATOR=1 pnpm dev     # localhost:3000
+pnpm emulator:test                                    # ルールテスト込み全テスト
+```
+
+---
+
+## 11. 実装フェーズ（コミット粒度と Definition of Done）
+
+| フェーズ | 内容 | DoD |
+| --- | --- | --- |
+| P1 データ層 | `shared/survey/`（fieldDefs / collections / buildSurveySchema + 単体テスト）、firestore.rules + ルールテスト、indexes | `pnpm emulator:test` 全緑。UI なし |
+| P2 骨格 | ルート一式 / Layout ×2 / セクション redirect / トップナビ追加 / ワークスペース一覧 / アンケート一覧（作成→遷移、ゴミ箱、シード） | 一覧 CRUD が emulator 上で動作。check-types / build 緑 |
+| P3 ビルダー | 手組みフォーム + ライブプレビュー + アクションバー（破棄/保存/公開）+ 複製/close/reopen メニュー | E2E 手順 3〜6 相当を Playwright で確認 |
+| P4 回答フロー | 回答フォーム / 回答一覧（横断 + 絞り込み + answers 列 2 モード + CSV） | E2E 手順 7〜10 相当を確認。undefined/Date 保存問題の解消を含む |
+| P5 仕上げ | E2E 一巡の再実行、AGENT.md 逆引き追記（「ランタイムスキーマ生成」「record 動的列」「手組みフォーム」）、README 追記 | build / check-types / emulator:test / E2E 全緑 |
 
 各フェーズ完了時に `pnpm --filter web check-types` / `pnpm build` /
 `pnpm emulator:test` を通してからコミットする（このブランチの慣例）。
 
 ---
 
-## 6. 検証方法（このブランチで確立済みの手順）
+## 12. 決定事項と残る注意点
 
-```bash
-# エミュレータ（auth/firestore/storage）
-npx firebase emulators:start --only auth,firestore,storage --project demo-zodapp
+### 決定済み（本詳細版で確定）
 
-# エミュレータ接続で dev サーバ
-cd apps/web && VITE_FIREBASE_EMULATOR=1 pnpm dev   # localhost:3000
-
-# ルールテスト込みの全テスト
-pnpm emulator:test
-```
-
-- `firebaseConfig.json` はリポジトリルートにダミー値で作成（gitignore 済み）
-- E2E は Playwright（`/opt/pw-browsers/chromium` 等ローカルの Chromium）で
-  「サインアップ → ワークスペース作成 → アンケート作成 → 公開 → 回答 → 横断一覧」
-  を一巡させる。既存デモの E2E と同様、メール/パスワード認証で自動化できる
-
----
-
-## 7. 未決事項（実装者への引き継ぎ。推奨付き）
-
-| # | 論点 | 推奨 |
+| # | 論点 | 決定 |
 | --- | --- | --- |
-| 1 | ワークスペース基盤の共用方法（taskManager の shared をそのまま import するか、`shared/workspace/` へ改名リファクタするか） | まず import 共用で開始。改名は任意・独立コミット |
-| 2 | ライブプレビューの実装方式（3.6 のメモ参照） | 方式 1（FormProvider + Switch + useFormValues の手組み）。ライブラリ API の実演価値が高い |
-| 3 | 回答の匿名公開（ログインなし回答） | スコープ外。rules とデータモデルは阻害しない（responses が兄弟コレクションなので公開時は rules 追加のみ） |
-| 4 | アンケート編集と公開後回答の整合（published 後の fields 編集） | MVP は revision 記録のみ（回答に surveyRevision を保存）。published 中の編集は警告表示に留める。完全なバージョニング（公開スナップショット分離）は将来スコープ |
-| 5 | セクション名 / ルートプレフィックス | `/survey`、表示名「アンケートデモ」 |
+| 1 | テナント基盤 | taskManager の workspaces / members / useUserWorkspaces / WorkspaceCreate を import 共用。改名リファクタはしない |
+| 2 | ライブプレビュー | 手組み（useZodForm + FormProvider + Switch + useFormValues）。AutoForm の内部実装を踏襲。ライブラリへの `onValuesChange` 追加はしない |
+| 3 | ログイン | taskManager のログイン画面・AuthGuard を共用。survey 用リダイレクト記憶はスコープ外 |
+| 4 | surveyId の持ち方 | 通常フィールド + named query。fieldKeys(nonPathKeys) は不採用（autoQuery が横断検索と型レベルで両立しないため） |
+| 5 | 公開後編集 | revision 記録 + published 中の編集警告のみ。スナップショット分離は将来 |
+| 6 | 回答の編集/削除 | UI なし（ルール上も member は不可・admin のみ） |
+| 7 | answers 列 | 横断= record テンプレート（手動キー追加）、絞り込み= extendSchemaSafe で実スキーマに差し替え |
+| 8 | ルート/名称 | `/survey`、トップナビ表示名「アンケートデモ」（IconClipboardList） |
+
+### 実装時に確認が必要な点（設計は決定済み・挙動確認のみ）
+
+1. **answers の `undefined` / `Date` の保存**: optional 未入力（undefined）が
+   Firestore 書き込みでエラーにならないか。なる場合は createDoc 前に除去
+   （`useProfileColumnSettings.ts` の `sanitizeColumns` と同様の処理）
+2. **fields 配列の AutoForm 出力形**: DnD 後の並び・default 適用後の形が
+   `surveyFieldsSchema.parse` を通ること（P3 で単体確認）
+3. **手組みフォームでの `hasDirtyPreview` 相当**: `formState.isDefaultValue` が
+   defaultValues 差し替えなしで期待どおり動くこと（AutoFormAction の
+   resolverContext 経由。formActions デモで実証済みだが手組み側でも確認）
+4. **record テンプレート列と extendSchemaSafe 上書きの共存**: モード(b) では
+   answers が record でなくなるためテンプレート入力 UI は出ない（想定どおりで OK か
+   ドロワーを目視確認）
 
 ---
 
-## 8. スコープ外（将来）
+## 13. スコープ外（将来）
 
-- 分析機能（集計・グラフ）。**ただし responses が兄弟コレクション + record answers なので、
-  集計クエリ/クライアント集計のどちらにも進める**
-- 匿名・外部公開回答（公開リンク、Anonymous Auth）
+- 分析機能（集計・グラフ）。responses が兄弟コレクション + record answers なので、
+  集計クエリ / クライアント集計のどちらにも進める
+- 匿名・外部公開回答（公開リンク、Anonymous Auth。rules 追加のみで拡張可能な構造）
 - 公開スナップショットを分離する完全なバージョニング
-- 回答の編集・下書き保存
+- 回答の下書き保存・編集、回答数の集計列、通知
 
 ---
 
-## 9. 参考
+## 14. 参考（調査で参照した実装）
 
-- 元計画: aibpo-core `docs/plans/zodapp-improvement/03-new-sample-apps.md`（N3）
-- 実装パターンの参照元（本ブランチ内）:
-  - コレクション定義の慣例: `apps/web/src/shared/taskManager/collections/task.ts`
-  - 一覧ページの型: `apps/web/src/pages/taskManager-project/tasks.tsx`
-  - publish アクション: `apps/web/src/pages/form/schemas/formActions.tsx`
-  - 実行時スキーマ解決: `apps/web/src/pages/form/schemas/dynamicSchema.ts`
-  - 逆引きガイド: `apps/web/AGENT.md`
-- aibpo-core の該当実装（クローズドのためコードは移植せず、パターンのみ参照）:
+- ルーティング 3 層構造: `apps/web/src/pages/router.tsx`,
+  `taskManager-top/index.route.ts` / `layout.route.ts` / `index.tsx`
+- レイアウトと認可: `taskManager-{top,workspace,project}/Layout.tsx`,
+  `components/CommonLayout.tsx`, `shared/auth/AuthGuard.tsx`,
+  `pages/top/Layout.tsx`（トップナビ）
+- 一覧ページ慣例: `taskManager-project/tasks.tsx`（ヘッダ / 検索 Box / ゴミ箱 /
+  シード / CSV / 列設定）, `taskManager-workspace/projects.tsx`
+- AutoForm 内部（手組みの雛形）: `packages/zod-form-widget/src/form/AutoForm.tsx`
+  （useZodForm + validators + FormProvider + Switch + アクション正規化）
+- union 配列編集の挙動: `packages/zod-form-mantine/src/components/array.tsx`
+  （append = getDefaultValue）, `union.tsx`（handleSelect の default マージ、
+  `stripPropertiesOutsideArm`）, `packages/zod-form/src/utils/default.ts`
+- record 動的列: `packages/zod-form-widget/src/table/extract-schema-columns.ts`,
+  `TableSettingDrawer.tsx`（`resolveRecordTemplateConcretePath` ほか）
+- discriminatedUnion のメタ登録の正準例: `apps/web/src/pages/form/schemas/discriminatedUnion.ts`
+- nonPathKeys / autoQuery 仕様: `packages/zod-firebase/README.ja.md`
+- aibpo-core の該当実装（クローズドのためコードは移植せずパターンのみ参照）:
   DSL → スキーマ構築の 3 分割戻り値、エラーセンチネル、2 カラムビルダー構成
