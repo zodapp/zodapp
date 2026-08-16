@@ -1,26 +1,31 @@
 import {
   Title,
   Container,
-  Card,
   Group,
-  Stack,
   Loader,
   Center,
   Badge,
   Menu,
   ActionIcon,
+  Alert,
+  Stack,
 } from "@mantine/core";
-import { IconDotsVertical, IconCopy, IconLock, IconLockOpen } from "@tabler/icons-react";
+import {
+  IconDotsVertical,
+  IconCopy,
+  IconLock,
+  IconLockOpen,
+  IconInfoCircle,
+} from "@tabler/icons-react";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { firestore } from "@repo/firebase";
 import {
   getAccessor,
   getMutationsAccessor,
 } from "@zodapp/zod-firebase-browser";
-import { getMeta, hideSchemaFieldsExcept } from "@zodapp/zod-form";
-import { AutoForm } from "@zodapp/zod-form-widget/form";
+import { getMeta } from "@zodapp/zod-form";
 import {
   DeleteMenuItem,
   useDeleteModal,
@@ -36,9 +41,12 @@ import { useStoreKey } from "../../../shared/auth";
 import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
 import { surveyEditRoute } from "./edit.route";
 import { surveysRoute } from "../surveys.route";
+import { SurveyBuilder } from "./SurveyBuilder";
 
-import pageCode from "./edit.tsx?raw";
+import pageCode from "./SurveyBuilder.tsx?raw";
 import fieldDefsCode from "../../../shared/survey/fieldDefs.ts?raw";
+
+type SurveyDoc = z.infer<typeof surveysCollection.dataSchema>;
 
 /** ステータスのバッジ表示（enum の literal メタから label / color を引く） */
 const StatusBadge = ({ status }: { status?: string }) => {
@@ -66,43 +74,54 @@ const SurveyEditPage = () => {
     [storeKey],
   );
 
+  const documentIdentity = useMemo(
+    () => ({ workspaceId, surveyId }),
+    [workspaceId, surveyId],
+  );
   const { item: survey, isLoading } = useDoc({
     collection: surveysCollection,
-    documentIdentity: useMemo(
-      () => ({ workspaceId, surveyId }),
-      [workspaceId, surveyId],
-    ),
+    documentIdentity,
   });
+
+  // フォームの初期値は「最初に取得した内容 or 保存直後の内容」に固定する。
+  // 購読の更新でフォームを作り直すと編集中の内容が失われるため
+  const [baseline, setBaseline] = useState<SurveyDoc | null>(null);
+  const [formVersion, setFormVersion] = useState(0);
+  useEffect(() => {
+    if (survey && !baseline) setBaseline(survey);
+  }, [survey, baseline]);
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // 編集フォームでは title / description / fields のみ扱う。
-  // status や revision はヘッダ・アクション側で制御する
-  const editorSchema = useMemo(
-    () =>
-      hideSchemaFieldsExcept(surveysCollection.updateSchema, {
-        paths: ["title", "description", "fields"],
-      }),
-    [],
-  );
-
-  const handleSubmit = useCallback(
+  const handleSaveDraft = useCallback(
     async (data: z.infer<typeof surveysCollection.updateSchema>) => {
       setIsSaving(true);
       try {
-        await accessor.updateDoc({ workspaceId, surveyId }, data);
+        await accessor.updateDoc(documentIdentity, data);
+        // 保存後の内容を新しい初期値にして、フォームを「変更なし」状態に戻す
+        setBaseline((prev) => ({ ...(prev as SurveyDoc), ...data }));
+        setFormVersion((version) => version + 1);
       } catch (error) {
         console.error("Failed to save survey:", error);
       } finally {
         setIsSaving(false);
       }
     },
-    [accessor, workspaceId, surveyId],
+    [accessor, documentIdentity],
   );
+
+  const handlePublish = useCallback(async () => {
+    await accessor.updateDoc(documentIdentity, {
+      status: "published",
+      // 公開のたびに版を上げる。回答側は回答時の版を記録する
+      revision: (survey?.revision ?? 0) + 1,
+      publishedAt: new Date(),
+    });
+  }, [accessor, documentIdentity, survey?.revision]);
 
   const handleDuplicate = useCallback(async () => {
     if (!survey) return;
-    const newId = await accessor.createDoc(
+    const newSurveyId = await accessor.createDoc(
       { workspaceId },
       {
         title: `${survey.title}（コピー）`,
@@ -114,7 +133,7 @@ const SurveyEditPage = () => {
     );
     navigate({
       to: surveyEditRoute.to,
-      params: { workspaceId, surveyId: newId },
+      params: { workspaceId, surveyId: newSurveyId },
     });
   }, [accessor, survey, workspaceId, navigate]);
 
@@ -122,7 +141,7 @@ const SurveyEditPage = () => {
     title: "アンケートを削除",
     message: "このアンケートをゴミ箱へ移動しますか？",
     onDelete: async () => {
-      await mutationsAccessor.softDelete({ workspaceId, surveyId });
+      await mutationsAccessor.softDelete(documentIdentity);
       navigate({ to: surveysRoute.to, params: { workspaceId } });
     },
   });
@@ -130,7 +149,7 @@ const SurveyEditPage = () => {
   const { trigger: codeViewerTrigger, modal: codeViewerModal } =
     useCodeViewerModal({ pageCode, collectionCode: fieldDefsCode });
 
-  if (isLoading || !survey) {
+  if (isLoading || !survey || !baseline) {
     return (
       <Center h={200}>
         <Loader />
@@ -163,18 +182,14 @@ const SurveyEditPage = () => {
               {survey.status === "published" ? (
                 <Menu.Item
                   leftSection={<IconLock size={16} />}
-                  onClick={() =>
-                    void mutationsAccessor.close({ workspaceId, surveyId })
-                  }
+                  onClick={() => void mutationsAccessor.close(documentIdentity)}
                 >
                   受付を終了する
                 </Menu.Item>
               ) : survey.status === "closed" ? (
                 <Menu.Item
                   leftSection={<IconLockOpen size={16} />}
-                  onClick={() =>
-                    void mutationsAccessor.reopen({ workspaceId, surveyId })
-                  }
+                  onClick={() => void mutationsAccessor.reopen(documentIdentity)}
                 >
                   受付を再開する
                 </Menu.Item>
@@ -186,16 +201,26 @@ const SurveyEditPage = () => {
         </Group>
       </Group>
 
-      <Stack gap="lg">
-        <Card withBorder>
-          <AutoForm
-            schema={editorSchema}
-            defaultValues={survey}
-            onSubmit={handleSubmit}
-            isLoading={isSaving}
-            submitLabel="保存"
-          />
-        </Card>
+      <Stack gap="md">
+        {survey.status === "published" && (
+          <Alert
+            icon={<IconInfoCircle size={16} />}
+            color="blue"
+            variant="light"
+          >
+            公開中のアンケートです。保存した内容は回答ページへ即時反映されます。
+          </Alert>
+        )}
+
+        <SurveyBuilder
+          key={formVersion}
+          survey={baseline}
+          workspaceId={workspaceId}
+          surveyId={surveyId}
+          onSaveDraft={handleSaveDraft}
+          onPublish={handlePublish}
+          isSaving={isSaving}
+        />
       </Stack>
 
       {codeViewerModal}
