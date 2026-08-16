@@ -7,6 +7,10 @@ import {
 import { readFileSync } from "fs";
 import { describe, beforeAll, afterAll, beforeEach, it } from "vitest";
 
+// アプリのテストデータ画面と同じフィクスチャ定義を使う
+// （定義がずれないよう単一情報源にしている）
+import { surveyFixtures } from "../src/shared/survey/fixtures";
+
 let testEnv: RulesTestEnvironment;
 
 const PROJECT_ID = "zodapp-test";
@@ -93,21 +97,17 @@ describe("Firestore Security Rules", () => {
         updatedAt: new Date(),
       });
 
-      // アンケートと回答（Survey ルールのテスト用）
-      await db.doc("workspaces/test-workspace/surveys/seed-survey").set({
-        title: "既存アンケート",
-        status: "published",
-        fields: [],
-        deletedAt: null,
-        revision: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      // アンケート（アプリのテストデータ画面と同じフィクスチャ）
+      for (const fixture of surveyFixtures) {
+        await db
+          .doc(`workspaces/test-workspace/surveys/${fixture.surveyId}`)
+          .set(fixture.data);
+      }
       await db.doc("workspaces/test-workspace/responses/response-1").set({
-        surveyId: "seed-survey",
+        surveyId: surveyFixtures[0]!.surveyId,
         surveyRevision: 1,
         respondentId: viewerUser.email,
-        answers: { f_text: "既存の回答" },
+        answers: { q_name: "既存の回答" },
         submittedAt: new Date(),
       });
 
@@ -360,7 +360,7 @@ describe("Firestore Security Rules", () => {
 
     it("viewerはアンケートを読めるが作成できない", async () => {
       const db = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
-      await assertSucceeds(db.doc("workspaces/test-workspace/surveys/seed-survey").get());
+      await assertSucceeds(db.doc("workspaces/test-workspace/surveys/fx-satisfaction").get());
       await assertFails(
         db.doc("workspaces/test-workspace/surveys/survey-2").set({
           title: "勝手に作成",
@@ -373,7 +373,7 @@ describe("Firestore Security Rules", () => {
 
     it("部外者はアンケートを読めない", async () => {
       const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
-      await assertFails(db.doc("workspaces/test-workspace/surveys/seed-survey").get());
+      await assertFails(db.doc("workspaces/test-workspace/surveys/fx-satisfaction").get());
     });
   });
 
@@ -382,7 +382,7 @@ describe("Firestore Security Rules", () => {
       const viewerDb = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
       await assertSucceeds(
         viewerDb.doc("workspaces/test-workspace/responses/response-new").set({
-          surveyId: "seed-survey",
+          surveyId: "fx-satisfaction",
           surveyRevision: 1,
           respondentId: viewerUser.email,
           answers: { f_text: "回答" },
