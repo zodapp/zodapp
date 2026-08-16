@@ -41,7 +41,9 @@ import { surveysRoute } from "./survey-workspace/surveys.route";
 import { responsesRoute } from "./survey-workspace/responses.route";
 import { surveyTestDataRoute } from "./survey-workspace/testData.route";
 import { surveyEditRoute } from "./survey-workspace/survey/edit.route";
-import { surveyAnswerRoute } from "./survey-workspace/survey/answer.route";
+// 回答者向け（管理画面のサイドバーを出さない）ルート
+import { surveyPublicLayoutRoute } from "./survey-public/layout.route";
+import { surveyAnswerRoute } from "./survey-public/answer.route";
 import { rootRoute } from "./index.route";
 import { topRoute } from "./top/index.route";
 
@@ -67,11 +69,13 @@ const routeTree = rootRoute.addChildren([
     ]),
   ]),
   surveyRoute.addChildren([
+    // 回答者向け（管理画面ではないのでサイドバーなし）
+    surveyPublicLayoutRoute.addChildren([surveyAnswerRoute]),
+    // 管理画面
     surveyTopLayoutRoute.addChildren([surveyWorkspacesRoute]),
     surveyWorkspaceLayoutRoute.addChildren([
       surveysRoute,
       surveyEditRoute,
-      surveyAnswerRoute,
       responsesRoute,
       surveyTestDataRoute,
     ]),

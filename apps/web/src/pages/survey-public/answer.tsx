@@ -25,16 +25,16 @@ import { AutoForm } from "@zodapp/zod-form-widget/form";
 import {
   responsesCollection,
   surveysCollection,
-} from "../../../shared/survey/collections";
-import { buildSurveySchema } from "../../../shared/survey/buildSurveySchema";
-import { useDoc } from "../../../shared/taskManager/hooks";
-import { useAuthContext, useStoreKey } from "../../../shared/auth";
-import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
+} from "../../shared/survey/collections";
+import { buildSurveySchema } from "../../shared/survey/buildSurveySchema";
+import { useDoc } from "../../shared/taskManager/hooks";
+import { useAuthContext, useStoreKey } from "../../shared/auth";
+import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { surveyAnswerRoute } from "./answer.route";
-import { responsesRoute } from "../responses.route";
+import { responsesRoute } from "../survey-workspace/responses.route";
 
 import pageCode from "./answer.tsx?raw";
-import buildSurveySchemaCode from "../../../shared/survey/buildSurveySchema.ts?raw";
+import buildSurveySchemaCode from "../../shared/survey/buildSurveySchema.ts?raw";
 
 /** Firestore は undefined を保存できないため、未入力の項目を落とす */
 const sanitizeAnswers = (answers: Record<string, unknown>) =>
