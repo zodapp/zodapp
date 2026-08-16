@@ -44,6 +44,11 @@ service cloud.firestore {
       return exists(workspacePath) && get(workspacePath).data.ownerId == request.auth.token.email;
     }
 
+    // ユーザー個人設定（列設定プロファイル等）
+    match /users/{userId}/columnSettings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // workspaces コレクション
     match /workspaces/{workspaceId} {
       allow create: if request.auth != null
@@ -62,6 +67,13 @@ service cloud.firestore {
                       || isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
 
         allow delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
+      // ワークスペース共通の列設定プロファイル
+      // （デモのため書き込みはメンバー全員に許可。運用では isAdmin に
+      // 絞るなどの調整を想定）
+      match /columnSettings/{settingId} {
+        allow read, write: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
       }
 
       // projects サブコレクション

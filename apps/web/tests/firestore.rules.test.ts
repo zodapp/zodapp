@@ -323,6 +323,49 @@ describe("Firestore Security Rules", () => {
     });
   });
 
+  describe("Column Settings Rules", () => {
+    it("自分のユーザー列設定は読み書きできる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(
+        db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).set({
+          tableKey: "task",
+          name: "My setting",
+          columns: null,
+        })
+      );
+      await assertSucceeds(db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).get());
+    });
+
+    it("他人のユーザー列設定は読み書きできない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(
+        db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).set({
+          tableKey: "task",
+          name: "Evil setting",
+          columns: null,
+        })
+      );
+      await assertFails(db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).get());
+    });
+
+    it("メンバーはワークスペース共通の列設定を読み書きできる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(
+        db.doc("workspaces/test-workspace/columnSettings/shared-1").set({
+          tableKey: "task",
+          name: "Shared setting",
+          columns: null,
+        })
+      );
+      await assertSucceeds(db.doc("workspaces/test-workspace/columnSettings/shared-1").get());
+    });
+
+    it("部外者はワークスペース共通の列設定を読めない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(db.doc("workspaces/test-workspace/columnSettings/shared-1").get());
+    });
+  });
+
   describe("CollectionGroup Query Rules", () => {
     it("自分のmemberドキュメントはcollectionGroupで読める", async () => {
       const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
