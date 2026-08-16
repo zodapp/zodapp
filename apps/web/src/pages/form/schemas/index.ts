@@ -3,6 +3,9 @@ import * as formatterAndSuggestions from "./formatterAndSuggestions";
 import * as booleanVariants from "./booleanVariants";
 import * as objectLayout from "./objectLayout";
 import * as recordEntries from "./recordEntries";
+import * as computedVariants from "./computedVariants";
+import * as schemaTransform from "./schemaTransform";
+import * as validatePreceding from "./validatePreceding";
 import * as computed from "./computed";
 import * as date from "./date";
 import * as enumSelect from "./enumSelect";
@@ -26,6 +29,9 @@ import formatterAndSuggestionsCode from "./formatterAndSuggestions.ts?raw";
 import booleanVariantsCode from "./booleanVariants.ts?raw";
 import objectLayoutCode from "./objectLayout.ts?raw";
 import recordEntriesCode from "./recordEntries.ts?raw";
+import computedVariantsCode from "./computedVariants.ts?raw";
+import schemaTransformCode from "./schemaTransform.tsx?raw";
+import validatePrecedingCode from "./validatePreceding.tsx?raw";
 import computedCode from "./computed.ts?raw";
 import dateCode from "./date.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
@@ -50,6 +56,9 @@ export const formSchemas = {
   [booleanVariants.formId]: booleanVariants,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
+  [computedVariants.formId]: computedVariants,
+  [schemaTransform.formId]: schemaTransform,
+  [validatePreceding.formId]: validatePreceding,
   [date.formId]: date,
   [enumSelect.formId]: enumSelect,
   [arrayFields.formId]: arrayFields,
@@ -75,6 +84,9 @@ export const formCodes = {
   [booleanVariants.formId]: booleanVariantsCode,
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
+  [computedVariants.formId]: computedVariantsCode,
+  [schemaTransform.formId]: schemaTransformCode,
+  [validatePreceding.formId]: validatePrecedingCode,
   [date.formId]: dateCode,
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
