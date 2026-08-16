@@ -23,6 +23,8 @@ export interface Demo extends Pick<LinkOptions, "to"> {
   title: string;
   icon: React.ReactNode;
   description: string;
+  /** ヘッダーのバッジカラー（Mantine color） */
+  color?: string;
 }
 
 export const formDemo: Demo = {
@@ -30,6 +32,7 @@ export const formDemo: Demo = {
   title: "フォームデモ",
   to: formListRoute.to,
   icon: <IconForms size={16} />,
+  color: "cyan",
   description:
     "1 つの Zod スキーマから生成されるフォーム UI のカタログ。入力型・レイアウト・カスタムウィジェット・動的スキーマなど。",
 };
@@ -39,6 +42,7 @@ export const taskManagerDemo: Demo = {
   title: "タスク管理デモ",
   to: workspacesRoute.to,
   icon: <IconChecklist size={16} />,
+  color: "green",
   description:
     "マルチテナントの CRUD アプリ。一覧・検索（URL 連動）・CSV 入出力・列設定プロファイル・一括操作・権限制御。",
 };
@@ -48,6 +52,7 @@ export const surveyDemo: Demo = {
   title: "アンケートデモ",
   to: surveyWorkspacesRoute.to,
   icon: <IconClipboardList size={16} />,
+  color: "violet",
   description:
     "質問定義をデータとして保存し、実行時にスキーマを組み立てて回答フォームを生成。設定 + プレビューの 2 カラムビルダーと、回答のアンケート横断一覧。",
 };
