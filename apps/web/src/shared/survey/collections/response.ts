@@ -67,18 +67,22 @@ const responseDataSchema = z
         }),
       )
       .register(zf.record.registry, { label: "回答", width: 200 }),
+
+    // 回答日時は通常 onCreate が「今」を入れるが、テストデータ投入では
+    // 過去にばらけさせたいので入力値として渡せるようにしてある
+    // （createExcludedSchema に置くと create の入力に含められない）
+    submittedAt: zf
+      .date()
+      .register(zf.date.registry, {
+        label: "回答日時",
+        readOnly: true,
+        width: 140,
+      })
+      .optional(),
   })
   .register(zf.object.registry, {});
 
 const responseCreateExcludedSchema = z.object({
-  submittedAt: zf
-    .date()
-    .register(zf.date.registry, {
-      label: "回答日時",
-      readOnly: true,
-      width: 140,
-    })
-    .optional(),
   createdAt: zf
     .date()
     .register(zf.date.registry, {
@@ -103,7 +107,13 @@ export const responsesCollection = collectionConfig({
   schema: responseDataSchema,
   createExcludedSchema: responseCreateExcludedSchema,
 
-  onCreate: () => ({ createdAt: new Date(), submittedAt: new Date() }),
+  // submittedAt は指定があればそれを使う（テストデータで回答日時を
+  // 過去にばらけさせられるようにするため）。onCreate の戻り値は
+  // 入力データを上書きするので、ここで明示的にフォールバックする
+  onCreate: (_documentIdentity, inputData) => ({
+    createdAt: new Date(),
+    submittedAt: inputData?.submittedAt ?? new Date(),
+  }),
   onWrite: () => ({ updatedAt: new Date() }),
 });
 
