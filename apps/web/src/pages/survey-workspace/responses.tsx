@@ -41,9 +41,11 @@ import { useProfileColumnSettings } from "../../shared/taskManager/useProfileCol
 import type { GrowingListQuerySpec } from "../../shared/taskManager/listQuerySpec";
 import { useExportFetchAll } from "../../shared/taskManager/exportFetch";
 import { createMingoFilter } from "../../components/mingoQuery";
+import { createActionSchema } from "../../components/createActionSchema";
 import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { useStoreKey } from "../../shared/auth";
 import { responsesRoute, searchFilterSchema } from "./responses.route";
+import { responseDetailRoute } from "./response/detail.route";
 import { surveyTestDataRoute } from "./testData.route";
 
 import pageCode from "./responses.tsx?raw";
@@ -56,6 +58,7 @@ const CROSS_SURVEY_DEFAULT_FIELD_PATHS = [
   "respondentId",
   "surveyRevision",
   "submittedAt",
+  "_action",
 ];
 
 /**
@@ -109,11 +112,22 @@ const ResponsesView = ({
   // アンケートを絞り込んでいるときは answers を実際の質問スキーマで上書きする。
   // extendSchemaSafe は既存キーの上書きのみ許すのでこの用途に適している
   const tableSchema = useMemo(() => {
-    if (!answersSchema) return responsesCollection.dataSchema;
+    const actionColumn = {
+      _action: createActionSchema<ResponseData>({
+        getParams: (item) => ({
+          to: responseDetailRoute.to,
+          params: { workspaceId, responseId: item.responseId },
+        }),
+      }),
+    };
+    if (!answersSchema) {
+      return extendSchemaSafe(responsesCollection.dataSchema, actionColumn);
+    }
     return extendSchemaSafe(responsesCollection.dataSchema, {
       answers: answersSchema.optional(),
+      ...actionColumn,
     });
-  }, [answersSchema]);
+  }, [answersSchema, workspaceId]);
 
   const defaultFieldPaths = useMemo(() => {
     if (!answersSchema) return CROSS_SURVEY_DEFAULT_FIELD_PATHS;
@@ -121,6 +135,7 @@ const ResponsesView = ({
       "respondentId",
       "submittedAt",
       ...Object.keys(answersSchema.shape).map((key) => `answers.${key}`),
+      "_action",
     ];
   }, [answersSchema]);
 
@@ -242,9 +257,6 @@ const ResponsesView = ({
               <Menu.Item
                 component={Link}
                 to={surveyTestDataRoute.to}
-                // 別タブで開くことで、この一覧を表示したまま回答を投入でき、
-                // GrowingList のリアルタイム更新を観察できる
-                target="_blank"
                 {...({ params: { workspaceId } } as object)}
                 leftSection={<IconFlask size={16} />}
               >
