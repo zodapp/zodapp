@@ -40,6 +40,7 @@ import { surveyWorkspaceLayoutRoute } from "./survey-workspace/layout.route";
 import { surveysRoute } from "./survey-workspace/surveys.route";
 import { responsesRoute } from "./survey-workspace/responses.route";
 import { surveyTestDataRoute } from "./survey-workspace/testData.route";
+import { responseDetailRoute } from "./survey-workspace/response/detail.route";
 import { surveyEditRoute } from "./survey-workspace/survey/edit.route";
 // 回答者向け（管理画面のサイドバーを出さない）ルート
 import { surveyPublicLayoutRoute } from "./survey-public/layout.route";
@@ -77,6 +78,7 @@ const routeTree = rootRoute.addChildren([
       surveysRoute,
       surveyEditRoute,
       responsesRoute,
+      responseDetailRoute,
       surveyTestDataRoute,
     ]),
   ]),
