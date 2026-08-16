@@ -67,6 +67,7 @@ export interface CommonLayoutProps {
 export type DemoBadge = Pick<LinkOptions, "to"> & {
   label: string;
   icon: React.ReactNode;
+  color?: string;
 };
 
 const CommonLayout: React.FC<CommonLayoutProps> = ({
@@ -246,10 +247,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               component={Link}
               to={demo.to}
               variant="light"
+              color={demo.color}
               size="lg"
               radius="sm"
               leftSection={demo.icon}
-              style={{ cursor: "pointer" }}
+              style={{ cursor: "pointer", fontWeight: 700 }}
             >
               {demo.label}
             </Badge>

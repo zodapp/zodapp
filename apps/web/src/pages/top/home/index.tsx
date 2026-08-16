@@ -17,19 +17,12 @@ const HomePage = () => {
     <div className={styles.page}>
       <main className={styles.main}>
         <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>
-          <Box
-            w={240 - 76} // 左右10pxずつ削るので -20
-            h={120 - 40} // 上下10pxずつ削るので -20
-            style={{ overflow: "hidden" }}
-          >
-            <img
-              src="/zodapp-logo.svg"
-              alt="zodapp logomark"
-              width={240}
-              height={120}
-              style={{ marginTop: -20, marginLeft: -38 }}
-            />
-          </Box>
+          <img
+            src="/zodapp-logo.svg"
+            alt="zodapp logomark"
+            width={240}
+            height={70}
+          />
         </h1>
         <p style={{ fontSize: "1.2rem", color: "#666", marginBottom: "2rem" }}>
           AIネイティブなスキーマ駆動開発フレームワーク
