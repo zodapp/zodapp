@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// デモ用: 認証済みユーザーのみ読み書き可能
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

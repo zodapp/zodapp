@@ -92,4 +92,15 @@ export const membersReference = createCollectionReference(membersCollection, {
 
 export const memberQueries = createCollectionQueries(membersCollection, {
   all: () => ({}),
+  // 外部キーの選択肢を絞り込む例: 閲覧者(viewer)を除いた
+  // 「タスクを担当できるロール」のみ（Firestore の in 演算子を使用）
+  assignable: () => ({
+    where: [
+      {
+        field: "role",
+        operator: "in" as const,
+        value: ["owner", "admin", "member"] satisfies MemberRole[],
+      },
+    ],
+  }),
 });
