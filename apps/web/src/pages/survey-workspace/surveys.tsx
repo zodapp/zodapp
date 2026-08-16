@@ -252,8 +252,6 @@ const SurveysPage = () => {
               <Menu.Item
                 component={Link}
                 to={surveyTestDataRoute.to}
-                // 別タブで開くことで、この一覧を表示したまま投入できる
-                target="_blank"
                 {...({ params: { workspaceId } } as object)}
                 leftSection={<IconFlask size={16} />}
               >

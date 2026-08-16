@@ -1,4 +1,4 @@
-import { Container, Group, Title, Text } from "@mantine/core";
+import { Container, Group, Title } from "@mantine/core";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { firestore } from "@repo/firebase";
@@ -68,7 +68,7 @@ const TaskTestDataPage = () => {
         kind: "repeatable",
         title: "タスク",
         description:
-          "このプロジェクトにダミータスクを 100ms 間隔で追加します。実行するたびに増えるので、タスク一覧を別タブで開いたまま実行すると GrowingList のリアルタイム更新と無限スクロールを確認できます。",
+          "このプロジェクトにダミータスクを 100ms 間隔で追加します。実行するたびに増えるので、タスク一覧に戻ると GrowingList のリアルタイム更新と無限スクロールを確認できます。",
         defaultCount: SEED_TASK_COUNT,
         // 件数は従来どおり 30 件固定
         countEditable: false,
@@ -88,15 +88,7 @@ const TaskTestDataPage = () => {
         {codeViewerTrigger}
       </Group>
 
-      <TestDataPanel
-        sections={sections}
-        note={
-          <Text size="sm" mt={4}>
-            一覧ページからは別タブで開かれます。元のタブに一覧を残したまま投入すると、
-            リアルタイム更新の様子を観察できます。
-          </Text>
-        }
-      />
+      <TestDataPanel sections={sections} />
 
       {codeViewerModal}
     </Container>

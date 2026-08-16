@@ -1,5 +1,6 @@
-import { Container, Group, Select, Title, Text } from "@mantine/core";
-import { useParams } from "@tanstack/react-router";
+import { Button, Container, Group, Select, Title, Text } from "@mantine/core";
+import { IconExternalLink } from "@tabler/icons-react";
+import { Link, useParams } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { firestore } from "@repo/firebase";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
@@ -23,6 +24,7 @@ import {
 } from "../../components/TestDataPanel";
 import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { surveyTestDataRoute } from "./testData.route";
+import { surveyAnswerRoute } from "../survey-public/answer.route";
 
 import pageCode from "./testData.tsx?raw";
 import fixturesCode from "../../shared/survey/fixtures.ts?raw";
@@ -136,20 +138,38 @@ const SurveyTestDataPage = () => {
         kind: "repeatable",
         title: "回答",
         description:
-          "選択したアンケートの質問定義からダミー回答を生成して追加します。実行するたびに増えるので、一覧を別タブで開いたまま実行すると GrowingList のリアルタイム更新を確認できます。",
+          "選択したアンケートの質問定義からダミー回答を生成して追加します。実行するたびに増えるので、回答一覧を開くと GrowingList のリアルタイム更新と無限スクロールを確認できます。",
         defaultCount: 20,
         extraControls: (
-          <Select
-            label="投入先のアンケート"
-            placeholder="アンケートを選択"
-            data={surveys.map((survey) => ({
-              value: survey.surveyId,
-              label: survey.title,
-            }))}
-            value={targetSurvey?.surveyId ?? null}
-            onChange={setTargetSurveyId}
-            w={320}
-          />
+          <Group align="flex-end" gap="sm">
+            <Select
+              label="投入先のアンケート"
+              placeholder="アンケートを選択"
+              data={surveys.map((survey) => ({
+                value: survey.surveyId,
+                label: survey.title,
+              }))}
+              value={targetSurvey?.surveyId ?? null}
+              onChange={setTargetSurveyId}
+              w={320}
+            />
+            {targetSurvey && (
+              <Button
+                component={Link}
+                to={surveyAnswerRoute.to}
+                // 回答ページは別タブで開く。このページを残したまま手で回答して、
+                // ダミー回答と混ざる様子を確認できる
+                target="_blank"
+                {...({
+                  params: { workspaceId, surveyId: targetSurvey.surveyId },
+                } as object)}
+                variant="default"
+                leftSection={<IconExternalLink size={16} />}
+              >
+                回答ページを開く
+              </Button>
+            )}
+          </Group>
         ),
         disabled: !targetSurvey,
         disabledReason:
@@ -181,8 +201,8 @@ const SurveyTestDataPage = () => {
         sections={sections}
         note={
           <Text size="sm" mt={4}>
-            一覧ページからは別タブで開かれます。元のタブに一覧を残したまま投入すると、
-            リアルタイム更新の様子を観察できます。
+            投入したアンケートは「回答ページを開く」から別タブで実際に回答できます。
+            ダミー回答と手入力の回答が同じ一覧に並びます。
           </Text>
         }
       />
