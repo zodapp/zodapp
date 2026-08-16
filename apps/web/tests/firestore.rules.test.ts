@@ -93,6 +93,24 @@ describe("Firestore Security Rules", () => {
         updatedAt: new Date(),
       });
 
+      // アンケートと回答（Survey ルールのテスト用）
+      await db.doc("workspaces/test-workspace/surveys/seed-survey").set({
+        title: "既存アンケート",
+        status: "published",
+        fields: [],
+        deletedAt: null,
+        revision: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await db.doc("workspaces/test-workspace/responses/response-1").set({
+        surveyId: "seed-survey",
+        surveyRevision: 1,
+        respondentId: viewerUser.email,
+        answers: { f_text: "既存の回答" },
+        submittedAt: new Date(),
+      });
+
       await db.doc(`workspaces/test-workspace/members/${viewerUser.email}`).set({
         displayName: "Viewer User",
         email: viewerUser.email,
@@ -320,6 +338,86 @@ describe("Firestore Security Rules", () => {
     it("viewerはタスクを読める", async () => {
       const db = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
       await assertSucceeds(db.doc("workspaces/test-workspace/projects/test-project/tasks/test-task").get());
+    });
+  });
+
+  describe("Survey Rules", () => {
+    it("memberはアンケートを作成・読取できる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(
+        db.doc("workspaces/test-workspace/surveys/survey-1").set({
+          title: "満足度調査",
+          status: "draft",
+          fields: [],
+          deletedAt: null,
+          revision: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(db.doc("workspaces/test-workspace/surveys/survey-1").get());
+    });
+
+    it("viewerはアンケートを読めるが作成できない", async () => {
+      const db = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
+      await assertSucceeds(db.doc("workspaces/test-workspace/surveys/seed-survey").get());
+      await assertFails(
+        db.doc("workspaces/test-workspace/surveys/survey-2").set({
+          title: "勝手に作成",
+          status: "draft",
+          fields: [],
+          deletedAt: null,
+        })
+      );
+    });
+
+    it("部外者はアンケートを読めない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(db.doc("workspaces/test-workspace/surveys/seed-survey").get());
+    });
+  });
+
+  describe("Survey Response Rules", () => {
+    it("viewerでも回答を作成でき、メンバーは読める", async () => {
+      const viewerDb = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
+      await assertSucceeds(
+        viewerDb.doc("workspaces/test-workspace/responses/response-new").set({
+          surveyId: "seed-survey",
+          surveyRevision: 1,
+          respondentId: viewerUser.email,
+          answers: { f_text: "回答" },
+          submittedAt: new Date(),
+        })
+      );
+
+      const memberDb = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(memberDb.doc("workspaces/test-workspace/responses/response-1").get());
+    });
+
+    it("memberは回答を更新・削除できない（改竄防止）", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertFails(
+        db.doc("workspaces/test-workspace/responses/response-1").update({ answers: { f_text: "改竄" } })
+      );
+      await assertFails(db.doc("workspaces/test-workspace/responses/response-1").delete());
+    });
+
+    it("adminは回答を更新できる", async () => {
+      const db = testEnv.authenticatedContext(adminUser.uid, { email: adminUser.email }).firestore();
+      await assertSucceeds(
+        db.doc("workspaces/test-workspace/responses/response-1").update({ answers: { f_text: "訂正" } })
+      );
+    });
+
+    it("部外者は回答を作成・読取できない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(db.doc("workspaces/test-workspace/responses/response-1").get());
+      await assertFails(
+        db.doc("workspaces/test-workspace/responses/response-2").set({
+          surveyId: "survey-1",
+          answers: {},
+        })
+      );
     });
   });
 

@@ -76,6 +76,20 @@ service cloud.firestore {
         allow read, write: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
       }
 
+      // surveys サブコレクション（アンケート定義）
+      match /surveys/{surveyId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow write: if canWriteTask(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
+      // responses サブコレクション（アンケート回答）
+      // 回答は作成のみ。改竄防止のため更新/削除は管理者に限定する
+      match /responses/{responseId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow create: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow update, delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
       // projects サブコレクション
       match /projects/{projectId} {
         allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
