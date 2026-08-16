@@ -12,6 +12,7 @@ import {
   Modal,
   Select,
   Button,
+  Tabs,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -44,6 +45,9 @@ import {
 } from "../../../shared/taskManager/collections/project";
 import { useDoc, useList } from "../../../shared/taskManager/hooks";
 import { AutoForm } from "../../../components/AutoForm";
+import { ReactiveAutoForm } from "../../../components/ReactiveAutoForm";
+import { setNestedValue } from "@zodapp/zod-form-widget/form";
+import { hideSchemaFields } from "@zodapp/zod-form";
 import { taskDetailRoute } from "./detail.route";
 import { tasksRoute } from "../tasks.route";
 import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
@@ -91,6 +95,34 @@ const TaskDetailPage = () => {
     ),
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // ---- 逐次保存（ReactiveAutoForm）用 ----
+  // reactiveComponentLibrary は配列フィールドに未対応のため、
+  // 逐次保存タブでは labels / watchers を非表示にする
+  // updateSchema の静的型は ZodType だが実体は object スキーマなので、
+  // ReactiveAutoForm の要求する ZodObject へキャストする
+  const reactiveSchema = useMemo(
+    () =>
+      hideSchemaFields(tasksCollection.updateSchema, {
+        paths: ["labels", "watchers"],
+      }) as unknown as z.ZodObject<z.ZodRawShape>,
+    [],
+  );
+
+  // フィールド確定時にそのフィールドだけを部分更新する。
+  // setNestedValue でフィールドパスから部分更新オブジェクトを作る
+  const handleReactiveConfirm = useCallback(
+    async (fieldPath: string, value: unknown) => {
+      const updateData = setNestedValue({}, fieldPath, value);
+      await accessor.updateDoc({ workspaceId, projectId, taskId }, updateData);
+    },
+    [accessor, workspaceId, projectId, taskId],
+  );
+
+  // blur 時の未確定変更の扱い: true=確定 / false=破棄 / undefined=保留。
+  // ここでは blur で自動確定する（確認モーダルを挟む場合は
+  // ここでダイアログを出して結果を返す）
+  const handleReactiveBlur = useCallback(() => true, []);
 
   // ---- タスクの別プロジェクトへの移動（トランザクション） ----
   const [
@@ -266,15 +298,38 @@ const TaskDetailPage = () => {
           <Text fw={500} mb="md">
             タスク情報
           </Text>
-          <AutoForm
-            schema={tasksCollection.updateSchema}
-            defaultValues={task}
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            externalKeyResolvers={externalKeyResolvers}
-            resolverContext={resolverContext}
-            showPreview={true}
-          />
+          <Tabs defaultValue="batch">
+            <Tabs.List mb="md">
+              <Tabs.Tab value="batch">一括保存</Tabs.Tab>
+              <Tabs.Tab value="reactive">逐次保存</Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="batch">
+              <AutoForm
+                schema={tasksCollection.updateSchema}
+                defaultValues={task}
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+                externalKeyResolvers={externalKeyResolvers}
+                resolverContext={resolverContext}
+                showPreview={true}
+              />
+            </Tabs.Panel>
+            <Tabs.Panel value="reactive">
+              <Text size="sm" c="dimmed" mb="md">
+                フィールドを編集して確定すると、そのフィールドだけが即座に
+                Firestore へ保存されます（保存ボタンなし）。
+              </Text>
+              <ReactiveAutoForm
+                schema={reactiveSchema}
+                defaultValues={task}
+                onConfirm={handleReactiveConfirm}
+                onBlur={handleReactiveBlur}
+                externalKeyResolvers={externalKeyResolvers}
+                resolverContext={resolverContext}
+                showPreview={true}
+              />
+            </Tabs.Panel>
+          </Tabs>
         </Card>
       </Stack>
       <Modal
