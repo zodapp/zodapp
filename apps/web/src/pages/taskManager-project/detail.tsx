@@ -9,13 +9,14 @@ import {
   Group,
 } from "@mantine/core";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { z } from "zod";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore } from "@repo/firebase";
 import { useStoreKey } from "../../shared/auth";
 
 import { projectsCollection } from "../../shared/taskManager/collections/project";
+import { useDoc } from "../../shared/taskManager/hooks";
 import { AutoForm } from "../../components/AutoForm";
 import { projectDetailRoute } from "./detail.route";
 import { projectsRoute } from "../taskManager-workspace/projects.route";
@@ -35,17 +36,15 @@ const ProjectDetailPage = () => {
     () => getAccessor(firestore, projectsCollection, storeKey),
     [storeKey],
   );
-  const [project, setProject] = useState<z.infer<
-    typeof projectsCollection.updateSchema
-  > | null>(null);
+  // useDoc: 単一ドキュメントの購読（useEffect + docSync の手書きを置き換え）
+  const { item: project, isLoading: isProjectLoading } = useDoc({
+    collection: projectsCollection,
+    documentIdentity: useMemo(
+      () => ({ workspaceId, projectId }),
+      [workspaceId, projectId],
+    ),
+  });
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = accessor.docSync({ workspaceId, projectId }, (doc) => {
-      setProject(doc);
-    });
-    return () => unsubscribe();
-  }, [accessor, workspaceId, projectId]);
 
   const handleSubmit = useCallback(
     async (data: z.infer<typeof projectsCollection.updateSchema>) => {
@@ -75,7 +74,7 @@ const ProjectDetailPage = () => {
     });
   }, [navigate, workspaceId]);
 
-  if (isLoading || !project) {
+  if (isLoading || isProjectLoading || !project) {
     return (
       <Center h={200}>
         <Loader />

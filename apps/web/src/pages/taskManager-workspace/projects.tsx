@@ -29,7 +29,6 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
-import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
@@ -62,7 +61,6 @@ const PROJECT_TABLE_DEFAULT_FIELD_PATHS = [
   "description",
   "status",
   "createdAt",
-  "_action",
 ];
 
 type ProjectData = z.infer<typeof projectsCollection.dataSchema>;
@@ -78,9 +76,14 @@ const ProjectsPage = () => {
     from: projectsRoute.id,
   });
 
-  const projectTableSchema = useMemo(
+  // アクション列は trailingSchema 方式で付ける。
+  // - extendSchemaSafe 方式（tasks.tsx 参照）: アクション列もスキーマの一部に
+  //   なり、列設定で表示/非表示・並び順をユーザーが変更できる
+  // - trailingSchema 方式（このページ）: アクション列は列設定の対象外で、
+  //   常にテーブル末尾に固定される。操作列を常に出したい場合はこちら
+  const trailingSchema = useMemo(
     () =>
-      extendSchemaSafe(projectsCollection.dataSchema, {
+      z.object({
         _action: createActionSchema<ProjectData>({
           getParams: (item) => ({
             to: tasksRoute.to,
@@ -171,7 +174,7 @@ const ProjectsPage = () => {
 
   const controller = useLocalColumnSettings({
     storageKey: PROJECT_TABLE_STORAGE_KEY,
-    schema: projectTableSchema,
+    schema: projectsCollection.dataSchema,
     defaultFieldPaths: PROJECT_TABLE_DEFAULT_FIELD_PATHS,
   });
 
@@ -250,7 +253,13 @@ const ProjectsPage = () => {
         />
       </Box>
 
-      <AutoTable data={projects} keyField="projectId" controller={controller} />
+      <AutoTable
+        data={projects}
+        keyField="projectId"
+        controller={controller}
+        trailingSchema={trailingSchema}
+        trailingDefaultFieldPaths={["_action"]}
+      />
 
       {!isLoading && projects.length === 0 && (
         <Paper p="xl" withBorder mt="sm">

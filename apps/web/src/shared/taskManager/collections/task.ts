@@ -209,6 +209,12 @@ export const taskQueries = createCollectionQueries(tasksCollection, {
   active: () => ({
     where: [{ field: "deletedAt", operator: "==" as const, value: null }],
   }),
+  // 論理削除済み（ゴミ箱）。"!=" を使う場合、Firestore の制約により
+  // 同じフィールドを先頭の orderBy に指定する必要がある
+  deleted: () => ({
+    where: [{ field: "deletedAt", operator: "!=" as const, value: null }],
+    orderBy: [{ field: "deletedAt", direction: "desc" as const }],
+  }),
   byStatus: (status: TaskStatus) => ({
     where: [{ field: "status", operator: "==" as const, value: status }],
   }),

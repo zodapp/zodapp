@@ -7,6 +7,7 @@ import {
   Menu,
   ActionIcon,
   Tooltip,
+  SegmentedControl,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -16,6 +17,7 @@ import {
   IconUpload,
   IconSeeding,
   IconSettings,
+  IconRestore,
 } from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
@@ -26,10 +28,12 @@ import { z } from "zod";
 
 import { useGrowingList } from "../../shared/taskManager/hooks";
 import {
+  taskMutations,
   taskQueries,
   tasksCollection,
 } from "../../shared/taskManager/collections/task";
-import { getAccessor } from "@zodapp/zod-firebase-browser";
+import { zfReact } from "@zodapp/zod-form-react";
+import { getAccessor, getMutationsAccessor } from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
 import { AutoForm, AutoSearch } from "@zodapp/zod-form-widget/form";
 import { FetchMore } from "@zodapp/zod-form-widget/feedback";
@@ -68,8 +72,17 @@ const TASK_TABLE_DEFAULT_FIELD_PATHS = [
   "expired",
   "_action",
 ];
+const TASK_TRASH_TABLE_STORAGE_KEY = "tableSetting-task-trash";
+const TASK_TRASH_TABLE_DEFAULT_FIELD_PATHS = [
+  "title",
+  "status",
+  "priority",
+  "dueAt",
+  "_restore",
+];
 
 type TaskData = z.infer<typeof tasksCollection.dataSchema>;
+type TaskView = "active" | "trash";
 
 const TasksPage = () => {
   const { workspaceId, projectId } = useParams({
@@ -105,6 +118,51 @@ const TasksPage = () => {
     () => getAccessor(firestore, tasksCollection, storeKey),
     [storeKey],
   );
+  const mutationsAccessor = useMemo(
+    () => getMutationsAccessor(firestore, taskMutations, storeKey),
+    [storeKey],
+  );
+
+  // アクティブ / ゴミ箱（論理削除済み）のビュー切替
+  const [view, setView] = useState<TaskView>("active");
+
+  const handleRestore = useCallback(
+    async (row: TaskData) => {
+      await mutationsAccessor.restore({
+        workspaceId,
+        projectId,
+        taskId: row.taskId,
+      });
+    },
+    [mutationsAccessor, workspaceId, projectId],
+  );
+
+  // ゴミ箱用テーブル: 詳細リンクの代わりに復元ボタンの列を付ける
+  const trashTableSchema = useMemo(
+    () =>
+      extendSchemaSafe(tasksCollection.dataSchema, {
+        _restore: zfReact
+          .computed()
+          .register(zfReact.computed.registry, {
+            label: "復元",
+            width: 60,
+            align: "center" as const,
+            compute: (row: TaskData) => (
+              <Tooltip label="復元する">
+                <ActionIcon
+                  variant="light"
+                  aria-label="復元する"
+                  onClick={() => void handleRestore(row)}
+                >
+                  <IconRestore size={16} />
+                </ActionIcon>
+              </Tooltip>
+            ),
+          })
+          .optional(),
+      }),
+    [handleRestore],
+  );
 
   const externalKeyResolvers = useMemo(
     () => [
@@ -125,6 +183,21 @@ const TasksPage = () => {
     GrowingListQuerySpec<typeof tasksCollection>
   >(() => {
     const q = search.q ?? ({} as Partial<z.infer<typeof searchFilterSchema>>);
+
+    if (view === "trash") {
+      // ゴミ箱: deletedAt != null（named query 側で orderBy 制約も定義済み）。
+      // 復元されたタスクはストリーム更新で clientFilter から外れて消える。
+      const deletedQuery = taskQueries.queries.deleted();
+      const mingoFilter = createMingoFilter(q);
+      return {
+        collection: tasksCollection,
+        collectionIdentity,
+        query: deletedQuery,
+        clientFilter: (item: TaskData) =>
+          item.deletedAt != null && (mingoFilter?.(item) ?? true),
+      };
+    }
+
     const activeQuery = taskQueries.queries.active();
 
     const fetchCondition: WhereParams[] = [...(activeQuery.where ?? [])];
@@ -143,7 +216,7 @@ const TasksPage = () => {
       },
       clientFilter: createMingoFilter(rest),
     };
-  }, [collectionIdentity, search.q]);
+  }, [collectionIdentity, search.q, view]);
 
   const {
     items: tasks,
@@ -223,11 +296,19 @@ const TasksPage = () => {
     onImport: handleImport,
   });
 
-  const controller = useLocalColumnSettings({
+  const activeController = useLocalColumnSettings({
     storageKey: TASK_TABLE_STORAGE_KEY,
     schema: taskTableSchema,
     defaultFieldPaths: TASK_TABLE_DEFAULT_FIELD_PATHS,
   });
+
+  const trashController = useLocalColumnSettings({
+    storageKey: TASK_TRASH_TABLE_STORAGE_KEY,
+    schema: trashTableSchema,
+    defaultFieldPaths: TASK_TRASH_TABLE_DEFAULT_FIELD_PATHS,
+  });
+
+  const controller = view === "trash" ? trashController : activeController;
 
   const { open: openTableSetting, modal: tableSettingDrawer } =
     useTableSettingDrawer({
@@ -261,7 +342,17 @@ const TasksPage = () => {
       }}
     >
       <Group justify="space-between" mb="lg">
-        <Title order={2}>タスク一覧</Title>
+        <Group>
+          <Title order={2}>タスク一覧</Title>
+          <SegmentedControl
+            value={view}
+            onChange={(value) => setView(value as TaskView)}
+            data={[
+              { value: "active", label: "アクティブ" },
+              { value: "trash", label: "ゴミ箱" },
+            ]}
+          />
+        </Group>
         <Group>
           {codeViewerTrigger}
           <Tooltip label="新規作成">

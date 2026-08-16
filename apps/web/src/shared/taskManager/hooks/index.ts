@@ -1,7 +1,10 @@
 import { firestore } from "@repo/firebase";
 import {
+  createUseDoc,
   createUseGrowingList,
   createUseList,
+  type DocState,
+  type UseDocOptions,
   type UseGrowingListOptions,
   type UseGrowingListResult,
   type UseListOptions,
@@ -13,6 +16,7 @@ import { useStoreKey } from "../../auth";
 
 const useGrowingListInternal = createUseGrowingList(firestore);
 const useListInternal = createUseList(firestore);
+const useDocInternal = createUseDoc(firestore);
 
 export function useGrowingList<TConfig extends CollectionConfigBase>(
   options: Omit<UseGrowingListOptions<TConfig>, "storeKey">,
@@ -26,4 +30,13 @@ export function useList<TConfig extends CollectionConfigBase>(
 ): UseListResult<z.infer<TConfig["dataSchema"]>> {
   const storeKey = useStoreKey();
   return useListInternal({ ...options, storeKey });
+}
+
+// 単一ドキュメントの購読。詳細画面で useEffect + accessor.docSync を
+// 手書きする代わりに使う。
+export function useDoc<TConfig extends CollectionConfigBase>(
+  options: Omit<UseDocOptions<TConfig>, "storeKey">,
+): DocState<z.infer<TConfig["dataSchema"]>> {
+  const storeKey = useStoreKey();
+  return useDocInternal({ ...options, storeKey });
 }

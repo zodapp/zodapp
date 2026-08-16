@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { IconDotsVertical, IconArchive } from "@tabler/icons-react";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { z } from "zod";
 import { firestore } from "@repo/firebase";
 import { createFirestoreResolver } from "@zodapp/zod-form-firebase";
@@ -30,6 +30,7 @@ import {
   taskMutations,
   tasksCollection,
 } from "../../../shared/taskManager/collections/task";
+import { useDoc } from "../../../shared/taskManager/hooks";
 import { AutoForm } from "../../../components/AutoForm";
 import { taskDetailRoute } from "./detail.route";
 import { tasksRoute } from "../tasks.route";
@@ -69,20 +70,15 @@ const TaskDetailPage = () => {
     [workspaceId],
   );
 
-  const [task, setTask] = useState<z.infer<
-    typeof tasksCollection.updateSchema
-  > | null>(null);
+  // useDoc: 単一ドキュメントの購読（useEffect + docSync の手書きを置き換え）
+  const { item: task, isLoading: isTaskLoading } = useDoc({
+    collection: tasksCollection,
+    documentIdentity: useMemo(
+      () => ({ workspaceId, projectId, taskId }),
+      [workspaceId, projectId, taskId],
+    ),
+  });
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = accessor.docSync(
-      { workspaceId, projectId, taskId },
-      (doc) => {
-        setTask(doc);
-      },
-    );
-    return () => unsubscribe();
-  }, [accessor, workspaceId, projectId, taskId]);
 
   const { open: openDelete, modal: deleteModal } = useDeleteModal({
     title: "タスクを削除",
@@ -137,7 +133,7 @@ const TaskDetailPage = () => {
     });
   }, [navigate, workspaceId, projectId]);
 
-  if (isLoading || !task) {
+  if (isLoading || isTaskLoading || !task) {
     return (
       <Center h={200}>
         <Loader />
