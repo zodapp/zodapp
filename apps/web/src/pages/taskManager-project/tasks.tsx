@@ -641,9 +641,6 @@ const TasksPage = () => {
               <Menu.Item
                 component={Link}
                 to={taskTestDataRoute.to}
-                // 別タブで開くことで、この一覧を表示したまま投入でき、
-                // GrowingList のリアルタイム更新を観察できる
-                target="_blank"
                 {...({ params: { workspaceId, projectId } } as object)}
                 leftSection={<IconFlask size={16} />}
               >

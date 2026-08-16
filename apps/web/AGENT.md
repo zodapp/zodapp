@@ -11,8 +11,12 @@
 | デモ | パス | 主に示すこと |
 | --- | --- | --- |
 | フォームデモ | `/form` | スキーマ 1 つから生成されるフォーム UI のカタログ |
-| アプリデモ（タスク管理） | `/taskManager` | マルチテナント CRUD、一覧・検索・CSV・列設定・権限 |
+| タスク管理デモ | `/taskManager` | マルチテナント CRUD、一覧・検索・CSV・列設定・権限 |
 | アンケートデモ | `/survey` | **ランタイムスキーマ生成**（定義をデータとして保存 → 実行時にスキーマ化）と 2 カラムビルダー |
+
+デモの定義（名前・説明・入口）は `apps/web/src/shared/demos.tsx` に集約している。
+トップページのカードと、各画面のヘッダーに出す「いまどのデモにいるか」のバッジが
+これを共有している。
 
 アンケートデモはタスク管理と**同じワークスペース（テナント）・同じ認証**を共用しており、
 「1 つのテナント基盤に複数アプリを載せる」構成の例にもなっています。
@@ -384,9 +388,9 @@ VITE_FIREBASE_EMULATOR=1 pnpm --filter web dev
     対象ドキュメントパスを画面に出し、投入済みかを表示する
   - `kind: "repeatable"`: `createDoc` でランダム ID。実行するたびに増えるので
     `useGrowingList` のリアルタイム更新・無限スクロールの確認に使う
-- **一覧ページからは `target="_blank"` の別タブで開く**
-  （元のタブに一覧を残したまま投入し、反映の様子を観察するため。
-  ドロワーにすると一覧の UI が変わってしまう）
+- **一覧ページからは同じタブで遷移する**（`target="_blank"` は付けない）。
+  別タブで開くのはテストデータページ →回答ページのリンクだけで、
+  こちらは投入しながら実際に回答して挙動を見るため
 - **フィクスチャは CI と共用**: `apps/web/src/shared/survey/fixtures.ts` を
   ルールテスト（`apps/web/tests/firestore.rules.test.ts`）と画面の両方から使う。
   DSL 変更で古くならないよう `fixtures.test.ts` で実スキーマ検証している
@@ -394,6 +398,25 @@ VITE_FIREBASE_EMULATOR=1 pnpm --filter web dev
   「フィールドが存在して null」のドキュメントだけに一致する。
   論理削除の `deletedAt == null` クエリに載せたいフィクスチャには
   明示的に `deletedAt: null` を入れる
+
+### 20) 管理画面ではないページ（回答ページなど）を作りたい
+
+- **参照**: `apps/web/src/pages/survey-public/`（`Layout.tsx` / `layout.route.ts`）
+- 管理画面のサイドバーが出てしまうのは、
+  ワークスペースの Layout ルート配下にぶら下げているから。
+  **パスを持たない `id` 付きのレイアウトルートを別に立てて**、
+  そちらの子にすると URL を変えずにレイアウトだけ切り離せる
+- `CommonLayout` は `navItems` を渡さない（`backLink` / `extraNavContent` もない）
+  とサイドバーごと描画しない。ヘッダーだけ共通で使える
+- 認証まで外すかは別問題。回答の作成は `firestore.rules` で
+  ワークスペースのメンバーを要求しているので `AuthGuard` は残している
+
+### 21) いまどのデモにいるかをヘッダーに出したい
+
+- **定義**: `apps/web/src/shared/demos.tsx`（label / title / icon / description / to）
+- トップページのカード（`pages/top/home/index.tsx`）と、
+  各 Layout が `CommonLayout` に渡す `demo` バッジで同じ定義を使う。
+  デモを増やすときはここに 1 件足す
 
 ---
 

@@ -30,8 +30,8 @@ import { useDeleteModal } from "@zodapp/zod-form-widget/feedback";
  * - `repeatable`: 実行するたびに増えるボリュームデータ。
  *   GrowingList などのリアクティブ動作を確認するためのもの
  *
- * このページは別タブで開く運用を想定している（一覧を開いたまま投入すると、
- * 一覧側がリアルタイムに増えていく様子を観察できる）。
+ * 一覧ページの「…」メニューから同じタブで遷移する。投入したあと一覧へ戻ると、
+ * 追加されたデータがそのまま反映されている。
  */
 
 export type TestDataRunContext = {
