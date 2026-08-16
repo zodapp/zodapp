@@ -8,6 +8,10 @@ import {
   ActionIcon,
   Tooltip,
   SegmentedControl,
+  Checkbox,
+  Button,
+  Paper,
+  Text,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -18,6 +22,7 @@ import {
   IconSeeding,
   IconSettings,
   IconRestore,
+  IconArchive,
 } from "@tabler/icons-react";
 import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
@@ -31,7 +36,10 @@ import {
   taskMutations,
   taskQueries,
   tasksCollection,
+  taskStatusLiterals,
+  type TaskStatus,
 } from "../../shared/taskManager/collections/task";
+import { getMeta } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { getAccessor, getMutationsAccessor } from "@zodapp/zod-firebase-browser";
 import { WhereParams } from "@zodapp/zod-firebase";
@@ -63,6 +71,7 @@ import collectionCode from "../../shared/taskManager/collections/task.ts?raw";
 
 const TASK_TABLE_STORAGE_KEY = "tableSetting-task";
 const TASK_TABLE_DEFAULT_FIELD_PATHS = [
+  "_select",
   "title",
   "status",
   "priority",
@@ -82,6 +91,8 @@ const TASK_TRASH_TABLE_DEFAULT_FIELD_PATHS = [
 ];
 
 type TaskData = z.infer<typeof tasksCollection.dataSchema>;
+// 行選択状態を data 側に載せた行型（選択列の computed が参照する）
+type SelectableTaskData = TaskData & { _selected: boolean };
 type TaskView = "active" | "trash";
 
 const TasksPage = () => {
@@ -96,17 +107,55 @@ const TasksPage = () => {
   });
   const storeKey = useStoreKey();
 
+  // 行選択（複数選択 → 一括操作）
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const toggleTaskSelection = useCallback((taskId: string) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  }, []);
+
   const taskTableSchema = useMemo(
     () =>
-      extendSchemaSafe(tasksCollection.dataSchema, {
-        _action: createActionSchema<TaskData>({
-          getParams: (item) => ({
-            to: taskDetailRoute.to,
-            params: { workspaceId, projectId, taskId: item.taskId },
+      extendSchemaSafe(
+        extendSchemaSafe(tasksCollection.dataSchema, {
+          _action: createActionSchema<TaskData>({
+            getParams: (item) => ({
+              to: taskDetailRoute.to,
+              params: { workspaceId, projectId, taskId: item.taskId },
+            }),
           }),
         }),
-      }),
-    [workspaceId, projectId],
+        {
+          // 選択チェックボックス列。選択状態は data 側（_selected）に
+          // 載せることで、選択変更のたびにスキーマを作り直さずに済む
+          _select: zfReact
+            .computed()
+            .register(zfReact.computed.registry, {
+              label: "選択",
+              width: 40,
+              align: "center" as const,
+              compute: (row: SelectableTaskData) => (
+                <Checkbox
+                  checked={row._selected}
+                  onChange={() => toggleTaskSelection(row.taskId)}
+                  aria-label="行を選択"
+                />
+              ),
+            })
+            .optional(),
+        },
+        { mode: "head" },
+      ),
+    [workspaceId, projectId, toggleTaskSelection],
   );
 
   const collectionIdentity = useMemo(
@@ -287,6 +336,44 @@ const TasksPage = () => {
     ...taskListSpec,
     streamField: "updatedAt",
   });
+
+  // 選択状態を data に反映した行（選択列の computed が _selected を参照）
+  const selectableTasks = useMemo<SelectableTaskData[]>(
+    () =>
+      tasks.map((task) => ({
+        ...task,
+        _selected: selectedTaskIds.has(task.taskId),
+      })),
+    [tasks, selectedTaskIds],
+  );
+
+  // 一括操作: WriteBatch に書き込みをまとめて 1 コミットで反映する。
+  // accessor.withContext({ runner: batch }) は書き込み専用のアクセサを返す
+  const handleBulkStatusChange = useCallback(
+    async (status: TaskStatus) => {
+      const batch = firestore.batch();
+      const batchAccessor = taskAccessor.withContext({ runner: batch });
+      for (const taskId of selectedTaskIds) {
+        batchAccessor.updateDoc({ workspaceId, projectId, taskId }, { status });
+      }
+      await batch.commit();
+      setSelectedTaskIds(new Set());
+    },
+    [taskAccessor, selectedTaskIds, workspaceId, projectId],
+  );
+
+  const handleBulkArchive = useCallback(async () => {
+    const batch = firestore.batch();
+    const batchAccessor = taskAccessor.withContext({ runner: batch });
+    for (const taskId of selectedTaskIds) {
+      batchAccessor.updateDoc(
+        { workspaceId, projectId, taskId },
+        { archivedAt: new Date() },
+      );
+    }
+    await batch.commit();
+    setSelectedTaskIds(new Set());
+  }, [taskAccessor, selectedTaskIds, workspaceId, projectId]);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -503,13 +590,56 @@ const TasksPage = () => {
         )}
       </Box>
 
+      {view === "active" && selectedTaskIds.size > 0 && (
+        <Paper withBorder p="xs" mb="sm">
+          <Group gap="sm">
+            <Text size="sm">{selectedTaskIds.size} 件選択中</Text>
+            <Menu shadow="md" position="bottom-start">
+              <Menu.Target>
+                <Button size="xs" variant="light">
+                  ステータス一括変更
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                {taskStatusLiterals.map((literal) => (
+                  <Menu.Item
+                    key={literal.value}
+                    onClick={() =>
+                      void handleBulkStatusChange(literal.value as TaskStatus)
+                    }
+                  >
+                    {getMeta(literal, "literal")?.label ?? literal.value}
+                  </Menu.Item>
+                ))}
+              </Menu.Dropdown>
+            </Menu>
+            <Button
+              size="xs"
+              variant="light"
+              color="orange"
+              leftSection={<IconArchive size={14} />}
+              onClick={() => void handleBulkArchive()}
+            >
+              一括アーカイブ
+            </Button>
+            <Button
+              size="xs"
+              variant="subtle"
+              onClick={() => setSelectedTaskIds(new Set())}
+            >
+              選択解除
+            </Button>
+          </Group>
+        </Paper>
+      )}
+
       <div
         ref={scrollParentRef}
         style={{ overflow: "auto", flex: 1, minHeight: 0 }}
       >
         <AutoTable
           ref={tableRef}
-          data={tasks}
+          data={view === "active" ? selectableTasks : tasks}
           keyField="taskId"
           sortable={false}
           controller={controller}
