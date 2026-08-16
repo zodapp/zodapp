@@ -10,6 +10,7 @@ import CommonLayout, {
   type BackLink,
 } from "../../components/CommonLayout";
 import { AuthGuard } from "../../shared/auth";
+import { surveyDemo } from "../../shared/demos";
 import { surveyWorkspaceLayoutRoute } from "./layout.route";
 import { surveysRoute } from "./surveys.route";
 import { responsesRoute } from "./responses.route";
@@ -45,7 +46,11 @@ const SurveyWorkspaceLayout = () => {
 
   return (
     <AuthGuard>
-      <CommonLayout navItems={navItems} backLink={backLink} />
+      <CommonLayout
+        navItems={navItems}
+        backLink={backLink}
+        demo={surveyDemo}
+      />
     </AuthGuard>
   );
 };

@@ -25,7 +25,7 @@ const MainLayout = () => {
       to: formListRoute.to,
     },
     {
-      label: "アプリデモ",
+      label: "タスク管理デモ",
       icon: <IconChecklist size={20} />,
       to: workspacesRoute.to,
       exact: false,

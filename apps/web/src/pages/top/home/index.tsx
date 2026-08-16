@@ -1,9 +1,16 @@
 import { Link } from "@tanstack/react-router";
 
 import styles from "../../../styles/page.module.css";
-import { formListRoute } from "../../form/list.route";
-import { taskManagerRoute } from "../../taskManager-top/index.route";
-import { Box } from "@mantine/core";
+import { demos } from "../../../shared/demos";
+import {
+  Box,
+  Card,
+  Group,
+  SimpleGrid,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
 
 const HomePage = () => {
   return (
@@ -51,14 +58,33 @@ const HomePage = () => {
           </ul>
         </div>
 
-        <div className={styles.ctas}>
-          <Link to={formListRoute.to} className={styles.secondary}>
-            フォームデモ
-          </Link>
-          <Link to={taskManagerRoute.to} className={styles.secondary}>
-            アプリデモ
-          </Link>
-        </div>
+        <Box style={{ width: "100%", maxWidth: "980px", textAlign: "left" }}>
+          <Title order={2} size="1.3rem" mb="md">
+            収録デモ
+          </Title>
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+            {demos.map((demo) => (
+              <Card
+                key={demo.title}
+                component={Link}
+                to={demo.to}
+                withBorder
+                padding="lg"
+                style={{ height: "100%" }}
+              >
+                <Group gap="sm" mb="xs" wrap="nowrap">
+                  <ThemeIcon variant="light" size="lg" radius="md">
+                    {demo.icon}
+                  </ThemeIcon>
+                  <Text fw={600}>{demo.title}</Text>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  {demo.description}
+                </Text>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Box>
       </main>
       <footer className={styles.footer}>
         <p style={{ color: "#888" }}>
