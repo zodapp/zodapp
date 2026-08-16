@@ -42,7 +42,7 @@ import { useDoc } from "../../../shared/taskManager/hooks";
 import { useStoreKey } from "../../../shared/auth";
 import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
 import { surveyEditRoute } from "./edit.route";
-import { surveyAnswerRoute } from "./answer.route";
+import { surveyAnswerRoute } from "../../survey-public/answer.route";
 import { surveysRoute } from "../surveys.route";
 import { responsesRoute } from "../responses.route";
 import { SurveyBuilder } from "./SurveyBuilder";
