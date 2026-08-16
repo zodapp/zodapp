@@ -9,8 +9,16 @@ import {
   Center,
   Menu,
   ActionIcon,
+  Modal,
+  Select,
+  Button,
 } from "@mantine/core";
-import { IconDotsVertical, IconArchive } from "@tabler/icons-react";
+import { useDisclosure } from "@mantine/hooks";
+import {
+  IconDotsVertical,
+  IconArchive,
+  IconArrowsExchange,
+} from "@tabler/icons-react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
 import { z } from "zod";
@@ -30,7 +38,11 @@ import {
   taskMutations,
   tasksCollection,
 } from "../../../shared/taskManager/collections/task";
-import { useDoc } from "../../../shared/taskManager/hooks";
+import {
+  projectQueries,
+  projectsCollection,
+} from "../../../shared/taskManager/collections/project";
+import { useDoc, useList } from "../../../shared/taskManager/hooks";
 import { AutoForm } from "../../../components/AutoForm";
 import { taskDetailRoute } from "./detail.route";
 import { tasksRoute } from "../tasks.route";
@@ -79,6 +91,82 @@ const TaskDetailPage = () => {
     ),
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // ---- タスクの別プロジェクトへの移動（トランザクション） ----
+  const [
+    moveModalOpened,
+    { open: openMoveModal, close: closeMoveModal },
+  ] = useDisclosure(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
+
+  const { items: projects } = useList({
+    collection: projectsCollection,
+    collectionIdentity: useMemo(() => ({ workspaceId }), [workspaceId]),
+    query: projectQueries.queries.active(),
+  });
+  const moveTargetOptions = useMemo(
+    () =>
+      projects
+        .filter((project) => project.projectId !== projectId)
+        .map((project) => ({ value: project.projectId, label: project.name })),
+    [projects, projectId],
+  );
+
+  const handleMove = useCallback(async () => {
+    if (!moveTargetId) return;
+    setIsMoving(true);
+    try {
+      // 「読み取り → 移動先に作成 → 移動元を削除」を 1 トランザクションで
+      // 実行する。途中で失敗した場合はすべてロールバックされるため、
+      // タスクの重複や消失が起きない。
+      // accessor.withContext({ runner: transaction }) でトランザクション内
+      // 実行になる（読み取りは書き込みより先に行う必要がある）
+      await firestore.runTransaction(async (transaction) => {
+        const txAccessor = accessor.withContext({ runner: transaction });
+        const current = await txAccessor.getDoc({
+          workspaceId,
+          projectId,
+          taskId,
+        });
+        if (!current) {
+          throw new Error("タスクが見つかりません");
+        }
+        await txAccessor.createDoc(
+          { workspaceId, projectId: moveTargetId },
+          {
+            title: current.title,
+            description: current.description,
+            status: current.status,
+            priority: current.priority,
+            labels: current.labels,
+            assigneeId: current.assigneeId,
+            watchers: current.watchers,
+            dueAt: current.dueAt,
+            deletedAt: current.deletedAt,
+          },
+        );
+        await txAccessor.deleteDoc({ workspaceId, projectId, taskId });
+      });
+      closeMoveModal();
+      navigate({
+        to: tasksRoute.to,
+        params: { workspaceId, projectId: moveTargetId },
+      });
+    } catch (error) {
+      console.error("Failed to move task:", error);
+    } finally {
+      setIsMoving(false);
+    }
+  }, [
+    accessor,
+    moveTargetId,
+    workspaceId,
+    projectId,
+    taskId,
+    navigate,
+    closeMoveModal,
+  ]);
 
   const { open: openDelete, modal: deleteModal } = useDeleteModal({
     title: "タスクを削除",
@@ -160,6 +248,12 @@ const TaskDetailPage = () => {
               >
                 アーカイブ
               </Menu.Item>
+              <Menu.Item
+                leftSection={<IconArrowsExchange size={16} />}
+                onClick={openMoveModal}
+              >
+                別プロジェクトへ移動
+              </Menu.Item>
               <Menu.Divider />
               <DeleteMenuItem label="タスクを削除" onClick={openDelete} />
             </Menu.Dropdown>
@@ -183,6 +277,38 @@ const TaskDetailPage = () => {
           />
         </Card>
       </Stack>
+      <Modal
+        opened={moveModalOpened}
+        onClose={closeMoveModal}
+        title="別プロジェクトへ移動"
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            移動先プロジェクトを選択してください。移動はトランザクションで
+            実行され、コピーの作成と元タスクの削除が原子的に行われます。
+          </Text>
+          <Select
+            label="移動先プロジェクト"
+            placeholder="プロジェクトを選択"
+            data={moveTargetOptions}
+            value={moveTargetId}
+            onChange={setMoveTargetId}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeMoveModal}>
+              キャンセル
+            </Button>
+            <Button
+              onClick={() => void handleMove()}
+              disabled={!moveTargetId}
+              loading={isMoving}
+            >
+              移動する
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       {codeViewerModal}
       {deleteModal}
       {archiveModal}
