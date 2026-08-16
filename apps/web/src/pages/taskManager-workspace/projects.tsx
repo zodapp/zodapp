@@ -29,7 +29,7 @@ import {
   AutoTable,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
-import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
+import { useProfileColumnSettings } from "../../shared/taskManager/useProfileColumnSettings";
 import { createMingoFilter } from "../../components/mingoQuery";
 import { createActionSchema } from "../../components/createActionSchema";
 import {
@@ -172,10 +172,12 @@ const ProjectsPage = () => {
     onImport: handleImport,
   });
 
-  const controller = useLocalColumnSettings({
-    storageKey: PROJECT_TABLE_STORAGE_KEY,
+  // 列設定プロファイル（このブラウザ / 個人 / ワークスペース共通の3スコープ）
+  const controller = useProfileColumnSettings({
+    tableKey: PROJECT_TABLE_STORAGE_KEY,
     schema: projectsCollection.dataSchema,
     defaultFieldPaths: PROJECT_TABLE_DEFAULT_FIELD_PATHS,
+    workspaceId,
   });
 
   const { open: openTableSetting, modal: tableSettingDrawer } =

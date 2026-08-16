@@ -53,7 +53,7 @@ import {
   useAutoTableScroll,
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
-import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
+import { useProfileColumnSettings } from "../../shared/taskManager/useProfileColumnSettings";
 import { taskDetailRoute } from "./task/detail.route";
 import { tasksRoute, searchFilterSchema } from "./tasks.route";
 import { populateSeed } from "./seed";
@@ -543,16 +543,19 @@ const TasksPage = () => {
     ],
   );
 
-  const activeController = useLocalColumnSettings({
-    storageKey: TASK_TABLE_STORAGE_KEY,
+  // 列設定プロファイル（このブラウザ / 個人 / ワークスペース共通の3スコープ）
+  const activeController = useProfileColumnSettings({
+    tableKey: TASK_TABLE_STORAGE_KEY,
     schema: taskTableSchema,
     defaultFieldPaths: TASK_TABLE_DEFAULT_FIELD_PATHS,
+    workspaceId,
   });
 
-  const trashController = useLocalColumnSettings({
-    storageKey: TASK_TRASH_TABLE_STORAGE_KEY,
+  const trashController = useProfileColumnSettings({
+    tableKey: TASK_TRASH_TABLE_STORAGE_KEY,
     schema: trashTableSchema,
     defaultFieldPaths: TASK_TRASH_TABLE_DEFAULT_FIELD_PATHS,
+    workspaceId,
   });
 
   const controller = view === "trash" ? trashController : activeController;
