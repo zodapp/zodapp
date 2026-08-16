@@ -11,9 +11,10 @@ import {
 import {
   IconDotsVertical,
   IconDownload,
+  IconFlask,
   IconSettings,
 } from "@tabler/icons-react";
-import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
+import { Link, useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
@@ -43,6 +44,7 @@ import { createMingoFilter } from "../../components/mingoQuery";
 import { useCodeViewerModal } from "../../components/useCodeViewerModal";
 import { useStoreKey } from "../../shared/auth";
 import { responsesRoute, searchFilterSchema } from "./responses.route";
+import { surveyTestDataRoute } from "./testData.route";
 
 import pageCode from "./responses.tsx?raw";
 import collectionCode from "../../shared/survey/collections/response.ts?raw";
@@ -236,6 +238,17 @@ const ResponsesView = ({
                 onClick={openExport}
               >
                 CSVエクスポート
+              </Menu.Item>
+              <Menu.Item
+                component={Link}
+                to={surveyTestDataRoute.to}
+                // 別タブで開くことで、この一覧を表示したまま回答を投入でき、
+                // GrowingList のリアルタイム更新を観察できる
+                target="_blank"
+                {...({ params: { workspaceId } } as object)}
+                leftSection={<IconFlask size={16} />}
+              >
+                テストデータ
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>
