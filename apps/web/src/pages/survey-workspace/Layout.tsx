@@ -1,4 +1,8 @@
-import { IconChevronLeft, IconClipboardList } from "@tabler/icons-react";
+import {
+  IconChevronLeft,
+  IconClipboardList,
+  IconInbox,
+} from "@tabler/icons-react";
 import { useParams } from "@tanstack/react-router";
 
 import CommonLayout, {
@@ -8,6 +12,7 @@ import CommonLayout, {
 import { AuthGuard } from "../../shared/auth";
 import { surveyWorkspaceLayoutRoute } from "./layout.route";
 import { surveysRoute } from "./surveys.route";
+import { responsesRoute } from "./responses.route";
 import { surveyWorkspacesRoute } from "../survey-top/workspaces.route";
 
 const SurveyWorkspaceLayout = () => {
@@ -26,6 +31,13 @@ const SurveyWorkspaceLayout = () => {
       label: "アンケート一覧",
       icon: <IconClipboardList size={20} />,
       to: surveysRoute.to,
+      params: { workspaceId },
+      exact: false,
+    },
+    {
+      label: "回答一覧",
+      icon: <IconInbox size={20} />,
+      to: responsesRoute.to,
       params: { workspaceId },
       exact: false,
     },

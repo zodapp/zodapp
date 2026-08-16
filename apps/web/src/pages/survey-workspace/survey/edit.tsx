@@ -16,8 +16,10 @@ import {
   IconLock,
   IconLockOpen,
   IconInfoCircle,
+  IconExternalLink,
+  IconInbox,
 } from "@tabler/icons-react";
-import { useParams, useNavigate } from "@tanstack/react-router";
+import { Link, useParams, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { firestore } from "@repo/firebase";
@@ -40,7 +42,9 @@ import { useDoc } from "../../../shared/taskManager/hooks";
 import { useStoreKey } from "../../../shared/auth";
 import { useCodeViewerModal } from "../../../components/useCodeViewerModal";
 import { surveyEditRoute } from "./edit.route";
+import { surveyAnswerRoute } from "./answer.route";
 import { surveysRoute } from "../surveys.route";
+import { responsesRoute } from "../responses.route";
 import { SurveyBuilder } from "./SurveyBuilder";
 
 import pageCode from "./SurveyBuilder.tsx?raw";
@@ -173,6 +177,28 @@ const SurveyEditPage = () => {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Item
+                component={Link}
+                to={surveyAnswerRoute.to}
+                // Mantine の polymorphic component は TanStack Router の
+                // params/search を型として受け取れないため object で渡す
+                {...({ params: { workspaceId, surveyId } } as object)}
+                leftSection={<IconExternalLink size={16} />}
+              >
+                回答ページを開く
+              </Menu.Item>
+              <Menu.Item
+                component={Link}
+                to={responsesRoute.to}
+                {...({
+                  params: { workspaceId },
+                  search: { q: { surveyId } },
+                } as object)}
+                leftSection={<IconInbox size={16} />}
+              >
+                このアンケートの回答一覧
+              </Menu.Item>
+              <Menu.Divider />
               <Menu.Item
                 leftSection={<IconCopy size={16} />}
                 onClick={() => void handleDuplicate()}

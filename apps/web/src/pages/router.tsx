@@ -37,7 +37,9 @@ import { surveyTopLayoutRoute } from "./survey-top/layout.route";
 import { surveyWorkspacesRoute } from "./survey-top/workspaces.route";
 import { surveyWorkspaceLayoutRoute } from "./survey-workspace/layout.route";
 import { surveysRoute } from "./survey-workspace/surveys.route";
+import { responsesRoute } from "./survey-workspace/responses.route";
 import { surveyEditRoute } from "./survey-workspace/survey/edit.route";
+import { surveyAnswerRoute } from "./survey-workspace/survey/answer.route";
 import { rootRoute } from "./index.route";
 import { topRoute } from "./top/index.route";
 
@@ -63,7 +65,12 @@ const routeTree = rootRoute.addChildren([
   ]),
   surveyRoute.addChildren([
     surveyTopLayoutRoute.addChildren([surveyWorkspacesRoute]),
-    surveyWorkspaceLayoutRoute.addChildren([surveysRoute, surveyEditRoute]),
+    surveyWorkspaceLayoutRoute.addChildren([
+      surveysRoute,
+      surveyEditRoute,
+      surveyAnswerRoute,
+      responsesRoute,
+    ]),
   ]),
 ]);
 
