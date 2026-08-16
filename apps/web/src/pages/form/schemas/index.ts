@@ -1,4 +1,8 @@
 import * as basicInput from "./basicInput";
+import * as formatterAndSuggestions from "./formatterAndSuggestions";
+import * as booleanVariants from "./booleanVariants";
+import * as objectLayout from "./objectLayout";
+import * as recordEntries from "./recordEntries";
 import * as computed from "./computed";
 import * as date from "./date";
 import * as enumSelect from "./enumSelect";
@@ -18,6 +22,10 @@ import * as reactiveReadOnly from "./reactiveReadOnly";
 import * as reactiveRecord from "./reactiveRecord";
 
 import basicInputCode from "./basicInput.ts?raw";
+import formatterAndSuggestionsCode from "./formatterAndSuggestions.ts?raw";
+import booleanVariantsCode from "./booleanVariants.ts?raw";
+import objectLayoutCode from "./objectLayout.ts?raw";
+import recordEntriesCode from "./recordEntries.ts?raw";
 import computedCode from "./computed.ts?raw";
 import dateCode from "./date.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
@@ -38,6 +46,10 @@ import reactiveRecordCode from "./reactiveRecord.ts?raw";
 
 export const formSchemas = {
   [basicInput.formId]: basicInput,
+  [formatterAndSuggestions.formId]: formatterAndSuggestions,
+  [booleanVariants.formId]: booleanVariants,
+  [objectLayout.formId]: objectLayout,
+  [recordEntries.formId]: recordEntries,
   [date.formId]: date,
   [enumSelect.formId]: enumSelect,
   [arrayFields.formId]: arrayFields,
@@ -59,6 +71,10 @@ export const formSchemas = {
 
 export const formCodes = {
   [basicInput.formId]: basicInputCode,
+  [formatterAndSuggestions.formId]: formatterAndSuggestionsCode,
+  [booleanVariants.formId]: booleanVariantsCode,
+  [objectLayout.formId]: objectLayoutCode,
+  [recordEntries.formId]: recordEntriesCode,
   [date.formId]: dateCode,
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
