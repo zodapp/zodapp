@@ -31,6 +31,13 @@ import { projectLayoutRoute } from "./taskManager-project/layout.route";
 import { projectDetailRoute } from "./taskManager-project/detail.route";
 import { tasksRoute } from "./taskManager-project/tasks.route";
 import { taskDetailRoute } from "./taskManager-project/task/detail.route";
+// survey routes
+import { surveyRoute } from "./survey-top/index.route";
+import { surveyTopLayoutRoute } from "./survey-top/layout.route";
+import { surveyWorkspacesRoute } from "./survey-top/workspaces.route";
+import { surveyWorkspaceLayoutRoute } from "./survey-workspace/layout.route";
+import { surveysRoute } from "./survey-workspace/surveys.route";
+import { surveyEditRoute } from "./survey-workspace/survey/edit.route";
 import { rootRoute } from "./index.route";
 import { topRoute } from "./top/index.route";
 
@@ -53,6 +60,10 @@ const routeTree = rootRoute.addChildren([
       tasksRoute,
       taskDetailRoute,
     ]),
+  ]),
+  surveyRoute.addChildren([
+    surveyTopLayoutRoute.addChildren([surveyWorkspacesRoute]),
+    surveyWorkspaceLayoutRoute.addChildren([surveysRoute, surveyEditRoute]),
   ]),
 ]);
 
