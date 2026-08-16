@@ -372,6 +372,29 @@ VITE_FIREBASE_EMULATOR=1 pnpm --filter web dev
   `Component` を export すると detail ページがそれを描画する
   （例: `schemaTransform.tsx` / `formActions.tsx` / `customWidget.tsx`）
 
+### 19) テストデータ投入ページを作りたい
+
+- **共通 UI**: `apps/web/src/components/TestDataPanel.tsx`
+  （`sections` を渡すだけ。ログ表示・進捗・中止・削除確認は共通）
+- **実装例**:
+  - `apps/web/src/pages/survey-workspace/testData.tsx`（冪等 + 繰り返しの 2 種）
+  - `apps/web/src/pages/taskManager-project/testData.tsx`（繰り返しのみ）
+- **セクションは 2 種類**
+  - `kind: "idempotent"`: ID 固定で `setDoc`。何度実行しても増えない。
+    対象ドキュメントパスを画面に出し、投入済みかを表示する
+  - `kind: "repeatable"`: `createDoc` でランダム ID。実行するたびに増えるので
+    `useGrowingList` のリアルタイム更新・無限スクロールの確認に使う
+- **一覧ページからは `target="_blank"` の別タブで開く**
+  （元のタブに一覧を残したまま投入し、反映の様子を観察するため。
+  ドロワーにすると一覧の UI が変わってしまう）
+- **フィクスチャは CI と共用**: `apps/web/src/shared/survey/fixtures.ts` を
+  ルールテスト（`apps/web/tests/firestore.rules.test.ts`）と画面の両方から使う。
+  DSL 変更で古くならないよう `fixtures.test.ts` で実スキーマ検証している
+- **注意**: Firestore の `== null` は
+  「フィールドが存在して null」のドキュメントだけに一致する。
+  論理削除の `deletedAt == null` クエリに載せたいフィクスチャには
+  明示的に `deletedAt: null` を入れる
+
 ---
 
 ## 逆引き（機能別 / 用語から探す）
