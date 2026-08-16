@@ -8,6 +8,8 @@ import * as schemaTransform from "./schemaTransform";
 import * as validatePreceding from "./validatePreceding";
 import * as formActions from "./formActions";
 import * as dynamicSchema from "./dynamicSchema";
+import * as mediaPreview from "./mediaPreview";
+import * as customWidget from "./customWidget";
 import * as computed from "./computed";
 import * as date from "./date";
 import * as enumSelect from "./enumSelect";
@@ -33,9 +35,11 @@ import objectLayoutCode from "./objectLayout.ts?raw";
 import recordEntriesCode from "./recordEntries.ts?raw";
 import computedVariantsCode from "./computedVariants.ts?raw";
 import schemaTransformCode from "./schemaTransform.tsx?raw";
-import validatePrecedingCode from "./validatePreceding.tsx?raw";
+import validatePrecedingCode from "./validatePreceding.ts?raw";
 import formActionsCode from "./formActions.tsx?raw";
 import dynamicSchemaCode from "./dynamicSchema.ts?raw";
+import mediaPreviewCode from "./mediaPreview.tsx?raw";
+import customWidgetCode from "./customWidget.tsx?raw";
 import computedCode from "./computed.ts?raw";
 import dateCode from "./date.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
@@ -65,6 +69,8 @@ export const formSchemas = {
   [validatePreceding.formId]: validatePreceding,
   [formActions.formId]: formActions,
   [dynamicSchema.formId]: dynamicSchema,
+  [mediaPreview.formId]: mediaPreview,
+  [customWidget.formId]: customWidget,
   [date.formId]: date,
   [enumSelect.formId]: enumSelect,
   [arrayFields.formId]: arrayFields,
@@ -95,6 +101,8 @@ export const formCodes = {
   [validatePreceding.formId]: validatePrecedingCode,
   [formActions.formId]: formActionsCode,
   [dynamicSchema.formId]: dynamicSchemaCode,
+  [mediaPreview.formId]: mediaPreviewCode,
+  [customWidget.formId]: customWidgetCode,
   [date.formId]: dateCode,
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
