@@ -6,6 +6,17 @@
 - **UI**: React + Vite + Mantine
 - **データ**: Firebase（Firestore / compat）
 
+3 つのデモで構成されています。
+
+| デモ | パス | 主に示すこと |
+| --- | --- | --- |
+| フォームデモ | `/form` | スキーマ 1 つから生成されるフォーム UI のカタログ |
+| アプリデモ（タスク管理） | `/taskManager` | マルチテナント CRUD、一覧・検索・CSV・列設定・権限 |
+| アンケートデモ | `/survey` | **ランタイムスキーマ生成**（定義をデータとして保存 → 実行時にスキーマ化）と 2 カラムビルダー |
+
+アンケートデモはタスク管理と**同じワークスペース（テナント）・同じ認証**を共用しており、
+「1 つのテナント基盤に複数アプリを載せる」構成の例にもなっています。
+
 参照: `apps/web/README.ja.md`
 
 ---
@@ -89,6 +100,11 @@ VITE_FIREBASE_EMULATOR=1 pnpm --filter web dev
   - コレクション定義: `apps/web/src/shared/taskManager/collections/*.ts`
   - Firestore hooks（firestoreバインド済み）: `apps/web/src/shared/taskManager/hooks/index.ts`
   - 画面例: `apps/web/src/pages/taskManager-*/**/*.tsx`
+- **アンケート（Survey例 / ランタイムスキーマ生成）**
+  - 質問定義 DSL とスキーマビルダー: `apps/web/src/shared/survey/fieldDefs.ts`, `buildSurveySchema.ts`
+  - コレクション定義: `apps/web/src/shared/survey/collections/*.ts`
+  - 画面例: `apps/web/src/pages/survey-*/**/*.tsx`
+  - テナント（workspaces / members）と認証は taskManager のものを共用している
 - **アプリ固有型（設計の拡張ポイント）**
   - externalKey: `apps/web/src/shared/types/externalKeyConfig.ts`
   - file: `apps/web/src/shared/types/fileConfig.ts`
@@ -315,7 +331,40 @@ VITE_FIREBASE_EMULATOR=1 pnpm --filter web dev
 - **参照**: `apps/web/src/pages/form/schemas/customWidget.tsx`
   （星評価 / カスケード選択の 2 例。`AutoForm` の `componentLibrary` prop で差し込む）
 
-### 16) フォームデモ（pages/form）に項目を追加したい
+### 16) 実行時にスキーマを組み立てたい（ユーザー定義フォーム）
+
+「フォームの定義自体をデータとして保存し、実行時にスキーマへ戻す」パターン。
+アンケートデモ（`/survey`）が実装例。
+
+- **定義（DSL）はメタスキーマで書く**: `apps/web/src/shared/survey/fieldDefs.ts`
+  - 質問種別ごとの discriminatedUnion 配列。**定義を編集するフォーム自体も
+    AutoForm / Switch が生成する**ので、専用エディタを書かずに済む
+  - union セレクタで種別を選ぶと `getDefaultValue(arm)` が走るため、
+    `id` を `.default(() => generateId())` にしておくと自動採番される
+    （`hidden` メタは `.default()` の外側に付ける）
+- **DSL → zf スキーマの変換**: `apps/web/src/shared/survey/buildSurveySchema.ts`
+  - 戻り値を `{ schema, warnings, fieldErrors }` に分け、壊れた項目だけ
+    表示専用のセンチネルへ差し替えて**全体の描画は継続する**
+  - React 非依存の純関数にして単体テストする（`buildSurveySchema.test.ts`）
+- **生成スキーマの利用側**
+  - 回答フォーム: `pages/survey-workspace/survey/answer.tsx`
+  - 一覧の列に展開: `pages/survey-workspace/responses.tsx`
+    （`extendSchemaSafe` で record を実スキーマに差し替える）
+
+### 17) 設定フォームとプレビューを並べたい（2カラムビルダー）
+
+- **参照**: `apps/web/src/pages/survey-workspace/survey/SurveyBuilder.tsx`
+- AutoForm はフォーム値を外部へ公開しないため、**左カラムは手組み**にする
+  （`useZodForm` + `FormProvider` + `Switch fieldPath=""`）。
+  手組みの場合 `componentLibrary` の注入も自前で行う
+  （`ZodFormContextProvider componentLibrary={componentLibrary}`）
+- 右カラムは同じ form を `useFormValues()` で購読し、
+  未保存の値からプレビューを組み立てる
+- アクションは `createAutoForm*Action` を自前で並べる
+  （`{ form, handleSubmit, isLoading }` を渡す。`handleSubmit` は
+  `form.handleSubmit()` → `schema.safeParse` の薄いラッパでよい）
+
+### 18) フォームデモ（pages/form）に項目を追加したい
 
 - スキーマファイルを `apps/web/src/pages/form/schemas/` に追加し、
   `schemas/index.ts` に登録する（`?raw` import でコード表示タブも埋まる）
