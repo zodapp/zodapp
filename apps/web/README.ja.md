@@ -58,3 +58,18 @@ pnpm --filter web build
 }
 ```
 
+## エミュレータモード（本番プロジェクト不要）
+
+`VITE_FIREBASE_EMULATOR=1` を付けて起動すると Firebase Emulator Suite
+（auth: 9099 / firestore: 8080 / storage: 9199）に接続します。
+`firebaseConfig.json` はダミー値で構いません。認証はメール/パスワードの
+新規登録がそのまま使えます。
+
+```bash
+# ターミナル1: エミュレータ起動（リポジトリルート）
+pnpm emulator
+
+# ターミナル2: エミュレータ接続で起動
+VITE_FIREBASE_EMULATOR=1 pnpm --filter web dev
+```
+
