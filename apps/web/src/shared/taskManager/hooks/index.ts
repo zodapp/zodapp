@@ -1,9 +1,12 @@
 import { firestore } from "@repo/firebase";
 import {
+  createUseCollectionGroupList,
   createUseDoc,
   createUseGrowingList,
   createUseList,
   type DocState,
+  type UseCollectionGroupListOptions,
+  type UseCollectionGroupListResult,
   type UseDocOptions,
   type UseGrowingListOptions,
   type UseGrowingListResult,
@@ -17,6 +20,7 @@ import { useStoreKey } from "../../auth";
 const useGrowingListInternal = createUseGrowingList(firestore);
 const useListInternal = createUseList(firestore);
 const useDocInternal = createUseDoc(firestore);
+const useCollectionGroupListInternal = createUseCollectionGroupList(firestore);
 
 export function useGrowingList<TConfig extends CollectionConfigBase>(
   options: Omit<UseGrowingListOptions<TConfig>, "storeKey">,
@@ -39,4 +43,13 @@ export function useDoc<TConfig extends CollectionConfigBase>(
 ): DocState<z.infer<TConfig["dataSchema"]>> {
   const storeKey = useStoreKey();
   return useDocInternal({ ...options, storeKey });
+}
+
+// collectionGroup クエリ（パス階層を横断してサブコレクションを検索）。
+// 「ユーザーが所属する全ワークスペースの members を横断検索」等に使う。
+export function useCollectionGroupList<TConfig extends CollectionConfigBase>(
+  options: Omit<UseCollectionGroupListOptions<TConfig>, "storeKey">,
+): UseCollectionGroupListResult<z.infer<TConfig["dataSchema"]>> {
+  const storeKey = useStoreKey();
+  return useCollectionGroupListInternal({ ...options, storeKey });
 }

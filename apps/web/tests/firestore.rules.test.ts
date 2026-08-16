@@ -329,5 +329,25 @@ describe("Firestore Security Rules", () => {
       // 自分のmemberIdと一致するドキュメントのみ読める
       await assertSucceeds(db.doc(`workspaces/test-workspace/members/${memberUser.email}`).get());
     });
+
+    it("自分のemailで絞り込んだcollectionGroupクエリは実行できる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      // 所属ワークスペースの横断検索（useUserWorkspaces が使用するクエリ）
+      await assertSucceeds(
+        db.collectionGroup("members").where("email", "==", memberUser.email).get()
+      );
+    });
+
+    it("他人のemailで絞り込んだcollectionGroupクエリは拒否される", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertFails(
+        db.collectionGroup("members").where("email", "==", adminUser.email).get()
+      );
+    });
+
+    it("絞り込みのないcollectionGroupクエリは拒否される", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertFails(db.collectionGroup("members").get());
+    });
   });
 });

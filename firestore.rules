@@ -78,8 +78,15 @@ service cloud.firestore {
     }
 
     // collectionGroup クエリ用
+    // - ドキュメントID直接参照（memberId は email または uid）
+    // - email フィールドで絞り込む list クエリ
+    //   （where("email", "==", 自分のemail) が条件に含まれる場合のみ成立する）
     match /{path=**}/members/{memberId} {
-      allow read: if memberId == request.auth.token.email || memberId == request.auth.uid;
+      allow read: if request.auth != null && (
+        memberId == request.auth.token.email ||
+        memberId == request.auth.uid ||
+        resource.data.email == request.auth.token.email
+      );
     }
   }
 }

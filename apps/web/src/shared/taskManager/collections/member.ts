@@ -76,7 +76,10 @@ const memberCreateExcludedSchema = z.object({
 
 export const membersCollection = collectionConfig({
   path: "/workspaces/:workspaceId/members/:memberId" as const,
-  fieldKeys: [] as const,
+  // workspaceId はパスキーだが fieldKeys にも含める（= pathFieldKeys）。
+  // ドキュメントのフィールドとしても保存されるため、collectionGroup
+  // クエリの結果から所属ワークスペースを特定できる
+  fieldKeys: ["workspaceId"] as const,
   schema: memberDataSchema,
   createExcludedSchema: memberCreateExcludedSchema,
   /** docId に email を使用（同一ワークスペース内でメール一意） */
