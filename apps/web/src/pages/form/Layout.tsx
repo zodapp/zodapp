@@ -8,6 +8,7 @@ import CommonLayout, {
   type BackLink,
   type ExtraNavContentProps,
 } from "../../components/CommonLayout";
+import { formDemo } from "../../shared/demos";
 import { homeRoute } from "../top/home/index.route";
 import { formDetailRoute } from "./detail.route";
 import { formListRoute } from "./list.route";
@@ -108,6 +109,7 @@ const MainLayout = () => {
       navItems={navItems}
       backLink={backLink}
       extraNavContent={extraNavContent}
+      demo={formDemo}
     />
   );
 };
