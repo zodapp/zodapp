@@ -126,6 +126,22 @@ const TasksPage = () => {
   // アクティブ / ゴミ箱（論理削除済み）のビュー切替
   const [view, setView] = useState<TaskView>("active");
 
+  // 検索条件の適用場所:
+  // - client: 取得済みデータに mingo でフィルタ（インデックス不要。
+  //   スキャン件数は増えるが柔軟な条件が書ける）
+  // - server: Firestore ネイティブクエリ（==, >=, <= を where に反映。
+  //   転送量は減るが、本番では条件の組み合わせごとに複合インデックスが
+  //   必要になる。firestore.indexes.json を参照）
+  const [filterMode, setFilterMode] = useState<"client" | "server">("client");
+
+  // 復元済みタスクの楽観的除外用。
+  // （復元でタスクはゴミ箱クエリの対象外になるが、リアルタイム更新の
+  // 購読は購読開始以降の updatedAt を監視するため、購読開始前から
+  // 表示されていた行はストリームからは消えない）
+  const [restoredTaskIds, setRestoredTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
   const handleRestore = useCallback(
     async (row: TaskData) => {
       await mutationsAccessor.restore({
@@ -133,6 +149,7 @@ const TasksPage = () => {
         projectId,
         taskId: row.taskId,
       });
+      setRestoredTaskIds((prev) => new Set(prev).add(row.taskId));
     },
     [mutationsAccessor, workspaceId, projectId],
   );
@@ -194,11 +211,52 @@ const TasksPage = () => {
         collectionIdentity,
         query: deletedQuery,
         clientFilter: (item: TaskData) =>
-          item.deletedAt != null && (mingoFilter?.(item) ?? true),
+          item.deletedAt != null &&
+          !restoredTaskIds.has(item.taskId) &&
+          (mingoFilter?.(item) ?? true),
       };
     }
 
     const activeQuery = taskQueries.queries.active();
+
+    if (filterMode === "server") {
+      // 全条件を Firestore ネイティブの where に反映する。
+      // 範囲演算子（>=, <=）は複数フィールドの不等式クエリとして実行される
+      const where: WhereParams[] = [...(activeQuery.where ?? [])];
+      if (q.status) {
+        where.push({ field: "status", operator: "==" as const, value: q.status });
+      }
+      if (q.priority) {
+        where.push({
+          field: "priority",
+          operator: "==" as const,
+          value: q.priority,
+        });
+      }
+      if (q.dueAt?.$gte) {
+        where.push({
+          field: "dueAt",
+          operator: ">=" as const,
+          value: q.dueAt.$gte,
+        });
+      }
+      if (q.dueAt?.$lte) {
+        where.push({
+          field: "dueAt",
+          operator: "<=" as const,
+          value: q.dueAt.$lte,
+        });
+      }
+      return {
+        collection: tasksCollection,
+        collectionIdentity,
+        query: {
+          where,
+          orderBy: [{ field: "createdAt", direction: "desc" as const }],
+        },
+        // サーバ側で全条件を適用するため clientFilter は不要
+      };
+    }
 
     const fetchCondition: WhereParams[] = [...(activeQuery.where ?? [])];
     const { status, ...rest } = q;
@@ -216,7 +274,7 @@ const TasksPage = () => {
       },
       clientFilter: createMingoFilter(rest),
     };
-  }, [collectionIdentity, search.q, view]);
+  }, [collectionIdentity, search.q, view, filterMode, restoredTaskIds]);
 
   const {
     items: tasks,
@@ -423,6 +481,26 @@ const TasksPage = () => {
           resolverContext={resolverContext}
           showPreview={true}
         />
+        {view === "active" && (
+          <Group gap="xs" mt="xs">
+            <Tooltip
+              label="server: Firestoreのwhere句で絞り込み（要インデックス） / client: 取得済みデータをmingoで絞り込み"
+              position="right"
+            >
+              <SegmentedControl
+                size="xs"
+                value={filterMode}
+                onChange={(value) =>
+                  setFilterMode(value as "client" | "server")
+                }
+                data={[
+                  { value: "client", label: "クライアント絞り込み" },
+                  { value: "server", label: "サーバ絞り込み" },
+                ]}
+              />
+            </Tooltip>
+          </Group>
+        )}
       </Box>
 
       <div
