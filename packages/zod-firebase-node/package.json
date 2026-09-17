@@ -42,6 +42,8 @@
     "lint:silent": "mkdir -p output && pnpm lint > ./output/lint.txt",
     "clean": "rimraf dist .turbo node_modules",
     "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
   },
   "devDependencies": {
@@ -51,7 +53,8 @@
     "eslint": "^9.34.0",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@zodapp/zod-firebase": "workspace:*",
