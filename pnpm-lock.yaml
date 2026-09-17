@@ -55,7 +55,7 @@ importers:
         version: 3.37.1(react@19.2.4)
       '@tanstack/react-form':
         specifier: ^1.28.6
-        version: 1.28.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/react-router':
         specifier: ^1.157.18
         version: 1.162.8(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -439,6 +439,9 @@ importers:
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)(yaml@2.8.2)
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.11)(jsdom@28.1.0)(yaml@2.8.2)
 
   packages/zod-form:
     dependencies:
@@ -542,7 +545,7 @@ importers:
         version: 3.37.1(react@19.2.4)
       '@tanstack/react-form':
         specifier: ^1.28.6
-        version: 1.28.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@zodapp/zod-form':
         specifier: workspace:*
         version: link:../zod-form
@@ -770,7 +773,7 @@ importers:
         version: 3.37.1(react@19.2.4)
       '@tanstack/react-form':
         specifier: ^1.28.6
-        version: 1.28.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@zodapp/zod-form':
         specifier: workspace:*
         version: link:../zod-form
@@ -2241,9 +2244,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@tanstack/form-core@1.28.6':
-    resolution: {integrity: sha512-4zroxL6VDj5O+w7l3dYZnUeL/h30KtNSV7UWzKAL7cl+8clMFdISPDlDlluS37As7oqvPVKo8B83VlIBvgmRog==}
-
   '@tanstack/form-core@1.33.2':
     resolution: {integrity: sha512-F60zJd15bGrXKonc1kpRYnNRNfiES7F+hgvrPMrsZznPLqZtO2DIg76OU6R25kCYkqYQY5xvuKteuWcUsc587A==}
 
@@ -2254,15 +2254,6 @@ packages:
   '@tanstack/pacer-lite@0.1.1':
     resolution: {integrity: sha512-y/xtNPNt/YeyoVxE/JCx+T7yjEzpezmbb+toK8DDD1P4m7Kzs5YR956+7OKexG3f8aXgC3rLZl7b1V+yNUSy5w==}
     engines: {node: '>=18'}
-
-  '@tanstack/react-form@1.28.6':
-    resolution: {integrity: sha512-dRxwKeNW3uuJvf0sXsIQ2compFMnIJNk9B436Lx0fqkqK+CBvA1tNmEdX+faoCpuQ5Wua3c8ahVibJ65cpkijA==}
-    peerDependencies:
-      '@tanstack/react-start': '*'
-      react: ^17.0.0 || ^18.0.0 || ^19.0.0
-    peerDependenciesMeta:
-      '@tanstack/react-start':
-        optional: true
 
   '@tanstack/react-form@1.33.2':
     resolution: {integrity: sha512-nEfayOu+27q5cZ5E0G5dmnddqLcLjdFCatbL/LCs/iLD469a1o1yYJlr8RISV3GfnqsBpm0hf+8kM4okh5fPCw==}
@@ -3408,6 +3399,7 @@ packages:
   eslint@9.39.3:
     resolution: {integrity: sha512-VmQ+sifHUbI/IcSopBCF/HO3YiHQx/AVd3UVyYL6weuwW+HvON9VYn5l6Zl1WZzPWXPNZrSQpxwkkZ/VuvJZzg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -7652,12 +7644,6 @@ snapshots:
 
   '@tanstack/devtools-event-client@0.4.3': {}
 
-  '@tanstack/form-core@1.28.6':
-    dependencies:
-      '@tanstack/devtools-event-client': 0.4.3
-      '@tanstack/pacer-lite': 0.1.1
-      '@tanstack/store': 0.9.1
-
   '@tanstack/form-core@1.33.2':
     dependencies:
       '@tanstack/devtools-event-client': 0.4.3
@@ -7667,14 +7653,6 @@ snapshots:
   '@tanstack/history@1.161.4': {}
 
   '@tanstack/pacer-lite@0.1.1': {}
-
-  '@tanstack/react-form@1.28.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@tanstack/form-core': 1.28.6
-      '@tanstack/react-store': 0.9.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      react: 19.2.4
-    transitivePeerDependencies:
-      - react-dom
 
   '@tanstack/react-form@1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
