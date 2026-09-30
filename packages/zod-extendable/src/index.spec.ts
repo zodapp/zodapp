@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from "vitest";
 import z from "zod";
-import { extendEnum, extendLiteral, extendString, extendUnion, extendCustom } from ".";
+import {
+  extendEnum,
+  extendLiteral,
+  extendString,
+  extendUnion,
+  extendCustom,
+} from ".";
 
 describe("zod-extendable (slim)", () => {
   describe("extendCustom", () => {
@@ -74,6 +80,29 @@ describe("zod-extendable (slim)", () => {
       const meta = (zfEnum as any).registry.get(schema);
       expect(meta?.label).toBe("ロール");
       expect(meta?.schemas?.admin).toBe(admin);
+    });
+
+    it("creates enum from number literals", () => {
+      const low = z.literal(0.3).register(zfLiteral.registry, { label: "低" });
+      const high = z.literal(0.8);
+      const schema = zfEnum([low, high] as const);
+      expect(schema).toBeInstanceOf(z.ZodEnum);
+      expect(schema.options).toEqual([0.3, 0.8]);
+      expect(schema.parse(0.3)).toBe(0.3);
+      expect(() => schema.parse("0.3")).toThrow();
+      expect(() => schema.parse(0.5)).toThrow();
+
+      const meta = (zfEnum as any).registry.get(schema);
+      expect(meta?.schemas?.["0.3"]).toBe(low);
+      expect(meta?.schemas?.["0.8"]).toBe(high);
+    });
+
+    it("accepts 0 and mixed string / number literals", () => {
+      const schema = zfEnum([z.literal(0), z.literal("auto")] as const);
+      expect(schema.options).toEqual([0, "auto"]);
+      expect(schema.parse(0)).toBe(0);
+      expect(schema.parse("auto")).toBe("auto");
+      expect(() => schema.parse("0")).toThrow();
     });
   });
 

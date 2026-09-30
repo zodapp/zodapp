@@ -87,7 +87,7 @@ const ArrayOfStringComponent = wrapComponent(
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
-        placeholder="タグを入力してEnterで追加"
+        placeholder="入力してEnterで追加"
         error={error?.message}
         required={required !== false}
         disabled={readOnly || field.disabled}
