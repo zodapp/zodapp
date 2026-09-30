@@ -54,13 +54,10 @@ describe("ArrayOfStringComponent", () => {
 
   it("ignores non-string placeholder values before passing them to TagsInput", async () => {
     const formSchema = z.object({
-      tags: zf
-        .array(zf.string())
-        .min(1)
-        .register(zf.array.registry, {
-          label: "タグ",
-          uiType: "multipleString",
-        }),
+      tags: zf.array(zf.string()).min(1).register(zf.array.registry, {
+        label: "タグ",
+        uiType: "multipleString",
+      }),
     });
 
     const FormUnderTest = () => {
@@ -95,6 +92,8 @@ describe("ArrayOfStringComponent", () => {
 
     render(<FormUnderTest />);
 
-    expect(await screen.findByPlaceholderText("タグを入力してEnterで追加")).toBeTruthy();
+    expect(
+      await screen.findByPlaceholderText("入力してEnterで追加"),
+    ).toBeTruthy();
   });
 });
