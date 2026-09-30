@@ -258,7 +258,13 @@ function ImportContent<S extends z.ZodType>({
   );
 }
 
-export function useImportModal<S extends z.ZodType>(props: ImportProps<S>) {
+export function useImportModal<S extends z.ZodType>({
+  title = "データインポート",
+  ...props
+}: ImportProps<S> & {
+  /** モーダルのタイトル。文字のほかに部品（ガイドを開くボタンなど）も置ける */
+  title?: React.ReactNode;
+}) {
   const [opened, { open, close }] = useDisclosure(false);
   const state = useImportState(props);
   const { reset } = state;
@@ -272,7 +278,7 @@ export function useImportModal<S extends z.ZodType>(props: ImportProps<S>) {
     <Modal
       opened={opened}
       onClose={handleClose}
-      title="データインポート"
+      title={title}
       size="calc(100vw - 3rem)"
     >
       <ImportContent state={state} showCancel onCancel={handleClose} />
