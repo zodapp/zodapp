@@ -6,7 +6,19 @@ export type AnyZodObject = z.ZodObject<z.ZodRawShape>;
 type Wrapper =
   | { kind: "optional" }
   | { kind: "nullable" }
-  | { kind: "default"; defaultValue: unknown };
+  | { kind: "default"; defaultValue: unknown }
+  | { kind: "preprocess"; transform: z.ZodTransform };
+
+/**
+ * `z.preprocess(fn, schema)` で作った pipe (入口が transform) かどうか。
+ *
+ * zod-form は output の形で値を扱うので、preprocess は「型に合わない保存データを、中のスキーマの形にそろえる」
+ * 一方向の変換として扱い、optional などと同じく中のスキーマを包む wrapper とみなす。
+ */
+export const isPreprocessPipe = (
+  schema: unknown,
+): schema is z.ZodPipe<z.ZodTransform, z.ZodTypeAny> =>
+  schema instanceof z.ZodPipe && schema.def.in instanceof z.ZodTransform;
 
 type RewrapOptions = {
   preserveOptional?: boolean;
@@ -48,6 +60,11 @@ export const unwrapSchema = (schema: z.ZodTypeAny) => {
       current = current.unwrap() as z.ZodTypeAny;
       continue;
     }
+    if (isPreprocessPipe(current)) {
+      wrappers.push({ kind: "preprocess", transform: current.def.in });
+      current = current.def.out as z.ZodTypeAny;
+      continue;
+    }
     break;
   }
 
@@ -60,6 +77,7 @@ export const unwrapSchema = (schema: z.ZodTypeAny) => {
         return options.preserveOptional === false ? acc : acc.optional();
       }
       if (wrapper.kind === "nullable") return acc.nullable();
+      if (wrapper.kind === "preprocess") return wrapper.transform.pipe(acc);
       return acc.default(wrapper.defaultValue as never);
     }, next);
 
@@ -289,12 +307,7 @@ export const mergeSchema = (
   const { inner, rewrap } = unwrapSchema(schema);
 
   if (inner instanceof z.ZodObject) {
-    const nextShape = buildObjectShape(
-      inner.shape,
-      extra,
-      mode,
-      reduceField,
-    );
+    const nextShape = buildObjectShape(inner.shape, extra, mode, reduceField);
     return rewrap(replaceObjectShape(inner as AnyZodObject, nextShape));
   }
 
