@@ -2,6 +2,7 @@ import { getMeta, zf } from "../def";
 import { describe, expect, it } from "vitest";
 import {
   cloneSchema,
+  isPreprocessPipe,
   replaceArrayElement,
   replaceObjectShape,
   unwrapSchema,
@@ -158,5 +159,26 @@ describe("schema helpers", () => {
     expect(replaced.safeParse([1, 2]).success).toBe(true);
     expect(replaced.safeParse([1]).success).toBe(false);
     expect(replaced.safeParse([1, 2, 3]).success).toBe(false);
+  });
+});
+
+describe("unwrapSchema (z.preprocess)", () => {
+  const truncate = (value: unknown) =>
+    Array.isArray(value) ? value.slice(0, 1) : value;
+
+  it("preprocess の pipe を wrapper として開き、包み直すと preprocess も戻る", () => {
+    const tuple = zf.tuple([z.string()]).register(zf.tuple.registry, {
+      label: "取得項目",
+    });
+    const schema = z.preprocess(truncate, tuple).optional();
+    expect(isPreprocessPipe(schema.unwrap())).toBe(true);
+
+    const { inner, rewrap } = unwrapSchema(schema);
+    expect(inner).toBe(tuple);
+    expect(getMeta(inner)?.label).toBe("取得項目");
+
+    const rewrapped = rewrap(z.array(z.string()));
+    expect(rewrapped.parse(["a", "b", "c"])).toEqual(["a"]);
+    expect(rewrapped.parse(undefined)).toBeUndefined();
   });
 });

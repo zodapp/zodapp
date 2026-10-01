@@ -1,5 +1,5 @@
 import { getMetaReact } from "@zodapp/zod-form-react";
-import { zf } from "@zodapp/zod-form";
+import { isPreprocessPipe, zf } from "@zodapp/zod-form";
 import { z } from "zod";
 import { getUnwrappedMeta } from "./table-types";
 
@@ -58,6 +58,11 @@ function unwrapWrappers(schema: z.ZodTypeAny): z.ZodTypeAny {
       continue;
     }
 
+    if (isPreprocessPipe(current)) {
+      current = current.def.out as z.ZodTypeAny;
+      continue;
+    }
+
     if (current instanceof z.ZodLazy) {
       const getter = getLazyGetter(current);
       if (!getter) break;
@@ -105,6 +110,8 @@ function getUnwrappedUnionMeta(schema: z.ZodTypeAny) {
       current instanceof z.ZodDefault
     ) {
       current = current.unwrap() as z.ZodTypeAny;
+    } else if (isPreprocessPipe(current)) {
+      current = current.def.out as z.ZodTypeAny;
     } else if (current instanceof z.ZodLazy) {
       const getter = getLazyGetter(current);
       if (!getter) break;

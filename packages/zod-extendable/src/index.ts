@@ -185,25 +185,41 @@ export const extendEnum = <TMeta extends object>(
   metaSchema?: z.ZodType<TMeta>,
 ) => {
   const enumRegistry = getRegistry<
-    Partial<TMeta> & { schemas?: Record<string, z.ZodLiteral<string>> },
+    Partial<TMeta> & {
+      schemas?: Record<string, z.ZodLiteral<string | number>>;
+    },
     z.ZodEnum<any>,
     "enum"
   >("enum");
 
+  /**
+   * literal の並びから enum を作る。値は文字列でも数値でもよい。
+   * 数値を含むときは `z.enum` のオブジェクトの形 (`{ "number:0.3": 0.3 }`) で作る
+   * (配列の形は文字列しか受け付けないため)。数値のキーを数字だけにすると、zod が TypeScript の
+   * 数値 enum の逆引きとみなして落とすので、`number:` を前に付ける。
+   * `schemas` のキーは値を文字列にしたもの
+   */
   const enumFactory = <
-    TItems extends readonly [z.ZodLiteral<string>, ...z.ZodLiteral<string>[]],
+    TItems extends readonly [
+      z.ZodLiteral<string | number>,
+      ...z.ZodLiteral<string | number>[],
+    ],
   >(
     literals: TItems,
     params?: Parameters<typeof z.enum>[1],
   ): z.ZodEnum<z.core.util.ToEnum<TItems[number]["value"]>> => {
-    const values = literals.map((lit) => lit.value) as [
-      TItems[0]["value"],
-      ...TItems[number]["value"][],
-    ];
+    const values = literals.map((lit) => lit.value) as (string | number)[];
     const schemas = Object.fromEntries(
-      values.map((v, i) => [v, literals[i]]),
-    ) as Record<string, z.ZodLiteral<string>>;
-    return z.enum(values, params).register(enumRegistry, { schemas } as any);
+      values.map((v, i) => [String(v), literals[i]]),
+    ) as Record<string, z.ZodLiteral<string | number>>;
+    const entries = values.every((v) => typeof v === "string")
+      ? (values as [string, ...string[]])
+      : Object.fromEntries(
+          values.map((v) => [typeof v === "number" ? `number:${v}` : v, v]),
+        );
+    return z
+      .enum(entries as never, params)
+      .register(enumRegistry, { schemas } as any) as any;
   };
 
   const derivedFactory = enumFactory as typeof enumFactory & {
