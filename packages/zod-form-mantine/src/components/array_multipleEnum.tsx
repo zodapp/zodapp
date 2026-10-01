@@ -9,6 +9,8 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import {
   renderSelectOption,
   useEnumData,
+  toEnumOptionValue,
+  fromEnumOptionValue,
   ReadonlyText,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
@@ -44,15 +46,26 @@ const ArrayOfEnumComponent = wrapComponent(
 
     const uiType = arrayMeta?.uiType;
     const label = labelFromParent ?? labelFromMeta;
+    // 数値の選択肢も扱えるよう、MultiSelect とは文字列でやりとりする
     const value = useMemo(
-      () => (Array.isArray(field.value) ? field.value : []),
+      () =>
+        Array.isArray(field.value)
+          ? field.value.flatMap((item: unknown) => {
+              const optionValue = toEnumOptionValue(item);
+              return optionValue === null ? [] : [optionValue];
+            })
+          : [],
       [field.value],
     );
     const onChange = useCallback(
       (next: string[] | null | undefined) => {
-        field.onChange(!next || next.length === 0 ? undefined : next);
+        field.onChange(
+          !next || next.length === 0
+            ? undefined
+            : next.map((item) => fromEnumOptionValue(enumSchema, item)),
+        );
       },
-      [field],
+      [enumSchema, field],
     );
 
     const data = useEnumData(enumSchema);

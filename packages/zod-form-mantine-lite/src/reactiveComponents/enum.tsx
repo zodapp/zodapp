@@ -4,7 +4,11 @@ import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import { renderSelectOption } from "../utils/selectOption";
-import { useEnumData } from "../utils/enum";
+import {
+  useEnumData,
+  toEnumOptionValue,
+  fromEnumOptionValue,
+} from "../utils/enum";
 import {
   useConfirmableState,
   confirmableRightSectionProps,
@@ -27,17 +31,20 @@ const EnumComponent = React.memo(function EnumComponent({
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
-  const rawValue = (defaultValue as string | undefined) ?? null;
+  const rawValue = (defaultValue as string | number | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath);
 
   const data = useEnumData(schema);
 
+  // 数値の選択肢も扱えるよう、Select とは文字列でやりとりする (0 も値として残す)
+  const optionValue = toEnumOptionValue(value);
+
   const displayLabel = useMemo(() => {
-    if (!value) return "";
-    const option = data.find((d) => d.value === value);
-    return option?.label ?? String(value);
-  }, [data, value]);
+    if (optionValue === null) return "";
+    const option = data.find((d) => d.value === optionValue);
+    return option?.label ?? optionValue;
+  }, [data, optionValue]);
 
   if (readOnly) {
     return (
@@ -53,10 +60,10 @@ const EnumComponent = React.memo(function EnumComponent({
 
   return (
     <Select
-      value={value}
+      value={optionValue}
       data={data}
       renderOption={uiType === "badge" ? renderSelectOption : undefined}
-      onChange={(next) => onChange(next)}
+      onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
       onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
@@ -65,7 +72,7 @@ const EnumComponent = React.memo(function EnumComponent({
       clearable
       style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel, {
-        clearableWidth: value ? 24 : 0,
+        clearableWidth: optionValue !== null ? 24 : 0,
       })}
     />
   );

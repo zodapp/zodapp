@@ -40,3 +40,26 @@ describe("preprocess", () => {
     expect(preprocess(payload, schema)).toEqual(payload);
   });
 });
+
+describe("preprocess (z.preprocess の pipe)", () => {
+  it("z.preprocess の関数を当ててから、中のスキーマを走査する", () => {
+    const tuple = z.tuple([z.string()]);
+    const schema = z.object({
+      tags: z.preprocess(
+        (value) => (Array.isArray(value) ? value.slice(0, 1) : value),
+        tuple,
+      ),
+      other: z.string().optional(),
+    });
+    expect(preprocess({ tags: ["a", "b", "c"], extra: 1 }, schema)).toEqual({
+      tags: ["a"],
+      other: undefined,
+      extra: 1,
+    });
+  });
+
+  it("入口が transform でない pipe は、今までどおり入口を走査する", () => {
+    const schema = z.string().pipe(z.string().min(1));
+    expect(preprocess("x", schema)).toBe("x");
+  });
+});

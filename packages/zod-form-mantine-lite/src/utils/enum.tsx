@@ -1,22 +1,45 @@
 import { useMemo } from "react";
-import { zf, getMeta } from "@zodapp/zod-form";
+import type { z } from "zod";
+import { getMeta } from "@zodapp/zod-form";
 import { type OptionDataType } from "./selectOption";
 
-type EnumSchema = ReturnType<typeof zf.enum>;
+// 文字列の enum も数値の enum も受け付ける
+type EnumSchema = z.ZodEnum<z.core.util.EnumLike>;
+type EnumValue = string | number;
 
 /**
- * enumスキーマのオプションからSelect/MultiSelect用のdata配列を生成するフック
+ * enumスキーマのオプションからSelect/MultiSelect用のdata配列を生成するフック。
+ * Select の値は文字列なので、数値の選択肢も文字列にして渡す ({@link fromEnumOptionValue} で戻す)
  */
 export function useEnumData(enumSchema: EnumSchema): OptionDataType[] {
   return useMemo(() => {
     const { schemas } = getMeta(enumSchema) ?? {};
-    return enumSchema.options.map((value) => {
-      const literalMeta = schemas?.[value] ? getMeta(schemas[value]) : null;
+    return (enumSchema.options as readonly EnumValue[]).map((value) => {
+      const key = String(value);
+      const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
       return {
-        value,
-        label: literalMeta?.label ?? String(value),
+        value: key,
+        label: literalMeta?.label ?? key,
         color: literalMeta?.color ?? "gray",
       } satisfies OptionDataType;
     });
   }, [enumSchema]);
 }
+
+/** フォームの値を Select の値 (文字列) にする。未選択 (undefined / null / 空文字) は null */
+export const toEnumOptionValue = (value: unknown): string | null =>
+  value === undefined || value === null || value === "" ? null : String(value);
+
+/** Select の値 (文字列) を enum の値 (文字列または数値) に戻す。未選択は undefined */
+export const fromEnumOptionValue = (
+  enumSchema: EnumSchema,
+  optionValue: string | null | undefined,
+): EnumValue | undefined => {
+  if (optionValue === null || optionValue === undefined || optionValue === "")
+    return undefined;
+  return (
+    (enumSchema.options as readonly EnumValue[]).find(
+      (value) => String(value) === optionValue,
+    ) ?? optionValue
+  );
+};

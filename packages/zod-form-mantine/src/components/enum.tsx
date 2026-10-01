@@ -9,6 +9,8 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import {
   renderSelectOption,
   useEnumData,
+  toEnumOptionValue,
+  fromEnumOptionValue,
   ReadonlyText,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
@@ -29,18 +31,20 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
 
   const onChange = useCallback(
     (value: string | null | undefined) => {
-      field.onChange(value || undefined);
+      field.onChange(fromEnumOptionValue(schema, value));
     },
-    [field],
+    [field, schema],
   );
 
   const data = useEnumData(schema);
+  // 数値の選択肢も扱えるよう、Select とは文字列でやりとりする (0 も値として残す)
+  const optionValue = toEnumOptionValue(field.value);
 
   const displayLabel = useMemo(() => {
-    if (!field.value) return "";
-    const option = data.find((d) => d.value === field.value);
-    return option?.label ?? String(field.value);
-  }, [data, field.value]);
+    if (optionValue === null) return "";
+    const option = data.find((d) => d.value === optionValue);
+    return option?.label ?? optionValue;
+  }, [data, optionValue]);
 
   if (readOnly || field.disabled) {
     return (
@@ -57,7 +61,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   return (
     <Select
       ref={ref}
-      value={field.value ?? null}
+      value={optionValue}
       data={data}
       renderOption={uiType === "badge" ? renderSelectOption : undefined}
       onChange={onChange}
