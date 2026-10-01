@@ -1,5 +1,6 @@
 import { getMetaReact } from '@zodapp/zod-form-react';
 import { z } from 'zod';
+import { isPreprocessPipe } from '@zodapp/zod-form';
 
 export type ColumnEntry = {
   fieldPath?: string;
@@ -22,6 +23,8 @@ export const getUnwrappedMeta = (schema: z.ZodTypeAny) => {
       currentSchema = currentSchema.unwrap() as z.ZodTypeAny;
     } else if (currentSchema instanceof z.ZodDefault) {
       currentSchema = currentSchema.unwrap() as z.ZodTypeAny;
+    } else if (isPreprocessPipe(currentSchema)) {
+      currentSchema = currentSchema.def.out as z.ZodTypeAny;
     } else {
       break;
     }

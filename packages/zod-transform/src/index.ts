@@ -681,6 +681,15 @@ const intrinsicProcessorDef: ProcessorDef = {
   },
   pipe: (obj, schema, context) => {
     if (context.mode === "preprocess") {
+      // `z.preprocess(fn, schema)` は入口が transform の pipe。fn を当ててから中のスキーマを走査する
+      // (fn は「型に合わないデータを中のスキーマの形にそろえる」一方向の変換として扱う)
+      if (schema.in instanceof z.ZodTransform) {
+        const result = schema.in.safeParse(obj);
+        return context.transform(
+          result.success ? result.data : obj,
+          schema.out as z.ZodTypeAny,
+        );
+      }
       return context.transform(obj, schema.in);
     } else {
       return context.transform(obj, schema.out as z.ZodTypeAny);
