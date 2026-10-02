@@ -1,7 +1,7 @@
 import { Modal, Button, Group, Text, Alert } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconDownload } from '@tabler/icons-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { toTable, tableToCsv } from '@zodapp/zod-tabular';
 import { TabularPreviewTable } from './TabularPreviewTable';
@@ -11,6 +11,8 @@ interface ExportModalProps<S extends z.ZodType> {
   data: z.infer<S>[];
   fetchAll: () => Promise<z.infer<S>[]>;
   filename?: string;
+  /** モーダルのタイトル。文字のほかに部品（ガイドを開くボタンなど）も置ける */
+  title?: ReactNode;
 }
 
 function downloadCsv(csv: string, filename: string): void {
@@ -29,7 +31,8 @@ export function useExportModal<S extends z.ZodType>({
   schema,
   data,
   fetchAll,
-  filename = 'export.csv'
+  filename = 'export.csv',
+  title = 'データエクスポート'
 }: ExportModalProps<S>) {
   const [opened, { open, close }] = useDisclosure(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -62,7 +65,7 @@ export function useExportModal<S extends z.ZodType>({
   }, [fetchAll, schema, filename, close]);
 
   const modal = (
-    <Modal opened={opened} onClose={close} title="データエクスポート" size="calc(100vw - 3rem)">
+    <Modal opened={opened} onClose={close} title={title} size="calc(100vw - 3rem)">
       {data.length === 0 ? (
         <Text c="dimmed">現在表示中のデータがありません。</Text>
       ) : (
