@@ -40,8 +40,8 @@
     "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
   },
   "devDependencies": {
-    "@mantine/dates": "^8.3.14",
-    "@mantine/dropzone": "^8.3.14",
+    "@mantine/dates": "^9.6.3",
+    "@mantine/dropzone": "^9.6.3",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@testing-library/react": "^16.0.1",
@@ -72,10 +72,10 @@
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@mantine/core": "^8.2.7",
-    "@mantine/dates": "^8.2.7",
-    "@mantine/dropzone": "^8.2.7",
-    "@mantine/hooks": "^8.2.7",
+    "@mantine/core": "^8.2.7 || ^9.0.0",
+    "@mantine/dates": "^8.2.7 || ^9.0.0",
+    "@mantine/dropzone": "^8.2.7 || ^9.0.0",
+    "@mantine/hooks": "^8.2.7 || ^9.0.0",
     "@tanstack/react-form": "^1.28.6",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
