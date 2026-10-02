@@ -225,7 +225,13 @@ function DynamicImportContent({
   );
 }
 
-export function useDynamicImportModal(props: DynamicImportProps) {
+export function useDynamicImportModal({
+  title = 'データインポート',
+  ...props
+}: DynamicImportProps & {
+  /** モーダルのタイトル。文字のほかに部品（ガイドを開くボタンなど）も置ける */
+  title?: React.ReactNode;
+}) {
   const [opened, { open, close }] = useDisclosure(false);
   const state = useDynamicImportState(props);
 
@@ -235,7 +241,7 @@ export function useDynamicImportModal(props: DynamicImportProps) {
   }, [close, state.reset]);
 
   const modal = (
-    <Modal opened={opened} onClose={handleClose} title="データインポート" size="calc(100vw - 3rem)">
+    <Modal opened={opened} onClose={handleClose} title={title} size="calc(100vw - 3rem)">
       <DynamicImportContent state={state} showCancel onCancel={handleClose} />
     </Modal>
   );
