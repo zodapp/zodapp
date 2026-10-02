@@ -47,7 +47,7 @@
     "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
   },
   "devDependencies": {
-    "@mantine/dates": "^8.3.14",
+    "@mantine/dates": "^9.6.3",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.19.7",
@@ -71,9 +71,9 @@
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@mantine/core": "^8.2.7",
-    "@mantine/dates": "^8.2.7",
-    "@mantine/hooks": "^8.2.7",
+    "@mantine/core": "^8.2.7 || ^9.0.0",
+    "@mantine/dates": "^8.2.7 || ^9.0.0",
+    "@mantine/hooks": "^8.2.7 || ^9.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
