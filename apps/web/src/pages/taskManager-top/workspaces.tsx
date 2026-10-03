@@ -19,7 +19,7 @@ import {
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
 import { extendSchemaSafe } from "@zodapp/zod-form-widget";
-import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
+import { useProfileColumnSettings } from "../../shared/taskManager/useProfileColumnSettings";
 
 import { z } from "zod";
 
@@ -68,8 +68,9 @@ const WorkspacesPage = () => {
     [],
   );
 
-  const controller = useLocalColumnSettings({
-    storageKey: WORKSPACE_TABLE_STORAGE_KEY,
+  // 列設定プロファイル（ワークスペース横断ページのため team スコープなし）
+  const controller = useProfileColumnSettings({
+    tableKey: WORKSPACE_TABLE_STORAGE_KEY,
     schema: workspaceTableSchema,
     defaultFieldPaths: WORKSPACE_TABLE_DEFAULT_FIELD_PATHS,
   });

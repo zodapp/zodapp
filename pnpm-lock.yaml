@@ -54,7 +54,7 @@ importers:
         specifier: ^3.36.1
         version: 3.37.1(react@19.2.4)
       '@tanstack/react-form':
-        specifier: ^1.28.6
+        specifier: ^1.33.1
         version: 1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/react-router':
         specifier: ^1.157.18
@@ -544,7 +544,7 @@ importers:
         specifier: ^3.36.1
         version: 3.37.1(react@19.2.4)
       '@tanstack/react-form':
-        specifier: ^1.28.6
+        specifier: ^1.33.1
         version: 1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@zodapp/zod-form':
         specifier: workspace:*
@@ -772,7 +772,7 @@ importers:
         specifier: ^3.36.1
         version: 3.37.1(react@19.2.4)
       '@tanstack/react-form':
-        specifier: ^1.28.6
+        specifier: ^1.33.1
         version: 1.33.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@zodapp/zod-form':
         specifier: workspace:*
@@ -3399,7 +3399,6 @@ packages:
   eslint@9.39.3:
     resolution: {integrity: sha512-VmQ+sifHUbI/IcSopBCF/HO3YiHQx/AVd3UVyYL6weuwW+HvON9VYn5l6Zl1WZzPWXPNZrSQpxwkkZ/VuvJZzg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'

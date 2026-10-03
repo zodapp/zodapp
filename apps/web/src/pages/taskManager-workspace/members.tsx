@@ -29,7 +29,7 @@ import {
   useTableSettingDrawer,
 } from "@zodapp/zod-form-widget/table";
 import { extendSchemaSafe } from "@zodapp/zod-form-widget";
-import { useLocalColumnSettings } from "../../shared/taskManager/useLocalColumnSettings";
+import { useProfileColumnSettings } from "../../shared/taskManager/useProfileColumnSettings";
 import { createFirebaseStorageResolver } from "@zodapp/zod-form-firebase";
 import { createActionSchema } from "../../components/createActionSchema";
 import {
@@ -152,10 +152,12 @@ const MembersPage = () => {
     onImport: handleImport,
   });
 
-  const controller = useLocalColumnSettings({
-    storageKey: MEMBER_TABLE_STORAGE_KEY,
+  // 列設定プロファイル（このブラウザ / 個人 / ワークスペース共通の3スコープ）
+  const controller = useProfileColumnSettings({
+    tableKey: MEMBER_TABLE_STORAGE_KEY,
     schema: memberTableSchema,
     defaultFieldPaths: MEMBER_TABLE_DEFAULT_FIELD_PATHS,
+    workspaceId,
   });
 
   const { open: openTableSetting, modal: tableSettingDrawer } =

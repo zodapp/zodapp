@@ -1,28 +1,28 @@
 import { Link } from "@tanstack/react-router";
 
 import styles from "../../../styles/page.module.css";
-import { formListRoute } from "../../form/list.route";
-import { taskManagerRoute } from "../../taskManager-top/index.route";
-import { Box } from "@mantine/core";
+import { demos } from "../../../shared/demos";
+import {
+  Box,
+  Card,
+  Group,
+  SimpleGrid,
+  Text,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
 
 const HomePage = () => {
   return (
     <div className={styles.page}>
       <main className={styles.main}>
         <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>
-          <Box
-            w={240 - 76} // 左右10pxずつ削るので -20
-            h={120 - 40} // 上下10pxずつ削るので -20
-            style={{ overflow: "hidden" }}
-          >
-            <img
-              src="/zodapp-logo.svg"
-              alt="zodapp logomark"
-              width={240}
-              height={120}
-              style={{ marginTop: -20, marginLeft: -38 }}
-            />
-          </Box>
+          <img
+            src="/zodapp-logo.svg"
+            alt="zodapp logomark"
+            width={240}
+            height={70}
+          />
         </h1>
         <p style={{ fontSize: "1.2rem", color: "#666", marginBottom: "2rem" }}>
           AIネイティブなスキーマ駆動開発フレームワーク
@@ -51,14 +51,33 @@ const HomePage = () => {
           </ul>
         </div>
 
-        <div className={styles.ctas}>
-          <Link to={formListRoute.to} className={styles.secondary}>
-            フォームデモ
-          </Link>
-          <Link to={taskManagerRoute.to} className={styles.secondary}>
-            アプリデモ
-          </Link>
-        </div>
+        <Box style={{ width: "100%", maxWidth: "980px", textAlign: "left" }}>
+          <Title order={2} size="1.3rem" mb="md">
+            収録デモ
+          </Title>
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+            {demos.map((demo) => (
+              <Card
+                key={demo.title}
+                component={Link}
+                to={demo.to}
+                withBorder
+                padding="lg"
+                style={{ height: "100%" }}
+              >
+                <Group gap="sm" mb="xs" wrap="nowrap">
+                  <ThemeIcon variant="light" size="lg" radius="md">
+                    {demo.icon}
+                  </ThemeIcon>
+                  <Text fw={600}>{demo.title}</Text>
+                </Group>
+                <Text size="sm" c="dimmed">
+                  {demo.description}
+                </Text>
+              </Card>
+            ))}
+          </SimpleGrid>
+        </Box>
       </main>
       <footer className={styles.footer}>
         <p style={{ color: "#888" }}>

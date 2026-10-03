@@ -7,6 +7,10 @@ import {
 import { readFileSync } from "fs";
 import { describe, beforeAll, afterAll, beforeEach, it } from "vitest";
 
+// アプリのテストデータ画面と同じフィクスチャ定義を使う
+// （定義がずれないよう単一情報源にしている）
+import { surveyFixtures } from "../src/shared/survey/fixtures";
+
 let testEnv: RulesTestEnvironment;
 
 const PROJECT_ID = "zodapp-test";
@@ -91,6 +95,20 @@ describe("Firestore Security Rules", () => {
         role: "member",
         createdAt: new Date(),
         updatedAt: new Date(),
+      });
+
+      // アンケート（アプリのテストデータ画面と同じフィクスチャ）
+      for (const fixture of surveyFixtures) {
+        await db
+          .doc(`workspaces/test-workspace/surveys/${fixture.surveyId}`)
+          .set(fixture.data);
+      }
+      await db.doc("workspaces/test-workspace/responses/response-1").set({
+        surveyId: surveyFixtures[0]!.surveyId,
+        surveyRevision: 1,
+        respondentId: viewerUser.email,
+        answers: { q_name: "既存の回答" },
+        submittedAt: new Date(),
       });
 
       await db.doc(`workspaces/test-workspace/members/${viewerUser.email}`).set({
@@ -323,11 +341,154 @@ describe("Firestore Security Rules", () => {
     });
   });
 
+  describe("Survey Rules", () => {
+    it("memberはアンケートを作成・読取できる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(
+        db.doc("workspaces/test-workspace/surveys/survey-1").set({
+          title: "満足度調査",
+          status: "draft",
+          fields: [],
+          deletedAt: null,
+          revision: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
+      await assertSucceeds(db.doc("workspaces/test-workspace/surveys/survey-1").get());
+    });
+
+    it("viewerはアンケートを読めるが作成できない", async () => {
+      const db = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
+      await assertSucceeds(db.doc("workspaces/test-workspace/surveys/fx-satisfaction").get());
+      await assertFails(
+        db.doc("workspaces/test-workspace/surveys/survey-2").set({
+          title: "勝手に作成",
+          status: "draft",
+          fields: [],
+          deletedAt: null,
+        })
+      );
+    });
+
+    it("部外者はアンケートを読めない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(db.doc("workspaces/test-workspace/surveys/fx-satisfaction").get());
+    });
+  });
+
+  describe("Survey Response Rules", () => {
+    it("viewerでも回答を作成でき、メンバーは読める", async () => {
+      const viewerDb = testEnv.authenticatedContext(viewerUser.uid, { email: viewerUser.email }).firestore();
+      await assertSucceeds(
+        viewerDb.doc("workspaces/test-workspace/responses/response-new").set({
+          surveyId: "fx-satisfaction",
+          surveyRevision: 1,
+          respondentId: viewerUser.email,
+          answers: { f_text: "回答" },
+          submittedAt: new Date(),
+        })
+      );
+
+      const memberDb = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(memberDb.doc("workspaces/test-workspace/responses/response-1").get());
+    });
+
+    it("memberは回答を更新・削除できない（改竄防止）", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertFails(
+        db.doc("workspaces/test-workspace/responses/response-1").update({ answers: { f_text: "改竄" } })
+      );
+      await assertFails(db.doc("workspaces/test-workspace/responses/response-1").delete());
+    });
+
+    it("adminは回答を更新できる", async () => {
+      const db = testEnv.authenticatedContext(adminUser.uid, { email: adminUser.email }).firestore();
+      await assertSucceeds(
+        db.doc("workspaces/test-workspace/responses/response-1").update({ answers: { f_text: "訂正" } })
+      );
+    });
+
+    it("部外者は回答を作成・読取できない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(db.doc("workspaces/test-workspace/responses/response-1").get());
+      await assertFails(
+        db.doc("workspaces/test-workspace/responses/response-2").set({
+          surveyId: "survey-1",
+          answers: {},
+        })
+      );
+    });
+  });
+
+  describe("Column Settings Rules", () => {
+    it("自分のユーザー列設定は読み書きできる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(
+        db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).set({
+          tableKey: "task",
+          name: "My setting",
+          columns: null,
+        })
+      );
+      await assertSucceeds(db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).get());
+    });
+
+    it("他人のユーザー列設定は読み書きできない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(
+        db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).set({
+          tableKey: "task",
+          name: "Evil setting",
+          columns: null,
+        })
+      );
+      await assertFails(db.doc(`users/${memberUser.uid}/columnSettings/setting-1`).get());
+    });
+
+    it("メンバーはワークスペース共通の列設定を読み書きできる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertSucceeds(
+        db.doc("workspaces/test-workspace/columnSettings/shared-1").set({
+          tableKey: "task",
+          name: "Shared setting",
+          columns: null,
+        })
+      );
+      await assertSucceeds(db.doc("workspaces/test-workspace/columnSettings/shared-1").get());
+    });
+
+    it("部外者はワークスペース共通の列設定を読めない", async () => {
+      const db = testEnv.authenticatedContext(outsiderUser.uid, { email: outsiderUser.email }).firestore();
+      await assertFails(db.doc("workspaces/test-workspace/columnSettings/shared-1").get());
+    });
+  });
+
   describe("CollectionGroup Query Rules", () => {
     it("自分のmemberドキュメントはcollectionGroupで読める", async () => {
       const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
       // 自分のmemberIdと一致するドキュメントのみ読める
       await assertSucceeds(db.doc(`workspaces/test-workspace/members/${memberUser.email}`).get());
+    });
+
+    it("自分のemailで絞り込んだcollectionGroupクエリは実行できる", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      // 所属ワークスペースの横断検索（useUserWorkspaces が使用するクエリ）
+      await assertSucceeds(
+        db.collectionGroup("members").where("email", "==", memberUser.email).get()
+      );
+    });
+
+    it("他人のemailで絞り込んだcollectionGroupクエリは拒否される", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertFails(
+        db.collectionGroup("members").where("email", "==", adminUser.email).get()
+      );
+    });
+
+    it("絞り込みのないcollectionGroupクエリは拒否される", async () => {
+      const db = testEnv.authenticatedContext(memberUser.uid, { email: memberUser.email }).firestore();
+      await assertFails(db.collectionGroup("members").get());
     });
   });
 });

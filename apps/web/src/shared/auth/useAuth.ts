@@ -11,6 +11,13 @@ export interface AuthState {
 
 export interface AuthActions {
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    displayName?: string,
+  ) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -48,6 +55,56 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
+  const signInWithEmail = useCallback(
+    async (email: string, password: string) => {
+      setError(null);
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("ログインに失敗しました"),
+        );
+        throw err;
+      }
+    },
+    [],
+  );
+
+  const signUpWithEmail = useCallback(
+    async (email: string, password: string, displayName?: string) => {
+      setError(null);
+      try {
+        const credential = await auth.createUserWithEmailAndPassword(
+          email,
+          password,
+        );
+        if (displayName && credential.user) {
+          await credential.user.updateProfile({ displayName });
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err : new Error("登録に失敗しました"),
+        );
+        throw err;
+      }
+    },
+    [],
+  );
+
+  const sendPasswordReset = useCallback(async (email: string) => {
+    setError(null);
+    try {
+      await auth.sendPasswordResetEmail(email);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err
+          : new Error("パスワードリセットメールの送信に失敗しました"),
+      );
+      throw err;
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     setError(null);
     try {
@@ -63,6 +120,9 @@ export function useAuth(): UseAuthReturn {
     loading,
     error,
     signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
+    sendPasswordReset,
     signOut,
   };
 }
