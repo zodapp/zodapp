@@ -39,6 +39,14 @@ describe("StringComponent sanity", () => {
         })),
       });
     }
+    // jsdom には document.fonts が無いが、mantine 9 の Textarea (autosize) は
+    // フォント読み込み完了イベントを購読するため、最小限の代替を置く
+    if (!document.fonts) {
+      Object.defineProperty(document, "fonts", {
+        configurable: true,
+        value: { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+      });
+    }
   });
 
   afterEach(() => {
