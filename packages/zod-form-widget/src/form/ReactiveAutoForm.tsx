@@ -4,6 +4,7 @@ import {
   ReactiveFormContextProvider,
   Switch,
   ZodFormContextProvider,
+  reactiveComponentLibrary as defaultReactiveComponentLibrary,
   type ReactiveFieldEvent
 } from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
@@ -11,7 +12,8 @@ import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext
 import type {
   MediaResolvers,
   ExternalKeyActionResolver,
-  CollectionReferenceActionEntry
+  CollectionReferenceActionEntry,
+  ComponentLibrary
 } from '@zodapp/zod-form-react';
 import type { z } from 'zod';
 
@@ -60,6 +62,11 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   ) => boolean | undefined | Promise<boolean | undefined>;
   isLoading?: boolean;
   showPreview?: boolean;
+  /**
+   * 描画に使う ComponentLibrary。省略時は zod-form-mantine の
+   * reactiveComponentLibrary。
+   */
+  componentLibrary?: ComponentLibrary;
   externalKeyResolvers?: ExternalKeyResolvers;
   externalKeyActionResolver?: ExternalKeyActionResolver;
   fileResolvers?: FileResolvers;
@@ -76,6 +83,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   onBlur,
   isLoading = false,
   showPreview = false,
+  componentLibrary = defaultReactiveComponentLibrary,
   externalKeyResolvers,
   externalKeyActionResolver,
   fileResolvers,
@@ -114,6 +122,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
       <LoadingOverlay visible={isLoading} />
       <ZodFormContextProvider
         merge
+        componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}

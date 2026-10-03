@@ -12,7 +12,7 @@ import {
 } from "@mantine/core";
 import { IconDotsVertical } from "@tabler/icons-react";
 import { useParams, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { z } from "zod";
 import { getAccessor } from "@zodapp/zod-firebase-browser";
 import { firestore, storage } from "@repo/firebase";
@@ -24,6 +24,7 @@ import {
 } from "@zodapp/zod-form-widget/feedback";
 
 import { membersCollection } from "../../../shared/taskManager/collections/member";
+import { useDoc } from "../../../shared/taskManager/hooks";
 import { AutoForm } from "../../../components/AutoForm";
 import { memberDetailRoute } from "./detail.route";
 import { membersRoute } from "../members.route";
@@ -51,17 +52,15 @@ const MemberDetailPage = () => {
     () => getAccessor(firestore, membersCollection, storeKey),
     [storeKey],
   );
-  const [member, setMember] = useState<z.infer<
-    typeof membersCollection.updateSchema
-  > | null>(null);
+  // useDoc: 単一ドキュメントの購読（useEffect + docSync の手書きを置き換え）
+  const { item: member, isLoading: isMemberLoading } = useDoc({
+    collection: membersCollection,
+    documentIdentity: useMemo(
+      () => ({ workspaceId, memberId }),
+      [workspaceId, memberId],
+    ),
+  });
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = accessor.docSync({ workspaceId, memberId }, (doc) => {
-      setMember(doc);
-    });
-    return () => unsubscribe();
-  }, [accessor, workspaceId, memberId]);
 
   const handleSubmit = useCallback(
     async (data: z.infer<typeof membersCollection.updateSchema>) => {
@@ -103,7 +102,7 @@ const MemberDetailPage = () => {
     });
   }, [navigate, workspaceId]);
 
-  if (isLoading || !member) {
+  if (isLoading || isMemberLoading || !member) {
     return (
       <Center h={200}>
         <Loader />

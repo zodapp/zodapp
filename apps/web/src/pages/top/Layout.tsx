@@ -1,9 +1,15 @@
-import { IconForms, IconHome2, IconChecklist } from "@tabler/icons-react";
+import {
+  IconForms,
+  IconHome2,
+  IconChecklist,
+  IconClipboardList,
+} from "@tabler/icons-react";
 
 import CommonLayout, { type NavItem } from "../../components/CommonLayout";
 import { homeRoute } from "./home/index.route";
 import { formListRoute } from "../form/list.route";
 import { workspacesRoute } from "../taskManager-top/workspaces.route";
+import { surveyWorkspacesRoute } from "../survey-top/workspaces.route";
 
 const MainLayout = () => {
   const navItems: NavItem[] = [
@@ -19,9 +25,15 @@ const MainLayout = () => {
       to: formListRoute.to,
     },
     {
-      label: "アプリデモ",
+      label: "タスク管理デモ",
       icon: <IconChecklist size={20} />,
       to: workspacesRoute.to,
+      exact: false,
+    },
+    {
+      label: "アンケートデモ",
+      icon: <IconClipboardList size={20} />,
+      to: surveyWorkspacesRoute.to,
       exact: false,
     },
   ];

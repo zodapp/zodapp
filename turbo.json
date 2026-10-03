@@ -1,7 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["NODE_ENV"],
+  "globalEnv": ["NODE_ENV", "VITE_FIREBASE_EMULATOR"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -12,10 +12,10 @@
       "dependsOn": ["^lint"]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": ["^build", "^test"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^build", "^check-types"]
     },
     "docs:typedoc": {
       "outputs": ["docs/api/**"]
