@@ -76,7 +76,10 @@ const memberCreateExcludedSchema = z.object({
 
 export const membersCollection = collectionConfig({
   path: "/workspaces/:workspaceId/members/:memberId" as const,
-  fieldKeys: [] as const,
+  // workspaceId はパスキーだが fieldKeys にも含める（= pathFieldKeys）。
+  // ドキュメントのフィールドとしても保存されるため、collectionGroup
+  // クエリの結果から所属ワークスペースを特定できる
+  fieldKeys: ["workspaceId"] as const,
   schema: memberDataSchema,
   createExcludedSchema: memberCreateExcludedSchema,
   /** docId に email を使用（同一ワークスペース内でメール一意） */
@@ -92,4 +95,15 @@ export const membersReference = createCollectionReference(membersCollection, {
 
 export const memberQueries = createCollectionQueries(membersCollection, {
   all: () => ({}),
+  // 外部キーの選択肢を絞り込む例: 閲覧者(viewer)を除いた
+  // 「タスクを担当できるロール」のみ（Firestore の in 演算子を使用）
+  assignable: () => ({
+    where: [
+      {
+        field: "role",
+        operator: "in" as const,
+        value: ["owner", "admin", "member"] satisfies MemberRole[],
+      },
+    ],
+  }),
 });

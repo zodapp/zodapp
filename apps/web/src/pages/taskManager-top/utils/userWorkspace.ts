@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   getAccessor,
   type AccessorStoreKey,
@@ -6,6 +6,7 @@ import {
 import { firestore } from "@repo/firebase";
 import type { z } from "zod";
 import { useStoreKey } from "../../../shared/auth";
+import { useCollectionGroupList } from "../../../shared/taskManager/hooks";
 
 import {
   workspacesCollection,
@@ -31,23 +32,6 @@ export interface WorkspaceOwnerInfo {
 // =====================================
 const WorkspaceService = {
   /**
-   * ユーザーのメールアドレスから所属ワークスペースIDを取得
-   * collectionGroup("members")を使用してクエリ
-   */
-  async fetchWorkspaceIdsByEmail(userEmail: string): Promise<string[]> {
-    const membersQuery = firestore
-      .collectionGroup("members")
-      .where("email", "==", userEmail);
-
-    const memberSnapshots = await membersQuery.get();
-
-    // パス: /workspaces/{workspaceId}/members/{memberId} から workspaceId を抽出
-    return memberSnapshots.docs
-      .map((doc) => doc.ref.parent.parent?.id)
-      .filter((id): id is string => id !== undefined);
-  },
-
-  /**
    * ワークスペースIDの配列からワークスペース詳細を取得
    */
   async fetchWorkspacesByIds(
@@ -70,25 +54,6 @@ const WorkspaceService = {
 
     // nullを除外
     return workspaceResults.filter((ws): ws is WorkspaceData => ws !== null);
-  },
-
-  /**
-   * ユーザーの所属ワークスペースを取得（IDの取得から詳細取得・ソートまで一括）
-   */
-  async fetchUserWorkspaces(
-    userEmail: string,
-    storeKey: AccessorStoreKey,
-  ): Promise<WorkspaceData[]> {
-    console.log("#001", userEmail);
-    const workspaceIds = await this.fetchWorkspaceIdsByEmail(userEmail);
-    console.log("#002", workspaceIds);
-    const workspaces = await this.fetchWorkspacesByIds(workspaceIds, storeKey);
-    console.log("#003", workspaces);
-    return [...workspaces].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
   },
 
   /**
@@ -145,29 +110,70 @@ export function useUserWorkspaces(
 ): UseUserWorkspacesResult {
   const storeKey = useStoreKey();
   const [workspaces, setWorkspaces] = useState<WorkspaceData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(true);
 
-  const fetchUserWorkspaces = useCallback(async () => {
-    if (!userEmail) {
-      setWorkspaces([]);
-      setIsLoading(false);
-      return;
-    }
+  // 所属メンバーシップを collectionGroup クエリで横断検索する。
+  // membersCollection は workspaceId を pathFieldKey としてフィールド保存
+  // しているため、結果の各ドキュメントから所属ワークスペースが分かる。
+  const {
+    items: memberships,
+    isLoading: isMembershipsLoading,
+    refresh: refreshMemberships,
+  } = useCollectionGroupList({
+    collection: membersCollection,
+    query: useMemo(
+      () => ({
+        where: [
+          {
+            field: "email",
+            operator: "==" as const,
+            value: userEmail ?? "",
+          },
+        ],
+      }),
+      [userEmail],
+    ),
+    enabled: !!userEmail,
+  });
 
-    setIsLoading(true);
+  const workspaceIds = useMemo(
+    () => [...new Set(memberships.map((member) => member.workspaceId))],
+    [memberships],
+  );
+  const workspaceIdsKey = workspaceIds.join(",");
+
+  const fetchWorkspaces = useCallback(async () => {
+    setIsLoadingWorkspaces(true);
     try {
-      const result = await WorkspaceService.fetchUserWorkspaces(
-        userEmail,
+      const result = await WorkspaceService.fetchWorkspacesByIds(
+        workspaceIds,
         storeKey,
       );
-      setWorkspaces(result);
+      setWorkspaces(
+        [...result].sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
+        }),
+      );
     } catch (error) {
       console.error("Failed to fetch workspaces:", error);
       setWorkspaces([]);
     } finally {
-      setIsLoading(false);
+      setIsLoadingWorkspaces(false);
     }
-  }, [storeKey, userEmail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceIdsKey, storeKey]);
+
+  useEffect(() => {
+    if (isMembershipsLoading) return;
+    void fetchWorkspaces();
+  }, [fetchWorkspaces, isMembershipsLoading]);
+
+  const refetch = useCallback(async () => {
+    refreshMemberships();
+    await fetchWorkspaces();
+  }, [refreshMemberships, fetchWorkspaces]);
 
   const createWorkspaceWithOwner = useCallback(
     (data: WorkspaceCreateData, owner: WorkspaceOwnerInfo) =>
@@ -175,15 +181,10 @@ export function useUserWorkspaces(
     [storeKey],
   );
 
-  // 初回マウント時とuserEmail変更時にワークスペースを取得
-  useEffect(() => {
-    void fetchUserWorkspaces();
-  }, [fetchUserWorkspaces]);
-
   return {
     workspaces,
-    isLoading,
-    refetch: fetchUserWorkspaces,
+    isLoading: isMembershipsLoading || isLoadingWorkspaces,
+    refetch,
     createWorkspaceWithOwner,
   };
 }

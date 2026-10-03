@@ -3,6 +3,7 @@ import {
   ActionIcon,
   AppShell,
   Avatar,
+  Badge,
   Burger,
   Group,
   Menu,
@@ -46,15 +47,34 @@ export interface ExtraNavContentProps {
 }
 
 export interface CommonLayoutProps {
-  navItems: NavItem[];
+  /**
+   * サイドバーに並べるナビゲーション。
+   * 省略（または空）で backLink / extraNavContent もない場合はサイドバー自体を
+   * 描画しない。回答ページのように「管理画面ではないが、ヘッダーは共通にしたい」
+   * 画面のための逃げ道
+   */
+  navItems?: NavItem[];
   backLink?: BackLink;
   extraNavContent?: (props: ExtraNavContentProps) => React.ReactNode;
+  /**
+   * いまどのデモを見ているかをヘッダーに表示する（`shared/demos.tsx`）。
+   * 複数のデモが同じ見た目を共有しているので、これがないと
+   * タスク管理とアンケートのどちらにいるのか画面から判別できない
+   */
+  demo?: DemoBadge;
 }
 
+export type DemoBadge = Pick<LinkOptions, "to"> & {
+  label: string;
+  icon: React.ReactNode;
+  color?: string;
+};
+
 const CommonLayout: React.FC<CommonLayoutProps> = ({
-  navItems,
+  navItems = [],
   backLink,
   extraNavContent,
+  demo,
 }) => {
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] =
     useDisclosure();
@@ -160,14 +180,21 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     );
   };
 
+  const hasNavbar =
+    navItems.length > 0 || backLink != null || extraNavContent != null;
+
   return (
     <AppShell
       header={{ height: 60 }}
-      navbar={{
-        width: desktopOpened ? 200 : 60,
-        breakpoint: "sm",
-        collapsed: { mobile: !mobileOpened },
-      }}
+      navbar={
+        hasNavbar
+          ? {
+              width: desktopOpened ? 200 : 60,
+              breakpoint: "sm",
+              collapsed: { mobile: !mobileOpened },
+            }
+          : undefined
+      }
       padding="md"
     >
       <AppShell.Header
@@ -177,33 +204,37 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           justifyContent: "space-between",
         }}
       >
-        <Group gap="xs">
-          <Burger
-            opened={mobileOpened}
-            onClick={toggleMobile}
-            hiddenFrom="sm"
-            size="sm"
-            ml="md"
-          />
-          <Tooltip
-            label={desktopOpened ? "サイドバーを閉じる" : "サイドバーを開く"}
-            position="bottom"
-          >
-            <ActionIcon
-              variant="subtle"
-              color="gray"
-              onClick={toggleDesktop}
-              size="lg"
-              visibleFrom="sm"
-              ml="md"
-            >
-              {desktopOpened ? (
-                <IconLayoutSidebarLeftCollapse size={20} />
-              ) : (
-                <IconLayoutSidebarLeftExpand size={20} />
-              )}
-            </ActionIcon>
-          </Tooltip>
+        <Group gap="xs" ml={hasNavbar ? undefined : "md"}>
+          {hasNavbar && (
+            <>
+              <Burger
+                opened={mobileOpened}
+                onClick={toggleMobile}
+                hiddenFrom="sm"
+                size="sm"
+                ml="md"
+              />
+              <Tooltip
+                label={desktopOpened ? "サイドバーを閉じる" : "サイドバーを開く"}
+                position="bottom"
+              >
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  onClick={toggleDesktop}
+                  size="lg"
+                  visibleFrom="sm"
+                  ml="md"
+                >
+                  {desktopOpened ? (
+                    <IconLayoutSidebarLeftCollapse size={20} />
+                  ) : (
+                    <IconLayoutSidebarLeftExpand size={20} />
+                  )}
+                </ActionIcon>
+              </Tooltip>
+            </>
+          )}
           <img
             className={styles.logo}
             src="/zodapp-logo.svg"
@@ -211,9 +242,24 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             width={120}
             height={60}
           />
-          <span style={{ fontSize: "0.8em" }}>
-            An AI-native schema-driven development framework
-          </span>
+          {demo ? (
+            <Badge
+              component={Link}
+              to={demo.to}
+              variant="light"
+              color={demo.color}
+              size="lg"
+              radius="sm"
+              leftSection={demo.icon}
+              style={{ cursor: "pointer", fontWeight: 700 }}
+            >
+              {demo.label}
+            </Badge>
+          ) : (
+            <span style={{ fontSize: "0.8em" }}>
+              An AI-native schema-driven development framework
+            </span>
+          )}
         </Group>
 
         {user && (
@@ -250,11 +296,13 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         )}
       </AppShell.Header>
 
-      <AppShell.Navbar p="xs">
-        {renderBackLink()}
-        {navItems.map(renderNavItem)}
-        {extraNavContent?.({ closeMobile })}
-      </AppShell.Navbar>
+      {hasNavbar && (
+        <AppShell.Navbar p="xs">
+          {renderBackLink()}
+          {navItems.map(renderNavItem)}
+          {extraNavContent?.({ closeMobile })}
+        </AppShell.Navbar>
+      )}
 
       <AppShell.Main>
         <Outlet />

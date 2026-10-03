@@ -1,0 +1,9 @@
+import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
+
+import { surveyWorkspaceLayoutRoute } from "../layout.route";
+
+export const responseDetailRoute = createRoute({
+  getParentRoute: () => surveyWorkspaceLayoutRoute,
+  path: "responses/$responseId",
+  component: lazyRouteComponent(() => import("./detail")),
+});

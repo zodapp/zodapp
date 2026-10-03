@@ -14,6 +14,7 @@ import {
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
   useZodForm,
+  componentLibrary as defaultComponentLibrary,
 } from "@zodapp/zod-form-mantine";
 import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
@@ -21,6 +22,7 @@ import type {
   MediaResolvers,
   ExternalKeyActionResolver,
   CollectionReferenceActionEntry,
+  ComponentLibrary,
 } from "@zodapp/zod-form-react";
 import type { StandardSchemaV1 } from "@tanstack/react-form";
 import type { z } from "zod";
@@ -41,6 +43,12 @@ type AutoFormProps<T extends z.ZodTypeAny> = {
   submitLabel?: string;
   cancelLabel?: string;
   showPreview?: boolean;
+  /**
+   * 描画に使う ComponentLibrary。省略時は zod-form-mantine の
+   * componentLibrary。カスタムウィジェットを使う場合は
+   * `{ ...componentLibrary, 独自キー: ... }` を渡す。
+   */
+  componentLibrary?: ComponentLibrary;
   externalKeyResolvers?: ExternalKeyResolvers;
   externalKeyActionResolver?: ExternalKeyActionResolver;
   fileResolvers?: FileResolvers;
@@ -61,6 +69,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   submitLabel = "保存",
   cancelLabel = "キャンセル",
   showPreview = false,
+  componentLibrary = defaultComponentLibrary,
   externalKeyResolvers,
   externalKeyActionResolver,
   fileResolvers,
@@ -159,6 +168,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     <Suspense fallback={<Loader />}>
       <ZodFormContextProvider
         merge
+        componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
         externalKeyActionResolver={externalKeyActionResolver}
         fileResolvers={fileResolvers}

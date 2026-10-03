@@ -44,6 +44,11 @@ service cloud.firestore {
       return exists(workspacePath) && get(workspacePath).data.ownerId == request.auth.token.email;
     }
 
+    // ユーザー個人設定（列設定プロファイル等）
+    match /users/{userId}/columnSettings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // workspaces コレクション
     match /workspaces/{workspaceId} {
       allow create: if request.auth != null
@@ -64,6 +69,27 @@ service cloud.firestore {
         allow delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
       }
 
+      // ワークスペース共通の列設定プロファイル
+      // （デモのため書き込みはメンバー全員に許可。運用では isAdmin に
+      // 絞るなどの調整を想定）
+      match /columnSettings/{settingId} {
+        allow read, write: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
+      // surveys サブコレクション（アンケート定義）
+      match /surveys/{surveyId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow write: if canWriteTask(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
+      // responses サブコレクション（アンケート回答）
+      // 回答は作成のみ。改竄防止のため更新/削除は管理者に限定する
+      match /responses/{responseId} {
+        allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow create: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
+        allow update, delete: if isAdmin(workspaceId) || isWorkspaceOwner(workspaceId);
+      }
+
       // projects サブコレクション
       match /projects/{projectId} {
         allow read: if isMember(workspaceId) || isWorkspaceOwner(workspaceId);
@@ -78,8 +104,15 @@ service cloud.firestore {
     }
 
     // collectionGroup クエリ用
+    // - ドキュメントID直接参照（memberId は email または uid）
+    // - email フィールドで絞り込む list クエリ
+    //   （where("email", "==", 自分のemail) が条件に含まれる場合のみ成立する）
     match /{path=**}/members/{memberId} {
-      allow read: if memberId == request.auth.token.email || memberId == request.auth.uid;
+      allow read: if request.auth != null && (
+        memberId == request.auth.token.email ||
+        memberId == request.auth.uid ||
+        resource.data.email == request.auth.token.email
+      );
     }
   }
 }
