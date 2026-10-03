@@ -221,7 +221,7 @@ export const SurveyBuilder = ({
     <ZodFormContextProvider merge componentLibrary={componentLibrary}>
       <FormProvider form={form}>
         <ValidatePrecedingFieldsProvider>
-          <Grid gutter="lg">
+          <Grid gap="lg">
             <Grid.Col span={{ base: 12, md: 6 }}>
               <Card withBorder>
                 <Group justify="space-between" mb="md" wrap="wrap">
