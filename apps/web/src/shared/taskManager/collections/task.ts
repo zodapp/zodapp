@@ -83,6 +83,8 @@ const taskDataSchema = z
       .default([]),
 
     // 担当・期限（membersCollectionを外部キーとして参照）
+    // getQuery に絞り込み付きの named query を渡すことで、
+    // 選択肢を「担当可能なロールのメンバーのみ」に制限している
     assigneeId: zf
       .string()
       .register(zf.externalKey.registry, {
@@ -91,7 +93,7 @@ const taskDataSchema = z
           type: "firestore",
           reference: membersReference,
           contextId: "workspace",
-          getQuery: () => memberQueries.queries.all(),
+          getQuery: () => memberQueries.queries.assignable(),
         },
         width: 150,
       })
@@ -208,6 +210,12 @@ export const taskMutations = createCollectionMutations(tasksCollection, {
 export const taskQueries = createCollectionQueries(tasksCollection, {
   active: () => ({
     where: [{ field: "deletedAt", operator: "==" as const, value: null }],
+  }),
+  // 論理削除済み（ゴミ箱）。"!=" を使う場合、Firestore の制約により
+  // 同じフィールドを先頭の orderBy に指定する必要がある
+  deleted: () => ({
+    where: [{ field: "deletedAt", operator: "!=" as const, value: null }],
+    orderBy: [{ field: "deletedAt", direction: "desc" as const }],
   }),
   byStatus: (status: TaskStatus) => ({
     where: [{ field: "status", operator: "==" as const, value: status }],

@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, type ComponentType } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { Container, Tabs, Title, Text } from "@mantine/core";
 import { CodeHighlight } from "@mantine/code-highlight";
@@ -18,6 +18,15 @@ const isReactiveFormDef = (
   formDef: FormDef,
 ): formDef is ReactiveFormDef => "reactive" in formDef && formDef.reactive === true;
 
+// スキーマモジュールが Component を export している場合は、
+// 汎用の AutoForm 描画の代わりにそのコンポーネントを表示する。
+// （ビュー切替やカスタムアクションなど、AutoForm の props だけでは
+// 表現できないデモに使う拡張ポイント）
+const getCustomComponent = (formDef: FormDef): ComponentType | undefined =>
+  "Component" in formDef && typeof formDef.Component === "function"
+    ? (formDef.Component as ComponentType)
+    : undefined;
+
 const FormPage = () => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -33,6 +42,7 @@ const FormPageInner = () => {
   const formDef = formSchemas[formId];
   const { title, description } = formDef;
   const isReactive = isReactiveFormDef(formDef);
+  const CustomComponent = getCustomComponent(formDef);
 
   // ファイルフォーム用のresolver
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
@@ -54,7 +64,9 @@ const FormPageInner = () => {
 
         <Tabs.Panel value="form" pt="md">
           <Suspense fallback={<div>Loading form...</div>}>
-            {isReactive ? (
+            {CustomComponent ? (
+              <CustomComponent key={formId} />
+            ) : isReactive ? (
               <ReactiveAutoForm
                 schema={formDef.schema}
                 defaultValues={formDef.defaultValues}

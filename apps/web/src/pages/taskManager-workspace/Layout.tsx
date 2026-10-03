@@ -11,6 +11,7 @@ import CommonLayout, {
   type BackLink,
 } from "../../components/CommonLayout";
 import { AuthGuard } from "../../shared/auth";
+import { taskManagerDemo } from "../../shared/demos";
 import { workspaceLayoutRoute } from "./layout.route";
 import { workspaceDetailRoute } from "./detail.route";
 import { projectsRoute } from "./projects.route";
@@ -54,7 +55,11 @@ const WorkspaceLayout = () => {
 
   return (
     <AuthGuard>
-      <CommonLayout navItems={navItems} backLink={backLink} />
+      <CommonLayout
+        navItems={navItems}
+        backLink={backLink}
+        demo={taskManagerDemo}
+      />
     </AuthGuard>
   );
 };
