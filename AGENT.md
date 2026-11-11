@@ -332,7 +332,7 @@ describe("myFunction", () => {
 
 ## その他の注意事項
 
-- 日本語のエラーメッセージは `apps/web/src/components/zod-errormap.ja.ts` で定義
+- 日本語のエラーメッセージは `apps/form-demo/src/components/zod-errormap.ja.ts` で定義
 - Firebase統合時は `@zodapp/zod-firebase` 系パッケージを使用
 - ファイルアップロードには `@zodapp/zod-form-firebase` の `createFirebaseStorageResolver` を使用
 - 未実装機能のリストは [TODO.md](TODO.md) を参照

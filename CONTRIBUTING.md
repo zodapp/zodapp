@@ -19,7 +19,7 @@ pnpm build
 ## Monorepo notes
 
 - Packages live under `packages/*`
-- The demo app is under `apps/web`
+- The demo app is under `apps/form-demo`
 - Run a specific package/app script:
 
 ```bash

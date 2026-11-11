@@ -26,6 +26,8 @@ export const createAppRouter = (history: RouterHistory) =>
   createRouter({
     routeTree,
     history,
+    // GitHub Pages ではリポジトリ名のパスの下に置く（vite.config.ts の base）
+    basepath: import.meta.env.BASE_URL,
     defaultNotFoundComponent: NotFound,
     stringifySearch: (search) => {
       const str = encodeSearchParams(search).toString();

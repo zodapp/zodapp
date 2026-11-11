@@ -223,7 +223,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           )}
           <img
             className={styles.logo}
-            src="/zodapp-logo.svg"
+            src={`${import.meta.env.BASE_URL}zodapp-logo.svg`}
             alt="zodapp logomark"
             width={120}
             height={60}

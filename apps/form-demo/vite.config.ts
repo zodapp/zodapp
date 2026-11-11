@@ -5,6 +5,8 @@ import react from "@vitejs/plugin-react";
 const plugins: PluginOption[] = [react() as PluginOption];
 
 export default defineConfig({
+  // GitHub Pages（https://<owner>.github.io/zodapp/）に置くときは VITE_BASE=/zodapp/ でビルドする
+  base: process.env.VITE_BASE ?? "/",
   plugins,
   resolve: {
     alias: {

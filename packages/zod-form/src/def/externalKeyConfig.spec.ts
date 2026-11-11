@@ -1,10 +1,10 @@
 /**
  * ExternalKeyConfig の型テスト
  *
- * このファイルは apps/web の型拡張が正しく機能するかをテストするための
+ * このファイルは apps/form-demo の型拡張が正しく機能するかをテストするための
  * 型専用テストファイルです。
  *
- * 注意: このテストは apps/web の declare module による型拡張が
+ * 注意: このテストは apps/form-demo の declare module による型拡張が
  * 適用された状態でのみ正しく動作します。
  * packages/zod-form 単体では RegisteredExternalKeyConfig は
  * BaseExternalKeyConfig & Record<string, unknown> にフォールバックします。

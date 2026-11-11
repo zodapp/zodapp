@@ -75,7 +75,7 @@ import { createMockFileResolver } from "@zodapp/zod-form";
 const fileResolvers = [createMockFileResolver()];
 ```
 
-`apps/web/src/pages/form/detail.tsx` でも、フォームのデモページ用に `createMockFileResolver()` を使っています。
+`apps/form-demo/src/pages/form/detail.tsx` でも、フォームのデモページ用に `createMockFileResolver()` を使っています。
 
 ## API（抜粋）
 

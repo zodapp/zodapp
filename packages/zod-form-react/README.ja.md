@@ -93,11 +93,11 @@ const schema = z
   .register(zf.object.registry, {});
 ```
 
-### `computed`（apps/web の例）
+### `computed`（apps/form-demo の例）
 
 `computed` は、親オブジェクトの値を受け取って **表示用の値（ReactNode）**を計算できます。
 
-`apps/web/src/pages/form/schemas/computed.ts` では次のように利用しています:
+`apps/form-demo/src/pages/form/schemas/computed.ts` では次のように利用しています:
 
 ```ts
 import { z } from "zod";

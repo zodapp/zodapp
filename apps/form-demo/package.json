@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "form-demo",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -8,11 +8,12 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/zodapp/zodapp.git",
-    "directory": "apps/web"
+    "directory": "apps/form-demo"
   },
   "scripts": {
     "dev": "vite --host --port 3000",
     "build": "tsc --noEmit && vite build",
+    "build:pages": "tsc --noEmit && VITE_BASE=/zodapp/ vite build && cp dist/index.html dist/404.html",
     "start": "vite preview --host --port 4173",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
@@ -37,8 +38,8 @@
     "@zodapp/zod-form-react": "workspace:*",
     "@zodapp/zod-searchparams": "workspace:*",
     "@zodapp/zod-tabular": "workspace:*",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "shiki": "^3.22.0",
     "zod": "^4.4.3"
   },
@@ -46,8 +47,8 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.19.7",
-    "@types/react": "^19.2.3",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.1.3",
     "eslint": "^9.34.0",
     "typescript": "^5.9.2",

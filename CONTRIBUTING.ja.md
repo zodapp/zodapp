@@ -19,7 +19,7 @@ pnpm build
 ## モノレポに関する補足
 
 - パッケージは `packages/*` 配下です
-- デモアプリは `apps/web` 配下です
+- デモアプリは `apps/form-demo` 配下です
 - 特定のパッケージ/アプリに対して script を実行する場合:
 
 ```bash

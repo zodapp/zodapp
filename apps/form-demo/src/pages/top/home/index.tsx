@@ -18,7 +18,7 @@ const HomePage = () => {
       <main className={styles.main}>
         <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>
           <img
-            src="/zodapp-logo.svg"
+            src={`${import.meta.env.BASE_URL}zodapp-logo.svg`}
             alt="zodapp logomark"
             width={240}
             height={70}
