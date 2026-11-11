@@ -95,7 +95,7 @@ const out = preprocess({ a: "keep", b: "drop" }, schema, {}, {
 - **副作用禁止**: すべての処理は同一スキーマ・同一値に対して複数回実行され得ます。getter / setter / 外部状態参照 / 破壊的変更などの Side Effect を持つ処理を定義しないでください。
 - **record のキー制約**: `z.record` のキーは変換しません（値のみが transform 対象）。キーは `string` かつ enumerable なもののみを対象とします。
 - **object のキー制約**: `ZodObject` のキーは `string` かつ enumerable なもののみを対象とします。catchall を含め、`Symbol` キーは対象外です（`z.object` の仕様に準拠）。
-- **intersection のマージ仕様**: intersection は left / right を独立して transform し、shallow merge（`{ ...left, ...right }`）します。そのため left 側で `$remove` が発生しても、right 側に同じキーが存在すれば復活します。
+- **intersection のマージ仕様**: intersection は left / right を独立して transform し、元の値と比べて変わった側の結果を採ってマージします。object はキーごと、同じ長さの配列は要素ごとに再帰でマージします。片側が `$remove` し、もう片側が素通ししただけなら取り除きます。両側が別々の値に変換して食い違った場合は right を優先します。
 - **class instance は変換対象外**: `ZodObject` に class instance が与えられた場合、変換はせずそのまま通過します（enumerable なものも変換しません）。
 - **getter の実行に注意**: object のキーに getter が定義されている場合、`Object.entries` 等により getter が実行されます。getter に副作用がある設計は避けてください。
 - **`z.catch` の前提**: `z.catch` の `catchValue` は Zod の型契約上 `innerType` を満たす値を返すことが期待されています。本実装もそれを前提とし、これに違反する schema の挙動は保証しません。catch 対象に union が含まれる場合、union の全要素に当てはまらなければ catch が呼ばれますが、その際のエラー情報は本来の Zod のエラー情報と異なるので注意してください。
