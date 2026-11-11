@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { tasks } from "./__fixtures__/tasks";
 import { endpoint } from "./endpoint";
-import { jsonTransport } from "./json-transport";
 
 const at = new Date("2026-01-01T00:00:00.000Z");
 const iso = at.toISOString();
@@ -13,16 +12,9 @@ const du = z.discriminatedUnion("kind", [
 ]);
 const ts = z.object({ c: z.date() });
 
+// zod-transform の intersection の修正（zodapp の PR #10）の後は、Table 定義の intersection を
+// そのまま zod-transport-json に渡す。その組み合わせの往復を確かめる
 describe("intersection を含む Schema の JSON の transport", () => {
-  it("zod-transport-json だけでは、左側の Date が変換されない（回避している制約）", () => {
-    expect(() =>
-      createJsonTransport(ts.and(z.object({ e: z.date() }))).encode({
-        c: at,
-        e: at,
-      }),
-    ).toThrow();
-  });
-
   it.each([
     [
       "object と object",
@@ -55,7 +47,7 @@ describe("intersection を含む Schema の JSON の transport", () => {
       { items: [{ c: iso, kind: "a", d: iso }], item: null },
     ],
   ] as const)("%s", (_name, schema, value, json) => {
-    const t = jsonTransport(schema as z.ZodType);
+    const t = createJsonTransport(schema as z.ZodType);
     expect(t.encode(value)).toEqual(json);
     expect(t.decode(json)).toEqual(value);
   });

@@ -1,5 +1,7 @@
-import type { JsonTransport } from "@zodapp/zod-transport-json";
-import { jsonTransport } from "./json-transport";
+import {
+  createJsonTransport,
+  type JsonTransport,
+} from "@zodapp/zod-transport-json";
 import { z } from "zod";
 import { DefinitionError } from "./errors";
 import type { MutationDef } from "./mutation";
@@ -176,13 +178,13 @@ const make = <TKind extends EndpointKind, TDef, TInput, TOutput>(spec: {
   /** 入力から `fields` の指定を取り出す。指定できない操作では省略 */
   selection?: (input: TInput | undefined) => Selection | undefined;
 }): Endpoint<TKind, TDef, TInput, TOutput> => {
-  const inputTransport = jsonTransport(spec.input);
+  const inputTransport = createJsonTransport(spec.input);
   const output = memo<{
     schema: z.ZodType;
     transport: JsonTransport<z.ZodType>;
   }>((_key, sel) => {
     const schema = spec.output(selectedFields(spec.table, sel));
-    return { schema, transport: jsonTransport(schema) };
+    return { schema, transport: createJsonTransport(schema) };
   });
   const selectionOf = (input: TInput | undefined) =>
     spec.selection?.(input) ?? undefined;

@@ -1,5 +1,7 @@
-import type { JsonTransport } from "@zodapp/zod-transport-json";
-import { jsonTransport } from "./json-transport";
+import {
+  createJsonTransport,
+  type JsonTransport,
+} from "@zodapp/zod-transport-json";
 import type { z } from "zod";
 import type { FieldsInput } from "./endpoint";
 import { queryItemSchema, selectedFields } from "./item-schema";
@@ -79,9 +81,9 @@ export const subscription = <
   // Client が並べ替えとウィンドウの判定に使うので、クエリの Index のキーのフィールドは常に含める
   const fields = selected && new Set([...selected, ...indexKeyFields(query)]);
   const itemSchema = queryItemSchema(query, fields);
-  const params = jsonTransport(query.params);
-  const item: JsonTransport<z.ZodType> = jsonTransport(itemSchema);
-  const key = jsonTransport(query.table._compiled.keySchema);
+  const params = createJsonTransport(query.params);
+  const item: JsonTransport<z.ZodType> = createJsonTransport(itemSchema);
+  const key = createJsonTransport(query.table._compiled.keySchema);
   return {
     kind: "subscription",
     query,

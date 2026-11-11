@@ -2,7 +2,7 @@
  * リアルタイムの配送（§9.3、§11）：トピックの導出、配送のインターフェース、トピックに流すメッセージの形式。
  * 書き込み側（Publisher）と Gateway で共有する。
  */
-import { jsonTransport } from "./json-transport";
+import { createJsonTransport } from "@zodapp/zod-transport-json";
 import { z } from "zod";
 import { DefinitionError } from "./errors";
 import type { BatchMarker, ChangeRecord, WriteOrigin } from "./events";
@@ -203,13 +203,13 @@ export const topicMessageCodec = (
   fields?: ReadonlySet<string>,
 ) => {
   const compiled = table._compiled;
-  const encodeItem = jsonTransport(
+  const encodeItem = createJsonTransport(
     fields ? narrowItemSchema(table.item, { keep: fields }) : table.item,
   );
-  const decodeItem = jsonTransport(
+  const decodeItem = createJsonTransport(
     narrowItemSchema(table.item, { required: new Set(compiled.keyFields) }),
   );
-  const key = jsonTransport(compiled.keySchema);
+  const key = createJsonTransport(compiled.keySchema);
   const envelope = z.discriminatedUnion("type", [
     z.object({
       type: z.literal("change"),
