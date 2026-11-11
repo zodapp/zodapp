@@ -1,0 +1,40 @@
+{
+  "name": "@zodapp/zod-dynamodb-node",
+  "version": "0.0.0",
+  "private": false,
+  "description": "DynamoDB repository for @zodapp/zod-dynamodb table definitions",
+  "license": "MIT",
+  "keywords": ["zod", "dynamodb", "repository"],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "tsup": "^8.5.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/util-dynamodb": "^3.700.0",
+    "@zodapp/zod-dynamodb": "workspace:*",
+    "zod": "^4.4.3"
+  }
+}

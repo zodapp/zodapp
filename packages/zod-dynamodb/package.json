@@ -1,0 +1,40 @@
+{
+  "name": "@zodapp/zod-dynamodb",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Zod-based table definitions for DynamoDB (physical layout, keys, named queries and mutations)",
+  "license": "MIT",
+  "keywords": ["zod", "dynamodb", "validation"],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "fast-check": "^4.3.0",
+    "tsup": "^8.5.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/zod-transform": "workspace:*",
+    "@zodapp/zod-transport-json": "workspace:*",
+    "zod": "^4.4.3"
+  }
+}

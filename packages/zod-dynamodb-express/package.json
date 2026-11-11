@@ -1,0 +1,45 @@
+{
+  "name": "@zodapp/zod-dynamodb-express",
+  "version": "0.0.0",
+  "private": false,
+  "description": "Express middleware that serves @zodapp/zod-dynamodb endpoints",
+  "license": "MIT",
+  "keywords": ["zod", "dynamodb", "express"],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "peerDependencies": {
+    "express": "^5.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.19.7",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "eslint": "^9.34.0",
+    "express": "^5.1.0",
+    "tsup": "^8.5.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/zod-dynamodb": "workspace:*",
+    "@zodapp/zod-dynamodb-node": "workspace:*",
+    "zod": "^4.4.3"
+  }
+}

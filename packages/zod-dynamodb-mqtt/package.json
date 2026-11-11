@@ -1,0 +1,45 @@
+{
+  "name": "@zodapp/zod-dynamodb-mqtt",
+  "version": "0.0.0",
+  "private": false,
+  "description": "MQTT transport and change publisher for @zodapp/zod-dynamodb realtime subscriptions",
+  "license": "MIT",
+  "keywords": [
+    "zod",
+    "dynamodb",
+    "mqtt",
+    "realtime"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "aedes": "^1.2.0",
+    "eslint": "^9.34.0",
+    "tsup": "^8.5.1",
+    "vitest": "^4.0.18",
+    "zod": "^4.4.3"
+  },
+  "dependencies": {
+    "@zodapp/zod-dynamodb": "workspace:*",
+    "mqtt": "^5.16.1"
+  }
+}

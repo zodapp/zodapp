@@ -9,6 +9,14 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # zod-dynamodb-* のテストが使う DynamoDB Local
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.2
+        ports:
+          - 8000:8000
+    env:
+      DYNAMODB_ENDPOINT: http://127.0.0.1:8000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
