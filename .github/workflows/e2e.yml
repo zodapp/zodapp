@@ -1,0 +1,84 @@
+# DB を使うサンプル（apps/taskmanager・apps/survey）の Playwright E2E。
+# ライブラリの CI（ci.yml）とは別のワークフローで、ブランチの保護の必須チェックには入れない。
+# サンプルごとに別のジョブで動かす（ポートが同じなので、同じマシンでは並べられない）。
+name: E2E (samples)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/taskmanager/**
+      - apps/survey/**
+      - packages/**
+      - pnpm-lock.yaml
+      - .github/workflows/e2e.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/taskmanager/**
+      - apps/survey/**
+      - packages/**
+      - pnpm-lock.yaml
+      - .github/workflows/e2e.yml
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: e2e (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [taskmanager, survey]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      # サンプルが使うパッケージ（@zodapp/*）の dist を作る
+      - run: pnpm exec turbo run build --filter='${{ matrix.app }}^...'
+        working-directory: .
+
+      # Chromium（バージョンは @playwright/test に合わせる）
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # DynamoDB Local・magnito（taskmanager は S3Proxy も）。infra/compose.yml
+      - run: pnpm infra:up
+      # メールの記録とアプリ（AUTH_MAX_AGE_SECONDS=20）は Playwright の webServer が起動する
+      - run: pnpm e2e
+
+      - if: failure()
+        run: docker compose -f infra/compose.yml logs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-${{ matrix.app }}
+          path: |
+            apps/${{ matrix.app }}/playwright-report/
+            apps/${{ matrix.app }}/test-results/
+          retention-days: 14
+      - if: always()
+        run: pnpm infra:down

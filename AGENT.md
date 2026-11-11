@@ -26,7 +26,7 @@ pnpm build        # 全パッケージビルド
 | フォーム               | TanStack Form + @zodapp/zod-form-mantine |
 | バリデーション         | Zod 4                                    |
 | UI                     | Mantine UI                               |
-| バックエンド           | Firebase (Firestore)                     |
+| バックエンド           | DynamoDB（@zodapp/zod-dynamodb）+ Express |
 | テスト                 | Vitest                                   |
 | Lint/Format            | ESLint + Prettier                        |
 
@@ -35,34 +35,49 @@ pnpm build        # 全パッケージビルド
 ```
 zodapp/
 ├── apps/
-│   ├── web/          # メインWebアプリ (TanStack Router)
-│   └── docs/         # ドキュメントアプリ (React Router)
+│   ├── form-demo/    # フォームと表のカタログ（DB 非依存、GitHub Pages）
+│   ├── taskmanager/  # タスク管理のサンプル（DynamoDB・Cognito・S3・リアルタイム）
+│   └── survey/       # アンケートのサンプル（質問をデータとして持ち、実行時にスキーマを組み立てる）
 ├── packages/
-│   ├── zod-form/              # フォーム自動生成のコア（zf拡張定義）
-│   ├── zod-form-mantine/      # Mantine UIコンポーネントライブラリ
-│   ├── zod-form-firebase/     # Firebase連携用resolver
-│   ├── zod-firebase/          # Firebase統合 (コア型定義)
-│   ├── zod-firebase-browser/  # ブラウザ用Firebase実装
-│   ├── zod-firebase-node/     # Node.js用Firebase実装
-│   ├── zod-extendable/        # Zodメタデータ拡張機能
+│   ├── zod-form/                 # フォーム自動生成のコア（zf拡張定義）
+│   ├── zod-form-react/           # React基盤（Dynamic / hooks / zfReact）
+│   ├── zod-form-mantine/         # Mantine UIコンポーネントライブラリ
+│   ├── zod-form-mantine-lite/    # TanStack Form に依存しない Mantine コンポーネント
+│   ├── zod-form-widget/          # AutoForm / AutoTable などのウィジェット（private）
+│   ├── zod-form-dynamodb/        # 外部キーの Resolver（登録簿の名前付きクエリ）
+│   ├── zod-form-s3/              # ファイルの Resolver（S3 の署名付き URL、ブラウザ）
+│   ├── zod-form-s3-node/         # 署名付き URL を発行する Express の router（サーバー）
+│   ├── zod-dynamodb/             # Table 定義・操作・認可・登録簿（ブラウザとサーバーで共有）
+│   ├── zod-dynamodb-node/        # DynamoDB の Repository
+│   ├── zod-dynamodb-express/     # 登録簿を配信する Express の router
+│   ├── zod-dynamodb-client/      # 型付きの HTTP / リアルタイムの Client
+│   ├── zod-dynamodb-react/       # 一覧と Item の hooks
+│   ├── zod-dynamodb-realtime/    # リアルタイムの購読の WebSocket Gateway
+│   ├── zod-dynamodb-mqtt/        # 変更の発行と購読の MQTT transport
+│   ├── zod-transport-json/       # スキーマに沿った JSON の送受信
+│   ├── zod-tabular/              # スキーマと表形式データの相互変換
+│   ├── zod-extendable/           # Zodメタデータ拡張機能
 │   ├── zod-propagating-registry/ # Zodレジストリ拡張
-│   ├── zod-searchparams/      # URLパラメータ用変換
-│   ├── zod-transform/         # Zodスキーマ変換ユーティリティ
-│   ├── ui/                    # 共有UIコンポーネント
-│   ├── firebase/              # Firebase設定
-│   ├── eslint-config/         # ESLint設定
-│   └── typescript-config/     # TypeScript設定
-├── turbo.json        # Turborepo設定
+│   ├── zod-searchparams/         # URLパラメータ用変換
+│   ├── zod-transform/            # Zodスキーマ変換ユーティリティ
+│   ├── caching-utilities/        # 購読の共有などのキャッシュ
+│   ├── react-storage/            # ブラウザのストレージに保存する state
+│   ├── eslint-config/            # ESLint設定
+│   └── typescript-config/        # TypeScript設定
+├── docs/zod-dynamodb/  # zod-dynamodb の設計
+├── turbo.json          # Turborepo設定
 ├── pnpm-workspace.yaml
 └── vitest.config.ts
 ```
 
+各アプリの詳細は、それぞれの README（`apps/form-demo` は AGENT.md も）を参照してください。
+
 ## 開発コマンド
 
 ```bash
-pnpm dev          # 開発サーバー起動
+pnpm --filter form-demo dev  # フォームのデモ（DB 不要）
 pnpm build        # 全パッケージビルド
-pnpm test         # テスト実行
+pnpm test         # テスト実行（zod-dynamodb 系とサンプルのテストは DynamoDB Local を使う。pnpm dynamodb:start で起動）
 pnpm lint         # リント実行
 pnpm format       # コードフォーマット
 pnpm check-types  # 型チェック
@@ -160,10 +175,6 @@ export const MyComponent = ({ title }: Props) => {
 const routeTree = rootRoute.addChildren([
   topRoute.addChildren([homeRoute]),
   formRoute.addChildren([formListRoute, formDetailRoute]),
-  taskManagerRoute.addChildren([
-    topLayoutRoute.addChildren([workspacesRoute]),
-    workspaceLayoutRoute.addChildren([workspaceDetailRoute, projectsRoute]),
-  ]),
 ]);
 ```
 
@@ -278,29 +289,49 @@ export const MyForm = () => {
 };
 ```
 
-### Firebase連携パターン
+### DynamoDB 連携パターン
+
+Table 定義と操作は、ブラウザとサーバーで共有するファイル（サンプルでは `src/shared/`）に書く。
+認可（`authorize`）も同じ定義に書き、ブラウザは `can` で同じ判定をする。
 
 ```typescript
 import { z } from "zod";
-import { collectionConfig } from "@zodapp/zod-firebase";
+import { tableConfig } from "@zodapp/zod-dynamodb";
 
-const taskSchema = z.object({
-  title: z.string(),
-  dueDate: z.date().optional(),
-  completed: z.boolean(),
+export const tasks = tableConfig({
+  table: appTable, // physicalTable() で作る単一テーブル
+  entity: "Task",
+  item: taskSchema,
+  create: taskBodySchema,
+  key: { partition: ["workspaceId"], sort: ["taskId"] },
+  indexes: {
+    byStatus: { slot: "GSI1", partition: ["workspaceId", "status"], sort: ["updatedAt"] },
+  },
+  onCreate: ({ now }) => ({ createdAt: now }),
+  onWrite: ({ now }) => ({ updatedAt: now }),
 });
 
-// コレクション定義（パスパラメータは型推論される）
-const taskConfig = collectionConfig({
-  path: "workspaces/:workspaceId/projects/:projectId",
-  extraIdentityKeys: ["taskId"],
-  dataSchema: taskSchema,
-});
+// defineContext<Auth>() が返す createOps / defineEndpoints を使う
+export const taskOps = createOps(tasks, (o) => ({
+  get: o.get({ authorize: (ctx, { key }) => isMember(ctx, key.workspaceId) }),
+  setStatus: o.mutation({
+    params: z.object({ status: taskStatusSchema }),
+    authorize: (ctx, { key }) => isMember(ctx, key.workspaceId),
+    patch: (p) => ({ status: p.status }),
+  }),
+}));
 
-// パスの生成（型安全）
-taskConfig.getPath({ workspaceId: "ws1", projectId: "p1", taskId: "t1" });
-// → "workspaces/ws1/projects/p1/tasks/t1"
+export const endpoints = defineEndpoints({
+  tasks: [
+    { op: taskOps.get, path: "/tasks/get" },
+    { op: taskOps.setStatus, path: "/tasks/set-status" },
+  ],
+});
 ```
+
+- onCreate の戻り値は入力より優先される（`{...input, ...onCreate, ...onWrite, ...key}`）。入力の値を使いたい項目は onCreate で上書きしない
+- DynamoDB はキー（Index）でしか絞り込めない。残りの条件は読んだ一覧をブラウザで絞る（サンプルは mingo）
+- 詳しくは `docs/zod-dynamodb/design.md` と `packages/zod-dynamodb/README.ja.md`
 
 ## テストガイドライン
 
@@ -333,8 +364,8 @@ describe("myFunction", () => {
 ## その他の注意事項
 
 - 日本語のエラーメッセージは `apps/form-demo/src/components/zod-errormap.ja.ts` で定義
-- Firebase統合時は `@zodapp/zod-firebase` 系パッケージを使用
-- ファイルアップロードには `@zodapp/zod-form-firebase` の `createFirebaseStorageResolver` を使用
-- 未実装機能のリストは [TODO.md](TODO.md) を参照
+- DB との連携は `@zodapp/zod-dynamodb` 系パッケージを使用
+- 外部キーの選択肢は `@zodapp/zod-form-dynamodb`、ファイルアップロードは `@zodapp/zod-form-s3`（サーバーは `@zodapp/zod-form-s3-node`）を使用
+- Firebase（Firestore）版のパッケージは、タグ `firebase-final` の時点に残っている
 - コードフォーマットは `tabWidth: 2`, `useTabs: false`（Prettier設定）
 - プロジェクトの詳細なコンセプトは [README.ja.md](README.ja.md) を参照

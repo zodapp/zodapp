@@ -77,6 +77,8 @@ pnpm check-types # 型チェック（画面とサーバー）
 | `01-signup` | サインアップし、メールの記録から確認コードを取って確認し、ログインする |
 | `02-survey` | アンケートを作って公開する（版が 1 になる）。テストデータの定義を入れ、回答ページから答えると、そのアンケートの回答一覧に質問の列で出る。詳細は回答フォームと同じスキーマで表示する |
 
+E2E は GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）で、taskmanager と別のジョブで回します。動画とレポートは artifact の `e2e-report-survey` です。
+
 ## 回答の保存の形
 
 回答（`answers`）は、質問の ID をキーにした `Record<string, string | number | boolean>` で保存します（`src/shared/survey/answers.ts`）。

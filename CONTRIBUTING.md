@@ -12,14 +12,16 @@ Thanks for your interest in contributing to **zodapp**.
 pnpm install
 pnpm lint
 pnpm check-types
+pnpm dynamodb:start   # DynamoDB Local (Docker) for the zod-dynamodb and sample tests
 pnpm test
+pnpm dynamodb:stop
 pnpm build
 ```
 
 ## Monorepo notes
 
 - Packages live under `packages/*`
-- The demo app is under `apps/form-demo`
+- Samples are under `apps/*` (`form-demo`: DB-independent form demo; `taskmanager` and `survey`: samples on DynamoDB. See each app's README for E2E)
 - Run a specific package/app script:
 
 ```bash
@@ -29,7 +31,7 @@ pnpm --filter <name> <script>
 Examples:
 
 ```bash
-pnpm --filter web dev
+pnpm --filter form-demo dev
 pnpm --filter @zodapp/zod-form test
 ```
 
