@@ -21,9 +21,10 @@
  *
  * 4. 【intersection のマージ仕様】
  *    intersection は left / right を独立して transform し、
- *    shallow merge（{ ...left, ...right }）を行う。
- *    そのため left 側で $remove が発生しても、
- *    right 側で同じキーが存在すれば復活する。
+ *    元の値と比べて変わった側の結果を採ってマージする（mergeIntersection）。
+ *    object はキーごと、同じ長さの配列は要素ごとに再帰でマージする。
+ *    片側が $remove し、もう片側が素通ししただけなら取り除く。
+ *    両側が別々の値に変換して食い違った場合は right を優先する。
  *
  * 5. 【クラスオブジェクトの扱い】
  *    ZodObject に class instance が与えられた場合、
@@ -424,6 +425,58 @@ const isPlainObject = (v: unknown): v is Record<string, unknown> => {
   return proto === Object.prototype || proto === null;
 };
 
+/**
+ * intersection の left / right を、同じ元の値から別々に変換した結果をマージする。
+ *
+ * 元の値と比べて変わった側の結果を採る（object の変換は、shape にないキーを素通しするため）。
+ * - 片側が何もしていなければ（元の値と同一なら）、もう片側の結果を採る
+ * - 両側が plain object なら、キーごとに再帰でマージする
+ *   - 片側が取り除き、もう片側が素通ししただけなら、取り除く
+ *   - 片側が取り除き、もう片側が変換していたら、right を優先する
+ *   - 片側だけが足したキーは残す
+ * - 両側が同じ長さの配列なら、要素ごとに再帰でマージする
+ * - それ以外（両側が別々の値に変換した）は right を優先する
+ */
+const mergeIntersection = (
+  original: unknown,
+  left: unknown,
+  right: unknown,
+): unknown => {
+  if (Object.is(left, original)) return right;
+  if (Object.is(right, original)) return left;
+  if (isPlainObject(original) && isPlainObject(left) && isPlainObject(right)) {
+    const merged: Record<string, unknown> = Object.create(null);
+    for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
+      const inLeft = Object.hasOwn(left, key);
+      const inRight = Object.hasOwn(right, key);
+      const inOriginal = Object.hasOwn(original, key);
+      if (inLeft && inRight) {
+        merged[key] = mergeIntersection(original[key], left[key], right[key]);
+      } else if (!inOriginal) {
+        // 片側が足したキー
+        merged[key] = inLeft ? left[key] : right[key];
+      } else if (inRight) {
+        // left が取り除き、right が残した。right が変換していれば right を優先する
+        if (!Object.is(right[key], original[key])) merged[key] = right[key];
+      }
+      // right が取り除いた場合は、left が素通しでも変換でも取り除く
+    }
+    return merged;
+  }
+  if (
+    Array.isArray(original) &&
+    Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === original.length &&
+    right.length === original.length
+  ) {
+    return original.map((value, index) =>
+      mergeIntersection(value, left[index], right[index]),
+    );
+  }
+  return right;
+};
+
 // 仕様確認のための関数で、実際に使われることはない
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _transform = <TSchema extends z.ZodTypeAny>(
@@ -588,10 +641,11 @@ const intrinsicProcessorDef: ProcessorDef = {
     const left = schema.def.left;
     const right = schema.def.right;
 
-    return {
-      ...$Remove.stripRemoveByDefault(context.transform(obj, left), undefined),
-      ...$Remove.stripRemoveByDefault(context.transform(obj, right), undefined),
-    };
+    return mergeIntersection(
+      obj,
+      context.transform(obj, left),
+      context.transform(obj, right),
+    );
   },
   // Recordのキーは変換しない
   record: (obj, schema, context) => {
