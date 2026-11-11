@@ -1,0 +1,42 @@
+{
+  "name": "@zodapp/zod-form-dynamodb",
+  "version": "0.0.0",
+  "private": false,
+  "description": "zod-form resolver that lists foreign-key options from @zodapp/zod-dynamodb named queries",
+  "license": "MIT",
+  "keywords": [
+    "zod",
+    "dynamodb",
+    "form"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "tsup": "^8.5.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@zodapp/zod-dynamodb-client": "workspace:*",
+    "@zodapp/zod-form": "workspace:*"
+  }
+}
