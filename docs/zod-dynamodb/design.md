@@ -91,8 +91,6 @@ zodapp/
 
 パッケージの分割は、依存関係、実行環境、公開APIの安定性を基準に判断する。
 
-名称の経緯（Burmaculex）は付録Aに記す。
-
 ---
 
 # 3. システムアーキテクチャ
@@ -2512,7 +2510,7 @@ MVPでは、これらをすべて完成させることよりも、共通定義�
 
 設計の判断は残っていない。次の細部は、各Phaseの実装で決める。
 
-- 公開する関数の名前（`defineContext`、`createOps`、`defineEndpoints`、`createServerApi`、`router`、`createClient`、`createRealtimeGateway` など）。登録簿方式への修正（docs/plans/api-redesign.md）で決まった
+- 公開する関数の名前（`defineContext`、`createOps`、`defineEndpoints`、`createServerApi`、`router`、`createClient`、`createRealtimeGateway` など）。登録簿方式への修正（§5.8、§7.2）で決まった
 - Gatewayとクライアントの間のメッセージの形式：§10.5 で決まった
 - トピックの文字列を、MQTTの命名の制約に合わせて変換する方式：§9.3 でハッシュにした
 
@@ -2547,7 +2545,7 @@ MVPでは、これらをすべて完成させることよりも、共通定義�
 
 ## Phase 2：コントラクトの分離、通信プロトコル、認可、Express
 
-（Phase 2〜4 で作ったコントラクトと実装の分離は、その後、共有の定義と登録簿の形に改めた。§5.8、§7.2、docs/plans/api-redesign.md）
+（Phase 2〜4 で作ったコントラクトと実装の分離は、その後、共有の定義と登録簿の形に改めた。§5.8、§7.2）
 
 最初に、Phase 1の定義をコントラクトと実装に分ける。Repositoryは実装を受け取って作るように変える。
 
@@ -2601,18 +2599,3 @@ Realtime Gateway（`zod-dynamodb-realtime`）と、MQTTを利用した配送（`
 リアルタイム同期については、MQTTを配送基盤として開発し、配送はインターフェースで分けて、特定の配送基盤をライブラリ全体の前提にはしない。Subscriptionは名前付きクエリの購読として定義し、Snapshot、変更通知、再接続、順序、欠落、整合性については、共通プロトコルとして意味と保証範囲を明確に定義する。
 
 **最終的な目標は、DynamoDBを単に型安全に操作できるようにすることではない。WAFを含む多重防御を前提としたアクセス経路の上で、ZodのTable定義をフロントエンドからバックエンド、インフラ、リアルタイム同期まで一貫して活用できるエコシステムを実現することである。**
-
----
-
-# 付録A. 名称の経緯（Burmaculex）
-
-当初は、DynamoDBベースのリアルタイムDocument Databaseエコシステムを `Burmaculex` という独立名称で構想していた。
-
-しかし、次の理由から `zod-dynamodb` を中心とした命名のほうが自然になってきた。
-
-- 既存の `zod-firebase` との関係が明確になる
-- `zod-dynamodb-express` や `zod-dynamodb-cdk` まで含めれば、単なるRepositoryライブラリに限定されない
-- FirebaseとDynamoDBで共通するアーキテクチャを育てやすい
-- OSSの利用者が、パッケージ名から対応するデータベースと用途を理解しやすい
-
-現時点では `zod-dynamodb-*` を第一候補とするが、最終的な名称とBurmaculexという名称の扱いは未確定とする。
