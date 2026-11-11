@@ -11,7 +11,7 @@
 - `subscriptionCache`: 同一パラメータの購読を共有し、最後の値を即時配信できる購読キャッシュ
 - 型: `RetentionCache`, `SubscriptionCache`
 
-`@zodapp/zod-firebase-browser` の Firestore 購読共有（`querySync` 等）でも利用されています。
+外部キーの Resolver（`@zodapp/zod-form` の `externalKey`）の購読の共有などに使います。
 
 ## インストール
 
@@ -66,7 +66,7 @@ const cache = subscriptionCache<Params, Data>({
   serializer: stableStringify,
   generator: (params) => ({
     subscribe: (emit) => {
-      // 例: 実際は Firestore の onSnapshot 等を置く
+      // 例: 実際はリアルタイムの購読（WebSocket など）を置く
       const timer = setInterval(() => emit({ value: Date.now() }), 1000);
       console.log("subscribe", params);
       return () => {
@@ -104,7 +104,7 @@ unsubscribe();
 
 ## 関連
 
-- `@zodapp/zod-firebase-browser`: Firestore 購読共有で `subscriptionCache` を利用
+- `@zodapp/zod-form`: 外部キーの Resolver の型で `SubscriptionCache` を参照
 
 ## ライセンス
 

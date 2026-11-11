@@ -89,11 +89,11 @@ Playwright が起動するサーバーは、認証の期限を 20 秒に縮め�
 
 ### CI
 
-E2E は、GitHub Actions の `E2E (sample)`（`.github/workflows/e2e.yml`）でも回します。ライブラリの CI（`ci.yml`）とは別のワークフローで、必須のチェックではありません。
+E2E は、GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）でも回します（survey と別のジョブ）。ライブラリの CI（`ci.yml`）とは別のワークフローで、必須のチェックではありません。
 
-- 走るのは、`apps/taskmanager`・`packages`・`zodapp`・`pnpm-lock.yaml` が変わった PR と main への push、それと手動（Actions の画面の「Run workflow」）です
+- 走るのは、`apps/taskmanager`・`apps/survey`・`packages`・`pnpm-lock.yaml` が変わった PR と main への push、それと手動（Actions の画面の「Run workflow」）です
 - コンテナは手元と同じ `pnpm infra:up` で立てます。イメージのタグは、CI で通ったバージョンに固定しています（`infra/compose.yml`）
-- 各テストの動画とレポートは、実行の結果のページの artifact（`e2e-report`、14 日）からダウンロードできます。展開した `playwright-report` を `npx playwright show-report <dir>` で開きます
+- 各テストの動画とレポートは、実行の結果のページの artifact（`e2e-report-taskmanager`、14 日）からダウンロードできます。展開した `playwright-report` を `npx playwright show-report <dir>` で開きます
 
 ## 認証と Realtime の接続
 
