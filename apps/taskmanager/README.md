@@ -1,6 +1,6 @@
 # taskmanager：zod-dynamodb の E2E サンプル
 
-zodapp の `apps/form-demo` にあるタスク管理のデモを、Firestore から zod-dynamodb（DynamoDB）に置き換えて移植したアプリケーションです。
+zodapp にあったタスク管理のデモ（`firebase-final` の `apps/web`）を、Firestore から zod-dynamodb（DynamoDB）に置き換えて移植したアプリケーションです。
 登録簿（`defineEndpoints`）、サーバーの API、Realtime Gateway、React の hooks を、ブラウザからデータベースまで通して動かします。
 
 この README は、手元のマシンと Claude Code のクラウド環境で動かす構成（ローカル版）について書いています。

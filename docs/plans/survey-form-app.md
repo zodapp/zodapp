@@ -1,6 +1,6 @@
 # アンケートフォームアプリ（第3デモ）実装プラン【詳細版】
 
-apps/form-demo に「フォームデモ」「タスク管理」と並ぶ第3のデモとして、
+apps/web に「フォームデモ」「タスク管理」と並ぶ第3のデモとして、
 **アンケートフォームアプリ（Survey）** を追加するための handover プラン。
 
 - ステータス: 詳細設計済み（実装未着手）
@@ -32,11 +32,11 @@ Firestore に保存 → 実行時にスキーマを再構築して回答フォ�
 
 | 土台 | 場所 |
 | --- | --- |
-| メール/パスワード認証 + AuthGuard | `apps/form-demo/src/shared/auth/*` |
-| マルチテナント（workspaces / members、collectionGroup 所属検索） | `apps/form-demo/src/shared/taskManager/collections/*`, `pages/taskManager-top/*` |
-| firestore バインド済み hooks（useList / useGrowingList / useDoc / useCollectionGroupList） | `apps/form-demo/src/shared/taskManager/hooks/index.ts` |
-| 列設定プロファイル 3 スコープ永続化 | `apps/form-demo/src/shared/taskManager/useProfileColumnSettings.ts` |
-| AutoForm の `componentLibrary` prop / カスタムアクション / zf.dynamic デモ | `packages/zod-form-widget`, `apps/form-demo/src/pages/form/schemas/*` |
+| メール/パスワード認証 + AuthGuard | `apps/web/src/shared/auth/*` |
+| マルチテナント（workspaces / members、collectionGroup 所属検索） | `apps/web/src/shared/taskManager/collections/*`, `pages/taskManager-top/*` |
+| firestore バインド済み hooks（useList / useGrowingList / useDoc / useCollectionGroupList） | `apps/web/src/shared/taskManager/hooks/index.ts` |
+| 列設定プロファイル 3 スコープ永続化 | `apps/web/src/shared/taskManager/useProfileColumnSettings.ts` |
+| AutoForm の `componentLibrary` prop / カスタムアクション / zf.dynamic デモ | `packages/zod-form-widget`, `apps/web/src/pages/form/schemas/*` |
 | エミュレータモード（`VITE_FIREBASE_EMULATOR=1`） | `packages/firebase/src/index.ts`, `firebase.json` |
 
 ---
@@ -97,7 +97,7 @@ surveyRoute.addChildren([                       // path: "survey"（index は wo
 taskManager- 系と同じ粒度で分割する:
 
 ```
-apps/form-demo/src/shared/survey/
+apps/web/src/shared/survey/
   collections/
     survey.ts            … surveysCollection + reference/queries/mutations
     response.ts          … responsesCollection + queries
@@ -106,12 +106,12 @@ apps/form-demo/src/shared/survey/
   buildSurveySchema.ts   … DSL → zf スキーマのランタイムビルダー
   buildSurveySchema.test.ts
 
-apps/form-demo/src/pages/survey-top/
+apps/web/src/pages/survey-top/
   index.route.ts / index.tsx        … /survey（workspaces へ redirect）
   layout.route.ts / Layout.tsx      … AuthGuard + CommonLayout（backLink: トップ）
   workspaces.route.ts / workspaces.tsx … ワークスペース一覧（survey 系へのリンク）
 
-apps/form-demo/src/pages/survey-workspace/
+apps/web/src/pages/survey-workspace/
   layout.route.ts / Layout.tsx      … AuthGuard + CommonLayout（nav: アンケート/回答）
   surveys.route.ts / surveys.tsx    … アンケート一覧
   responses.route.ts / responses.tsx … 回答一覧（横断）
@@ -449,7 +449,7 @@ match /responses/{responseId} {
 }
 ```
 
-`apps/form-demo/tests/firestore.rules.test.ts` に追加するケース（既存 29 件と同じ流儀）:
+`apps/web/tests/firestore.rules.test.ts` に追加するケース（既存 29 件と同じ流儀）:
 
 - member は survey を作成/読める、viewer は読めるが作成できない
 - member は response を作成できる、作成後に member は更新できない（admin は可）
@@ -685,7 +685,7 @@ form の defaultValues には**初回取得値**を使い、購読更新でフ�
 
 ```bash
 npx firebase emulators:start --only auth,firestore,storage --project demo-zodapp
-cd apps/form-demo && VITE_FIREBASE_EMULATOR=1 pnpm dev     # localhost:3000
+cd apps/web && VITE_FIREBASE_EMULATOR=1 pnpm dev     # localhost:3000
 pnpm emulator:test                                    # ルールテスト込み全テスト
 ```
 
@@ -749,7 +749,7 @@ pnpm emulator:test                                    # ルールテスト込み
 
 ## 14. 参考（調査で参照した実装）
 
-- ルーティング 3 層構造: `apps/form-demo/src/pages/router.tsx`,
+- ルーティング 3 層構造: `apps/web/src/pages/router.tsx`,
   `taskManager-top/index.route.ts` / `layout.route.ts` / `index.tsx`
 - レイアウトと認可: `taskManager-{top,workspace,project}/Layout.tsx`,
   `components/CommonLayout.tsx`, `shared/auth/AuthGuard.tsx`,
@@ -763,7 +763,7 @@ pnpm emulator:test                                    # ルールテスト込み
   `stripPropertiesOutsideArm`）, `packages/zod-form/src/utils/default.ts`
 - record 動的列: `packages/zod-form-widget/src/table/extract-schema-columns.ts`,
   `TableSettingDrawer.tsx`（`resolveRecordTemplateConcretePath` ほか）
-- discriminatedUnion のメタ登録の正準例: `apps/form-demo/src/pages/form/schemas/discriminatedUnion.ts`
+- discriminatedUnion のメタ登録の正準例: `apps/web/src/pages/form/schemas/discriminatedUnion.ts`
 - nonPathKeys / autoQuery 仕様: `packages/zod-firebase/README.ja.md`
 - aibpo-core の該当実装（クローズドのためコードは移植せずパターンのみ参照）:
   DSL → スキーマ構築の 3 分割戻り値、エラーセンチネル、2 カラムビルダー構成
