@@ -2,22 +2,16 @@ import type React from "react";
 import {
   ActionIcon,
   AppShell,
-  Avatar,
   Badge,
   Burger,
   Group,
-  Menu,
   NavLink,
-  Text,
   Tooltip,
-  UnstyledButton,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery, useLocalStorage } from "@mantine/hooks";
 import {
-  IconChevronDown,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
-  IconLogout,
 } from "@tabler/icons-react";
 import {
   Link,
@@ -26,8 +20,6 @@ import {
   type LinkOptions,
 } from "@tanstack/react-router";
 
-import { useAuthContext } from "../shared/auth";
-import { loginRoute } from "../pages/taskManager-nonmember/login.route";
 
 import styles from "../styles/page.module.css";
 
@@ -84,13 +76,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   });
   const toggleDesktop = () => setDesktopOpened((prev) => !prev);
   const isMobile = useMediaQuery("(max-width: 48em)");
-  const { user, signOut } = useAuthContext();
   const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate({ to: loginRoute.to, replace: true });
-  };
 
   const renderBackLink = () => {
     if (!backLink) return null;
@@ -262,38 +248,6 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           )}
         </Group>
 
-        {user && (
-          <Menu shadow="md" width={200} position="bottom-end">
-            <Menu.Target>
-              <UnstyledButton mr="md">
-                <Group gap="xs">
-                  <Avatar
-                    src={user.photoURL}
-                    alt={user.displayName || "User"}
-                    radius="xl"
-                    size="sm"
-                  />
-                  <Text size="sm" visibleFrom="sm">
-                    {user.displayName || user.email}
-                  </Text>
-                  <IconChevronDown size={14} />
-                </Group>
-              </UnstyledButton>
-            </Menu.Target>
-
-            <Menu.Dropdown>
-              <Menu.Label>{user.email}</Menu.Label>
-              <Menu.Divider />
-              <Menu.Item
-                color="red"
-                leftSection={<IconLogout size={14} />}
-                onClick={handleSignOut}
-              >
-                ログアウト
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        )}
       </AppShell.Header>
 
       {hasNavbar && (

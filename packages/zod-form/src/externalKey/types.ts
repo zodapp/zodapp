@@ -4,7 +4,7 @@
 
 import type { RegisteredResolverContext } from "../resolverContext/types";
 
-/** ResolverのID（"firestore"など） */
+/** ResolverのID（"dynamodb"など） */
 export type ResolverId = string;
 
 /** unsubscribe用の関数 */

@@ -7,11 +7,7 @@
     "packages/typescript-config",
     "packages/ui",
     "packages/zod-extendable",
-    "packages/zod-firebase",
-    "packages/zod-firebase-browser",
-    "packages/zod-firebase-node",
     "packages/zod-form",
-    "packages/zod-form-firebase",
     "packages/zod-form-mantine",
     "packages/zod-form-react",
     "packages/zod-propagating-registry",
@@ -23,7 +19,6 @@
   "entryFileName": "README",
   "skipErrorChecking": true,
   "exclude": [
-    "packages/firebase/**",
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts"

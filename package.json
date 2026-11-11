@@ -20,15 +20,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "docs:typedoc": "turbo run docs:typedoc",
     "check:docs": "pnpm docs:typedoc && git diff --exit-code -- . ':!packages/*/docs/api'",
-    "check-types": "turbo run check-types",
-    "emulator": "firebase emulators:start",
-    "emulator:test": "firebase emulators:exec --only firestore --project zodapp-test \"pnpm test\"",
-    "hosting:deploy": "pnpm build && firebase deploy --only hosting",
-    "hosting:preview": "pnpm build && firebase hosting:channel:deploy preview"
+    "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "firebase-tools": "^14.27.0",
     "prettier": "^3.8.1",
     "turbo": "^2.8.10",
     "typedoc": "^0.28.17",

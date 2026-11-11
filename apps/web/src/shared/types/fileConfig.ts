@@ -1,34 +1,24 @@
 /**
- * Web アプリ固有の FileConfig 型定義
+ * フォームのデモで使う FileConfig 型定義
  *
  * このファイルは2つの役割を持つ:
- * 1. WebFileConfig union 型の定義
+ * 1. WebFileConfig 型の定義
  * 2. declare module による型登録（zf.file.registry に型を効かせる）
+ *
+ * フォームのデモは DB やストレージに依存しないので、Mock の Resolver だけを使う。
+ * S3 などの実際の保存先は、各サンプル（apps/taskmanager など）が自分で登録する。
  */
-import type { FirebaseStorageFileConfig } from "@zodapp/zod-form-firebase";
 import type { BaseFileConfig } from "@zodapp/zod-form";
-import type {
-  WebResolverContextId,
-  WebResolverContextMap,
-} from "./resolverContext";
 
 /**
  * Mock 用の FileConfig 型（開発・テスト用）
  */
 export type MockFileConfig = BaseFileConfig<"mock">;
 
-type WebFirebaseStorageFileConfig<K extends WebResolverContextId> =
-  FirebaseStorageFileConfig<"firebaseStorage", K, WebResolverContextMap[K]>;
-
-type WebContextualFileConfig = {
-  [K in WebResolverContextId]: WebFirebaseStorageFileConfig<K>;
-}[WebResolverContextId];
-
 /**
- * Web アプリで使用する FileConfig の union 型
- * 将来的に他の Resolver（S3 など）を追加する場合はここに追加
+ * フォームのデモで使用する FileConfig の型
  */
-export type WebFileConfig = MockFileConfig | WebContextualFileConfig;
+export type WebFileConfig = MockFileConfig;
 
 /**
  * declare module でグローバル型を登録

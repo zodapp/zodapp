@@ -4,7 +4,7 @@
 
 import type { RegisteredResolverContext } from "../resolverContext/types";
 
-/** ResolverのID（"firebaseStorage"など） */
+/** ResolverのID（"s3"など） */
 export type ResolverId = string;
 
 /**

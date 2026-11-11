@@ -102,20 +102,20 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
      * ```
      *
      * アプリ側で declare module による型拡張を行い、
-     * 具体的な Config 型（FirestoreExternalKeyConfig など）を登録すると、
+     * 具体的な Config 型（DynamoExternalKeyConfig など）を登録すると、
      * plugin 固有フィールドも型安全に制限できます。
      */
   });
 
   describe("型拡張のドキュメント", () => {
     /**
-     * apps/web での型拡張パターン:
+     * アプリでの型拡張パターン（例：apps/taskmanager）:
      *
      * ```typescript
-     * // apps/web/src/shared/types/externalKeyConfig.ts
-     * import type { FirestoreExternalKeyConfig } from "@zodapp/zod-form-firebase";
+     * // src/shared/form/externalKeyConfig.ts
+     * import type { DynamoExternalKeyConfig } from "@zodapp/zod-form-dynamodb";
      *
-     * export type WebExternalKeyConfig = FirestoreExternalKeyConfig;
+     * export type WebExternalKeyConfig = DynamoExternalKeyConfig;
      *
      * declare module "@zodapp/zod-form/externalKey/types" {
      *   interface ExternalKeyConfigRegistry {
@@ -127,8 +127,8 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
      * この拡張により:
      * - RegisteredExternalKeyConfig が WebExternalKeyConfig と等しくなる
      * - zf.externalKey.registry の externalKeyConfig が
-     *   FirestoreExternalKeyConfig のみを受け入れるようになる
-     * - 不正な type（"firestore" 以外）がコンパイルエラーになる
+     *   DynamoExternalKeyConfig のみを受け入れるようになる
+     * - 不正な type（"dynamodb" 以外）がコンパイルエラーになる
      * - 必須フィールド（collectionConfig, contextId）の欠落がエラーになる
      */
     it("型拡張の仕組みを理解するためのドキュメント的テスト", () => {
