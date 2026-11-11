@@ -44,8 +44,12 @@ test("アンケート：作成して公開し、回答が一覧に出る", async
   await expect(row).toContainText("とても満足");
 
   // 詳細では、回答フォームと同じスキーマで読み取り専用に表示する
-  await row.getByRole("link").click();
-  await expect(page.getByRole("heading", { name: "回答詳細" })).toBeVisible();
+  // 一覧は live で、アンケートの定義を読み終えると列を組み直す。組み直しの最中のクリックは
+  // 失われることがあるので、詳細が開くまでクリックをやり直す
+  await expect(async () => {
+    await row.getByRole("link").click();
+    await expect(page.getByRole("heading", { name: "回答詳細" })).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   await expect(page.getByRole("main")).toContainText("E2E 太郎");
   await expect(page.getByRole("main")).toContainText("とても満足");
 
