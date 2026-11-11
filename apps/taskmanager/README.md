@@ -4,7 +4,7 @@ zodapp にあったタスク管理のデモ（`firebase-final` の `apps/web`）
 登録簿（`defineEndpoints`）、サーバーの API、Realtime Gateway、React の hooks を、ブラウザからデータベースまで通して動かします。
 
 この README は、手元のマシンと Claude Code のクラウド環境で動かす構成（ローカル版）について書いています。
-本番の構成（ECS・IoT Core・CDK）は、別のプランで追加します。
+AWS（ECS Fargate・IoT Core・CDK）に試しにデプロイする手順は、「[AWS で動かす](#aws-で動かす)」にあります。
 
 ## 構成
 
@@ -94,6 +94,64 @@ E2E は、GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）で
 - 走るのは、`apps/taskmanager`・`apps/survey`・`packages`・`pnpm-lock.yaml` が変わった PR と main への push、それと手動（Actions の画面の「Run workflow」）です
 - コンテナは手元と同じ `pnpm infra:up` で立てます。イメージのタグは、CI で通ったバージョンに固定しています（`infra/compose.yml`）
 - 各テストの動画とレポートは、実行の結果のページの artifact（`e2e-report-taskmanager`、14 日）からダウンロードできます。展開した `playwright-report` を `npx playwright show-report <dir>` で開きます
+
+## AWS で動かす
+
+試験用に、AWS（ECS Fargate の構成）へデプロイできます。CDK のコードは `infra/cdk/` です。使い終わったらすぐに消す前提で、消し忘れても作成・更新から 1 時間でスタックが自分を消します。
+
+```
+ブラウザ ── CloudFront ──┬─ S3（画面。/config.js に Cognito の ID などを入れる）
+                        └─ /api/* ─ ALB ─ Fargate 1 台（Express と Realtime Gateway）
+Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークンの検証）、IoT Core（変更の配送）
+```
+
+| 役割 | ローカル版 | AWS |
+|---|---|---|
+| データベース | DynamoDB Local | DynamoDB（`burmaculex-<環境名>-taskmanager`） |
+| 認証 | magnito | Cognito（確認メールは Cognito の既定の送信。1 日 50 通まで） |
+| ファイル | S3Proxy | S3（ブラウザが署名付き URL で直接読み書き） |
+| リアルタイムの配送 | aedes | IoT Core（タスクロールで SigV4 の署名をした WebSocket。証明書は使わない。`src/server/iot.ts`） |
+| API と Realtime Gateway | Express（`pnpm dev`） | ECS Fargate 1 台（`pnpm build:server` の 1 ファイル。`infra/server.Dockerfile`） |
+| 画面 | Vite | CloudFront + S3 |
+| 開発用のユーザー | サーバーの起動時に作る | スタックの中で作る（alice・bob・vic、パスワードは同じ） |
+
+- Realtime Gateway は接続の状態をメモリーに持つので、Fargate は 1 台だけ動かします
+- VPC は自分のもの（`10.40.0.0/16`、公開サブネットだけで NAT Gateway なし）です。ALB は CloudFront からの接続だけを受けます
+- 名前とタグは `burmaculex` で始めます（スタック `burmaculex-taskmanager-<環境名>`、タグ `burmaculex:env`）
+- アカウントとリージョンは `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`）
+
+### デプロイする
+
+必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier。やり直さない）、デプロイできる認証情報。
+
+```bash
+cd apps/taskmanager
+pnpm aws:deploy                                  # 画面とサーバーを作ってデプロイ（8 分ほど）
+pnpm aws:deploy -- -c authMaxAgeSeconds=20       # E2E の 08-token-refresh を流すとき
+pnpm aws:deploy -- -c ttlMinutes=120             # 自分を消すまでの分数を変える（0 で消さない）
+```
+
+出力の `Url` が画面の URL、`ExpiresAt` がスタックが自分を消す時刻（UTC）です。
+
+### E2E を流す
+
+```bash
+E2E_BASE_URL=<Url> COGNITO_ENDPOINT= COGNITO_REGION=us-east-1 COGNITO_CLIENT_ID=<UserPoolClientId> \
+  NODE_USE_ENV_PROXY=1 pnpm e2e
+```
+
+- `01-signup` は、確認のメールを読めないので行いません
+- `NODE_USE_ENV_PROXY=1` は、HTTPS_PROXY のある環境（Claude Code のクラウド環境など）のときだけ要ります。ブラウザも同じプロキシを通します（`playwright.config.ts`）。クラウド環境では、ネットワークの許可に `*.cloudfront.net` を入れておきます
+
+### 消す
+
+```bash
+pnpm aws:destroy
+```
+
+スタックを消しても、コンテナのイメージ（CDK の bootstrap の ECR リポジトリ）と、画面などのアセット（bootstrap の S3 のバケット）は残ります。
+
+ほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループに出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
 
 ## 認証と Realtime の接続
 

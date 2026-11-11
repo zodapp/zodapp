@@ -25,6 +25,10 @@ export default defineConfig({
     : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: remoteBaseUrl ?? "http://localhost:3000",
+    // HTTPS_PROXY のある環境（Claude Code のクラウド環境など）から AWS を試すときは、ブラウザもそれを通す
+    ...(remoteBaseUrl && process.env.HTTPS_PROXY
+      ? { proxy: { server: process.env.HTTPS_PROXY } }
+      : {}),
     ...devices["Desktop Chrome"],
     viewport: { width: 1280, height: 800 },
     video: "on",

@@ -13,6 +13,7 @@
 import path from "node:path";
 import {
   CfnOutput,
+  CustomResource,
   Duration,
   RemovalPolicy,
   Stack,
@@ -27,6 +28,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
@@ -66,6 +68,57 @@ const SERVER_PORT = 4000;
 
 const appDir = path.resolve(import.meta.dirname, "../..");
 
+/**
+ * スタックを消すときに、バケットを空にするカスタムリソースの Lambda（Node.js 22 の SDK を使う）。
+ * 作成・更新では何もしない。結果は CloudFormation の署名付き URL に PUT する
+ */
+const BUCKET_CLEANER_CODE = `
+const { S3Client, ListObjectsV2Command, DeleteObjectsCommand } = require("@aws-sdk/client-s3");
+const s3 = new S3Client({});
+const empty = async (bucket) => {
+  let token;
+  do {
+    const page = await s3.send(new ListObjectsV2Command({ Bucket: bucket, ContinuationToken: token }));
+    const objects = (page.Contents || []).map((o) => ({ Key: o.Key }));
+    if (objects.length > 0) {
+      await s3.send(new DeleteObjectsCommand({ Bucket: bucket, Delete: { Objects: objects, Quiet: true } }));
+    }
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+};
+exports.handler = async (event) => {
+  let status = "SUCCESS";
+  let reason = "";
+  try {
+    if (event.RequestType === "Delete") {
+      for (const bucket of event.ResourceProperties.Buckets || []) {
+        try {
+          await empty(bucket);
+        } catch (error) {
+          if (error.name !== "NoSuchBucket") throw error;
+        }
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    status = "FAILED";
+    reason = String(error);
+  }
+  await fetch(event.ResponseURL, {
+    method: "PUT",
+    headers: { "content-type": "" },
+    body: JSON.stringify({
+      Status: status,
+      Reason: reason || "see the function logs",
+      PhysicalResourceId: event.PhysicalResourceId || "empty-buckets",
+      StackId: event.StackId,
+      RequestId: event.RequestId,
+      LogicalResourceId: event.LogicalResourceId,
+    }),
+  });
+};
+`;
+
 export class TaskmanagerStack extends Stack {
   constructor(scope: Construct, id: string, props: TaskmanagerStackProps) {
     super(scope, id, props);
@@ -74,9 +127,12 @@ export class TaskmanagerStack extends Stack {
     Tags.of(this).add("burmaculex:env", envName);
     Tags.of(this).add("burmaculex:app", "taskmanager");
 
-    /** スタックの Lambda（カスタムリソースなど）のログ。スタックと一緒に消す */
+    /**
+     * スタックの Lambda（カスタムリソースなど）のログ。スタックと一緒に消す。
+     * 名前は CDK に任せる（消したあとにログが遅れて届いて同じ名前で作り直されても、次のデプロイとぶつからない）。
+     * 作り直されないように、Lambda にはロググループを作らせない（このファイルの最後）
+     */
     const functionLogs = new logs.LogGroup(this, "FunctionLogs", {
-      logGroupName: `/burmaculex/${envName}/taskmanager-functions`,
       retention: logs.RetentionDays.ONE_DAY,
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -134,7 +190,6 @@ export class TaskmanagerStack extends Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
     });
 
     // ---- ネットワークとサーバー ----
@@ -218,7 +273,6 @@ export class TaskmanagerStack extends Stack {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
       cors: [
         {
           allowedOrigins: [appOrigin],
@@ -468,6 +522,40 @@ export class TaskmanagerStack extends Stack {
         },
       });
       new CfnOutput(this, "ExpiresAt", { value: expiresAt.toISOString() });
+    }
+
+    // ---- スタックを消すときに、バケットを空にする ----
+    // CDK の autoDeleteObjects は、ログの置き場所を選べない Lambda を作り、消したあとに
+    // /aws/lambda/… のロググループが残るので、ログを functionLogs に出す小さな Lambda で行う
+    const bucketCleaner = new lambda.Function(this, "BucketCleaner", {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: "index.handler",
+      timeout: Duration.minutes(5),
+      logGroup: functionLogs,
+      code: lambda.Code.fromInline(BUCKET_CLEANER_CODE),
+    });
+    for (const bucket of [webBucket, filesBucket]) {
+      bucket.grantRead(bucketCleaner);
+      bucket.grantDelete(bucketCleaner);
+    }
+    // バケットより先に消える（バケットの名前を受け取るので、バケットに依存する）
+    new CustomResource(this, "EmptyBuckets", {
+      serviceToken: bucketCleaner.functionArn,
+      resourceType: "Custom::BurmaculexEmptyBuckets",
+      properties: { Buckets: [webBucket.bucketName, filesBucket.bucketName] },
+    });
+
+    // スタックの Lambda にロググループを作らせない。消したあとに届いたログで作り直されて、残るのを防ぐ
+    for (const construct of this.node.findAll()) {
+      if (construct instanceof lambda.Function && construct.role) {
+        construct.role.addToPrincipalPolicy(
+          new iam.PolicyStatement({
+            effect: iam.Effect.DENY,
+            actions: ["logs:CreateLogGroup"],
+            resources: ["*"],
+          }),
+        );
+      }
     }
 
     new CfnOutput(this, "Url", { value: appOrigin });

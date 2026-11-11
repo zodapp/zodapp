@@ -14,8 +14,12 @@ test("認可：閲覧者は作成できず、API を直接呼んでも FORBIDDEN
   const row = page.getByRole("row").filter({ hasText: "閲覧者が見るタスク" });
   await expect(row).toBeVisible();
   await expect(page.getByRole("button", { name: "新規作成" })).toBeDisabled();
-  await row.getByRole("link").click();
-  await expect(page.getByRole("heading", { name: "タスク詳細" })).toBeVisible();
+  // 一覧は live で、読み終えると組み直す。組み直しの最中のクリックは失われることがある
+  // （AWS のように応答が遅いと起きやすい）ので、詳細が開くまでクリックをやり直す
+  await expect(async () => {
+    await row.getByRole("link").click();
+    await expect(page.getByRole("heading", { name: "タスク詳細" })).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "更新" })).toHaveCount(0);
 
   // API：閲覧者のトークンで書き込むと FORBIDDEN
