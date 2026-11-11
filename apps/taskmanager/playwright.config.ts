@@ -1,9 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/** AWS にデプロイしたものを試すときは、CloudFront の URL（e2e/helpers.ts の BASE_URL） */
+const remoteBaseUrl = process.env.E2E_BASE_URL;
+
 /**
  * ローカル（と Claude Code）で動かす E2E。
  * docker compose のインフラ（`pnpm infra:up`）は先に起動しておく。
  * メールの記録とアプリ（サーバー + Vite）は、起動していなければここで起動する。
+ * E2E_BASE_URL を指定したときは、そこ（AWS）を試し、ローカルでは何も起動しない。
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -20,26 +24,28 @@ export default defineConfig({
     ? [["list"], ["github"], ["html", { open: "never" }]]
     : [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: remoteBaseUrl ?? "http://localhost:3000",
     ...devices["Desktop Chrome"],
     viewport: { width: 1280, height: 800 },
     video: "on",
     trace: "off",
   },
-  webServer: [
-    {
-      command: "pnpm mail",
-      url: "http://localhost:2501/messages",
-      reuseExistingServer: true,
-    },
-    {
-      command: "pnpm dev",
-      url: "http://localhost:3000/api/health",
-      reuseExistingServer: true,
-      timeout: 60_000,
-      // 認証の期限を 20 秒に縮める（e2e/helpers.ts の AUTH_MAX_AGE_SECONDS）。
-      // すべてのシナリオが、トークンの入れ替えをまたいで動くことも確かめる
-      env: { AUTH_MAX_AGE_SECONDS: "20" },
-    },
-  ],
+  webServer: remoteBaseUrl
+    ? []
+    : [
+        {
+          command: "pnpm mail",
+          url: "http://localhost:2501/messages",
+          reuseExistingServer: true,
+        },
+        {
+          command: "pnpm dev",
+          url: "http://localhost:3000/api/health",
+          reuseExistingServer: true,
+          timeout: 60_000,
+          // 認証の期限を 20 秒に縮める（e2e/helpers.ts の AUTH_MAX_AGE_SECONDS）。
+          // すべてのシナリオが、トークンの入れ替えをまたいで動くことも確かめる
+          env: { AUTH_MAX_AGE_SECONDS: "20" },
+        },
+      ],
 });

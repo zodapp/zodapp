@@ -1,19 +1,23 @@
 /**
  * Amplify（Cognito）の設定。ローカルでは userPoolEndpoint を magnito に向ける。
- * 本番では VITE_COGNITO_ENDPOINT を空にすれば、AWS の Cognito につながる。
+ * AWS では、配信のときの設定（runtime-config.ts）で Cognito の ID を受け取る。
  */
 import { Amplify } from "aws-amplify";
+import { runtimeConfig } from "./runtime-config";
 
 const env = import.meta.env;
 
-export const cognitoConfig = {
-  userPoolId: env.VITE_COGNITO_USER_POOL_ID ?? "ap-northeast-1_taskmanager",
-  userPoolClientId: env.VITE_COGNITO_CLIENT_ID ?? "taskmanager-web",
-  userPoolEndpoint:
-    env.VITE_COGNITO_ENDPOINT === undefined
-      ? "http://localhost:5050"
-      : env.VITE_COGNITO_ENDPOINT || undefined,
-};
+/** 配信のときの設定（AWS）があればそれを使い、なければ Vite の環境変数とローカルの既定値 */
+export const cognitoConfig = runtimeConfig.cognito
+  ? { ...runtimeConfig.cognito, userPoolEndpoint: undefined }
+  : {
+      userPoolId: env.VITE_COGNITO_USER_POOL_ID ?? "ap-northeast-1_taskmanager",
+      userPoolClientId: env.VITE_COGNITO_CLIENT_ID ?? "taskmanager-web",
+      userPoolEndpoint:
+        env.VITE_COGNITO_ENDPOINT === undefined
+          ? "http://localhost:5050"
+          : env.VITE_COGNITO_ENDPOINT || undefined,
+    };
 
 /**
  * ログインの方式。Cognito の既定は SRP（パスワードを送らない）。

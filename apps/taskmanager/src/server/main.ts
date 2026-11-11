@@ -2,7 +2,7 @@
  * サーバー：Express（登録簿の router とサーバーだけのルート）、Realtime Gateway、MQTT ブローカー。
  *
  * ローカルでは MQTT ブローカー（aedes）をこのプロセスの中で起動し、変更の発行と Gateway の購読は
- * MQTT でそこにつなぐ。本番では MQTT_URL に AWS IoT Core などを指定する。
+ * MQTT でそこにつなぐ。本番では IOT_ENDPOINT に AWS IoT Core を指定する（MQTT_URL で別のブローカーも使える）。
  */
 import type { IncomingMessage } from "node:http";
 import { createServer as createTcpServer } from "node:net";
@@ -26,6 +26,7 @@ import {
 } from "./auth";
 import { createDynamoClient } from "./dynamo";
 import { config } from "./env";
+import { connectIotCore } from "./iot";
 import { setupLocal } from "./local";
 import { createAppRepository } from "./repository";
 import { createAppRoutes } from "./routes";
@@ -54,12 +55,25 @@ const main = async () => {
   const files = createFileSigner(createS3Client());
   if (process.env.LOCAL_SETUP !== "0") await setupLocal({ dynamodb, files });
 
-  const broker = config.mqtt.url ? undefined : await startBroker();
-  const mqttUrl = config.mqtt.url ?? broker!.url;
+  const { iotEndpoint } = config.mqtt;
+  const broker =
+    config.mqtt.url || iotEndpoint ? undefined : await startBroker();
+  const mqttUrl = config.mqtt.url ?? broker?.url;
+  /** 発行と購読で、別々のクライアントを使う */
+  const connection = async (name: string) =>
+    iotEndpoint
+      ? {
+          client: await connectIotCore({
+            endpoint: iotEndpoint,
+            region: config.dynamodb.region,
+            name: `${MQTT_PREFIX}-${name}`,
+          }),
+        }
+      : { url: mqttUrl! };
 
   // 書き込み側：Repository の変更を、live を付けたクエリのトピックに発行する
   const publisher = mqttPublisher({
-    url: mqttUrl,
+    ...(await connection("publisher")),
     endpoints,
     prefix: MQTT_PREFIX,
   });
@@ -146,7 +160,7 @@ const main = async () => {
 
   realtime = createRealtimeGateway({
     api: serverApi,
-    transport: mqttTransport({ url: mqttUrl }),
+    transport: mqttTransport(await connection("gateway")),
     prefix: MQTT_PREFIX,
     // ブラウザがトークンを更新したら、接続を保ったまま入れ替える
     credentialOf: tokenOfMessage,
