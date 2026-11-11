@@ -1,0 +1,28 @@
+import { IconFolder } from "@tabler/icons-react";
+
+import CommonLayout, { type NavItem } from "../../components/CommonLayout";
+import { AuthGuard } from "../../shared/auth";
+import { surveyDemo } from "../../shared/demos";
+import { workspacesRoute } from "./workspaces.route";
+
+const TopLayout = () => {
+  const navItems: NavItem[] = [
+    {
+      label: "ワークスペース一覧",
+      icon: <IconFolder size={20} />,
+      to: workspacesRoute.to,
+      exact: true,
+    },
+  ];
+
+  return (
+    <AuthGuard>
+      <CommonLayout
+        navItems={navItems}
+        demo={surveyDemo}
+      />
+    </AuthGuard>
+  );
+};
+
+export default TopLayout;

@@ -1,0 +1,37 @@
+# ローカルの開発と E2E で使うインフラ（DynamoDB Local、Cognito のエミュレーター）。
+# Node.js で書くもの（サーバー、Web、MQTT ブローカー、メールの記録）は Docker に入れない。
+# イメージのタグは、CI（.github/workflows/e2e.yml）で E2E が通ったバージョンに固定する。
+name: survey
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.2
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      - "${DYNAMODB_PORT:-8000}:8000"
+
+  # Cognito のエミュレーター（https://github.com/frourios/magnito）
+  magnito:
+    image: frourio/magnito:0.27.1
+    ports:
+      - "${MAGNITO_PORT:-5050}:5050"
+    environment:
+      PORT: 5050
+      SSL_PORT: 5051
+      COGNITO_USER_POOL_ID: ap-northeast-1_survey
+      COGNITO_USER_POOL_CLIENT_ID: survey-web
+      COGNITO_ACCESS_KEY: magnito-access-key
+      COGNITO_SECRET_KEY: magnito-secret-key
+      COGNITO_REGION: ap-northeast-1
+      # 確認コードなどのメールは、ホストで動くメールの記録（scripts/mail-recorder.mts）に送る
+      SMTP_HOST: host.docker.internal
+      SMTP_PORT: "${MAIL_SMTP_PORT:-2500}"
+      SMTP_USER: local
+      SMTP_PASS: local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - magnito:/usr/src/app/data
+
+volumes:
+  magnito:
