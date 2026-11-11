@@ -37,8 +37,7 @@ const schema = z.object({ a: z.date() }).and(z.object({ b: z.string() }));
   （現在は README とヘッダーコメントの「intersection のマージ仕様」に、これが仕様として書かれている）
 - intersection のテストが `zod-transform` に 1 件もない
 
-利用側では、burmaculex の `zod-dynamodb`（`json-transport.ts`）が、intersection を平らな
-object に組み直して回避している。
+利用側では、intersection を平らな object に組み直して回避している例がある。
 
 ## 2. 方針（確定）
 
@@ -110,7 +109,7 @@ object に組み直して回避している。
 `zod-transport-json`
 
 - `z.object({ createdAt: z.date() }).and(z.object({ id: z.string() }))` を encode → decode して元に戻る
-- burmaculex の回避が対象にしていた形（片側が discriminated union）でも往復できる
+- 片側が discriminated union の intersection でも往復できる
 
 ## 6. 確認
 
@@ -125,6 +124,5 @@ pnpm lint
 
 ## 7. 範囲外（後続）
 
-- burmaculex `packages/zod-dynamodb/src/json-transport.ts` の回避の削除
-  （zodapp の修正が使えるようになってから、burmaculex 側の別の作業で行う）
+- 利用側の回避の削除（この修正が使えるようになってから、利用側の別の作業で行う）
 - zodapp パッケージの npm 公開
