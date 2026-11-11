@@ -99,12 +99,12 @@ export const MyForm = () => {
 - `@zodapp/zod-form-mantine/tableComponentsLibrary`
 - `@zodapp/zod-form-mantine/mediaResolvers`
 
-## apps/web での使用例
+## apps/form-demo での使用例
 
-`apps/web` では `AutoForm` / `AutoTable` で、`componentLibrary` / `tableComponentLibrary` を `ZodFormContextProvider` に渡して `Dynamic` を描画しています。
+`apps/form-demo` では `AutoForm` / `AutoTable` で、`componentLibrary` / `tableComponentLibrary` を `ZodFormContextProvider` に渡して `Dynamic` を描画しています。
 
-- `apps/web/src/components/AutoForm.tsx`: `componentLibrary` + `useZodForm` + `FormProvider` + `ValidatePrecedingFieldsProvider`
-- `apps/web/src/components/AutoTable.tsx`: `tableComponentLibrary` + `Dynamic`（computed は `defaultValue` に親オブジェクトを渡す）
+- `apps/form-demo/src/components/AutoForm.tsx`: `componentLibrary` + `useZodForm` + `FormProvider` + `ValidatePrecedingFieldsProvider`
+- `apps/form-demo/src/components/AutoTable.tsx`: `tableComponentLibrary` + `Dynamic`（computed は `defaultValue` に親オブジェクトを渡す）
 
 ## API（抜粋）
 
