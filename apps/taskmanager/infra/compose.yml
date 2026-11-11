@@ -1,0 +1,52 @@
+# ローカルの開発と E2E で使うインフラ（DynamoDB Local、Cognito のエミュレーター、S3 互換のストレージ）。
+# Node.js で書くもの（サーバー、Web、MQTT ブローカー、メールの記録）は Docker に入れない。
+# イメージのタグは、CI（.github/workflows/e2e.yml）で E2E が通ったバージョンに固定する。
+name: taskmanager
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.2
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      - "${DYNAMODB_PORT:-8000}:8000"
+
+  # Cognito のエミュレーター（https://github.com/frourios/magnito）
+  magnito:
+    image: frourio/magnito:0.27.1
+    ports:
+      - "${MAGNITO_PORT:-5050}:5050"
+    environment:
+      PORT: 5050
+      SSL_PORT: 5051
+      COGNITO_USER_POOL_ID: ap-northeast-1_taskmanager
+      COGNITO_USER_POOL_CLIENT_ID: taskmanager-web
+      COGNITO_ACCESS_KEY: magnito-access-key
+      COGNITO_SECRET_KEY: magnito-secret-key
+      COGNITO_REGION: ap-northeast-1
+      # 確認コードなどのメールは、ホストで動くメールの記録（scripts/mail-recorder.mts）に送る
+      SMTP_HOST: host.docker.internal
+      SMTP_PORT: "${MAIL_SMTP_PORT:-2500}"
+      SMTP_USER: local
+      SMTP_PASS: local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - magnito:/usr/src/app/data
+
+  # S3 互換のストレージ（https://github.com/gaul/s3proxy）。保存先はコンテナの中のファイル
+  s3:
+    image: andrewgaul/s3proxy:4.1.1
+    ports:
+      - "${S3_PORT:-8081}:80"
+    environment:
+      JCLOUDS_PROVIDER: filesystem
+      S3PROXY_AUTHORIZATION: aws-v2-or-v4
+      S3PROXY_IDENTITY: local
+      S3PROXY_CREDENTIAL: localsecret
+      # S3Proxy は PutBucketCors に対応しないので、CORS は環境変数で設定する
+      S3PROXY_CORS_ALLOW_ORIGINS: "*"
+      S3PROXY_CORS_ALLOW_METHODS: "GET PUT HEAD"
+      S3PROXY_CORS_ALLOW_HEADERS: "*"
+
+volumes:
+  magnito:
