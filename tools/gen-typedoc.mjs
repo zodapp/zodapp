@@ -23,18 +23,6 @@ if (!(await hasSourceFiles(srcDir))) {
   process.exit(0);
 }
 
-const firebaseConfigPath = path.join(repoRoot, "firebaseConfig.json");
-if (
-  packageName === "@repo/firebase" &&
-  process.env.TYPEDOC_ALLOW_MISSING_FIREBASE_CONFIG !== "true" &&
-  !(await exists(firebaseConfigPath))
-) {
-  console.log(
-    "[typedoc] skip @repo/firebase (firebaseConfig.json not found)"
-  );
-  process.exit(0);
-}
-
 await mkdir(outDir, { recursive: true });
 
 const args = [

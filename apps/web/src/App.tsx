@@ -8,7 +8,6 @@ import {
 import { RouterProvider, createBrowserHistory } from "@tanstack/react-router";
 
 import { createAppRouter } from "./pages/router";
-import { AuthProvider } from "./shared/auth";
 
 // Shikiのハイライターを非同期で読み込む
 async function loadShiki() {
@@ -40,11 +39,9 @@ export const App = () => {
 
   return (
     <MantineProvider theme={theme}>
-      <AuthProvider>
-        <CodeHighlightAdapterProvider adapter={shikiAdapter}>
-          <RouterProvider router={router} />
-        </CodeHighlightAdapterProvider>
-      </AuthProvider>
+      <CodeHighlightAdapterProvider adapter={shikiAdapter}>
+        <RouterProvider router={router} />
+      </CodeHighlightAdapterProvider>
     </MantineProvider>
   );
 };

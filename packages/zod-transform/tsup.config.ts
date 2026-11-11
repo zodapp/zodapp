@@ -1,7 +1,7 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/examples/default.ts", "src/examples/firestore.ts"],
+  entry: ["src/index.ts", "src/examples/default.ts"],
   format: ["esm", "cjs"],
   dts: true,
   sourcemap: true,

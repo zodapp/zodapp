@@ -48,7 +48,7 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   defaultValues?: Partial<z.input<T>>;
   /**
    * フィールド値の確定時に呼ばれるコールバック。
-   * 親側で Firestore への保存等を行う。
+   * 親側で DB への保存等を行う。
    */
   onConfirm?: (fieldPath: string, value: unknown) => void | Promise<void>;
   /**
@@ -96,7 +96,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
     () => (defaultValues ?? {}) as Record<string, unknown>
   );
 
-  // 外部からの defaultValues 変更（Firestoreリスナー等）を反映
+  // 外部からの defaultValues 変更（DB の購読など）を反映
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 外部 defaultValues の変更を内部の楽観更新 state に同期する
     setValues((defaultValues ?? {}) as Record<string, unknown>);

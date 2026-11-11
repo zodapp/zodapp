@@ -34,7 +34,7 @@ const HomePage = () => {
             <li>
               <strong>スキーマファースト開発</strong>
               <br />
-              一つのスキーマから型定義・フォームUI・Firebase連携を自動生成。
+              一つのスキーマから型定義・フォームUI・DynamoDB 連携を自動生成。
             </li>
             <li style={{ marginTop: "1rem" }}>
               <strong>メタデータ拡張システム</strong>
@@ -81,7 +81,7 @@ const HomePage = () => {
       </main>
       <footer className={styles.footer}>
         <p style={{ color: "#888" }}>
-          TypeScript + Zod 4 + React 19 + TanStack + Firebase
+          TypeScript + Zod 4 + React 19 + TanStack + DynamoDB
         </p>
       </footer>
     </div>

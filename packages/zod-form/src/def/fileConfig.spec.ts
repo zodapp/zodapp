@@ -83,11 +83,11 @@ describe("FileConfig 型テスト（base package）", () => {
 
   describe("型拡張のドキュメント", () => {
     /**
-     * apps/web での型拡張パターン:
+     * アプリでの型拡張パターン（例：apps/taskmanager）:
      *
      * ```typescript
-     * // apps/web/src/shared/types/fileConfig.ts
-     * import type { FirebaseStorageFileConfig } from "@zodapp/zod-form-firebase";
+     * // src/shared/form/fileConfig.ts
+     * import type { S3FileConfig } from "@zodapp/zod-form-s3";
      * import type { BaseFileConfig } from "@zodapp/zod-form";
      *
      * export type MockFileConfig = BaseFileConfig<"mock"> & {
@@ -95,7 +95,7 @@ describe("FileConfig 型テスト（base package）", () => {
      *   getLocation?: (context: Record<string, unknown>) => string;
      * };
      *
-     * export type WebFileConfig = FirebaseStorageFileConfig | MockFileConfig;
+     * export type WebFileConfig = S3FileConfig | MockFileConfig;
      *
      * declare module "@zodapp/zod-form/file/types" {
      *   interface FileConfigRegistry {
@@ -107,9 +107,9 @@ describe("FileConfig 型テスト（base package）", () => {
      * この拡張により:
      * - RegisteredFileConfig が WebFileConfig と等しくなる
      * - zf.file.registry の fileConfig が
-     *   FirebaseStorageFileConfig | MockFileConfig のみを受け入れる
-     * - 不正な type（"firebaseStorage" | "mock" 以外）がコンパイルエラーになる
-     * - FirebaseStorageFileConfig では contextId と getLocation が必須になる
+     *   S3FileConfig | MockFileConfig のみを受け入れる
+     * - 不正な type（"s3" | "mock" 以外）がコンパイルエラーになる
+     * - S3FileConfig では contextId と getLocation が必須になる
      */
     it("型拡張の仕組みを理解するためのドキュメント的テスト", () => {
       // RegisteredFileConfig の型推論を確認
