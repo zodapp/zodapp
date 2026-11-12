@@ -40,7 +40,8 @@ pnpm --filter @zodapp/zod-form test
 - Keep changes focused and small when possible
 - Add or update tests when behavior changes
 - Update documentation when you change public APIs
-- Ensure CI passes locally (`pnpm lint && pnpm check-types && pnpm test`)
+- Ensure CI passes locally (`pnpm lint && pnpm check-types && pnpm test && pnpm build && pnpm check:pack`)
+- If you change a published `@zodapp/*` package, add a changeset with `pnpm changeset` (all 22 packages share one version)
 
 ## Reporting security issues
 
