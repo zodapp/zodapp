@@ -440,9 +440,15 @@ export class TaskmanagerStack extends Stack {
       "ServiceSecurityGroup",
       {
         vpc,
-        description: "taskmanager server: ALB only",
-        allowAllOutbound: true,
+        description: "taskmanager server: ALB only, HTTPS out",
+        allowAllOutbound: false,
       },
+    );
+    // 外へつなぐ先（ECR、DynamoDB、S3、IoT Core、Cognito、Secrets Manager、CloudWatch Logs）は、どれも HTTPS
+    serviceSecurityGroup.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(443),
+      "HTTPS to AWS services",
     );
     serviceSecurityGroup.addIngressRule(
       albSecurityGroup,
@@ -456,6 +462,7 @@ export class TaskmanagerStack extends Stack {
       desiredCount: 1,
       minHealthyPercent: 0,
       maxHealthyPercent: 100,
+      // 外へ出るためだけに使う（入ってくるのはセキュリティグループで ALB からだけ）。なくすには NAT か VPC エンドポイントが要る
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [serviceSecurityGroup],
