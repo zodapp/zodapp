@@ -6,12 +6,20 @@ import {
   columnSettings,
   members,
   projects,
+  revocations,
   tasks,
   workspaces,
 } from "../shared";
 import { config } from "./env";
 
-export const tables = { workspaces, members, projects, tasks, columnSettings };
+export const tables = {
+  workspaces,
+  members,
+  projects,
+  tasks,
+  columnSettings,
+  revocations,
+};
 
 export const createAppRepository = (options: {
   dynamodb: DynamoDBClient;

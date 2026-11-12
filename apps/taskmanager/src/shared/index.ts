@@ -6,5 +6,6 @@ export * from "./tables/member";
 export * from "./tables/project";
 export * from "./tables/task";
 export * from "./tables/columnSetting";
+export * from "./tables/revocation";
 export { newId } from "./tables/common";
 export * from "./form";

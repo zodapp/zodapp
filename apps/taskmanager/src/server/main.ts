@@ -12,10 +12,7 @@ import { router as registryRouter } from "@zodapp/zod-dynamodb-express";
 import { mqttPublisher, mqttTransport } from "@zodapp/zod-dynamodb-mqtt";
 import { createServerApi } from "@zodapp/zod-dynamodb-node";
 import { createS3FileRouter } from "@zodapp/zod-form-s3-node";
-import {
-  createRealtimeGateway,
-  type RealtimeGateway,
-} from "@zodapp/zod-dynamodb-realtime";
+import { createRealtimeGateway } from "@zodapp/zod-dynamodb-realtime";
 import { canWriteTask, endpoints, isMember, type Auth } from "../shared";
 import {
   authExpiresAt,
@@ -29,6 +26,11 @@ import { config } from "./env";
 import { connectIotCore } from "./iot";
 import { setupLocal } from "./local";
 import { createAppRepository } from "./repository";
+import {
+  changedMembers,
+  subscribeRevocations,
+  writeRevocations,
+} from "./revocations";
 import { createAppRoutes } from "./routes";
 import { createFileSigner, createS3Client, workspaceOfKey } from "./s3";
 
@@ -77,22 +79,15 @@ const main = async () => {
     endpoints,
     prefix: MQTT_PREFIX,
   });
-  let realtime: RealtimeGateway | undefined;
   const repository = createAppRepository({
     dynamodb,
     listener: {
       onChanges: async (changes) => {
         await publisher.onChanges?.(changes);
-        // メンバーが変わったら（追加・ロールの変更・削除）、その人の Realtime の接続の
-        // 認証コンテキストを作り直す。外された人の開いている購読は FORBIDDEN で止まる
-        const emails = new Set(
-          changes
-            .filter((c) => c.entity === "Member")
-            .map((c) => String(c.key.email).toLowerCase()),
-        );
-        if (emails.size > 0) {
-          await realtime?.revalidate((ctx: Auth) => emails.has(ctx.email));
-        }
+        // メンバーが変わったら（追加・ロールの変更・削除）、revocations に書く。
+        // すべての台が購読していて、その人の接続の認証コンテキストを作り直す（./revocations.ts）
+        const emails = changedMembers(changes);
+        if (emails.length > 0) await writeRevocations(repository, emails);
       },
       onBatchMarker: (marker) => publisher.onBatchMarker?.(marker),
     },
@@ -158,7 +153,7 @@ const main = async () => {
   };
   app.use(onError);
 
-  realtime = createRealtimeGateway({
+  const realtime = createRealtimeGateway({
     api: serverApi,
     transport: mqttTransport(await connection("gateway")),
     prefix: MQTT_PREFIX,
@@ -168,6 +163,13 @@ const main = async () => {
     origin: config.appOrigins,
   });
   const gateway = realtime;
+  // revocations の購読は、Gateway とは別の配送の接続で行う
+  const revocationTransport = mqttTransport({ url: mqttUrl });
+  const revocations = await subscribeRevocations({
+    transport: revocationTransport,
+    prefix: MQTT_PREFIX,
+    realtime,
+  });
   const server = app.listen(config.port, () =>
     console.log(
       `[server] http://localhost:${config.port}/api (realtime: /api/realtime)`,
@@ -182,6 +184,8 @@ const main = async () => {
     // 片付けが終わらなくても（keep-alive の接続など）、少し待ったら終える。
     // tsx watch の再起動で、古いプロセスが MQTT のポートを持ったまま残らないようにする
     setTimeout(() => process.exit(0), 2000).unref();
+    await revocations.close();
+    await revocationTransport.close();
     await gateway.close();
     await publisher.close?.();
     const closed = new Promise<void>((resolve) =>
