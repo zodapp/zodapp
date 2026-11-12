@@ -60,6 +60,7 @@ export {
 } from "./subscription";
 export * from "./topics";
 export * from "./publisher";
+export * from "./server-subscription";
 export * from "./realtime-protocol";
 export * from "./ops";
 export * from "./register";
