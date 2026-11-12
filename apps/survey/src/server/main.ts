@@ -1,13 +1,18 @@
 /**
- * サーバー：Express（登録簿の router とサーバーだけのルート）、Realtime Gateway、MQTT ブローカー。
+ * サーバー：Express（登録簿の router とサーバーだけのルート）と Realtime Gateway。
  *
- * ローカルでは MQTT ブローカー（aedes）をこのプロセスの中で起動し、変更の発行と Gateway の購読は
- * MQTT でそこにつなぐ。本番では MQTT_URL に AWS IoT Core などを指定する。
+ * MQTT_URL があれば、変更の発行と Gateway の購読を MQTT（AWS IoT Core など）でつなぐ。
+ * なければ（ローカル）、ブローカーを立てずに、プロセスの中の配送（memoryTransport）でつなぐ。
+ * プロセスの中の配送は、発行する側と Gateway が同じプロセスにいるときだけ使える（サーバーが 1 台のとき）。
  */
 import type { IncomingMessage } from "node:http";
-import { createServer as createTcpServer } from "node:net";
-import { Aedes } from "aedes";
 import express, { type ErrorRequestHandler } from "express";
+import {
+  createChangePublisher,
+  memoryTransport,
+  type ChangePublisher,
+  type RealtimeTransport,
+} from "@zodapp/zod-dynamodb";
 import { router as registryRouter } from "@zodapp/zod-dynamodb-express";
 import { mqttPublisher, mqttTransport } from "@zodapp/zod-dynamodb-mqtt";
 import { createServerApi } from "@zodapp/zod-dynamodb-node";
@@ -31,19 +36,33 @@ import { createAppRoutes } from "./routes";
 
 const MQTT_PREFIX = "survey";
 
-const startBroker = async () => {
-  const broker = await Aedes.createBroker();
-  const server = createTcpServer(broker.handle);
-  await new Promise<void>((resolve) =>
-    server.listen(config.mqtt.port, "127.0.0.1", resolve),
-  );
-  console.log(`[mqtt] aedes on :${config.mqtt.port}`);
-  return {
-    url: `mqtt://127.0.0.1:${config.mqtt.port}`,
-    close: async () => {
-      await new Promise<void>((resolve) => broker.close(() => resolve()));
-      await new Promise<void>((resolve) => server.close(() => resolve()));
+/** 変更の発行と、Gateway の購読に使う配送 */
+const createRealtimeTransport = (): {
+  publisher: ChangePublisher;
+  gatewayTransport: RealtimeTransport;
+} => {
+  if (config.mqtt.url) {
+    console.log(`[realtime] mqtt ${config.mqtt.url}`);
+    return {
+      publisher: mqttPublisher({ url: config.mqtt.url, endpoints, prefix: MQTT_PREFIX }),
+      gatewayTransport: mqttTransport({ url: config.mqtt.url }),
+    };
+  }
+  // 発行と購読に同じインスタンスを渡す。発行したメッセージは、同じプロセスの Gateway に届く
+  console.log("[realtime] in-process (memoryTransport)");
+  const recorded = memoryTransport();
+  // memoryTransport は発行したメッセージを published に記録し続ける（テストで確かめるため）。
+  // サーバーでは記録が要らないので、発行のたびに捨て、メモリが増え続けないようにする
+  const transport: RealtimeTransport = {
+    ...recorded,
+    publish: async (topic, message) => {
+      await recorded.publish(topic, message);
+      recorded.published.length = 0;
     },
+  };
+  return {
+    publisher: createChangePublisher({ transport, endpoints, prefix: MQTT_PREFIX }),
+    gatewayTransport: transport,
   };
 };
 
@@ -51,15 +70,8 @@ const main = async () => {
   const dynamodb = createDynamoClient();
   if (process.env.LOCAL_SETUP !== "0") await setupLocal({ dynamodb });
 
-  const broker = config.mqtt.url ? undefined : await startBroker();
-  const mqttUrl = config.mqtt.url ?? broker!.url;
-
   // 書き込み側：Repository の変更を、live を付けたクエリのトピックに発行する
-  const publisher = mqttPublisher({
-    url: mqttUrl,
-    endpoints,
-    prefix: MQTT_PREFIX,
-  });
+  const { publisher, gatewayTransport } = createRealtimeTransport();
   let realtime: RealtimeGateway | undefined;
   const repository = createAppRepository({
     dynamodb,
@@ -123,7 +135,7 @@ const main = async () => {
 
   realtime = createRealtimeGateway({
     api: serverApi,
-    transport: mqttTransport({ url: mqttUrl }),
+    transport: gatewayTransport,
     prefix: MQTT_PREFIX,
     // ブラウザがトークンを更新したら、接続を保ったまま入れ替える
     credentialOf: tokenOfMessage,
@@ -143,7 +155,7 @@ const main = async () => {
     if (closing) return;
     closing = true;
     // 片付けが終わらなくても（keep-alive の接続など）、少し待ったら終える。
-    // tsx watch の再起動で、古いプロセスが MQTT のポートを持ったまま残らないようにする
+    // tsx watch の再起動で、古いプロセスがポートを持ったまま残らないようにする
     setTimeout(() => process.exit(0), 2000).unref();
     await gateway.close();
     await publisher.close?.();
@@ -152,7 +164,6 @@ const main = async () => {
     );
     server.closeAllConnections();
     await closed;
-    await broker?.close();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);

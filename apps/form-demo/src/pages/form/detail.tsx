@@ -10,6 +10,7 @@ import { formSchemas, formCodes, defaultFormId, type FormId } from "./schemas";
 
 import "@mantine/code-highlight/styles.css";
 import { createMockFileResolver } from "@zodapp/zod-form";
+import { useMemoryState } from "@zodapp/react-storage";
 
 type FormDef = (typeof formSchemas)[FormId];
 type ReactiveFormDef = Extract<FormDef, { reactive: true }>;
@@ -47,6 +48,10 @@ const FormPageInner = () => {
   // ファイルフォーム用のresolver
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
 
+  // 「表示 / コード」のタブ。メモリに置くので、別のデモに移っても選んだタブのまま開く
+  // （ページを読み込み直すと既定の「表示」に戻る）
+  const [tab, setTab] = useMemoryState<string>("form-demo:detail-tab", "form");
+
   return (
     <Container size="lg">
       <Title order={2} mb="lg">
@@ -56,7 +61,7 @@ const FormPageInner = () => {
         {description}
       </Text>
 
-      <Tabs defaultValue="form">
+      <Tabs value={tab} onChange={(value) => setTab(value ?? "form")}>
         <Tabs.List>
           <Tabs.Tab value="form">表示</Tabs.Tab>
           <Tabs.Tab value="code">コード</Tabs.Tab>

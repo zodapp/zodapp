@@ -86,6 +86,7 @@ Playwright が起動するサーバーは、認証の期限を 20 秒に縮め�
 | `06-test-data` | 期限つきのタスクを、サーバーのルート（`bulkWrite`）でまとめて入れられる |
 | `07-revoke` | alice が bob をメンバーから外すと、bob の開いている一覧に「権限がありません」が出て、そのあとの変更は bob に届かない |
 | `08-token-refresh` | 認証の期限を 2 回以上またいでも、Realtime の接続は 1 本のまま（`auth` メッセージでトークンを入れ替える）で、変更が届き続ける |
+| `09-empty-trash` | 「ゴミ箱を空にする」で、ゴミ箱のタスクだけが消える（一覧は live なのですぐ消える）。ゴミ箱にないタスクは完全削除できない |
 
 ### CI
 
@@ -227,6 +228,17 @@ pnpm aws:destroy -- demo --with-assets
 - Realtime Gateway は、upgrade の Origin ヘッダーを画面のオリジンと比べ、ほかのサイトからの接続を 403 で拒否します。画面のオリジンは環境変数 `APP_ORIGIN`（カンマ区切りで複数。既定は `http://localhost:3000`）で変えられます
 - 登録簿（`src/shared/endpoints.ts`）は、`defineContext<Auth>()` が返す `defineEndpoints` で作ります。別の `defineContext` の操作や、書き込みへの `GET` などは型のエラーになります
 
+## サーバーだけの処理
+
+`src/server/` には、ブラウザと共有しない規則とルートを置いています。
+
+| 処理 | 使っている機能 | 場所 |
+|---|---|---|
+| 完全削除（`tasks.remove`）は、ゴミ箱にあるタスクだけ | サーバーだけの上書き（`override()` の `where`）。ブラウザの `can` には効かない | `overrides.ts` |
+| 作成日時は作成した後に変えない | Table 定義の `immutable` | `../shared/tables/task.ts` |
+| タスクを別のプロジェクトへ移す。移動先がアクティブであることを、読まずに確定の条件にする | `runTransaction` と `check()` | `routes.ts`（`/tasks/move`） |
+| ゴミ箱を空にする。ゴミ箱の一覧はこの人の権限で、キーだけを読み、書き込みだけの batch で消す | 認可込みの API（`serverApi.tasks.deleted`）、`fields` の `pick`、`createBatch()` | `routes.ts`（`/tasks/empty-trash`） |
+
 ## 移植で置き換えたもの
 
 | zodapp（Firestore） | このアプリ（zod-dynamodb） |
@@ -237,7 +249,7 @@ pnpm aws:destroy -- demo --with-assets
 | Firebase Auth | Amplify v6 の `aws-amplify/auth`（magnito に向ける） |
 | `createFirestoreResolver`（外部キーの選択肢） | `createDynamoExternalKeyResolver`（`src/web/shared/resolvers.ts`） |
 | Firebase Storage | S3 の署名付き URL（`/api/files/*`） |
-| `runTransaction` / `WriteBatch`（ブラウザから） | サーバーのルートでの `runTransaction` と `bulkWrite`（`src/server/routes.ts`） |
+| `runTransaction` / `WriteBatch`（ブラウザから） | サーバーのルートでの `runTransaction`・`createBatch`・`bulkWrite`（`src/server/routes.ts`） |
 | Firestore の where（サーバー絞り込み） | Index のキーでの絞り込み。残りの条件はブラウザで絞る |
 
 タスク一覧の検索条件のうち、ステータスは Index（`byStatus`）で、優先度や期限はブラウザで絞ります。DynamoDB はキーでしか絞り込めないためです。

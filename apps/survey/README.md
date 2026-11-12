@@ -18,7 +18,7 @@ taskmanager が「スキーマをコードで書くアプリ」の例なのに�
 |---|---|---|
 | データベース | DynamoDB Local（Docker、`:8000`） | DynamoDB |
 | 認証 | magnito（Cognito のエミュレーター、Docker、`:5050`） | Cognito |
-| リアルタイムの配送 | aedes（サーバーのプロセスの中、`:1883`） | IoT Core |
+| リアルタイムの配送 | プロセスの中の配送（`memoryTransport`。ブローカーなし） | IoT Core（`MQTT_URL` を指定すると MQTT で配送する） |
 | 認証のメール | メールの記録（`pnpm mail`、SMTP `:2500`、HTTP `:2501`） | SES |
 | API と Realtime Gateway | Express（`:4000`、`/api`、`/api/realtime`） | ECS |
 | 画面 | Vite（`:3000`、`/api` をサーバーへ中継） | CloudFront + S3 |

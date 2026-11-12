@@ -11,6 +11,7 @@ import {
   workspaces,
 } from "../shared";
 import { config } from "./env";
+import { overrides } from "./overrides";
 
 export const tables = {
   workspaces,
@@ -35,6 +36,8 @@ export const createAppRepository = (options: {
     },
     cursorSecret: config.cursorSecret,
     listener: options.listener,
+    // サーバーだけの上書き（src/server/overrides.ts）
+    overrides,
   });
 
 export type AppRepository = ReturnType<typeof createAppRepository>;

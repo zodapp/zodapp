@@ -70,6 +70,33 @@ describe("tasks", () => {
   });
 });
 
+describe("サーバーだけの上書きと、変更しないフィールド", () => {
+  it("完全削除（remove）は、ゴミ箱にあるタスクだけ（server/overrides.ts）", async () => {
+    const args = { workspaceId: "ws1", projectId: "p-remove" };
+    const t = await api.tasks.create(args, { title: "R" }, { context: alice });
+    const key = { ...args, taskId: t.taskId };
+    // ブラウザの can は共有の定義だけで判定するので、通る
+    expect(api.tasks.remove.can(key, { context: alice }).ok).toBe(true);
+    await expect(api.tasks.remove(key, { context: alice })).rejects.toMatchObject({
+      name: "ConditionFailedError",
+    });
+    await api.tasks.softDelete(key, {}, { context: alice });
+    await api.tasks.remove(key, { context: alice });
+    expect(await api.tasks.get(key, { context: alice })).toBeNull();
+  });
+
+  it("作成日時（createdAt）は更新で変えられない", async () => {
+    const args = { workspaceId: "ws1", projectId: "p-immutable" };
+    const t = await api.tasks.create(args, { title: "I" }, { context: alice });
+    const key = { ...args, taskId: t.taskId };
+    await expect(
+      repo.tasks.update(key, { createdAt: new Date(0) } as never),
+    ).rejects.toThrow(/createdAt/);
+    const after = await repo.tasks.get(key);
+    expect(after?.createdAt).toEqual(t.createdAt);
+  });
+});
+
 describe("members", () => {
   it("email から所属一覧を引ける", async () => {
     for (const workspaceId of ["ws1", "ws2"]) {

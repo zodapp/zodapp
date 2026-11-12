@@ -17,12 +17,19 @@ import {
   IconInfoCircle,
 } from "@tabler/icons-react";
 import { Link, useParams } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useStore, type AnyFormApi } from "@tanstack/react-form";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApi } from "@zodapp/zod-dynamodb-react";
+import { useSessionStorageState } from "@zodapp/react-storage";
+import type { AutoFormAction } from "@zodapp/zod-form-widget/form";
 
 import { AutoForm } from "../../components/AutoForm";
 import { buildSurveySchema } from "../../../shared/survey/buildSurveySchema";
-import { toStoredAnswers } from "../../../shared/survey/answers";
+import {
+  fromStoredAnswers,
+  toStoredAnswers,
+  type StoredAnswers,
+} from "../../../shared/survey/answers";
 import type { Api } from "../../shared/api";
 import { useSurvey } from "../../shared/hooks";
 import { useAuthContext } from "../../shared/auth";
@@ -32,6 +39,30 @@ import { responsesRoute } from "../survey-workspace/responses.route";
 
 import pageCode from "./answer.tsx?raw";
 import buildSurveySchemaCode from "../../../shared/survey/buildSurveySchema.ts?raw";
+
+/**
+ * 入力中の値を受け取り、保存する形（日付は YYYY-MM-DD）にして渡す。
+ * AutoForm の actions の custom で描くので、フォームの状態（TanStack Form）を読める
+ */
+const AnswerDraftSaver = ({
+  form,
+  fields,
+  onChange,
+}: {
+  form: AnyFormApi;
+  fields: unknown;
+  onChange: (answers: StoredAnswers) => void;
+}) => {
+  const values = useStore(form.store, (state) => state.values) as Record<string, unknown>;
+  useEffect(() => {
+    onChange(toStoredAnswers(fields, values));
+  }, [fields, values, onChange]);
+  return (
+    <Text size="xs" c="dimmed">
+      入力中の内容は、このタブを閉じるまで保存されます
+    </Text>
+  );
+};
 
 const SurveyAnswerPage = () => {
   const { workspaceId, surveyId } = useParams({ from: surveyAnswerRoute.id });
@@ -52,6 +83,18 @@ const SurveyAnswerPage = () => {
   const [submittedCount, setSubmittedCount] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // 回答の途中経過を sessionStorage に残す。再読み込みしても残り、タブを閉じると消える。
+  // フォームの初期値には、開いたときの値だけを使う（入力のたびにフォームを作り直さない）
+  const [draft, setDraft] = useSessionStorageState<StoredAnswers | null>(
+    `survey-answer-draft:${workspaceId}:${surveyId}`,
+    null,
+  );
+  const [initialDraft, setInitialDraft] = useState(draft);
+  const defaultValues = useMemo(
+    () => (initialDraft ? fromStoredAnswers(survey?.fields, initialDraft) : undefined),
+    [survey?.fields, initialDraft],
+  );
+
   const handleSubmit = useCallback(
     async (data: Record<string, unknown>) => {
       if (!survey) return;
@@ -69,6 +112,8 @@ const SurveyAnswerPage = () => {
             submittedAt: new Date(),
           },
         );
+        setDraft(null);
+        setInitialDraft(null);
         setIsSubmitted(true);
         setSubmittedCount((count) => count + 1);
       } catch (error) {
@@ -77,7 +122,25 @@ const SurveyAnswerPage = () => {
         setIsSubmitting(false);
       }
     },
-    [api, survey, surveyId, workspaceId, user?.email],
+    [api, survey, surveyId, workspaceId, user?.email, setDraft],
+  );
+
+  const actions = useMemo<readonly AutoFormAction<typeof schema>[]>(
+    () => [
+      {
+        type: "submit",
+        label: "回答を送信",
+        loading: isSubmitting,
+        onSubmit: handleSubmit,
+      },
+      {
+        type: "custom",
+        render: ({ form }) => (
+          <AnswerDraftSaver form={form} fields={survey?.fields} onChange={setDraft} />
+        ),
+      },
+    ],
+    [isSubmitting, handleSubmit, survey?.fields, setDraft],
   );
 
   const { trigger: codeViewerTrigger, modal: codeViewerModal } =
@@ -189,11 +252,9 @@ const SurveyAnswerPage = () => {
               // 送信のたびにフォームを初期化する（続けて回答できるように）
               key={submittedCount}
               schema={schema}
-              onSubmit={handleSubmit}
-              isLoading={isSubmitting}
-              submitLabel="回答を送信"
+              defaultValues={defaultValues}
               readOnly={!isAnswerable}
-              actions={isAnswerable ? undefined : []}
+              actions={isAnswerable ? actions : []}
             />
           </Card>
         )}

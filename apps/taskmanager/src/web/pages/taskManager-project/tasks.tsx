@@ -27,6 +27,7 @@ import {
   IconSettings,
   IconRestore,
   IconArchive,
+  IconTrashX,
 } from "@tabler/icons-react";
 import { Link, useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useMemo } from "react";
@@ -42,13 +43,13 @@ import {
   taskStatusLiterals,
   type TaskStatus,
 } from "../../../shared";
-import type { Api } from "../../shared/api";
+import { postJson, type Api } from "../../shared/api";
 import { fetchAllPages, useFiltered, useListStore } from "../../shared/listing";
 import { createDynamoExternalKeyResolver } from "../../shared/resolvers";
 import { getMeta } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { AutoForm, AutoSearch } from "@zodapp/zod-form-widget/form";
-import { FetchMore } from "@zodapp/zod-form-widget/feedback";
+import { FetchMore, useDeleteModal } from "@zodapp/zod-form-widget/feedback";
 import { extendSchemaSafe } from "@zodapp/zod-form-widget";
 import {
   AutoTable,
@@ -293,6 +294,18 @@ const TasksPage = () => {
   // 書き込めるか（閲覧者は不可）。操作の authorize を、送る前にブラウザで判定する
   const canWrite = api.tasks.create.can(collectionIdentity, { title: "-" }).ok;
 
+  // ゴミ箱を空にする。サーバーのルートが、ゴミ箱のタスクのキーだけを読み（fields）、
+  // 書き込みだけの batch（createBatch）でまとめて消す（src/server/routes.ts）。
+  // 消えたタスクは、ゴミ箱の一覧（live）から自動で消える
+  const { open: openEmptyTrash, modal: emptyTrashModal } = useDeleteModal({
+    title: "ゴミ箱を空にする",
+    message: "ゴミ箱のタスクをすべて完全に削除しますか？この操作は元に戻せません。",
+    confirmLabel: "完全に削除する",
+    onDelete: async () => {
+      await postJson("/tasks/empty-trash", collectionIdentity);
+    },
+  });
+
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -515,6 +528,17 @@ const TasksPage = () => {
         </Group>
         <Group>
           {codeViewerTrigger}
+          {view === "trash" && (
+            <Button
+              variant="light"
+              color="red"
+              leftSection={<IconTrashX size={16} />}
+              onClick={openEmptyTrash}
+              disabled={!canWrite || list.items.length === 0}
+            >
+              ゴミ箱を空にする
+            </Button>
+          )}
           <Tooltip label="新規作成">
             <ActionIcon
               aria-label="新規作成"
@@ -752,6 +776,7 @@ const TasksPage = () => {
       </Modal>
 
       {codeViewerModal}
+      {emptyTrashModal}
       {exportModal}
       {importModal}
       {tableSettingDrawer}
