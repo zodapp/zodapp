@@ -75,8 +75,9 @@ zodapp/
 ## 開発コマンド
 
 ```bash
+pnpm build        # 全パッケージビルド（apps はパッケージの dist を使うので、dev の前にも要る）
 pnpm --filter form-demo dev  # フォームのデモ（DB 不要）
-pnpm build        # 全パッケージビルド
+pnpm --filter @zodapp/<name> watch  # パッケージを書き換えながら apps を動かすとき（dist を watch で作り直す）
 pnpm test         # テスト実行（zod-dynamodb 系とサンプルのテストは DynamoDB Local を使う。pnpm dynamodb:start で起動）
 pnpm lint         # リント実行
 pnpm format       # コードフォーマット

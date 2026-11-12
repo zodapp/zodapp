@@ -187,6 +187,9 @@ Firebase（Firestore）版のパッケージとデモは、タグ `firebase-fina
 # 依存関係のインストール
 pnpm install
 
+# パッケージのビルド（apps はパッケージの dist を使う）
+pnpm build
+
 # フォームのデモ（DB 不要）
 pnpm --filter form-demo dev
 

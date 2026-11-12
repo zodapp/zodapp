@@ -37,6 +37,7 @@
   "scripts": {
     "lint": "eslint .",
     "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run",

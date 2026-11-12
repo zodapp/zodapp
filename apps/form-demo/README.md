@@ -12,6 +12,7 @@ Samples that use a database live in their own apps: `apps/taskmanager` and `apps
 
 ```bash
 pnpm install
+pnpm build                    # the apps use the packages' dist
 pnpm --filter form-demo dev   # http://localhost:3000
 ```
 

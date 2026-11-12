@@ -24,22 +24,63 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./baseComponents": "./src/baseComponents/index.ts",
-    "./baseComponents/*": "./src/baseComponents/*.tsx",
-    "./tableComponents": "./src/tableComponents/index.ts",
-    "./tableComponents/*": "./src/tableComponents/*.tsx",
-    "./reactiveComponents": "./src/reactiveComponents/index.ts",
-    "./reactiveComponents/*": "./src/reactiveComponents/*.tsx",
-    "./mediaResolvers": "./src/mediaResolvers/index.ts",
-    "./utils": "./src/utils/index.ts",
-    "./utils/*": "./src/utils/*"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./baseComponents": {
+      "types": "./dist/baseComponents/index.d.ts",
+      "import": "./dist/baseComponents/index.js",
+      "require": "./dist/baseComponents/index.cjs"
+    },
+    "./baseComponents/*": {
+      "types": "./dist/baseComponents/*.d.ts",
+      "import": "./dist/baseComponents/*.js",
+      "require": "./dist/baseComponents/*.cjs"
+    },
+    "./tableComponents": {
+      "types": "./dist/tableComponents/index.d.ts",
+      "import": "./dist/tableComponents/index.js",
+      "require": "./dist/tableComponents/index.cjs"
+    },
+    "./tableComponents/*": {
+      "types": "./dist/tableComponents/*.d.ts",
+      "import": "./dist/tableComponents/*.js",
+      "require": "./dist/tableComponents/*.cjs"
+    },
+    "./reactiveComponents": {
+      "types": "./dist/reactiveComponents/index.d.ts",
+      "import": "./dist/reactiveComponents/index.js",
+      "require": "./dist/reactiveComponents/index.cjs"
+    },
+    "./reactiveComponents/*": {
+      "types": "./dist/reactiveComponents/*.d.ts",
+      "import": "./dist/reactiveComponents/*.js",
+      "require": "./dist/reactiveComponents/*.cjs"
+    },
+    "./mediaResolvers": {
+      "types": "./dist/mediaResolvers/index.d.ts",
+      "import": "./dist/mediaResolvers/index.js",
+      "require": "./dist/mediaResolvers/index.cjs"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.cjs"
+    }
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run --passWithNoTests",
@@ -59,6 +100,7 @@
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

@@ -35,6 +35,7 @@
   "scripts": {
     "format": "prettier --write .",
     "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "build:watch": "tsup --watch",
     "lint": "eslint .",
     "lint:silent": "mkdir -p output && pnpm lint > ./output/lint.txt",

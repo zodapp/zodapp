@@ -24,19 +24,55 @@
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./common": "./src/common/index.ts",
-    "./media": "./src/media/index.ts",
-    "./media/types": "./src/media/types.ts",
-    "./mediaResolvers": "./src/mediaResolvers/index.ts",
-    "./def": "./src/def/index.ts",
-    "./utils/dateConverter": "./src/utils/dateConverter.ts",
-    "./utils/externalKey": "./src/utils/externalKey.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./common": {
+      "types": "./dist/common/index.d.ts",
+      "import": "./dist/common/index.js",
+      "require": "./dist/common/index.cjs"
+    },
+    "./media": {
+      "types": "./dist/media/index.d.ts",
+      "import": "./dist/media/index.js",
+      "require": "./dist/media/index.cjs"
+    },
+    "./media/types": {
+      "types": "./dist/media/types.d.ts",
+      "import": "./dist/media/types.js",
+      "require": "./dist/media/types.cjs"
+    },
+    "./mediaResolvers": {
+      "types": "./dist/mediaResolvers/index.d.ts",
+      "import": "./dist/mediaResolvers/index.js",
+      "require": "./dist/mediaResolvers/index.cjs"
+    },
+    "./def": {
+      "types": "./dist/def/index.d.ts",
+      "import": "./dist/def/index.js",
+      "require": "./dist/def/index.cjs"
+    },
+    "./utils/dateConverter": {
+      "types": "./dist/utils/dateConverter.d.ts",
+      "import": "./dist/utils/dateConverter.js",
+      "require": "./dist/utils/dateConverter.cjs"
+    },
+    "./utils/externalKey": {
+      "types": "./dist/utils/externalKey.d.ts",
+      "import": "./dist/utils/externalKey.js",
+      "require": "./dist/utils/externalKey.cjs"
+    }
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run --passWithNoTests",
@@ -54,12 +90,14 @@
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },
   "dependencies": {
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
+    "@zodapp/zod-propagating-registry": "workspace:*",
     "@zodapp/zod-transform": "workspace:*",
     "dayjs": "^1.11.13",
     "zod": "^4.4.3"

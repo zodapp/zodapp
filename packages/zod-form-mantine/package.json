@@ -24,15 +24,33 @@
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./components": "./src/components/index.ts",
-    "./components/*": "./src/components/*.tsx"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js",
+      "require": "./dist/components/index.cjs"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "import": "./dist/components/*.js",
+      "require": "./dist/components/*.cjs"
+    }
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run",
@@ -55,6 +73,7 @@
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

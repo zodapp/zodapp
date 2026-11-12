@@ -4,7 +4,11 @@
   "private": false,
   "description": "DynamoDB repository for @zodapp/zod-dynamodb table definitions",
   "license": "MIT",
-  "keywords": ["zod", "dynamodb", "repository"],
+  "keywords": [
+    "zod",
+    "dynamodb",
+    "repository"
+  ],
   "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -18,6 +22,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "test": "vitest run",

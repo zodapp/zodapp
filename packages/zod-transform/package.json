@@ -42,6 +42,7 @@
     "test": "vitest run",
     "lint": "eslint .",
     "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "docs:typedoc": "node ../../tools/gen-typedoc.mjs"

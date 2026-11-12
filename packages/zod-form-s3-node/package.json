@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "test": "vitest run",

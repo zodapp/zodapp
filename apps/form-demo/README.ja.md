@@ -19,6 +19,7 @@ DB を使うサンプルは、別のアプリにしています。
 
 ```bash
 pnpm install
+pnpm build                    # apps はパッケージの dist を使う
 pnpm --filter form-demo dev
 ```
 

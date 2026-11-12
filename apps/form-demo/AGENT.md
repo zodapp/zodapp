@@ -19,6 +19,9 @@ DB を使うサンプルは別のアプリです（`apps/taskmanager`、`apps/su
 # リポジトリルートで
 pnpm install
 
+# パッケージのビルド（apps はパッケージの dist を使う）
+pnpm build
+
 # Webアプリ起動
 pnpm --filter form-demo dev
 
