@@ -31,20 +31,7 @@
 - [ ] 公開するリポジトリが決まっている。
 - [ ] 22個の `repository.url`、`homepage`、`bugs` を、公開するリポジトリに合わせる。
       npm の trusted publishing は `repository.url` が GitHub のリポジトリと完全に一致していることを見ます。
-      ```bash
-      # 例: <owner>/<repo> を公開先にする
-      node -e '
-      const fs = require("fs"), [repo] = process.argv.slice(1);
-      for (const d of fs.readdirSync("packages")) {
-        const f = `packages/${d}/package.json`; if (!fs.existsSync(f)) continue;
-        const p = JSON.parse(fs.readFileSync(f, "utf8"));
-        if (!p.name.startsWith("@zodapp/") || p.private) continue;
-        p.repository.url = `https://github.com/${repo}.git`;
-        p.homepage = `https://github.com/${repo}/tree/main/packages/${d}#readme`;
-        p.bugs = { url: `https://github.com/${repo}/issues` };
-        fs.writeFileSync(f, JSON.stringify(p, null, 2) + "\n");
-      }' <owner>/<repo>
-      ```
+      `node tools/set-repository.mjs <owner>/<repo>` でまとめて書き換えられます。
 - [ ] 英語の README（`README.md`）を各パッケージに置く（`files` に入っているので、置けば npm に入る）。
 - [ ] 下の「公開するときに決めること」を決める。
 - [ ] GitHub のリポジトリの Settings → Actions → General で、
