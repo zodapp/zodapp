@@ -10,8 +10,6 @@ import path from "node:path";
 
 export type EnvConfig = {
   region: string;
-  /** CloudFront からの接続だけを ALB に通すための、AWS 管理のプレフィックスリスト（リージョンごとに ID が違う） */
-  cloudFrontPrefixListId: string;
   /**
    * 試験環境（`test`。既定）か、永続環境（`persistent`）か。
    * 試験環境は、既定で 1 時間でスタックが自分を消し、デプロイのファイルとイメージは 1 日で消える置き場に入る

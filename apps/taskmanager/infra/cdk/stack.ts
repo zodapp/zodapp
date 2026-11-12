@@ -2,12 +2,12 @@
  * taskmanager の試験用のスタック（ECS Fargate の構成）。
  *
  *   ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
- *                           └─ /api/* ─ ALB ─ Fargate（Express と Realtime Gateway）
+ *                           └─ /api/* ─ VPC オリジン ─ 内部の ALB ─ Fargate（Express と Realtime Gateway）
  *   Fargate ── DynamoDB、S3（添付ファイル。ブラウザは署名付き URL で直接読み書き）、
  *              Cognito（ID トークンの検証）、IoT Core（変更の配送。SigV4 の WebSocket）
  *
- * 名前・タグは `burmaculex`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、
- * 公開サブネットだけで NAT なし）。消し忘れに備えて、作成・更新から ttlMinutes 分で、
+ * 名前・タグは `burmaculex`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、NAT なし）。
+ * ALB はインターネットに出さず、隔離のサブネットに置いて、CloudFront の VPC オリジンからだけ受ける。消し忘れに備えて、作成・更新から ttlMinutes 分で、
  * EventBridge Scheduler がこのスタックを消す。
  */
 import path from "node:path";
@@ -119,7 +119,7 @@ exports.handler = async (event) => {
 export class TaskmanagerStack extends Stack {
   constructor(scope: Construct, id: string, props: TaskmanagerStackProps) {
     super(scope, id, props);
-    const { envName, config } = props;
+    const { envName } = props;
     const prefix = `burmaculex-${envName}`;
     Tags.of(this).add("burmaculex:env", envName);
     Tags.of(this).add("burmaculex:app", "taskmanager");
@@ -209,24 +209,28 @@ export class TaskmanagerStack extends Stack {
       maxAzs: 2,
       natGateways: 0,
       subnetConfiguration: [
+        // Fargate のタスク（公開 IP は外へ出るためだけに使う。入ってくるのは ALB からだけ）
         { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
+        // 内部の ALB（インターネットへの経路なし）
+        {
+          name: "isolated",
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          cidrMask: 24,
+        },
       ],
       restrictDefaultSecurityGroup: false,
     });
 
     const albSecurityGroup = new ec2.SecurityGroup(this, "AlbSecurityGroup", {
       vpc,
-      description: "taskmanager ALB: CloudFront only",
+      description: "taskmanager ALB: CloudFront VPC origin only",
       allowAllOutbound: true,
     });
-    albSecurityGroup.addIngressRule(
-      ec2.Peer.prefixList(config.cloudFrontPrefixListId),
-      ec2.Port.tcp(80),
-      "CloudFront origin-facing",
-    );
+    // 受け付けは、CloudFront の VPC オリジンを作ったあとに足す（下）
     const alb = new elbv2.ApplicationLoadBalancer(this, "Alb", {
       vpc,
-      internetFacing: true,
+      internetFacing: false,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroup: albSecurityGroup,
       // Realtime の WebSocket を、やり取りのない間も保つ
       idleTimeout: Duration.minutes(5),
@@ -264,7 +268,9 @@ export class TaskmanagerStack extends Stack {
       },
       additionalBehaviors: {
         "/api/*": {
-          origin: new origins.HttpOrigin(alb.loadBalancerDnsName, {
+          origin: origins.VpcOrigin.withApplicationLoadBalancer(alb, {
+            vpcOriginName: `${prefix}-taskmanager`,
+            httpPort: 80,
             protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
             readTimeout: Duration.seconds(60),
           }),
@@ -278,6 +284,49 @@ export class TaskmanagerStack extends Stack {
       },
     });
     const appOrigin = `https://${distribution.distributionDomainName}`;
+
+    // CloudFront は VPC オリジンを作ると、この VPC にセキュリティグループ
+    // （CloudFront-VPCOrigins-Service-SG）を作る。CloudFormation はその ID を返さないので引いて、
+    // ALB はそこからだけ受ける
+    const vpcOriginSecurityGroupId = new cr.AwsCustomResource(
+      this,
+      "VpcOriginSecurityGroup",
+      {
+        onUpdate: {
+          service: "EC2",
+          action: "describeSecurityGroups",
+          parameters: {
+            Filters: [
+              { Name: "vpc-id", Values: [vpc.vpcId] },
+              {
+                Name: "group-name",
+                Values: ["CloudFront-VPCOrigins-Service-SG"],
+              },
+            ],
+          },
+          physicalResourceId: cr.PhysicalResourceId.of(
+            "cloudfront-vpc-origins-service-sg",
+          ),
+        },
+        policy: cr.AwsCustomResourcePolicy.fromSdkCalls({
+          resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE,
+        }),
+        logGroup: functionLogs,
+        installLatestAwsSdk: false,
+      },
+    );
+    vpcOriginSecurityGroupId.node.addDependency(distribution);
+    // ALB のセキュリティグループとは別のリソースにする（ALB → VPC オリジン → この値、の順に作るため）
+    new ec2.CfnSecurityGroupIngress(this, "AlbFromVpcOrigin", {
+      groupId: albSecurityGroup.securityGroupId,
+      sourceSecurityGroupId: vpcOriginSecurityGroupId.getResponseField(
+        "SecurityGroups.0.GroupId",
+      ),
+      ipProtocol: "tcp",
+      fromPort: 80,
+      toPort: 80,
+      description: "CloudFront VPC origin",
+    });
 
     // 添付ファイル：ブラウザが署名付き URL で直接 PUT・GET する
     const filesBucket = new s3.Bucket(this, "FilesBucket", {
