@@ -130,6 +130,8 @@ export const tasks = tableConfig({
       sort: ["deletedAt", "createdAt"],
     },
   },
+  // 作成日時は作成した後に変えない（更新でこのフィールドを書き換えようとするとエラーになる）
+  immutable: ["createdAt"],
   generateKey: {
     args: z.object({ workspaceId: z.string(), projectId: z.string() }),
     key: (args) => ({ ...args, taskId: newId() }),

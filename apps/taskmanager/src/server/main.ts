@@ -116,7 +116,7 @@ const main = async () => {
       authMaxAgeSeconds: config.auth.maxAgeSeconds ?? null,
     });
   });
-  app.use("/api", createAppRoutes({ repository, resolveAuth }));
+  app.use("/api", createAppRoutes({ repository, serverApi, resolveAuth }));
   // ファイル：署名付き URL を発行し、ブラウザが S3 に直接 PUT / GET する。
   // 所属するワークスペースのキー（workspaces/{id}/...）だけを読み書きできる
   app.use(

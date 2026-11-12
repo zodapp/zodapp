@@ -5,12 +5,15 @@
 import type { IncomingMessage } from "node:http";
 import express, { type Request, type Response } from "express";
 import { z } from "zod";
+import type { ServerApi } from "@zodapp/zod-dynamodb";
+import { ConditionFailedError, ItemNotFoundError } from "@zodapp/zod-dynamodb-node";
 import {
   canWriteTask,
   createWorkspaceRequestSchema,
   newWorkspaceId,
   taskBodySchema,
   type Auth,
+  type Endpoints,
 } from "../shared";
 import type { AppRepository } from "./repository";
 
@@ -19,11 +22,16 @@ type ResolveAuth = (req: IncomingMessage) => Promise<Auth>;
 const fail = (res: Response, status: number, code: string, message: string) =>
   res.status(status).json({ code, message });
 
+/** BatchWriteItem ではなく TransactWriteItems で確定するので、1 回の確定は 100 件まで */
+const BATCH_SIZE = 100;
+
 export const createAppRoutes = (deps: {
   repository: AppRepository;
+  /** 認可込みの API（登録簿の操作を、サーバーの中から呼ぶ） */
+  serverApi: ServerApi<Endpoints>;
   resolveAuth: ResolveAuth;
 }): express.Router => {
-  const { repository, resolveAuth } = deps;
+  const { repository, serverApi, resolveAuth } = deps;
   const router = express.Router();
 
   const withAuth =
@@ -92,22 +100,89 @@ export const createAppRoutes = (deps: {
       if (toProjectId === projectId) {
         return fail(res, 400, "INVALID_INPUT", "same project");
       }
-      const target = await repository.projects.get({ workspaceId, projectId: toProjectId });
-      if (!target) return fail(res, 404, "NOT_FOUND", "project not found");
-
-      const moved = await repository.runTransaction(async (tx) => {
-        const tasks = repository.tasks.withContext({ runner: tx });
-        const current = await tasks.get({ workspaceId, projectId, taskId });
-        if (!current) return undefined;
-        await tasks.set({ workspaceId, projectId: toProjectId, taskId }, {
-          ...current,
-          projectId: toProjectId,
+      let moved: { workspaceId: string; projectId: string; taskId: string } | undefined;
+      try {
+        moved = await repository.runTransaction(async (tx) => {
+          // 移動先のプロジェクトがアクティブであることを、読まずに確定の条件にする（ConditionCheck）。
+          // なければ ItemNotFoundError、アーカイブ済み・削除済みなら ConditionFailedError になる
+          await repository.projects
+            .withContext({ runner: tx })
+            .check({ workspaceId, projectId: toProjectId }, { status: "active" });
+          const tasks = repository.tasks.withContext({ runner: tx });
+          const current = await tasks.get({ workspaceId, projectId, taskId });
+          if (!current) return undefined;
+          await tasks.set({ workspaceId, projectId: toProjectId, taskId }, {
+            ...current,
+            projectId: toProjectId,
+          });
+          await tasks.delete({ workspaceId, projectId, taskId });
+          return { workspaceId, projectId: toProjectId, taskId };
         });
-        await tasks.delete({ workspaceId, projectId, taskId });
-        return { workspaceId, projectId: toProjectId, taskId };
-      });
+      } catch (error) {
+        if (error instanceof ItemNotFoundError) {
+          return fail(res, 404, "NOT_FOUND", "project not found");
+        }
+        if (error instanceof ConditionFailedError) {
+          return fail(res, 409, "CONDITION_FAILED", "target project is not active");
+        }
+        throw error;
+      }
       if (!moved) return fail(res, 404, "NOT_FOUND", "task not found");
       res.json(moved);
+    }),
+  );
+
+  // ゴミ箱を空にする：ゴミ箱のタスクのキーだけを読み、書き込みだけの batch で消す
+  router.post(
+    "/tasks/empty-trash",
+    withAuth(async (auth, req, res) => {
+      const body = z
+        .object({ workspaceId: z.string(), projectId: z.string() })
+        .safeParse(req.body);
+      if (!body.success) return fail(res, 400, "INVALID_INPUT", body.error.message);
+      const params = body.data;
+      // 消すのは tasks.remove と同じ権限
+      if (!canWriteTask(auth, params.workspaceId)) {
+        return fail(res, 403, "FORBIDDEN", "cannot delete tasks");
+      }
+      // 一覧は、Repository ではなく登録簿の操作（tasks.deleted）を、この人の認証コンテキストで呼ぶ。
+      // 認可はブラウザから呼ぶときと同じ定義で行われる。fields でキーだけを読む
+      const keys: { workspaceId: string; projectId: string; taskId: string }[] = [];
+      let cursor: string | undefined;
+      do {
+        const page = await serverApi.tasks.deleted(params, {
+          context: auth,
+          cursor,
+          fields: { pick: ["taskId"] },
+        });
+        for (const item of page.items) {
+          keys.push({ ...params, taskId: item.taskId });
+        }
+        cursor = page.cursor;
+      } while (cursor);
+
+      // 書き込みだけの batch（createBatch）。読み取りの記録がないので、
+      // ライブラリが内部で読んだ後に他の更新と競合しても、読み直して再試行される
+      let deleted = 0;
+      try {
+        for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+          const chunk = keys.slice(i, i + BATCH_SIZE);
+          const batch = repository.createBatch();
+          const tasks = repository.tasks.withContext({ runner: batch });
+          for (const key of chunk) {
+            // 一覧を読んだ後に復元されたものは消さない（条件が成り立たなければ、その回の確定が失敗する）
+            await tasks.delete(key, { where: { deletedAt: { ne: null } } });
+          }
+          await batch.commit();
+          deleted += chunk.length;
+        }
+      } catch (error) {
+        if (error instanceof ConditionFailedError) {
+          return fail(res, 409, "CONDITION_FAILED", `trash changed after ${deleted} deletions`);
+        }
+        throw error;
+      }
+      res.json({ deleted });
     }),
   );
 
