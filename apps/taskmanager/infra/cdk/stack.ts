@@ -1,5 +1,5 @@
 /**
- * taskmanager の試験用のスタック（ECS Fargate の構成）。
+ * taskmanager のスタック（ECS Fargate の構成）。試験環境と永続環境で同じ構成を使う。
  *
  *   ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
  *                           └─ /api/* ─ VPC オリジン ─ 内部の ALB ─ Fargate（Express と Realtime Gateway）
@@ -7,8 +7,9 @@
  *              Cognito（ID トークンの検証）、IoT Core（変更の配送。SigV4 の WebSocket）
  *
  * 名前・タグは `burmaculex`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、NAT なし）。
- * ALB はインターネットに出さず、隔離のサブネットに置いて、CloudFront の VPC オリジンからだけ受ける。消し忘れに備えて、作成・更新から ttlMinutes 分で、
- * EventBridge Scheduler がこのスタックを消す。
+ * ALB はインターネットに出さず、隔離のサブネットに置いて、CloudFront の VPC オリジンからだけ受ける。
+ * 試験環境は、消し忘れに備えて、作成・更新から ttlMinutes 分で EventBridge Scheduler がこのスタックを消す。
+ * 永続環境は、データを残し（keepData）、自分を消さない。
  */
 import path from "node:path";
 import {
@@ -48,7 +49,14 @@ export type TaskmanagerStackProps = StackProps & {
   config: EnvConfig;
   ttlMinutes: number;
   authMaxAgeSeconds?: number;
+  /** 永続環境（ログを長く残し、テーブルの PITR を有効にする） */
+  persistent: boolean;
+  /** テーブル・ユーザープール・添付のバケットを、スタックを消しても残し、削除保護をかける */
+  keepData: boolean;
+  /** 開発用のユーザーを作る */
   devUsers: boolean;
+  /** パスワードの方式のログイン（USER_PASSWORD_AUTH）を許可する（E2E が ID トークンを取るのに使う） */
+  passwordAuth: boolean;
 };
 
 /** 開発用のユーザー（ローカルの src/server/local.ts と同じ） */
@@ -119,7 +127,14 @@ exports.handler = async (event) => {
 export class TaskmanagerStack extends Stack {
   constructor(scope: Construct, id: string, props: TaskmanagerStackProps) {
     super(scope, id, props);
-    const { envName } = props;
+    const { envName, keepData } = props;
+    // スタックを消したときに、データ（テーブル・ユーザープール・添付のバケット）をどうするか
+    const dataRemovalPolicy = keepData
+      ? RemovalPolicy.RETAIN
+      : RemovalPolicy.DESTROY;
+    const logRetention = props.persistent
+      ? logs.RetentionDays.ONE_MONTH
+      : logs.RetentionDays.ONE_DAY;
     const prefix = `burmaculex-${envName}`;
     Tags.of(this).add("burmaculex:env", envName);
     Tags.of(this).add("burmaculex:app", "taskmanager");
@@ -141,7 +156,7 @@ export class TaskmanagerStack extends Stack {
      */
     const functionLogs = new logs.LogGroup(this, "FunctionLogs", {
       logGroupName: `${logPrefix}/functions`,
-      retention: logs.RetentionDays.ONE_DAY,
+      retention: logRetention,
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
@@ -161,7 +176,11 @@ export class TaskmanagerStack extends Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       // revocations の Item を数分で消す
       timeToLiveAttribute: TTL_ATTRIBUTE,
-      removalPolicy: RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: props.persistent,
+      },
+      deletionProtection: keepData,
+      removalPolicy: dataRemovalPolicy,
     });
     const layout: PhysicalTable = appTable;
     for (const [indexName, def] of Object.entries(layout.indexes)) {
@@ -185,11 +204,12 @@ export class TaskmanagerStack extends Stack {
       autoVerify: { email: true },
       standardAttributes: { email: { required: true, mutable: true } },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      removalPolicy: RemovalPolicy.DESTROY,
+      deletionProtection: keepData,
+      removalPolicy: dataRemovalPolicy,
     });
     const userPoolClient = userPool.addClient("Web", {
-      // SRP は Amplify の既定。パスワードの方式は E2E が ID トークンを取るときに使う
-      authFlows: { userSrp: true, userPassword: true },
+      // SRP は Amplify の既定。パスワードの方式は、試験環境で E2E が ID トークンを取るときだけ使う
+      authFlows: { userSrp: true, userPassword: props.passwordAuth },
       generateSecret: false,
       preventUserExistenceErrors: true,
     });
@@ -332,7 +352,7 @@ export class TaskmanagerStack extends Stack {
     const filesBucket = new s3.Bucket(this, "FilesBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: dataRemovalPolicy,
       cors: [
         {
           allowedOrigins: [appOrigin],
@@ -367,7 +387,7 @@ export class TaskmanagerStack extends Stack {
 
     const serverLogs = new logs.LogGroup(this, "ServerLogs", {
       logGroupName: `${logPrefix}/server`,
-      retention: logs.RetentionDays.ONE_DAY,
+      retention: logRetention,
       removalPolicy: RemovalPolicy.DESTROY,
     });
     const taskDefinition = new ecs.FargateTaskDefinition(this, "Task", {
@@ -601,7 +621,9 @@ export class TaskmanagerStack extends Stack {
       logGroup: functionLogs,
       code: lambda.Code.fromInline(BUCKET_CLEANER_CODE),
     });
-    for (const bucket of [webBucket, filesBucket]) {
+    // データを残すときは、添付のバケットは空にしない
+    const bucketsToEmpty = keepData ? [webBucket] : [webBucket, filesBucket];
+    for (const bucket of bucketsToEmpty) {
       bucket.grantRead(bucketCleaner);
       bucket.grantDelete(bucketCleaner);
     }
@@ -609,7 +631,7 @@ export class TaskmanagerStack extends Stack {
     new CustomResource(this, "EmptyBuckets", {
       serviceToken: bucketCleaner.functionArn,
       resourceType: "Custom::BurmaculexEmptyBuckets",
-      properties: { Buckets: [webBucket.bucketName, filesBucket.bucketName] },
+      properties: { Buckets: bucketsToEmpty.map((b) => b.bucketName) },
     });
 
     // スタックの Lambda にロググループを作らせない。消したあとに届いたログで作り直されて、残るのを防ぐ
