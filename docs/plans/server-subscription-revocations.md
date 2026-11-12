@@ -1,6 +1,6 @@
 # サーバー側の購読 API と、taskmanager の revocations
 
-- ステータス: プラン（実装未着手）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-bf3pyv`（main から分岐）
 
 ## 1. 背景と方針

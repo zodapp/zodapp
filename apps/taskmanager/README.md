@@ -180,7 +180,10 @@ pnpm aws:destroy -- --assets-only     # ファイルとイメージだけ（ス�
 - HTTP では、リクエストのたびにコンテキストを作るので、ロールの変更はすぐに効きます
 - Realtime の接続では、接続したときにコンテキストを作ります。ブラウザは、トークンの期限の少し前に取り直して `auth` メッセージで送り、接続を保ったまま入れ替えます（`src/web/shared/api.ts`）
 - Realtime Gateway は、コンテキストの寿命の 8 割で、同じトークンからコンテキストを作り直します。ロールの変更は、`revalidate` がなくても 5 分以内に反映されます
-- メンバーが変わったら（追加・ロールの変更・削除）、サーバーはその人の接続のコンテキストを作り直します（Repository の `listener` から `revalidate`。`src/server/main.ts`）。外された人の開いている一覧は `FORBIDDEN` で止まり、画面に「権限がありません」が出ます
+- メンバーが変わったら（追加・ロールの変更・削除）、サーバーは revocations（`src/shared/tables/revocation.ts`）に、その人のメールアドレスで 1 件書きます（Repository の `listener`。`src/server/revocations.ts`）。Item は 5 分で消えます（DynamoDB の TTL）
+- サーバーの各台は、revocations を `subscribeOnServer` で購読し、届いたらその人の接続のコンテキストを作り直します（`revalidate`）。外された人の開いている一覧は `FORBIDDEN` で止まり、「権限がありません」と出ます。ロールが変わった人は、新しいロールで続きます。書いた台も自分の購読で受け取るので、Realtime Gateway を 2 台以上にしても、すべての台に届きます
+- 名前は revocations ですが、権限が増えた場合（追加・ロールを上げた）にもすぐ効きます
+- revocations を書かなければ、認証の期限（最長 5 分）までは古い権限のまま使えます。これがライブラリの既定の動きで、すぐに効かせるかどうかはアプリが決めます
 - 期限が切れたトークンのままの接続は、次の配信の前に閉じられます。ブラウザはつながり直し、そのときに新しいトークンを渡します
 - Realtime Gateway は、upgrade の Origin ヘッダーを画面のオリジンと比べ、ほかのサイトからの接続を 403 で拒否します。画面のオリジンは環境変数 `APP_ORIGIN`（カンマ区切りで複数。既定は `http://localhost:3000`）で変えられます
 - 登録簿（`src/shared/endpoints.ts`）は、`defineContext<Auth>()` が返す `defineEndpoints` で作ります。別の `defineContext` の操作や、書き込みへの `GET` などは型のエラーになります
