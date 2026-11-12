@@ -97,6 +97,14 @@ export const taskOps = createOps(tasks, (o) => ({
   }),
 }));
 
+/** サーバー専用の live（`authorize` なし）。Gateway は公開しない */
+export const serverTaskOps = createOps(tasks, (o) => ({
+  all: o.query({
+    params: z.object({ workspaceId: z.string() }),
+    where: (p) => ({ partition: { workspaceId: p.workspaceId } }),
+  }),
+}));
+
 /** 購読の名前は「グループ名.操作の名前」（tasks.byStatus など） */
 export const endpoints = defineEndpoints({
   tasks: [
@@ -107,6 +115,7 @@ export const endpoints = defineEndpoints({
     { op: taskOps.all, live: true },
     { op: taskOps.mine, live: true },
   ],
+  server: [{ op: serverTaskOps.all, live: true }],
 });
 
 /**

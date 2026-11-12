@@ -146,16 +146,19 @@ export type RealtimeGatewayOptions = Omit<
 /** サーバーの API から、Gateway の設定を作る */
 const fromApi = (options: RealtimeGatewayOptions): GatewayConfig => {
   const { api, ...rest } = options;
-  if (!api.hasContext && api.endpoints.entries.some((e) => e.subscription)) {
+  // サーバー専用の live（`authorize` のないクエリ）は公開しない。サーバーのコードが `subscribeOnServer` で使う
+  const published = api.endpoints.entries.filter(
+    (e) => e.subscription && !e.serverOnly,
+  );
+  if (!api.hasContext && published.length > 0) {
     throw new DefinitionError(
       "createRealtimeGateway needs the context option of createServerApi to serve live queries",
     );
   }
   const subscriptions: Record<string, GatewaySubscription> = {};
-  for (const entry of api.endpoints.entries) {
-    if (!entry.subscription) continue;
+  for (const entry of published) {
     subscriptions[subscriptionId(entry)] = {
-      subscription: entry.subscription,
+      subscription: entry.subscription!,
       // 拒否は ForbiddenError（FORBIDDEN）、期限切れなどは UnauthenticatedError として返る
       // （`api.authorize` は、認可の前に期限と `checkContext` を確かめる）
       authorize: (context, { params }) => {

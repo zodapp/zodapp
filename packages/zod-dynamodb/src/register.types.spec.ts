@@ -55,7 +55,7 @@ const opsB = b.createOps(tasks, (o) => ({
 const typeOnly = (_: () => unknown) => {};
 
 describe("defineEndpoints の型の検査", () => {
-  it("サーバー専用の操作に path・live を付けるとエラー", () => {
+  it("サーバー専用の操作に path を付けるとエラー。live は付けられる", () => {
     typeOnly(() =>
       defineEndpoints({
         // @ts-expect-error サーバー専用の操作に path
@@ -64,7 +64,6 @@ describe("defineEndpoints の型の検査", () => {
     );
     typeOnly(() =>
       defineEndpoints({
-        // @ts-expect-error サーバー専用の操作に live
         x: [{ op: opsA.internalQuery, live: true }],
       }),
     );
