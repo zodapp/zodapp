@@ -10,7 +10,7 @@
     "url": "https://github.com/zodapp/zodapp.git",
     "directory": "packages/zod-form-react"
   },
-  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/zod-form-react#readme",
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
@@ -20,55 +20,105 @@
     "react",
     "validation"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./common": {
-      "types": "./dist/common/index.d.ts",
-      "import": "./dist/common/index.js",
-      "require": "./dist/common/index.cjs"
+      "import": {
+        "types": "./dist/common/index.d.mts",
+        "default": "./dist/common/index.mjs"
+      },
+      "require": {
+        "types": "./dist/common/index.d.ts",
+        "default": "./dist/common/index.cjs"
+      }
     },
     "./media": {
-      "types": "./dist/media/index.d.ts",
-      "import": "./dist/media/index.js",
-      "require": "./dist/media/index.cjs"
+      "import": {
+        "types": "./dist/media/index.d.mts",
+        "default": "./dist/media/index.mjs"
+      },
+      "require": {
+        "types": "./dist/media/index.d.ts",
+        "default": "./dist/media/index.cjs"
+      }
     },
     "./media/types": {
-      "types": "./dist/media/types.d.ts",
-      "import": "./dist/media/types.js",
-      "require": "./dist/media/types.cjs"
+      "import": {
+        "types": "./dist/media/types.d.mts",
+        "default": "./dist/media/types.mjs"
+      },
+      "require": {
+        "types": "./dist/media/types.d.ts",
+        "default": "./dist/media/types.cjs"
+      }
     },
     "./mediaResolvers": {
-      "types": "./dist/mediaResolvers/index.d.ts",
-      "import": "./dist/mediaResolvers/index.js",
-      "require": "./dist/mediaResolvers/index.cjs"
+      "import": {
+        "types": "./dist/mediaResolvers/index.d.mts",
+        "default": "./dist/mediaResolvers/index.mjs"
+      },
+      "require": {
+        "types": "./dist/mediaResolvers/index.d.ts",
+        "default": "./dist/mediaResolvers/index.cjs"
+      }
     },
     "./def": {
-      "types": "./dist/def/index.d.ts",
-      "import": "./dist/def/index.js",
-      "require": "./dist/def/index.cjs"
+      "import": {
+        "types": "./dist/def/index.d.mts",
+        "default": "./dist/def/index.mjs"
+      },
+      "require": {
+        "types": "./dist/def/index.d.ts",
+        "default": "./dist/def/index.cjs"
+      }
     },
     "./utils/dateConverter": {
-      "types": "./dist/utils/dateConverter.d.ts",
-      "import": "./dist/utils/dateConverter.js",
-      "require": "./dist/utils/dateConverter.cjs"
+      "import": {
+        "types": "./dist/utils/dateConverter.d.mts",
+        "default": "./dist/utils/dateConverter.mjs"
+      },
+      "require": {
+        "types": "./dist/utils/dateConverter.d.ts",
+        "default": "./dist/utils/dateConverter.cjs"
+      }
     },
     "./utils/externalKey": {
-      "types": "./dist/utils/externalKey.d.ts",
-      "import": "./dist/utils/externalKey.js",
-      "require": "./dist/utils/externalKey.cjs"
-    }
+      "import": {
+        "types": "./dist/utils/externalKey.d.mts",
+        "default": "./dist/utils/externalKey.mjs"
+      },
+      "require": {
+        "types": "./dist/utils/externalKey.d.ts",
+        "default": "./dist/utils/externalKey.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
     "lint": "eslint .",
     "build": "tsup",

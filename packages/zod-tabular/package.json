@@ -10,7 +10,7 @@
     "url": "https://github.com/zodapp/zodapp.git",
     "directory": "packages/zod-tabular"
   },
-  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/zod-tabular#readme",
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
@@ -21,20 +21,35 @@
     "tabular",
     "serialize"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
     "lint": "eslint .",
     "build": "tsup",

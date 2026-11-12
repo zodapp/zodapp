@@ -10,6 +10,6 @@ export default defineConfig({
   platform: "neutral",
   outDir: "dist",
   outExtension({ format }) {
-    return { js: format === "cjs" ? ".cjs" : ".js" };
+    return { js: format === "cjs" ? ".cjs" : ".mjs" };
   },
 });
