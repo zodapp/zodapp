@@ -180,6 +180,17 @@ describe("Realtime Gateway", () => {
     expect(await c.next((m) => m.id === 3)).toMatchObject({
       code: "INVALID_INPUT",
     });
+    // サーバー専用の live は公開しない
+    c.send({
+      type: "subscribe",
+      id: 5,
+      name: "server.all",
+      params: { workspaceId: "w" },
+    });
+    expect(await c.next((m) => m.id === 5)).toMatchObject({
+      code: "INVALID_INPUT",
+      message: 'unknown subscription "server.all"',
+    });
     c.send({ type: "page", id: 4, limit: 1 });
     expect(await c.next((m) => m.id === 4)).toMatchObject({
       code: "INVALID_INPUT",

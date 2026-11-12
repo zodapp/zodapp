@@ -130,10 +130,25 @@ describe("defineEndpoints", () => {
     ).toThrow(/already registered/);
   });
 
-  it("rejects path or live on a server-only operation", () => {
+  it("rejects path on a server-only operation", () => {
     expect(() =>
       defineEndpoints({ a: [{ op: taskOps.purge, path: "/x" }] as never }),
     ).toThrow(/server-only/);
+  });
+
+  it("accepts live on a server-only query", () => {
+    const serverOps = createOps(tasks, (o) => ({
+      all: o.query({
+        params: z.object({ workspaceId: z.string() }),
+        where: (p) => ({ partition: { workspaceId: p.workspaceId } }),
+      }),
+    }));
+    const e = defineEndpoints({
+      server: [{ op: serverOps.all, live: true }],
+    }).entryOf(serverOps.all)!;
+    expect(e.serverOnly).toBe(true);
+    expect(e.endpoint).toBeUndefined();
+    expect(e.subscription).toBeDefined();
   });
 
   it("rejects live on a non-query", () => {

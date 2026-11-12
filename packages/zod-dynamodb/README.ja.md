@@ -7,9 +7,10 @@ Zodで定義したTable定義を基点に、DynamoDBを型安全に扱うため�
 - キーのエンコーディング：文字列以外の値に `$` と型識別子を付ける方式で、一意・逆算可能・順序保存の物理キーを作る。逆算にSchemaを使わない
 - `defineContext<Auth>()`：認証コンテキストの型を1回だけ宣言し、`createOps`、`override`、`defineEndpoints` を返す
 - `createOps(table, (o) => ({ ... }))`：名前付きの操作（`o.get`、`o.create`、`o.createWithGeneratedKey`、`o.set`、`o.delete`、`o.mutation`、`o.query`、`o.search`）。`authorize`、`where`、`patch` も共有の定義に書く
-- `defineEndpoints({ ... })`：公開する操作の登録簿。グループ、パス、HTTPメソッド、リアルタイム（`live`）を付ける。`defineContext` が返すものを使うと、別の `defineContext` の操作が混ざっていないかを型でも確かめる。サーバー専用の操作の `path`・`live`、クエリ以外の `live`、書き込みの `GET` は型のエラーになり、`method + path` の重なりは作成時のエラーになる
+- `defineEndpoints({ ... })`：公開する操作の登録簿。グループ、パス、HTTPメソッド、リアルタイム（`live`）を付ける。`defineContext` が返すものを使うと、別の `defineContext` の操作が混ざっていないかを型でも確かめる。サーバー専用の操作の `path`、クエリ以外の `live`、書き込みの `GET` は型のエラーになり、`method + path` の重なりは作成時のエラーになる
 - `Api` / `ServerApi` / `SharedApi`：登録簿から決まるブラウザ・サーバー・両方で使える API の型
 - `classifyChange()`：名前付きクエリの所属判定から `ADDED` / `MODIFIED` / `REMOVED` を決める
+- `subscribeOnServer()`：サーバーのコードが、`live` を付けたクエリを配送（`RealtimeTransport`）で購読する。サーバー専用のクエリ（`authorize` なし）にも `live` を付けられ、Publisher は発行するが、Realtime Gateway はブラウザに公開しない
 
 ```ts
 // shared/context.ts
@@ -89,3 +90,34 @@ export const overrides = [
 - `get`・`create`・`set` の `authorize` が見られるのは、キーと入力と認証コンテキストだけで、保存済みの Item は見られません。保存済みの値で判定したい書き込みは、ミューテーションや削除の `where`（DynamoDB の条件付き書き込み）を使います。`get` には条件を付けられないので、読み取りはキーに所有者やワークスペースを入れて `authorize` で判定するか、クエリにしてパラメーターで判定します
   - 例：キーが `noteId` だけのテーブルで `set` を公開すると、入力の `ownerId` を書き換えて他人のメモを上書きできます。`set` を公開せず、ミューテーションの `where: (_p, ctx) => ({ ownerId: ctx.userId })` で防ぎます
 - 共有のモジュールは Node.js 専用のモジュールに依存しないでください（このパッケージ自体も ESLint の `no-restricted-imports` とテストで確かめています）
+
+## サーバーでの購読（`subscribeOnServer`）
+
+サーバーのコードが、ほかの台の書き込みも含めた変更を受け取りたいとき（キャッシュの破棄、接続の認証コンテキストの作り直しなど）に使います。
+
+```ts
+// shared：authorize のないクエリはサーバー専用。live を付けると発行されるが、ブラウザには公開されない
+const revocationOps = createOps(revocations, (o) => ({
+  recent: o.query({ params: z.object({}), where: () => ({ partition: { scope: "all" } }) }),
+}));
+export const endpoints = defineEndpoints({
+  revocations: [{ op: revocationOps.recent, live: true }],
+});
+
+// server
+const sub = await subscribeOnServer({
+  endpoints,
+  transport: mqttTransport({ url }), // Gateway とは別の接続を推奨
+  prefix: "app", // 書き込み側と揃える
+  op: revocationOps.recent,
+  params: {},
+  onChange: ({ type, item }) => { /* ADDED / MODIFIED / REMOVED */ },
+});
+await sub.close();
+```
+
+- 配送基盤が購読を受け付けた（MQTT の SUBACK）ところで解決します
+- 最初のページは読みません。購読を始めたあとの変更だけを渡します。今の状態が要るなら Repository で読みます
+- クエリの範囲（`matches`）に入る変更だけを渡します。`item` は ADDED / MODIFIED なら変更のあと、REMOVED なら変更の前の Item で、`live` の `fields` に絞ります。一括の書き込みの印は渡しません
+- 認可は行いません
+- 配送は 1 つのトピックにハンドラーを 1 つしか持てないので、同じ配送で同じトピックを 2 回購読すると例外にします。Realtime Gateway とは別の接続を使ってください

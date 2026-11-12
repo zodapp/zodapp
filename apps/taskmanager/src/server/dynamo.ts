@@ -3,8 +3,10 @@ import {
   DescribeTableCommand,
   DynamoDBClient,
   ResourceNotFoundException,
+  UpdateTimeToLiveCommand,
 } from "@aws-sdk/client-dynamodb";
 import type { PhysicalTable } from "@zodapp/zod-dynamodb";
+import { TTL_ATTRIBUTE } from "../shared";
 import { config } from "./env";
 
 export const createDynamoClient = () =>
@@ -70,6 +72,13 @@ export const ensureTable = async (
         { AttributeName: layout.primary.sk, KeyType: "RANGE" },
       ],
       ...(gsis.length > 0 ? { GlobalSecondaryIndexes: gsis } : {}),
+    }),
+  );
+  // revocations の Item を数分で消す（DynamoDB Local は設定を受け付けるが、消しはしない）
+  await client.send(
+    new UpdateTimeToLiveCommand({
+      TableName: tableName,
+      TimeToLiveSpecification: { AttributeName: TTL_ATTRIBUTE, Enabled: true },
     }),
   );
   return "created";

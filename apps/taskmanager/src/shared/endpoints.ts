@@ -2,12 +2,14 @@ import { defineEndpoints } from "./context";
 import { columnSettingOps } from "./tables/columnSetting";
 import { memberOps } from "./tables/member";
 import { projectOps } from "./tables/project";
+import { revocationOps } from "./tables/revocation";
 import { taskOps } from "./tables/task";
 import { workspaceOps } from "./tables/workspace";
 
 /**
  * 公開する操作の登録簿。ブラウザの API（zod-dynamodb-client）、Express の router、
  * Realtime Gateway が、すべてこれから作られる。`live` を付けたクエリはリアルタイムで購読できる。
+ * `authorize` のない操作（サーバー専用）は、ブラウザには公開しない。
  */
 export const endpoints = defineEndpoints({
   workspaces: [
@@ -52,6 +54,8 @@ export const endpoints = defineEndpoints({
     { op: columnSettingOps.update, path: "/column-settings/update" },
     { op: columnSettingOps.remove, path: "/column-settings/remove" },
   ],
+  // サーバー専用。変更は発行するが、Realtime Gateway は公開しない。各台が subscribeOnServer で購読する
+  revocations: [{ op: revocationOps.recent, live: true }],
 });
 
 export type Endpoints = typeof endpoints;

@@ -39,7 +39,7 @@ export type ResolvedEntry = {
   readonly method: HttpMethod;
   /** HTTP の入出力の変換（サーバー専用でない操作だけ） */
   readonly endpoint: Endpoint | undefined;
-  /** 購読の入出力の変換（`live` があるときだけ） */
+  /** 購読の入出力の変換（`live` があるときだけ。サーバー専用なら、Gateway は公開しない） */
   readonly subscription: AnySubscriptionDef | undefined;
 };
 
@@ -102,11 +102,9 @@ type EntryCheck<E, TAuth> = E extends { readonly op: infer O }
         readonly method?: O["kind"] extends GetFriendlyKind
           ? HttpMethod
           : Exclude<HttpMethod, "GET">;
-        readonly live?: IsPublicOp<O> extends false
-          ? DefinitionTypeError<"an operation without authorize is server-only: it cannot be live">
-          : O["kind"] extends "query"
-            ? true | { readonly fields?: FieldsInput<O["table"]> }
-            : DefinitionTypeError<"live is only for queries">;
+        readonly live?: O["kind"] extends "query"
+          ? true | { readonly fields?: FieldsInput<O["table"]> }
+          : DefinitionTypeError<"live is only for queries">;
       }
     : DefinitionTypeError<"every entry needs an operation made by createOps">
   : never;
@@ -150,13 +148,14 @@ const endpointFor = (op: AnyOp, path: string, method: HttpMethod): Endpoint => {
 /**
  * 登録簿を作る。作るときに次を検査する（違反は `DefinitionError`）。
  * - グループの中で、操作の名前が重ならないこと（同じ操作を 2 回書くことも含む）
- * - `authorize` を持たない操作（サーバー専用）に、`path` と `live` を付けないこと
+ * - `authorize` を持たない操作（サーバー専用）に、`path` を付けないこと。
+ *   `live` は付けられる（Publisher は発行し、Realtime Gateway は公開しない。`subscribeOnServer` で購読する）
  * - `live` はクエリだけに付けること
  * - `GET` は `get`・`query`・`search` だけに付けること
  * - `method + path` が重ならないこと（パラメーターの名前は無視する）
  * - すべての操作が、同じ `defineContext` から作られていること
  *
- * 型でも、サーバー専用の操作の `path`・`live`、クエリ以外の `live`、書き込みの `GET` を弾く。
+ * 型でも、サーバー専用の操作の `path`、クエリ以外の `live`、書き込みの `GET` を弾く。
  * Auth の型の一致まで型で確かめるには、`defineContext` が返す `defineEndpoints` を使う。
  */
 export const defineEndpoints = <const G extends EndpointGroups>(
@@ -202,9 +201,9 @@ const buildEndpoints = <G extends EndpointGroups>(
         );
       }
       const serverOnly = op.authorize === undefined;
-      if (serverOnly && (entry.path !== undefined || entry.live)) {
+      if (serverOnly && entry.path !== undefined) {
         throw new DefinitionError(
-          `${where}: an operation without authorize is server-only and cannot have path or live`,
+          `${where}: an operation without authorize is server-only and cannot have path`,
         );
       }
       if (entry.live && op.kind !== "query") {

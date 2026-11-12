@@ -760,7 +760,7 @@ export const overrides = [
 | 登録簿（`defineEndpoints`） | グループ、パス、HTTPメソッド、リアルタイム（`live`）、Subscriptionの `fields` | なし |
 
 - 上書きの関数は、最後の引数で共有の関数（`shared`）を受け取る。呼べば共有の判定に足す形に、呼ばなければ置き換えになる。上書きは `createRepository({ overrides })` に渡す。同じ操作への上書きを2回渡すとエラーにする
-- `authorize` を持たない操作は**サーバー専用**とし、登録簿にパスやリアルタイムを付けられない。ブラウザの API にも現れない
+- `authorize` を持たない操作は**サーバー専用**とし、登録簿にパスを付けられない。ブラウザの API にも現れない。クエリならリアルタイム（`live`）は付けられ、書き込み側は発行するが、Realtime Gateway は公開しない（サーバーのコードが `subscribeOnServer` で購読する。§9）
 - フックや `generateKey` は Table定義に書くが、呼ばれるのはサーバー（Repository）だけである。共有のモジュールに置くので、サーバー専用のモジュールには依存させない。依存が必要な場合は、その処理を名前付きミューテーションにして上書きで書く
 - 共有のモジュールは、Node.js専用のモジュールに依存しないことをテストで確かめる。共通のユーティリティ（IDの書式の検査、`buildFilters` など）は入れてよい。ライブラリのブラウザ向けのパッケージ（`zod-dynamodb`、`zod-dynamodb-client`、`zod-dynamodb-react`）は、Node.jsの組み込みのモジュール（`node:*`）、サーバーのパッケージ、`@aws-sdk/*` を import しないことを、ESLint の `no-restricted-imports` とテスト（`browser-safe.spec.ts`）で確かめる
 - Repository（§6）は、Table定義と上書きを受け取って作る
@@ -1485,11 +1485,11 @@ export const endpoints = defineEndpoints({
 - パスとHTTPメソッドは、アプリケーションが決める。ライブラリはパスの構造を定めない。HTTPメソッドの既定は `POST` で、入力をbodyに入れる。`path` のない操作はHTTPでは公開しない（リアルタイムだけ、またはサーバーだけで使う）
 - `GET` を選び、パスにパラメーターを含める場合は、Clientが入力の同名のフィールドでパスを埋める。サーバー側の読み出し方は §8.3
 - `live` はクエリにだけ付けられる。`live: true` か、Subscriptionの `fields` を指定したオブジェクト（§9.2）とする
-- `authorize` を持たない操作（サーバー専用。§5.8）には、`path` も `live` も付けられない
+- `authorize` を持たない操作（サーバー専用。§5.8）には、`path` を付けられない。`live` は付けられるが、Realtime Gateway は公開しない
 - `GET` を付けられるのは、読み取りの操作（Get、Query、Search）だけとする
 - `method` と `path` の組が重なる場合は、作成時にエラーにする。Express のパラメーター（`:name`）は名前によらず同じものとして比べる（`/a/:id` と `/a/:key` は重なる）。`handle()`（§8.3）で個別に公開するパスは、登録簿の外なので比べない
 - 登録簿のすべての操作は、同じ `defineContext` の `createOps` で作ったものとする。`defineContext` が返す `defineEndpoints` を使うことを勧める。これは、型でも Auth の型が同じことを確かめ、実行時にもその `defineContext` の操作だけを受け付ける。`@zodapp/zod-dynamodb` から直接取り出す `defineEndpoints` は、実行時にだけ「すべての操作が同じ `defineContext` から作られていること」を確かめる。上書き（`override()`）も同じで、別の `defineContext` の操作を上書きしたり、登録簿と違う `defineContext` の上書きを `createRepository` に渡したりすると、エラーにする
-- これらの検査は、作成時の `DefinitionError` で行う。サーバー専用の操作への `path`・`live`、クエリ以外への `live`、書き込みへの `GET`、別の Auth の操作は、型のエラーにもなる（エラーは該当のプロパティに出る）。名前の重なりと `method + path` の重なりは、実行時にだけ確かめる
+- これらの検査は、作成時の `DefinitionError` で行う。サーバー専用の操作への `path`、クエリ以外への `live`、書き込みへの `GET`、別の Auth の操作は、型のエラーにもなる（エラーは該当のプロパティに出る）。名前の重なりと `method + path` の重なりは、実行時にだけ確かめる
 - 各操作の入力と出力のSchemaは、操作の定義から決まる。アプリケーションがSchemaを書き直す必要はない
 - Table定義をまるごと公開する汎用のエンドポイントは作らない。公開する操作は1つずつ書く
 - グループ名には、ブラウザの API とサーバーの API が使う予約の名前（`context`、`endpoints`、`bind`、`execute` など）を使えない
@@ -1755,6 +1755,7 @@ export const serverApi = createServerApi(endpoints, {
 
 - 取り消しは、認可だけなら `revalidate`（§9.6）で認証コンテキストを作り直す。認証の取り消し（サインアウトさせる、アカウントを止める）は、アプリの `context(credential)` が失敗するようにする。JWT は署名で検証するだけなので、取り消しの状態（セッションの保存先、取り消しの一覧）を見るのはアプリの責任である
 - 認証コンテキストの寿命を短くしておく（たとえば 5 分）と、`revalidate` を呼び忘れても、権限の古さはその時間までに収まる
+- `revalidate` が効くのはその Gateway の接続だけである。Gateway が複数の台にあるとき、ライブラリは取り消しを配る専用の仕組みを持たない。アプリが「誰の権限が変わったか」を普通のデータとして書き（サーバー専用のクエリに `live` を付ける）、各台が `subscribeOnServer` で購読して `revalidate` を呼ぶ
 
 - `credential` を省くと、リクエストそのものを `context` に渡す（`context: (req) => ctx` の書き方）
 - ライブラリは認証の情報の中身を見ない。文字列のトークンを介さない方式（HttpOnly の Cookie、クライアント証明書）でも、その方式に合わせた型にすればよい
@@ -2068,6 +2069,7 @@ realtime.attach(server, { path: "/api/realtime" });
 - **操作のたびの確認**：購読の開始、ページの読み込み、変更の配信の前に、そのたびに期限（`expiresAt`）と `checkContext`、購読したクエリの `authorize` を同期で確かめる。認証の失敗（`UNAUTHENTICATED`）なら、`id` のない `error` を送って接続を閉じる（コード 4401）。クライアントはつながり直し、upgrade のリクエストで新しい認証の情報を渡す。認可の拒否（`FORBIDDEN`）なら、その購読だけを止め、接続とほかの購読は続ける。認証が切れた状態でメッセージを溜めるような中間の状態は持たない
 - **認証の情報の入れ替え**：トークンの期限が短い（5 分など）と、期限のたびにつながり直すのは多すぎる。そこで、期限が来る前にクライアントが `auth` メッセージ（§10.5）で新しい認証の情報を送り、接続を保ったまま認証コンテキストを入れ替えられる。Gateway の `credentialOf(payload)` で `payload` を認証の情報に直し、`context` で作り直して、開いている購読をすべて認可し直す。作れなければ接続を閉じ、認可の通らない購読と、範囲が認証コンテキストで決まり範囲の変わった購読は `FORBIDDEN` で止める。`credentialOf` を渡さなければ `auth` メッセージは受け付けない（Cookie や証明書のように、ブラウザから値を送れない方式では、期限が来たらつながり直す）
 - **作り直し（`revalidate`）**：メンバーから外した、アカウントを止めたなどの緊急のときに、`realtime.revalidate(filter?)` で、`filter` に合う接続（省けばすべて）の認証コンテキストを、最後に受け取った認証の情報から作り直す。その後は `auth` メッセージと同じに扱う
+- **サーバーでの購読（`subscribeOnServer`）**：サーバーのコードが `live` を付けたクエリを、配送のトピックで購読する（`@zodapp/zod-dynamodb`。Node に依存しない）。クエリの範囲に入る変更だけを `ADDED` / `MODIFIED` / `REMOVED` として渡し、最初のページは読まず、認可もしない。複数の台の Gateway に `revalidate` を届けるのに使う
 - **期限の前の作り直し**：`expiresAt` を返す認証コンテキストは、寿命の `rebuildAt`（既定 0.8）の時点で、最後に受け取った認証の情報から作り直す。ロールの変更などは、`revalidate` を呼ばなくても遅くともこの時点で反映される。作れなければ接続を閉じる。同じ認証の情報から作り直して期限が延びなければ（認証の情報そのものの期限が来た）、もう作り直さない。作り直しの間に届いた変更は、まだ期限の切れていない前の認証コンテキストで配信する。作り直しと `revalidate` は、同時に `maxConcurrentRebuilds`（既定 10）本までに抑える
 - **購読の数の上限**：1 本の接続で同時に持てる購読（認可の途中のものも含む）は `maxSubscriptionsPerConnection`（既定 100）までとする。超えた `subscribe` には、その `id` で `INVALID_INPUT`（`too many subscriptions on this connection`）を返す。解除すれば減る
 - **トピックの参照**：同じトピックは接続をまたいで 1 回だけ配送基盤で購読し、参照を数える。解除と切断で減らし、0 になったら購読をやめる

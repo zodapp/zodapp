@@ -70,6 +70,8 @@ await realtime.revalidate((ctx: Auth) => ctx.email === email);
 - ブラウザでは、トークンを更新したら `client.realtime.authenticate({ token })` を呼びます。接続を保ったまま、認証コンテキストが入れ替わります
 - `credentialOf` を渡さなければ、`auth` メッセージは受け付けません。Cookie や証明書のように、ブラウザから値を送れない方式では、期限が来たらつながり直します
 - `revalidate` は、最後に受け取った認証の情報から作り直します。作れない接続は閉じ、認可の通らない購読は `FORBIDDEN` で止めます
+- `revalidate` が効くのは、その Gateway の接続だけです。Gateway が 2 台以上あるときは、「誰の権限が変わったか」をアプリのデータとして書き、各台が `subscribeOnServer`（`@zodapp/zod-dynamodb`）で購読して `revalidate` を呼びます（例：`apps/taskmanager` の revocations）
+- 登録簿のサーバー専用のクエリ（`authorize` なし）は、`live` を付けても公開しません
 
 ### 期限の前の作り直し
 
