@@ -1,9 +1,14 @@
 /**
  * 環境ごとの設定（`config/<環境名>.json`）の型と、それから決まる値。
  * CDK を読み込まずに使えるように、スタックとは別のファイルにする（scripts/aws-destroy.mts も使う）
+ *
+ * AWS のアカウント ID は設定のファイルに書かず、環境変数 `AWS_ACCOUNT_ID` から読む。
+ * 置き場のバケット名と、書き込むロールの ARN は、アカウント ID とリージョンから組み立てる
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 export type EnvConfig = {
-  account: string;
   region: string;
   /** CloudFront からの接続だけを ALB に通すための、AWS 管理のプレフィックスリスト（リージョンごとに ID が違う） */
   cloudFrontPrefixListId: string;
@@ -14,13 +19,44 @@ export type EnvConfig = {
   kind?: "test" | "persistent";
   /**
    * デプロイのファイル（テンプレート、フロントエンドのビルド成果物、Lambda のコード）とイメージの置き場。
-   * CDK の 試験環境のものを寿命で消すために、CDK の bootstrap の置き場ではなく専用のものに入れる。
-   * `burmaculex-automation` のスタック（Mac の burmaculex/infra/）が持つ
+   * 試験環境のものを寿命で消すために、CDK の bootstrap の置き場ではなく専用のものに入れる。
+   * 置き場は `infra/assets/` のスタックが作る
    */
   assets: {
-    bucketName: string;
+    /** S3 バケットの名前の頭。実際の名前は `<頭>-<アカウント>-<リージョン>` */
+    bucketNamePrefix: string;
+    /** ECR のリポジトリの名前 */
     repositoryName: string;
-    publishingRoleArn: string;
+    /** 置き場に書き込むロールの名前 */
+    publishingRoleName: string;
+  };
+};
+
+/** 設定のファイルと環境変数から決まる、環境の値 */
+export type ResolvedEnv = EnvConfig & {
+  account: string;
+  assetBucketName: string;
+  assetPublishingRoleArn: string;
+};
+
+export const loadEnvConfig = (envName: string): ResolvedEnv => {
+  const config = JSON.parse(
+    readFileSync(
+      path.join(import.meta.dirname, "config", `${envName}.json`),
+      "utf8",
+    ),
+  ) as EnvConfig;
+  const account = process.env.AWS_ACCOUNT_ID ?? "";
+  if (!/^[0-9]{12}$/.test(account)) {
+    throw new Error(
+      "AWS_ACCOUNT_ID (the 12-digit account ID to deploy to) is not set",
+    );
+  }
+  return {
+    ...config,
+    account,
+    assetBucketName: `${config.assets.bucketNamePrefix}-${account}-${config.region}`,
+    assetPublishingRoleArn: `arn:aws:iam::${account}:role/${config.assets.publishingRoleName}`,
   };
 };
 

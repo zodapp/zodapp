@@ -1,11 +1,10 @@
 {
-  "account": "123456789012",
   "region": "us-east-1",
   "cloudFrontPrefixListId": "pl-3b927c52",
   "kind": "test",
   "assets": {
-    "bucketName": "burmaculex-assets-123456789012-us-east-1",
+    "bucketNamePrefix": "burmaculex-assets",
     "repositoryName": "burmaculex/assets",
-    "publishingRoleArn": "arn:aws:iam::123456789012:role/burmaculex-asset-publishing"
+    "publishingRoleName": "burmaculex-asset-publishing"
   }
 }

@@ -118,7 +118,8 @@ Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークン
 - Realtime Gateway は接続の状態をメモリーに持つので、Fargate は 1 台だけ動かします
 - VPC は自分のもの（`10.40.0.0/16`、公開サブネットだけで NAT Gateway なし）です。ALB は CloudFront からの接続だけを受けます
 - 名前とタグは `burmaculex` で始めます（スタック `burmaculex-taskmanager-<環境名>`、タグ `burmaculex:env`）
-- アカウントとリージョン、試験環境か永続環境か（`kind`）、デプロイのファイルとイメージの置き場（`assets`）は `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`。ほかの環境は `pnpm aws:deploy -- -c env=<環境名>`）
+- リージョン、試験環境か永続環境か（`kind`）、デプロイのファイルとイメージの置き場（`assets`）は `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`。ほかの環境は `pnpm aws:deploy -- -c env=<環境名>`）
+- AWS のアカウント ID はリポジトリに置かず、環境変数 `AWS_ACCOUNT_ID` で渡します。置き場のバケット名とロールの ARN は、そこから組み立てます。CDK が書き出す `infra/cdk/cdk.context.json` もアカウント ID を含むので、コミットしません（.gitignore 済み）
 
 ### デプロイのファイルとイメージの置き場
 
@@ -133,10 +134,11 @@ CDK は、デプロイに使うファイル（テンプレート、フロント�
 
 ### デプロイする
 
-必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier。やり直さない）、置き場（上）、bootstrap の deploy ロールと `burmaculex-asset-publishing` を引き受けられる認証情報。
+必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier）、置き場（上）、bootstrap の deploy ロールと `burmaculex-asset-publishing` を引き受けられる認証情報。
 
 ```bash
 cd apps/taskmanager
+export AWS_ACCOUNT_ID=<デプロイ先のアカウント ID>   # aws:deploy と aws:destroy の両方で使う
 pnpm aws:deploy                                  # フロントエンドとサーバーをビルドしてデプロイ（8 分ほど）
 pnpm aws:deploy -- -c authMaxAgeSeconds=20       # E2E の 08-token-refresh を流すとき
 pnpm aws:deploy -- -c ttlMinutes=120             # 自分を消すまでの分数を変える（0 で消さない）

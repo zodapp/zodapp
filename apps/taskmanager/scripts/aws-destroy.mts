@@ -6,9 +6,9 @@
  *    消し忘れても、置き場の寿命の決まりで 1 日後に消える。永続環境のものは消さない
  *
  * `--assets-only` を付けると、2 だけを行う（スタックがもう消えているとき）。
+ * アカウント ID は、デプロイと同じく環境変数 `AWS_ACCOUNT_ID` から読む。
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   BatchDeleteImageCommand,
@@ -21,15 +21,13 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { AssumeRoleCommand, STSClient } from "@aws-sdk/client-sts";
-import { assetPrefixes, type EnvConfig } from "../infra/cdk/config";
+import { assetPrefixes, loadEnvConfig } from "../infra/cdk/config";
 
 const args = process.argv.slice(2);
 const assetsOnly = args.includes("--assets-only");
 const envName = args.find((a) => !a.startsWith("--")) ?? "test";
 const cdkDir = path.resolve(import.meta.dirname, "../infra/cdk");
-const config = JSON.parse(
-  readFileSync(path.join(cdkDir, "config", `${envName}.json`), "utf8"),
-) as EnvConfig;
+const config = loadEnvConfig(envName);
 
 if (!assetsOnly) {
   execFileSync(
@@ -48,7 +46,7 @@ if ((config.kind ?? "test") !== "test") {
 const sts = new STSClient({ region: config.region });
 const { Credentials } = await sts.send(
   new AssumeRoleCommand({
-    RoleArn: config.assets.publishingRoleArn,
+    RoleArn: config.assetPublishingRoleArn,
     RoleSessionName: `burmaculex-destroy-${envName}`,
   }),
 );
@@ -64,13 +62,13 @@ const s3 = new S3Client({ region: config.region, credentials });
 let files = 0;
 for await (const page of paginateListObjectsV2(
   { client: s3 },
-  { Bucket: config.assets.bucketName, Prefix: bucketPrefix },
+  { Bucket: config.assetBucketName, Prefix: bucketPrefix },
 )) {
   const objects = (page.Contents ?? []).map((o) => ({ Key: o.Key! }));
   if (objects.length === 0) continue;
   await s3.send(
     new DeleteObjectsCommand({
-      Bucket: config.assets.bucketName,
+      Bucket: config.assetBucketName,
       Delete: { Objects: objects, Quiet: true },
     }),
   );
@@ -103,5 +101,5 @@ for (let i = 0; i < imageIds.length; i += 100) {
 }
 
 console.log(
-  `[destroy] deleted ${files} files (s3://${config.assets.bucketName}/${bucketPrefix}) and ${imageIds.length} images (${config.assets.repositoryName}:${dockerTagPrefix}*)`,
+  `[destroy] deleted ${files} files (s3://${config.assetBucketName}/${bucketPrefix}) and ${imageIds.length} images (${config.assets.repositoryName}:${dockerTagPrefix}*)`,
 );

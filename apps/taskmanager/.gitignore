@@ -1,2 +1,3 @@
 dist-server/
 infra/cdk/cdk.out/
+infra/cdk/cdk.context.json

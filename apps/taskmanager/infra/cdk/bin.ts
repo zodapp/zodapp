@@ -1,13 +1,12 @@
 /**
  * taskmanager を AWS に試しにデプロイする CDK のアプリ。
  *
- * 環境名は `-c env=<名前>`（既定 `test`）。アカウントとリージョンなどは `config/<環境名>.json`。
+ * 環境名は `-c env=<名前>`（既定 `test`）。リージョンなどは `config/<環境名>.json`、
+ * アカウント ID は環境変数 `AWS_ACCOUNT_ID`。
  * スタック名は `burmaculex-taskmanager-<環境名>`。使い方は ../README.md の「AWS で動かす」。
  */
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { App, DefaultStackSynthesizer } from "aws-cdk-lib";
-import { assetPrefixes, type EnvConfig } from "./config";
+import { assetPrefixes, loadEnvConfig } from "./config";
 import { TaskmanagerStack } from "./stack";
 
 const app = new App();
@@ -15,12 +14,7 @@ const envName = String(app.node.tryGetContext("env") ?? "test");
 if (!/^[a-z0-9-]{1,20}$/.test(envName) || envName.startsWith("t-")) {
   throw new Error(`invalid env name: ${envName}`);
 }
-const config = JSON.parse(
-  readFileSync(
-    path.join(import.meta.dirname, "config", `${envName}.json`),
-    "utf8",
-  ),
-) as EnvConfig;
+const config = loadEnvConfig(envName);
 
 const number = (key: string, fallback?: number) => {
   const value = app.node.tryGetContext(key);
@@ -32,10 +26,10 @@ const isTest = (config.kind ?? "test") === "test";
 // デプロイのファイルとイメージを、burmaculex 専用の置き場に入れる（試験環境の分は 1 日で消える）。
 // CloudFormation のデプロイは、今までどおり bootstrap の deploy ロールで行う
 const synthesizer = new DefaultStackSynthesizer({
-  fileAssetsBucketName: config.assets.bucketName,
+  fileAssetsBucketName: config.assetBucketName,
   imageAssetsRepositoryName: config.assets.repositoryName,
-  fileAssetPublishingRoleArn: config.assets.publishingRoleArn,
-  imageAssetPublishingRoleArn: config.assets.publishingRoleArn,
+  fileAssetPublishingRoleArn: config.assetPublishingRoleArn,
+  imageAssetPublishingRoleArn: config.assetPublishingRoleArn,
   ...assetPrefixes(envName, config),
 });
 
