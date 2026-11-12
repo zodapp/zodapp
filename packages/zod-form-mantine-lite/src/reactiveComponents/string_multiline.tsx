@@ -8,8 +8,7 @@ import {
   useConfirmableState,
   confirmableRightSectionProps,
 } from "./utils/confirmable";
-import { inputWrapperStyle } from "../utils/styles";
-import multilineStyles from "../utils/stringMultiline.module.css";
+import { inputWrapperStyle, stringMultilineStyles } from "../utils/styles";
 
 type StringSchema = z.ZodString;
 
@@ -60,7 +59,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
       autosize
       minRows={3}
       style={inputWrapperStyle}
-      classNames={{ input: multilineStyles.input }}
+      styles={stringMultilineStyles}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
       rightSectionProps={{
         style: { alignItems: "flex-end", paddingBottom: 6 },

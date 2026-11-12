@@ -11,8 +11,8 @@ import {
   ReadonlyText,
   inputWrapperStyle,
   renderComputedValue,
+  stringMultilineStyles,
 } from "@zodapp/zod-form-mantine-lite/utils";
-import multilineStyles from "@zodapp/zod-form-mantine-lite/utils/stringMultiline.module.css";
 import { normalizeStringSuggestions } from "./stringSuggestions.js";
 
 type StringSchema = z.ZodString;
@@ -81,7 +81,7 @@ const StringMultilineComponent = wrapComponent(
           style={inputWrapperStyle}
           autosize
           minRows={3}
-          classNames={{ input: multilineStyles.input }}
+          styles={stringMultilineStyles}
         />
         {suggestionData.length > 0 && (
           <Group gap="xs" mt="xs">
