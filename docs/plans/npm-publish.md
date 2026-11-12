@@ -1,8 +1,8 @@
 # `@zodapp/*` を npm に公開できるようにするプラン
 
-- ステータス: プラン（実装未着手）
+- ステータス: 実装済み（公開の準備まで）。実装で変えたところは 9章
 - 対象ブランチ: `claude/project-thread-134yuz`（main から。このプランと同じブランチに実装を積む）
-- 対象パッケージ: `packages/` の `@zodapp/*` のうち private でない21個
+- 対象パッケージ: `packages/` の `@zodapp/*` のうち private でない22個
 - 範囲: **公開の準備だけ**。npm への公開（Mac からの最初の公開、trusted publisher の登録）はこの作業では行わない
 
 ---
@@ -11,7 +11,7 @@
 
 | 項目 | 決定 |
 | --- | --- |
-| 公開する範囲 | `@zodapp/*` の21個。`@zodapp/zod-form-widget` と `@repo/*` は private のまま |
+| 公開する範囲 | `@zodapp/*` の22個。`@zodapp/zod-form-widget` と `@repo/*` は private のまま |
 | バージョン | 全パッケージ同じバージョン（changesets の `fixed`）。最初の公開は `0.1.0`。この作業では `0.0.0` のまま |
 | src を exports している6個 | ほかと同じく dist だけを exports する（ワークスペースでも dist を使う） |
 | CSS Modules | `stringMultiline.module.css` をなくし、Mantine の `styles` prop に移す。公開するパッケージに CSS ファイルを持たない |
@@ -19,7 +19,7 @@
 | 公開の認証 | trusted publishing（OIDC）。npm のトークンは CI に置かない |
 | 範囲外 | npm への公開そのもの、英語の README（リリースの直前に作る）、公開先のリポジトリ名の決定（掃除のスレッドで決める） |
 
-公開する21個：
+公開する22個：
 
 caching-utilities、react-storage、zod-dynamodb、zod-dynamodb-client、zod-dynamodb-express、
 zod-dynamodb-mqtt、zod-dynamodb-node、zod-dynamodb-react、zod-dynamodb-realtime、zod-extendable、
@@ -86,7 +86,7 @@ pnpm と changesets について：
 
 ワークスペースでも dist を使うようになるので、apps の dev でパッケージを書き換えたときはビルドが要る。
 
-- 各パッケージに `"dev": "tsup --watch"` を足す（21個とも）。
+- 各パッケージに `"dev": "tsup --watch"` を足す（22個とも）。
 - `turbo.json` の `dev` に `"dependsOn": ["^build"]` を足し、`pnpm --filter form-demo... dev` で依存のパッケージが watch で動くようにする。
 - AGENT.md の開発コマンドの説明を合わせて直す。
 
@@ -110,7 +110,7 @@ zod-form-widget の `AutoTable.module.css` は、private のままなので今�
 
 ### 4.3 npm に入れる中身を絞る
 
-21個の `package.json` に `files` を足す。
+22個の `package.json` に `files` を足す。
 
 ```json
 "files": ["dist", "README.md", "README.ja.md", "LICENSE"]
@@ -123,7 +123,7 @@ zod-form-widget の `AutoTable.module.css` は、private のままなので今�
 
 ### 4.4 package.json のメタデータをそろえる
 
-21個すべてに、次をそろえる。
+22個すべてに、次をそろえる。
 
 - `repository`（`type`、`url`、`directory`）、`homepage`、`bugs`、`publishConfig: { "access": "public" }`、`license: "MIT"`、`author`。
 - `repository.url` は **公開先のリポジトリが決まってから** 入れる。決まるまでは、いまの `https://github.com/zodapp/zodapp.git` にそろえておく。
@@ -135,7 +135,7 @@ zod-form-widget の `AutoTable.module.css` は、private のままなので今�
 
 `tools/check-pack.mjs` を足し、ルートの `check:pack` から呼ぶ。`pnpm build` のあとに動かす。
 
-21個それぞれについて `pnpm pack` で tarball を作り、次を確かめる。
+22個それぞれについて `pnpm pack` で tarball を作り、次を確かめる。
 
 1. **入っていてほしいもの**：`package.json`、`LICENSE`、`dist/`。
 2. **入っていてはいけないもの**：`src/`、`*.test.*`、`tsconfig*.json`、`eslint.config.*`、`tsup.config.*`、`docs/`、`.turbo/`、`*.module.css`。
@@ -203,12 +203,12 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 ### 5.1 最初の公開（Mac から）
 
 1. 公開先のリポジトリと `repository.url` が確定し、この作業が main に入っていること。
-2. 21個の `version` を `0.1.0` にそろえるコミットを main に入れる。
+2. 22個の `version` を `0.1.0` にそろえるコミットを main に入れる。
 3. Mac で npm 11.15.0 以上にする（`npm install -g npm@^11.15.0`）。npm のアカウントの 2FA を有効にしておく。
 4. `npm login`。
 5. `pnpm install --frozen-lockfile && pnpm build && pnpm check:pack`。
 6. `pnpm -r --filter "./packages/*" publish --access public --no-git-checks`（private は自動で飛ばされる）。
-   2FA の OTP を求められたら入力する。21個あるので、途中で失敗したら同じコマンドをもう一度実行すれば、出したものは飛ばされる。
+   2FA の OTP を求められたら入力する。22個あるので、途中で失敗したら同じコマンドをもう一度実行すれば、出したものは飛ばされる。
 7. `git tag` で各パッケージの `@zodapp/<name>@0.1.0` のタグを打って push する（`changeset tag` で打てる）。
 
 この時点では provenance は付かない（手元から出すため）。
@@ -217,7 +217,7 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 
 登録から2日以内に CI からの公開を成功させる必要があるので、最初の changeset を用意して「Version Packages」の PR ができてから行う。
 
-1. 用意しておくスクリプト `tools/npm-trust-all.sh` を実行する。21個について
+1. 用意しておくスクリプト `tools/npm-trust-all.sh` を実行する。22個について
    `npm trust github @zodapp/<name> --file release.yml --repo <owner>/<repo> --env npm --allow-publish --yes` を2秒おきに呼ぶ。
    最初の 2FA で「5分間省く」を選ぶ。
 2. release ワークフローに `push: branches: [main]` を足す。
@@ -234,7 +234,7 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
    複数行の文字列入力で、CSS 変数による高さの上限が効いていることを確かめる。
 4. pnpm 10 の `pnpm publish` が npm CLI に公開を任せることを、`pnpm publish --dry-run` のログで確かめる。
    任せていない場合は、`release` を「`pnpm pack` で tarball を作り、`npm publish <tarball>` で出す」スクリプトに替える。
-5. `changeset version` を空の changeset で試し、21個が同じバージョンに上がり、zod-form-widget と apps が上がらないことを確かめる（コミットはしない）。
+5. `changeset version` を空の changeset で試し、22個が同じバージョンに上がり、zod-form-widget と apps が上がらないことを確かめる（コミットはしない）。
 
 ---
 
@@ -244,8 +244,8 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 
 - **案A（おすすめ）**：trusted publisher は `--allow-publish`（直接公開）。人の確認は「Version Packages の PR をマージすること」と、GitHub の environment `npm` の承認者で挟む。
   changesets がそのまま使え、リリースごとの手間が小さい。
-- **案B**：`--allow-stage-publish` だけにして、CI は `npm stage publish` で出し、ユーザが npm 上で21個を 2FA 付きで承認する。
-  CI が乗っ取られても勝手に公開されないので一番固いが、changesets の `publish` は `npm stage publish` に対応していないので自前のスクリプトが要り、リリースごとに21個の承認が要る。
+- **案B**：`--allow-stage-publish` だけにして、CI は `npm stage publish` で出し、ユーザが npm 上で22個を 2FA 付きで承認する。
+  CI が乗っ取られても勝手に公開されないので一番固いが、changesets の `publish` は `npm stage publish` に対応していないので自前のスクリプトが要り、リリースごとに22個の承認が要る。
 
 ### 7.2 公開先のリポジトリが private のままの場合
 
@@ -257,7 +257,27 @@ provenance が付かない。公開はできるので、まず private のまま
 
 1. 6個を tsup に切り替え、exports を dist にする（dev の watch と turbo の設定を含む）
 2. `stringMultiline.module.css` を `styles` prop に移す
-3. 21個の `files`、LICENSE、メタデータ、バージョンをそろえる
+3. 22個の `files`、LICENSE、メタデータ、バージョンをそろえる
 4. `tools/check-pack.mjs`、publint、attw、煙試験と CI への追加
 5. changesets の導入
 6. release ワークフロー（手動のみ）、`tools/npm-trust-all.sh`、`docs/releasing.md`
+
+---
+
+## 9. 実装で変えたところ
+
+- **公開する数は22個だった**（プランを書いた時点で21個と数え違えていた）。一覧は1章のとおり。
+- **ESM の拡張子を `.mjs` にした。** これまでの15個は `"type"` なしで ESM を `.js` に出していて、Node から `import` すると
+  CJS として読まれて動かなかった。`"type": "module"` にするとソースの相対 import に拡張子が要るので、
+  ESM は `.mjs` / `.d.mts`、CJS は `.cjs` / `.d.ts` に出し、exports の `import` / `require` でそれぞれの型を指す形にした。
+- **dev 用のスクリプトは `dev` ではなく `watch` にした。** `dev` にすると、ルートの `pnpm dev`（`turbo run dev`）で
+  22個の watch が persistent なタスクとして並び、turbo の並列数を超えるため。`turbo.json` の `dev` には `dependsOn: ["^build"]` を足した。
+- **煙試験と attw で見つかった、公開前に直すべき問題を直した。**
+  - zod-form-react の型が `@zodapp/zod-propagating-registry` を参照しているのに、dependencies になかった（利用側で meta の型が any になる）。
+  - `dayjs/plugin/*` と `dayjs/locale/ja` を拡張子なしで import していて、Node の ESM で解決できなかった。
+- **`repository.url` を書き換える `tools/set-repository.mjs` を足した。** 公開先が決まったら22個まとめて直せる。
+- **最初のバージョンは changeset で上げる。** 0.0.0 から minor の changeset を1つ足せば、`fixed` で22個とも 0.1.0 になる（5.1 の手順 2 の代わり。docs/releasing.md）。
+- **GitHub の environment はまだ付けていない。** 7.1 を決めるときに、release.yml と `tools/npm-trust-all.sh --env` に足す。
+- 確かめたこと：`pnpm check-types`、`pnpm build`、`pnpm lint`（エラーなし）、`pnpm test`（DynamoDB Local）、`pnpm check:pack`
+  （22個、106の入口を `import()` と `require()` で読めた）、form-demo の複数行の文字列入力で styles と CSS 変数の上限が効くこと、
+  `pnpm publish --dry-run` が npm CLI に公開を任せていること、`changeset status` で22個が同じバージョンに上がること。
