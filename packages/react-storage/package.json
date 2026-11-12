@@ -10,7 +10,7 @@
     "url": "https://github.com/zodapp/zodapp.git",
     "directory": "packages/react-storage"
   },
-  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/react-storage#readme",
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
@@ -19,16 +19,38 @@
     "storage",
     "browser"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "rimraf dist && tsc",
-    "build:watch": "tsc --watch",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "lint": "eslint .",
     "lint:silent": "mkdir -p output && pnpm lint > ./output/lint.txt",
     "clean": "rimraf dist .turbo node_modules",
@@ -50,6 +72,7 @@
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

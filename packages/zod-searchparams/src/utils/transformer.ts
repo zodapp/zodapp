@@ -2,7 +2,7 @@ import { z } from "zod";
 import { preprocess, postprocess } from "@zodapp/zod-transform";
 import dayjs from "dayjs";
 import { ParamsTree, ParamsTreeItem } from "./types";
-import utc from "dayjs/plugin/utc";
+import utc from "dayjs/plugin/utc.js";
 
 dayjs.extend(utc);
 

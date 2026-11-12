@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import "dayjs/locale/ja";
+import "dayjs/locale/ja.js";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { useZodFormContext } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";

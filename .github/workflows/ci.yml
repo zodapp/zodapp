@@ -39,3 +39,6 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
+      # npm に入る中身（pnpm pack の tarball）を確かめる。tools/check-pack.mjs を参照
+      - name: Check packed packages
+        run: pnpm check:pack

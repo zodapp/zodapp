@@ -21,12 +21,19 @@
     "docs:typedoc": "turbo run docs:typedoc",
     "check:docs": "pnpm docs:typedoc && git diff --exit-code -- . ':!packages/*/docs/api'",
     "check-types": "turbo run check-types",
+    "check:pack": "node tools/check-pack.mjs",
     "dynamodb:start": "docker run -d --rm --name zodapp-dynamodb -p 8000:8000 amazon/dynamodb-local:3.3.2 -jar DynamoDBLocal.jar -sharedDb -inMemory",
-    "dynamodb:stop": "docker stop zodapp-dynamodb"
+    "dynamodb:stop": "docker stop zodapp-dynamodb",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && pnpm check:pack && changeset publish"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@changesets/cli": "^3.0.3",
     "@repo/typescript-config": "workspace:*",
     "prettier": "^3.8.1",
+    "publint": "^0.3.25",
     "turbo": "^2.8.10",
     "typedoc": "^0.28.17",
     "typedoc-plugin-markdown": "^4.10.0",

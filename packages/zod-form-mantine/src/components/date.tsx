@@ -2,7 +2,7 @@ import React, { useCallback, useMemo } from "react";
 import dayjs from "dayjs";
 import { InputWrapper } from "@mantine/core";
 import { DateInput, DateTimePicker } from "@mantine/dates";
-import "dayjs/locale/ja";
+import "dayjs/locale/ja.js";
 import {
   ZodFormInternalProps,
   wrapComponent,

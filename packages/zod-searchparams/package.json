@@ -10,25 +10,50 @@
     "url": "https://github.com/zodapp/zodapp.git",
     "directory": "packages/zod-searchparams"
   },
-  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/zod-searchparams#readme",
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
-  "keywords": ["zod", "searchparams", "url", "react"],
+  "keywords": [
+    "zod",
+    "searchparams",
+    "url",
+    "react"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    }
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run",
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
@@ -40,6 +65,7 @@
     "eslint": "^9.34.0",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

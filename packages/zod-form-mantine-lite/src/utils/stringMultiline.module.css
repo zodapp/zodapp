@@ -1,4 +1,0 @@
-.input {
-  max-height: var(--zod-form-string-multiline-max-height, none);
-  overflow-y: auto;
-}

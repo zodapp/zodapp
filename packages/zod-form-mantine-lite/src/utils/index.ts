@@ -6,4 +6,4 @@ export {
   renderComputedFieldValue,
   type RenderComputedValueVariant,
 } from "./renderComputedValue";
-export { inputWrapperStyle } from "./styles";
+export { inputWrapperStyle, stringMultilineStyles } from "./styles";

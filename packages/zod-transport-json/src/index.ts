@@ -8,8 +8,8 @@ import {
   type ProcessorDef,
 } from "@zodapp/zod-transform";
 import dayjs from "dayjs";
-import timezone from "dayjs/plugin/timezone";
-import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone.js";
+import utc from "dayjs/plugin/utc.js";
 import { z } from "zod";
 
 dayjs.extend(utc);

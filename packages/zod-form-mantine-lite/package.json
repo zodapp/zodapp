@@ -10,7 +10,7 @@
     "url": "https://github.com/zodapp/zodapp.git",
     "directory": "packages/zod-form-mantine-lite"
   },
-  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/zod-form-mantine-lite#readme",
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
@@ -21,25 +21,119 @@
     "react",
     "ui"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": ["*.css"],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./baseComponents": "./src/baseComponents/index.ts",
-    "./baseComponents/*": "./src/baseComponents/*.tsx",
-    "./tableComponents": "./src/tableComponents/index.ts",
-    "./tableComponents/*": "./src/tableComponents/*.tsx",
-    "./reactiveComponents": "./src/reactiveComponents/index.ts",
-    "./reactiveComponents/*": "./src/reactiveComponents/*.tsx",
-    "./mediaResolvers": "./src/mediaResolvers/index.ts",
-    "./utils": "./src/utils/index.ts",
-    "./utils/*": "./src/utils/*"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./baseComponents": {
+      "import": {
+        "types": "./dist/baseComponents/index.d.mts",
+        "default": "./dist/baseComponents/index.mjs"
+      },
+      "require": {
+        "types": "./dist/baseComponents/index.d.ts",
+        "default": "./dist/baseComponents/index.cjs"
+      }
+    },
+    "./baseComponents/*": {
+      "import": {
+        "types": "./dist/baseComponents/*.d.mts",
+        "default": "./dist/baseComponents/*.mjs"
+      },
+      "require": {
+        "types": "./dist/baseComponents/*.d.ts",
+        "default": "./dist/baseComponents/*.cjs"
+      }
+    },
+    "./tableComponents": {
+      "import": {
+        "types": "./dist/tableComponents/index.d.mts",
+        "default": "./dist/tableComponents/index.mjs"
+      },
+      "require": {
+        "types": "./dist/tableComponents/index.d.ts",
+        "default": "./dist/tableComponents/index.cjs"
+      }
+    },
+    "./tableComponents/*": {
+      "import": {
+        "types": "./dist/tableComponents/*.d.mts",
+        "default": "./dist/tableComponents/*.mjs"
+      },
+      "require": {
+        "types": "./dist/tableComponents/*.d.ts",
+        "default": "./dist/tableComponents/*.cjs"
+      }
+    },
+    "./reactiveComponents": {
+      "import": {
+        "types": "./dist/reactiveComponents/index.d.mts",
+        "default": "./dist/reactiveComponents/index.mjs"
+      },
+      "require": {
+        "types": "./dist/reactiveComponents/index.d.ts",
+        "default": "./dist/reactiveComponents/index.cjs"
+      }
+    },
+    "./reactiveComponents/*": {
+      "import": {
+        "types": "./dist/reactiveComponents/*.d.mts",
+        "default": "./dist/reactiveComponents/*.mjs"
+      },
+      "require": {
+        "types": "./dist/reactiveComponents/*.d.ts",
+        "default": "./dist/reactiveComponents/*.cjs"
+      }
+    },
+    "./mediaResolvers": {
+      "import": {
+        "types": "./dist/mediaResolvers/index.d.mts",
+        "default": "./dist/mediaResolvers/index.mjs"
+      },
+      "require": {
+        "types": "./dist/mediaResolvers/index.d.ts",
+        "default": "./dist/mediaResolvers/index.cjs"
+      }
+    },
+    "./utils": {
+      "import": {
+        "types": "./dist/utils/index.d.mts",
+        "default": "./dist/utils/index.mjs"
+      },
+      "require": {
+        "types": "./dist/utils/index.d.ts",
+        "default": "./dist/utils/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run --passWithNoTests",
@@ -59,6 +153,7 @@
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

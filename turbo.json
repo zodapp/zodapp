@@ -21,6 +21,7 @@
       "outputs": ["docs/api/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     }

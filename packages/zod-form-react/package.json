@@ -10,7 +10,7 @@
     "url": "https://github.com/zodapp/zodapp.git",
     "directory": "packages/zod-form-react"
   },
-  "homepage": "https://github.com/zodapp/zodapp#readme",
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/zod-form-react#readme",
   "bugs": {
     "url": "https://github.com/zodapp/zodapp/issues"
   },
@@ -20,23 +20,109 @@
     "react",
     "validation"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "publishConfig": {
     "access": "public"
   },
   "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./common": "./src/common/index.ts",
-    "./media": "./src/media/index.ts",
-    "./media/types": "./src/media/types.ts",
-    "./mediaResolvers": "./src/mediaResolvers/index.ts",
-    "./def": "./src/def/index.ts",
-    "./utils/dateConverter": "./src/utils/dateConverter.ts",
-    "./utils/externalKey": "./src/utils/externalKey.ts"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./common": {
+      "import": {
+        "types": "./dist/common/index.d.mts",
+        "default": "./dist/common/index.mjs"
+      },
+      "require": {
+        "types": "./dist/common/index.d.ts",
+        "default": "./dist/common/index.cjs"
+      }
+    },
+    "./media": {
+      "import": {
+        "types": "./dist/media/index.d.mts",
+        "default": "./dist/media/index.mjs"
+      },
+      "require": {
+        "types": "./dist/media/index.d.ts",
+        "default": "./dist/media/index.cjs"
+      }
+    },
+    "./media/types": {
+      "import": {
+        "types": "./dist/media/types.d.mts",
+        "default": "./dist/media/types.mjs"
+      },
+      "require": {
+        "types": "./dist/media/types.d.ts",
+        "default": "./dist/media/types.cjs"
+      }
+    },
+    "./mediaResolvers": {
+      "import": {
+        "types": "./dist/mediaResolvers/index.d.mts",
+        "default": "./dist/mediaResolvers/index.mjs"
+      },
+      "require": {
+        "types": "./dist/mediaResolvers/index.d.ts",
+        "default": "./dist/mediaResolvers/index.cjs"
+      }
+    },
+    "./def": {
+      "import": {
+        "types": "./dist/def/index.d.mts",
+        "default": "./dist/def/index.mjs"
+      },
+      "require": {
+        "types": "./dist/def/index.d.ts",
+        "default": "./dist/def/index.cjs"
+      }
+    },
+    "./utils/dateConverter": {
+      "import": {
+        "types": "./dist/utils/dateConverter.d.mts",
+        "default": "./dist/utils/dateConverter.mjs"
+      },
+      "require": {
+        "types": "./dist/utils/dateConverter.d.ts",
+        "default": "./dist/utils/dateConverter.cjs"
+      }
+    },
+    "./utils/externalKey": {
+      "import": {
+        "types": "./dist/utils/externalKey.d.mts",
+        "default": "./dist/utils/externalKey.mjs"
+      },
+      "require": {
+        "types": "./dist/utils/externalKey.d.ts",
+        "default": "./dist/utils/externalKey.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
     "lint": "eslint .",
-    "build": "rimraf dist && tsc",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
     "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run --passWithNoTests",
@@ -54,12 +140,14 @@
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
     "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },
   "dependencies": {
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
+    "@zodapp/zod-propagating-registry": "workspace:*",
     "@zodapp/zod-transform": "workspace:*",
     "dayjs": "^1.11.13",
     "zod": "^4.4.3"
