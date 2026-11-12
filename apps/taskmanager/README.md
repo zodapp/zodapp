@@ -130,7 +130,14 @@ CDK は、デプロイに使うファイル（テンプレート、フロント�
 | ファイル | S3 `burmaculex-assets-<アカウント>-<リージョン>` | `test/<環境名>/…`。1 日で自動的に消える | `env/<環境名>/…`。消さない |
 | イメージ | ECR `burmaculex/assets` | タグ `test-<環境名>-…`。1 日で自動的に消える | タグ `env-<環境名>-…`。消さない |
 
-置き場と、そこに書き込むロール（`burmaculex-asset-publishing`）は、`burmaculex-automation` のスタック（Mac の `burmaculex/infra/`。SSO でデプロイ）が持ちます。デプロイは、今までどおり bootstrap の deploy ロールで行います。
+置き場と、そこに書き込むロール（`burmaculex-asset-publishing`）は、`burmaculex-assets` のスタック（`infra/assets/`）が作ります。アカウントとリージョンに 1 つだけ置く恒久のスタックで、削除保護を付けています。バケットとリポジトリは、スタックを消しても残ります。CloudFormation のデプロイそのものは、bootstrap の deploy ロールで行います。
+
+```bash
+cd apps/taskmanager
+AWS_ACCOUNT_ID=<デプロイ先のアカウント ID> pnpm aws:assets:deploy   # 最初に 1 回。IAM の変更は確認してから適用する
+```
+
+書き込むロールは、同じアカウントの主体のうち、`sts:AssumeRole` の権限を与えられたものが引き受けられます。
 
 ### デプロイする
 
