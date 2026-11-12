@@ -22,9 +22,8 @@ export const config = {
     ),
   },
   mqtt: {
-    /** 未指定なら、プロセスの中で aedes を起動する */
+    /** 未指定なら、MQTT を使わずにプロセスの中で配送する（memoryTransport） */
     url: process.env.MQTT_URL,
-    port: Number(env("MQTT_PORT", "1883")),
   },
   auth: {
     /**

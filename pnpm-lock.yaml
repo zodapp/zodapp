@@ -213,9 +213,6 @@ importers:
       '@zodapp/zod-tabular':
         specifier: workspace:*
         version: link:../../packages/zod-tabular
-      aedes:
-        specifier: ^1.2.0
-        version: 1.2.0
       aws-amplify:
         specifier: ^6.16.0
         version: 6.22.2

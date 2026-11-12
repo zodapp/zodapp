@@ -31,9 +31,24 @@ test("アンケート：作成して公開し、回答が一覧に出る", async
   await page.getByLabel("お名前").fill("E2E 太郎");
   await page.getByRole("combobox", { name: "総合満足度" }).click();
   await page.getByRole("option", { name: "とても満足" }).click();
+
+  // 入力の途中経過は sessionStorage に残るので、読み込み直しても消えない
+  await expect(page.getByText("入力中の内容は、このタブを閉じるまで保存されます")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("お名前")).toHaveValue("E2E 太郎");
+  await expect(page.getByRole("combobox", { name: "総合満足度" })).toHaveValue("とても満足");
+
   await page.getByRole("switch").check();
   await page.getByRole("button", { name: "回答を送信" }).click();
   await expect(page.getByText("回答を送信しました")).toBeVisible();
+
+  // 送信すると途中経過は消える
+  expect(
+    await page.evaluate(
+      (key) => sessionStorage.getItem(key),
+      `survey-answer-draft:${workspaceId}:fx-satisfaction`,
+    ),
+  ).toBe("null");
 
   // このアンケートの回答一覧に出る（質問の定義から作った列に、回答が展開される）
   await page.getByRole("link", { name: "回答一覧を見る" }).click();

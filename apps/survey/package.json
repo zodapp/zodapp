@@ -44,7 +44,6 @@
     "@zodapp/zod-form-widget": "workspace:*",
     "@zodapp/zod-searchparams": "workspace:*",
     "@zodapp/zod-tabular": "workspace:*",
-    "aedes": "^1.2.0",
     "aws-amplify": "^6.16.0",
     "express": "^5.1.0",
     "jose": "^6.1.0",
