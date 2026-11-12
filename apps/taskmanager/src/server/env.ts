@@ -28,8 +28,13 @@ export const config = {
     secretAccessKey: env("S3_SECRET_ACCESS_KEY", "localsecret"),
   },
   mqtt: {
-    /** 未指定なら、プロセスの中で aedes を起動する */
+    /** 未指定なら（IOT_ENDPOINT もなければ）、プロセスの中で aedes を起動する */
     url: process.env.MQTT_URL,
+    /**
+     * AWS IoT Core のデータのエンドポイント（`xxxx-ats.iot.{region}.amazonaws.com`）。
+     * 指定すると、実行環境の IAM の認証情報で署名した WebSocket でつなぐ（./iot.ts）
+     */
+    iotEndpoint: process.env.IOT_ENDPOINT || undefined,
     port: Number(env("MQTT_PORT", "1883")),
   },
   auth: {

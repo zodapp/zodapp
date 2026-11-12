@@ -6,6 +6,7 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { createClient } from "@zodapp/zod-dynamodb-client";
 import { endpoints } from "../../shared";
 import "./amplify";
+import { runtimeConfig } from "./runtime-config";
 
 type IdToken = NonNullable<NonNullable<Awaited<ReturnType<typeof fetchAuthSession>>["tokens"]>["idToken"]>;
 
@@ -13,7 +14,10 @@ type IdToken = NonNullable<NonNullable<Awaited<ReturnType<typeof fetchAuthSessio
  * サーバーが認証の期限を縮めているとき（E2E。サーバーの AUTH_MAX_AGE_SECONDS）の秒数。
  * 期限の計算をサーバー（auth.ts の verifyIdToken）と揃える
  */
-const maxAgeSeconds = Number(import.meta.env.VITE_AUTH_MAX_AGE_SECONDS) || undefined;
+const maxAgeSeconds =
+  runtimeConfig.authMaxAgeSeconds ||
+  Number(import.meta.env.VITE_AUTH_MAX_AGE_SECONDS) ||
+  undefined;
 
 /** トークンを使える期限（ミリ秒の時刻）と、その何ミリ秒前に取り直すか */
 const lifetimeOf = (token: IdToken) => {

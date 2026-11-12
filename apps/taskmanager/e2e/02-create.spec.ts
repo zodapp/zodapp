@@ -22,8 +22,12 @@ test("作成：ワークスペース・メンバー・プロジェクト・タ�
   await expect(page).toHaveURL(/\/workspaces\/[^/]+\/projects/);
 
   // メンバーを追加する（bob はメンバー、vic は閲覧者）
-  await page.getByRole("link", { name: "メンバー一覧" }).click();
-  await expect(page.getByRole("heading", { name: "メンバー一覧" })).toBeVisible();
+  // 画面の切り替えの最中のクリックは失われることがある（AWS のように応答が遅いと起きやすい）ので、
+  // 開くまでクリックをやり直す
+  await expect(async () => {
+    await page.getByRole("link", { name: "メンバー一覧" }).click();
+    await expect(page.getByRole("heading", { name: "メンバー一覧" })).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
   for (const m of [
     { name: "Bob", email: "bob@example.com", role: "メンバー" },
     { name: "Vic", email: "vic@example.com", role: "閲覧者" },
@@ -38,11 +42,12 @@ test("作成：ワークスペース・メンバー・プロジェクト・タ�
     await expect(page.getByRole("row").filter({ hasText: m.email })).toBeVisible();
   }
 
-  // メンバーのアバター画像をアップロードする（S3Proxy に署名付き URL で PUT）
+  // メンバーのアバター画像をアップロードする（S3Proxy、AWS では S3 に署名付き URL で PUT）。
+  // バケットの名前は環境で違うので、署名付き URL への PUT で見分ける
   await page.getByRole("row").filter({ hasText: "bob@example.com" }).getByRole("link").click();
   await expect(page.getByRole("textbox", { name: "表示名" })).toHaveValue("Bob");
   const uploaded = page.waitForResponse(
-    (r) => r.url().includes("/taskmanager-files/") && r.request().method() === "PUT" && r.ok(),
+    (r) => r.url().includes("X-Amz-Signature=") && r.request().method() === "PUT" && r.ok(),
   );
   await page.locator('input[type="file"]').first().setInputFiles(AVATAR);
   await uploaded;
@@ -54,7 +59,7 @@ test("作成：ワークスペース・メンバー・プロジェクト・タ�
     .poll(() =>
       page.evaluate(() =>
         [...document.querySelectorAll("img")].some(
-          (img) => img.src.includes("/taskmanager-files/") && img.complete && img.naturalWidth > 0,
+          (img) => img.src.includes("X-Amz-Signature=") && img.complete && img.naturalWidth > 0,
         ),
       ),
     )

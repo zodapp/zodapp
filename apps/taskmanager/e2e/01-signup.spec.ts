@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { DEV_PASSWORD, unique, waitForConfirmationCode } from "./helpers";
+import { DEV_PASSWORD, isRemote, unique, waitForConfirmationCode } from "./helpers";
+
+// AWS では確認のメールが本物の宛先に送られ、読めないので行わない
+test.skip(isRemote, "the confirmation mail cannot be read on AWS");
 
 test("サインアップ：メールの確認コードで確認して、ログインする", async ({ page }) => {
   const email = `${unique("new")}@example.com`;

@@ -9,6 +9,14 @@ import { endpoints } from "../src/shared";
 export const DEV_PASSWORD = "Passw0rd!";
 const MAIL_API = "http://localhost:2501";
 
+/**
+ * 画面の URL。AWS にデプロイしたものを試すときは E2E_BASE_URL に CloudFront の URL を指定する
+ * （playwright.config.ts も同じ値を使う）
+ */
+export const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+/** AWS にデプロイしたものを試している（メールの記録を読めない） */
+export const isRemote = !!process.env.E2E_BASE_URL;
+
 /** テストごとに重ならない名前 */
 export const unique = (prefix: string) =>
   `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -42,7 +50,7 @@ export const login = async (page: Page, email: string, password = DEV_PASSWORD) 
 /** 別の利用者として、別のブラウザ（コンテキスト）を開いてログインする */
 export const openAs = async (browser: Browser, email: string, videoDir?: string) => {
   const context = await browser.newContext({
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     viewport: { width: 1280, height: 800 },
     ...(videoDir ? { recordVideo: { dir: videoDir } } : {}),
   });
@@ -74,11 +82,11 @@ export const apiAs = async (email: string, password = DEV_PASSWORD) => {
     return `Bearer ${token}`;
   };
   const api = createClient(endpoints, {
-    baseUrl: "http://localhost:3000/api",
+    baseUrl: `${BASE_URL}/api`,
     headers: async () => ({ authorization: await bearer() }),
   });
   const post = async <T>(path: string, body: unknown): Promise<T> => {
-    const res = await fetch(`http://localhost:3000/api${path}`, {
+    const res = await fetch(`${BASE_URL}/api${path}`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: await bearer() },
       body: JSON.stringify(body),
@@ -147,9 +155,12 @@ export const realtimeCounts = (page: Page) =>
   );
 
 const idTokenFor = async (email: string, password: string) => {
+  // AWS では COGNITO_ENDPOINT を空にし、COGNITO_REGION と COGNITO_CLIENT_ID を指定する。
+  // InitiateAuth は認証の要らない API なので、認証情報はダミーのままでよい
+  const endpoint = process.env.COGNITO_ENDPOINT ?? "http://localhost:5050";
   const cognito = new CognitoIdentityProviderClient({
-    endpoint: process.env.COGNITO_ENDPOINT ?? "http://localhost:5050",
-    region: "ap-northeast-1",
+    ...(endpoint ? { endpoint } : {}),
+    region: process.env.COGNITO_REGION ?? "ap-northeast-1",
     credentials: { accessKeyId: "magnito-access-key", secretAccessKey: "magnito-secret-key" },
   });
   const res = await cognito.send(

@@ -4,7 +4,7 @@ zodapp にあったタスク管理のデモ（`firebase-final` の `apps/web`）
 登録簿（`defineEndpoints`）、サーバーの API、Realtime Gateway、React の hooks を、ブラウザからデータベースまで通して動かします。
 
 この README は、手元のマシンと Claude Code のクラウド環境で動かす構成（ローカル版）について書いています。
-本番の構成（ECS・IoT Core・CDK）は、別のプランで追加します。
+AWS（ECS Fargate・IoT Core・CDK）に試しにデプロイする手順は、「[AWS で動かす](#aws-で動かす)」にあります。
 
 ## 構成
 
@@ -94,6 +94,85 @@ E2E は、GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）で
 - 走るのは、`apps/taskmanager`・`apps/survey`・`packages`・`pnpm-lock.yaml` が変わった PR と main への push、それと手動（Actions の画面の「Run workflow」）です
 - コンテナは手元と同じ `pnpm infra:up` で立てます。イメージのタグは、CI で通ったバージョンに固定しています（`infra/compose.yml`）
 - 各テストの動画とレポートは、実行の結果のページの artifact（`e2e-report-taskmanager`、14 日）からダウンロードできます。展開した `playwright-report` を `npx playwright show-report <dir>` で開きます
+
+## AWS で動かす
+
+試験用に、AWS（ECS Fargate の構成）へデプロイできます。CDK のコードは `infra/cdk/` です。使い終わったらすぐに消す前提で、消し忘れても作成・更新から 1 時間でスタックが自分を消します。
+
+```
+ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
+                        └─ /api/* ─ ALB ─ Fargate 1 台（Express と Realtime Gateway）
+Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークンの検証）、IoT Core（変更の配送）
+```
+
+| 役割 | ローカル版 | AWS |
+|---|---|---|
+| データベース | DynamoDB Local | DynamoDB（`burmaculex-<環境名>-taskmanager`） |
+| 認証 | magnito | Cognito（確認メールは Cognito の既定の送信。1 日 50 通まで） |
+| ファイル | S3Proxy | S3（ブラウザが署名付き URL で直接読み書き） |
+| リアルタイムの配送 | aedes | IoT Core（タスクロールで SigV4 の署名をした WebSocket。証明書は使わない。`src/server/iot.ts`） |
+| API と Realtime Gateway | Express（`pnpm dev`） | ECS Fargate 1 台（`pnpm build:server` の 1 ファイル。`infra/server.Dockerfile`） |
+| フロントエンド | Vite | CloudFront + S3 |
+| 開発用のユーザー | サーバーの起動時に作る | スタックの中で作る（alice・bob・vic、パスワードは同じ） |
+
+- Realtime Gateway は接続の状態をメモリーに持つので、Fargate は 1 台だけ動かします
+- VPC は自分のもの（`10.40.0.0/16`、公開サブネットだけで NAT Gateway なし）です。ALB は CloudFront からの接続だけを受けます
+- 名前とタグは `burmaculex` で始めます（スタック `burmaculex-taskmanager-<環境名>`、タグ `burmaculex:env`）
+- リージョン、試験環境か永続環境か（`kind`）、デプロイのファイルとイメージの置き場（`assets`）は `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`。ほかの環境は `pnpm aws:deploy -- -c env=<環境名>`）
+- AWS のアカウント ID はリポジトリに置かず、環境変数 `AWS_ACCOUNT_ID` で渡します。置き場のバケット名とロールの ARN は、そこから組み立てます。CDK が書き出す `infra/cdk/cdk.context.json` もアカウント ID を含むので、コミットしません（.gitignore 済み）
+
+### デプロイのファイルとイメージの置き場
+
+CDK は、デプロイに使うファイル（テンプレート、フロントエンドのビルド成果物、Lambda のコード）とコンテナのイメージを、いったん置き場に入れます。試験環境のものを寿命で消せるように、bootstrap の置き場ではなく専用の置き場に入れます（`infra/cdk/bin.ts` の `DefaultStackSynthesizer`）。
+
+| もの | 置き場 | 試験環境（`kind: test`） | 永続環境（`kind: persistent`） |
+|---|---|---|---|
+| ファイル | S3 `burmaculex-assets-<アカウント>-<リージョン>` | `test/<環境名>/…`。1 日で自動的に消える | `env/<環境名>/…`。消さない |
+| イメージ | ECR `burmaculex/assets` | タグ `test-<環境名>-…`。1 日で自動的に消える | タグ `env-<環境名>-…`。消さない |
+
+置き場と、そこに書き込むロール（`burmaculex-asset-publishing`）は、`burmaculex-assets` のスタック（`infra/assets/`）が作ります。アカウントとリージョンに 1 つだけ置く恒久のスタックで、削除保護を付けています。バケットとリポジトリは、スタックを消しても残ります。CloudFormation のデプロイそのものは、bootstrap の deploy ロールで行います。
+
+```bash
+cd apps/taskmanager
+AWS_ACCOUNT_ID=<デプロイ先のアカウント ID> pnpm aws:assets:deploy   # 最初に 1 回。IAM の変更は確認してから適用する
+```
+
+書き込むロールは、同じアカウントの主体のうち、`sts:AssumeRole` の権限を与えられたものが引き受けられます。
+
+### デプロイする
+
+必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier）、置き場（上）、bootstrap の deploy ロールと `burmaculex-asset-publishing` を引き受けられる認証情報。
+
+```bash
+cd apps/taskmanager
+export AWS_ACCOUNT_ID=<デプロイ先のアカウント ID>   # aws:deploy と aws:destroy の両方で使う
+pnpm aws:deploy                                  # フロントエンドとサーバーをビルドしてデプロイ（8 分ほど）
+pnpm aws:deploy -- -c authMaxAgeSeconds=20       # E2E の 08-token-refresh を流すとき
+pnpm aws:deploy -- -c ttlMinutes=120             # 自分を消すまでの分数を変える（0 で消さない）
+```
+
+出力の `Url` がフロントエンドの URL、`ExpiresAt` がスタックが自分を消す時刻（UTC）です。
+
+### E2E を流す
+
+```bash
+E2E_BASE_URL=<Url> COGNITO_ENDPOINT= COGNITO_REGION=us-east-1 COGNITO_CLIENT_ID=<UserPoolClientId> \
+  NODE_USE_ENV_PROXY=1 pnpm e2e
+```
+
+- `01-signup` は、確認のメールを読めないので行いません
+- `NODE_USE_ENV_PROXY=1` は、HTTPS_PROXY のある環境（Claude Code のクラウド環境など）のときだけ要ります。ブラウザも同じプロキシを通します（`playwright.config.ts`）。クラウド環境では、ネットワークの許可に `*.cloudfront.net` を入れておきます
+
+### 消す
+
+```bash
+pnpm aws:destroy                      # スタックを消し、試験環境のファイルとイメージも消す
+pnpm aws:destroy -- --assets-only     # ファイルとイメージだけ（スタックがもう消えているとき）
+```
+
+`scripts/aws-destroy.mts` が、`cdk destroy` のあとに、その環境のファイルとイメージ（`test/<環境名>/`、`test-<環境名>-`）を消します。スタックが自分を消したときや、消し忘れたときも、置き場の寿命の決まりで 1 日後に消えます。永続環境のものは消しません。
+
+スタックのほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループ（`/burmaculex/<環境名>/taskmanager-<識別子>/functions`。識別子はスタック ID の先頭 8 文字）に出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
 
 ## 認証と Realtime の接続
 
