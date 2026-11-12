@@ -251,18 +251,48 @@ if (runSmoke && errors.length === 0) {
       path.join(smokeDir, "specifiers.json"),
       JSON.stringify(specifiers),
     );
+    // 同じパッケージの複数の入口が同じ名前で export しているものは、同じ実体でなければならない。
+    // 入口ごとに別々に bundle されると、React の context やレジストリが複製され、
+    // たとえばルートの FormProvider と /common の hook が別の context を見てしまう。
+    // （components/* の component のように、入口ごとに中身が違うのが正しい名前は除く）
+    const SHARED_CHECK = `
+const ALLOWED_TO_DIFFER = new Set(["default", "component", "__esModule"]);
+const pkgOf = (s) => s.split("/").slice(0, 2).join("/");
+// サブパス（"" はルート、"x/index" は "x" と同じ）。祖先と子孫の関係にある入口どうしだけを比べる
+// （tableComponents と reactiveComponents のように、兄弟の入口が同じ名前で別の実装を持つのは正しい）
+const subOf = (s) => s.split("/").slice(2).join("/").replace(/(^|\\/)index$/, "");
+const related = (a, b) => a === "" || b === "" || a === b || a.startsWith(b + "/") || b.startsWith(a + "/");
+const seen = new Map();
+for (const [s, mod] of loaded) {
+  for (const [name, value] of Object.entries(mod)) {
+    if (ALLOWED_TO_DIFFER.has(name)) continue;
+    if (value === null || (typeof value !== "object" && typeof value !== "function")) continue;
+    const key = pkgOf(s) + " " + name;
+    const list = seen.get(key) ?? [];
+    for (const [t, other] of list) {
+      if (other !== value && related(subOf(s), subOf(t))) failed.push(name + " が " + t + " と " + s + " で別の実体になっている");
+    }
+    list.push([s, value]);
+    seen.set(key, list);
+  }
+}
+`;
     const esm = `
 import fs from "node:fs";
 const specs = JSON.parse(fs.readFileSync("./specifiers.json", "utf8"));
 const failed = [];
-for (const s of specs) { try { await import(s); } catch (e) { failed.push(s + ": " + e.message.split("\\n")[0]); } }
+const loaded = [];
+for (const s of specs) { try { loaded.push([s, await import(s)]); } catch (e) { failed.push(s + ": " + e.message.split("\\n")[0]); } }
+${SHARED_CHECK}
 if (failed.length) { console.error(failed.join("\\n")); process.exit(1); }
 console.log("import: " + specs.length + " entries");
 `;
     const cjs = `
 const specs = require("./specifiers.json");
 const failed = [];
-for (const s of specs) { try { require(s); } catch (e) { failed.push(s + ": " + e.message.split("\\n")[0]); } }
+const loaded = [];
+for (const s of specs) { try { loaded.push([s, require(s)]); } catch (e) { failed.push(s + ": " + e.message.split("\\n")[0]); } }
+${SHARED_CHECK}
 if (failed.length) { console.error(failed.join("\\n")); process.exit(1); }
 console.log("require: " + specs.length + " entries");
 `;
