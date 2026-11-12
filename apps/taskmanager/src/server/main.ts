@@ -164,7 +164,7 @@ const main = async () => {
   });
   const gateway = realtime;
   // revocations の購読は、Gateway とは別の配送の接続で行う
-  const revocationTransport = mqttTransport({ url: mqttUrl });
+  const revocationTransport = mqttTransport(await connection("revocations"));
   const revocations = await subscribeRevocations({
     transport: revocationTransport,
     prefix: MQTT_PREFIX,

@@ -1,5 +1,5 @@
 export * from "./context";
-export { appTable } from "./table";
+export { appTable, TTL_ATTRIBUTE } from "./table";
 export { endpoints, type Endpoints } from "./endpoints";
 export * from "./tables/workspace";
 export * from "./tables/member";

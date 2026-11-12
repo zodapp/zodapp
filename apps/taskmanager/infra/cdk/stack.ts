@@ -38,7 +38,7 @@ import * as secrets from "aws-cdk-lib/aws-secretsmanager";
 import * as cr from "aws-cdk-lib/custom-resources";
 import type { PhysicalTable } from "@zodapp/zod-dynamodb";
 import type { Construct } from "constructs";
-import { appTable } from "../../src/shared/table";
+import { appTable, TTL_ATTRIBUTE } from "../../src/shared/table";
 import type { EnvConfig } from "./config";
 
 export type { EnvConfig };
@@ -159,6 +159,8 @@ export class TaskmanagerStack extends Stack {
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      // revocations の Item を数分で消す
+      timeToLiveAttribute: TTL_ATTRIBUTE,
       removalPolicy: RemovalPolicy.DESTROY,
     });
     const layout: PhysicalTable = appTable;

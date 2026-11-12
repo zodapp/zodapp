@@ -99,8 +99,8 @@ export const revocationOps = createOps(revocations, (o) => ({
   受け取れないため。
 - 同じ人がまた変われば、同じ Item を上書きする（上書きでも変更として配られる）。
 - 期限は 5 分（認証の期限の最長と同じ。それより古い revoke は、期限の作り直しで反映済み）。
-- TTL の有効化は、ローカルのテーブル作成（`src/server/dynamo.ts`）に入れる。AWS の CDK は別ブランチ
-  （`claude/project-thread-t8dh83`）にあるので、両方が main に入ったあとに 1 行足す（このブランチでは触らない）。
+- TTL の有効化は、ローカルのテーブル作成（`src/server/dynamo.ts`）と AWS の CDK（`infra/cdk/stack.ts` の
+  `timeToLiveAttribute`）に入れる。属性の名前（`TTL_ATTRIBUTE`）は `src/shared/table.ts` に置く。
 - 登録簿に `revocations: [{ op: revocationOps.recent, live: true }]` を足す（サーバー専用。パスなし）。
 
 ### 3.2 書く側
@@ -130,6 +130,6 @@ export const revocationOps = createOps(revocations, (o) => ({
 
 ## 4. 他のブランチとの関係
 
-- `claude/project-thread-t8dh83`（taskmanager の AWS）も `src/server/main.ts` を変えている（配送の接続を
-  IoT Core にする部分）。重なるのは数行なので、あとから入る方で合わせる。こちらは
-  「別の配送の接続」を `mqttTransport({ url })` で作るが、あちらの `connection(name)` に乗せ替えれば済む。
+- taskmanager の AWS の作業（`src/server/main.ts` の `connection(name)` で IoT Core につなぐ）の上に載せ替えた。
+  revocations の購読も `connection("revocations")` でつなぐので、IoT Core でも動く（クライアント ID は
+  `taskmanager-revocations-…` で、IAM のポリシーの `client/taskmanager-*` に収まる）。

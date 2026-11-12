@@ -1,13 +1,10 @@
 import { z } from "zod";
 import { tableConfig } from "@zodapp/zod-dynamodb";
-import { appTable } from "../table";
+import { appTable, TTL_ATTRIBUTE } from "../table";
 import { createOps } from "../context";
 
 /** revoke の Item が消えるまでの秒数。認証コンテキストの寿命の最長（5 分）と同じ */
 export const REVOCATION_TTL_SECONDS = 5 * 60;
-
-/** DynamoDB の TTL に使う属性の名前（テーブルの作成で有効にする） */
-export const TTL_ATTRIBUTE = "ttl";
 
 /** すべての revoke を 1 つのトピックで配るための、固定のパーティション */
 const SCOPE = "all";
