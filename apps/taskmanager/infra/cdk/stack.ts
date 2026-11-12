@@ -236,8 +236,9 @@ export class TaskmanagerStack extends Stack {
         [
           "function handler(event) {",
           "  var request = event.request;",
-          "  // 拡張子のないパスは、フロントエンドのルート（TanStack Router）として index.html を返す",
-          "  if (!/\\.[a-zA-Z0-9]+$/.test(request.uri)) request.uri = '/index.html';",
+          "  // 静的なファイル（/assets/ の下と、直下の拡張子のあるファイル）のほかは、フロントエンドのルート",
+          "  // （TanStack Router）として index.html を返す。ルートの値に . が入ることがある（メンバーの email など）",
+          "  if (!/^\\/(assets\\/.*|[^/]+\\.[a-zA-Z0-9]+)$/.test(request.uri)) request.uri = '/index.html';",
           "  return request;",
           "}",
         ].join("\n"),
