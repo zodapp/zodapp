@@ -1,6 +1,5 @@
 {
   "region": "us-east-1",
-  "cloudFrontPrefixListId": "pl-3b927c52",
   "kind": "test",
   "assets": {
     "bucketNamePrefix": "burmaculex-assets",

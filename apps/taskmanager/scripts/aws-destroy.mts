@@ -3,7 +3,11 @@
  *
  * 1. `cdk destroy` でスタックを消す
  * 2. 試験環境なら、デプロイのファイルとイメージ（専用の置き場の `test/<環境名>/`、`test-<環境名>-`）も消す。
- *    消し忘れても、置き場の寿命の決まりで 1 日後に消える。永続環境のものは消さない
+ *    消し忘れても、置き場の寿命の決まりで 1 日後に消える。永続環境のもの（`env/<環境名>/`、`env-<環境名>-`）は、
+ *    `--with-assets` を付けたときだけ消す（環境をすっかり片付けるとき）
+ *
+ * 永続環境のデータ（テーブル・ユーザープール・添付のバケット）は、`-c releaseData=true` でデプロイしてから
+ * これを実行すると、一緒に消える。付けずに実行すると、データはスタックの外に残る。
  *
  * `--assets-only` を付けると、2 だけを行う（スタックがもう消えているとき）。
  * アカウント ID は、デプロイと同じく環境変数 `AWS_ACCOUNT_ID` から読む。
@@ -25,6 +29,7 @@ import { assetPrefixes, loadEnvConfig } from "../infra/cdk/config";
 
 const args = process.argv.slice(2);
 const assetsOnly = args.includes("--assets-only");
+const withAssets = args.includes("--with-assets");
 const envName = args.find((a) => !a.startsWith("--")) ?? "test";
 const cdkDir = path.resolve(import.meta.dirname, "../infra/cdk");
 const config = loadEnvConfig(envName);
@@ -37,8 +42,10 @@ if (!assetsOnly) {
   );
 }
 
-if ((config.kind ?? "test") !== "test") {
-  console.log(`[destroy] ${envName} is persistent: keeping its assets`);
+if ((config.kind ?? "test") !== "test" && !withAssets) {
+  console.log(
+    `[destroy] ${envName} is persistent: keeping its assets (add --with-assets to delete them)`,
+  );
   process.exit(0);
 }
 

@@ -1,14 +1,15 @@
 /**
- * taskmanager の試験用のスタック（ECS Fargate の構成）。
+ * taskmanager のスタック（ECS Fargate の構成）。試験環境と永続環境で同じ構成を使う。
  *
  *   ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
- *                           └─ /api/* ─ ALB ─ Fargate（Express と Realtime Gateway）
+ *                           └─ /api/* ─ VPC オリジン ─ 内部の ALB ─ Fargate（Express と Realtime Gateway）
  *   Fargate ── DynamoDB、S3（添付ファイル。ブラウザは署名付き URL で直接読み書き）、
  *              Cognito（ID トークンの検証）、IoT Core（変更の配送。SigV4 の WebSocket）
  *
- * 名前・タグは `burmaculex`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、
- * 公開サブネットだけで NAT なし）。消し忘れに備えて、作成・更新から ttlMinutes 分で、
- * EventBridge Scheduler がこのスタックを消す。
+ * 名前・タグは `burmaculex`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、NAT なし）。
+ * ALB はインターネットに出さず、隔離のサブネットに置いて、CloudFront の VPC オリジンからだけ受ける。
+ * 試験環境は、消し忘れに備えて、作成・更新から ttlMinutes 分で EventBridge Scheduler がこのスタックを消す。
+ * 永続環境は、データを残し（keepData）、自分を消さない。
  */
 import path from "node:path";
 import {
@@ -48,7 +49,14 @@ export type TaskmanagerStackProps = StackProps & {
   config: EnvConfig;
   ttlMinutes: number;
   authMaxAgeSeconds?: number;
+  /** 永続環境（ログを長く残し、テーブルの PITR を有効にする） */
+  persistent: boolean;
+  /** テーブル・ユーザープール・添付のバケットを、スタックを消しても残し、削除保護をかける */
+  keepData: boolean;
+  /** 開発用のユーザーを作る */
   devUsers: boolean;
+  /** パスワードの方式のログイン（USER_PASSWORD_AUTH）を許可する（E2E が ID トークンを取るのに使う） */
+  passwordAuth: boolean;
 };
 
 /** 開発用のユーザー（ローカルの src/server/local.ts と同じ） */
@@ -119,7 +127,14 @@ exports.handler = async (event) => {
 export class TaskmanagerStack extends Stack {
   constructor(scope: Construct, id: string, props: TaskmanagerStackProps) {
     super(scope, id, props);
-    const { envName, config } = props;
+    const { envName, keepData } = props;
+    // スタックを消したときに、データ（テーブル・ユーザープール・添付のバケット）をどうするか
+    const dataRemovalPolicy = keepData
+      ? RemovalPolicy.RETAIN
+      : RemovalPolicy.DESTROY;
+    const logRetention = props.persistent
+      ? logs.RetentionDays.ONE_MONTH
+      : logs.RetentionDays.ONE_DAY;
     const prefix = `burmaculex-${envName}`;
     Tags.of(this).add("burmaculex:env", envName);
     Tags.of(this).add("burmaculex:app", "taskmanager");
@@ -141,7 +156,7 @@ export class TaskmanagerStack extends Stack {
      */
     const functionLogs = new logs.LogGroup(this, "FunctionLogs", {
       logGroupName: `${logPrefix}/functions`,
-      retention: logs.RetentionDays.ONE_DAY,
+      retention: logRetention,
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
@@ -161,7 +176,11 @@ export class TaskmanagerStack extends Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       // revocations の Item を数分で消す
       timeToLiveAttribute: TTL_ATTRIBUTE,
-      removalPolicy: RemovalPolicy.DESTROY,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: props.persistent,
+      },
+      deletionProtection: keepData,
+      removalPolicy: dataRemovalPolicy,
     });
     const layout: PhysicalTable = appTable;
     for (const [indexName, def] of Object.entries(layout.indexes)) {
@@ -185,11 +204,12 @@ export class TaskmanagerStack extends Stack {
       autoVerify: { email: true },
       standardAttributes: { email: { required: true, mutable: true } },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      removalPolicy: RemovalPolicy.DESTROY,
+      deletionProtection: keepData,
+      removalPolicy: dataRemovalPolicy,
     });
     const userPoolClient = userPool.addClient("Web", {
-      // SRP は Amplify の既定。パスワードの方式は E2E が ID トークンを取るときに使う
-      authFlows: { userSrp: true, userPassword: true },
+      // SRP は Amplify の既定。パスワードの方式は、試験環境で E2E が ID トークンを取るときだけ使う
+      authFlows: { userSrp: true, userPassword: props.passwordAuth },
       generateSecret: false,
       preventUserExistenceErrors: true,
     });
@@ -209,24 +229,28 @@ export class TaskmanagerStack extends Stack {
       maxAzs: 2,
       natGateways: 0,
       subnetConfiguration: [
+        // Fargate のタスク（公開 IP は外へ出るためだけに使う。入ってくるのは ALB からだけ）
         { name: "public", subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24 },
+        // 内部の ALB（インターネットへの経路なし）
+        {
+          name: "isolated",
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+          cidrMask: 24,
+        },
       ],
       restrictDefaultSecurityGroup: false,
     });
 
     const albSecurityGroup = new ec2.SecurityGroup(this, "AlbSecurityGroup", {
       vpc,
-      description: "taskmanager ALB: CloudFront only",
+      description: "taskmanager ALB: CloudFront VPC origin only",
       allowAllOutbound: true,
     });
-    albSecurityGroup.addIngressRule(
-      ec2.Peer.prefixList(config.cloudFrontPrefixListId),
-      ec2.Port.tcp(80),
-      "CloudFront origin-facing",
-    );
+    // 受け付けは、CloudFront の VPC オリジンを作ったあとに足す（下）
     const alb = new elbv2.ApplicationLoadBalancer(this, "Alb", {
       vpc,
-      internetFacing: true,
+      internetFacing: false,
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       securityGroup: albSecurityGroup,
       // Realtime の WebSocket を、やり取りのない間も保つ
       idleTimeout: Duration.minutes(5),
@@ -264,7 +288,9 @@ export class TaskmanagerStack extends Stack {
       },
       additionalBehaviors: {
         "/api/*": {
-          origin: new origins.HttpOrigin(alb.loadBalancerDnsName, {
+          origin: origins.VpcOrigin.withApplicationLoadBalancer(alb, {
+            vpcOriginName: `${prefix}-taskmanager`,
+            httpPort: 80,
             protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
             readTimeout: Duration.seconds(60),
           }),
@@ -279,11 +305,54 @@ export class TaskmanagerStack extends Stack {
     });
     const appOrigin = `https://${distribution.distributionDomainName}`;
 
+    // CloudFront は VPC オリジンを作ると、この VPC にセキュリティグループ
+    // （CloudFront-VPCOrigins-Service-SG）を作る。CloudFormation はその ID を返さないので引いて、
+    // ALB はそこからだけ受ける
+    const vpcOriginSecurityGroupId = new cr.AwsCustomResource(
+      this,
+      "VpcOriginSecurityGroup",
+      {
+        onUpdate: {
+          service: "EC2",
+          action: "describeSecurityGroups",
+          parameters: {
+            Filters: [
+              { Name: "vpc-id", Values: [vpc.vpcId] },
+              {
+                Name: "group-name",
+                Values: ["CloudFront-VPCOrigins-Service-SG"],
+              },
+            ],
+          },
+          physicalResourceId: cr.PhysicalResourceId.of(
+            "cloudfront-vpc-origins-service-sg",
+          ),
+        },
+        policy: cr.AwsCustomResourcePolicy.fromSdkCalls({
+          resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE,
+        }),
+        logGroup: functionLogs,
+        installLatestAwsSdk: false,
+      },
+    );
+    vpcOriginSecurityGroupId.node.addDependency(distribution);
+    // ALB のセキュリティグループとは別のリソースにする（ALB → VPC オリジン → この値、の順に作るため）
+    new ec2.CfnSecurityGroupIngress(this, "AlbFromVpcOrigin", {
+      groupId: albSecurityGroup.securityGroupId,
+      sourceSecurityGroupId: vpcOriginSecurityGroupId.getResponseField(
+        "SecurityGroups.0.GroupId",
+      ),
+      ipProtocol: "tcp",
+      fromPort: 80,
+      toPort: 80,
+      description: "CloudFront VPC origin",
+    });
+
     // 添付ファイル：ブラウザが署名付き URL で直接 PUT・GET する
     const filesBucket = new s3.Bucket(this, "FilesBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       enforceSSL: true,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: dataRemovalPolicy,
       cors: [
         {
           allowedOrigins: [appOrigin],
@@ -318,7 +387,7 @@ export class TaskmanagerStack extends Stack {
 
     const serverLogs = new logs.LogGroup(this, "ServerLogs", {
       logGroupName: `${logPrefix}/server`,
-      retention: logs.RetentionDays.ONE_DAY,
+      retention: logRetention,
       removalPolicy: RemovalPolicy.DESTROY,
     });
     const taskDefinition = new ecs.FargateTaskDefinition(this, "Task", {
@@ -391,9 +460,15 @@ export class TaskmanagerStack extends Stack {
       "ServiceSecurityGroup",
       {
         vpc,
-        description: "taskmanager server: ALB only",
-        allowAllOutbound: true,
+        description: "taskmanager server: ALB only, HTTPS out",
+        allowAllOutbound: false,
       },
+    );
+    // 外へつなぐ先（ECR、DynamoDB、S3、IoT Core、Cognito、Secrets Manager、CloudWatch Logs）は、どれも HTTPS
+    serviceSecurityGroup.addEgressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(443),
+      "HTTPS to AWS services",
     );
     serviceSecurityGroup.addIngressRule(
       albSecurityGroup,
@@ -407,6 +482,7 @@ export class TaskmanagerStack extends Stack {
       desiredCount: 1,
       minHealthyPercent: 0,
       maxHealthyPercent: 100,
+      // 外へ出るためだけに使う（入ってくるのはセキュリティグループで ALB からだけ）。なくすには NAT か VPC エンドポイントが要る
       assignPublicIp: true,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       securityGroups: [serviceSecurityGroup],
@@ -545,7 +621,9 @@ export class TaskmanagerStack extends Stack {
       logGroup: functionLogs,
       code: lambda.Code.fromInline(BUCKET_CLEANER_CODE),
     });
-    for (const bucket of [webBucket, filesBucket]) {
+    // データを残すときは、添付のバケットは空にしない
+    const bucketsToEmpty = keepData ? [webBucket] : [webBucket, filesBucket];
+    for (const bucket of bucketsToEmpty) {
       bucket.grantRead(bucketCleaner);
       bucket.grantDelete(bucketCleaner);
     }
@@ -553,7 +631,7 @@ export class TaskmanagerStack extends Stack {
     new CustomResource(this, "EmptyBuckets", {
       serviceToken: bucketCleaner.functionArn,
       resourceType: "Custom::BurmaculexEmptyBuckets",
-      properties: { Buckets: [webBucket.bucketName, filesBucket.bucketName] },
+      properties: { Buckets: bucketsToEmpty.map((b) => b.bucketName) },
     });
 
     // スタックの Lambda にロググループを作らせない。消したあとに届いたログで作り直されて、残るのを防ぐ

@@ -97,11 +97,11 @@ E2E は、GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）で
 
 ## AWS で動かす
 
-試験用に、AWS（ECS Fargate の構成）へデプロイできます。CDK のコードは `infra/cdk/` です。使い終わったらすぐに消す前提で、消し忘れても作成・更新から 1 時間でスタックが自分を消します。
+AWS（ECS Fargate の構成）へデプロイできます。CDK のコードは `infra/cdk/` です。本番と同じ形の構成で、使い終わったらすぐに消す試験環境と、データを残す永続環境を作れます（下の「試験環境と永続環境」）。
 
 ```
 ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
-                        └─ /api/* ─ ALB ─ Fargate 1 台（Express と Realtime Gateway）
+                        └─ /api/* ─ VPC オリジン ─ 内部の ALB ─ Fargate 1 台（Express と Realtime Gateway）
 Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークンの検証）、IoT Core（変更の配送）
 ```
 
@@ -113,13 +113,32 @@ Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークン
 | リアルタイムの配送 | aedes | IoT Core（タスクロールで SigV4 の署名をした WebSocket。証明書は使わない。`src/server/iot.ts`） |
 | API と Realtime Gateway | Express（`pnpm dev`） | ECS Fargate 1 台（`pnpm build:server` の 1 ファイル。`infra/server.Dockerfile`） |
 | フロントエンド | Vite | CloudFront + S3 |
-| 開発用のユーザー | サーバーの起動時に作る | スタックの中で作る（alice・bob・vic、パスワードは同じ） |
+| 開発用のユーザー | サーバーの起動時に作る | 試験環境だけ、スタックの中で作る（alice・bob・vic、パスワードは同じ） |
 
 - Realtime Gateway は接続の状態をメモリーに持つので、Fargate は 1 台だけ動かします
-- VPC は自分のもの（`10.40.0.0/16`、公開サブネットだけで NAT Gateway なし）です。ALB は CloudFront からの接続だけを受けます
+- VPC は自分のもの（`10.40.0.0/16`、NAT Gateway なし）です
+- ALB は内部向けで、インターネットへの経路のない隔離のサブネットに置きます。CloudFront の VPC オリジンからだけ受けます（ALB のセキュリティグループは、CloudFront が VPC に作るセキュリティグループ `CloudFront-VPCOrigins-Service-SG` からだけ許可）
+- Fargate のタスクは公開サブネットに置き、公開 IP は外へ出るためだけに使います。受けるのは ALB からの 4000 番だけ、外へは HTTPS（443）だけです
 - 名前とタグは `burmaculex` で始めます（スタック `burmaculex-taskmanager-<環境名>`、タグ `burmaculex:env`）
 - リージョン、試験環境か永続環境か（`kind`）、デプロイのファイルとイメージの置き場（`assets`）は `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`。ほかの環境は `pnpm aws:deploy -- -c env=<環境名>`）
 - AWS のアカウント ID はリポジトリに置かず、環境変数 `AWS_ACCOUNT_ID` で渡します。置き場のバケット名とロールの ARN は、そこから組み立てます。CDK が書き出す `infra/cdk/cdk.context.json` もアカウント ID を含むので、コミットしません（.gitignore 済み）
+
+### 試験環境と永続環境
+
+`infra/cdk/config/<環境名>.json` の `kind` で決まります（`config/test.json` は試験環境、`config/demo.json` は永続環境の例）。
+
+| 項目 | 試験環境（`test`） | 永続環境（`persistent`） |
+|---|---|---|
+| スタックが自分を消す | 作成・更新から 1 時間 | しない |
+| テーブル | スタックと一緒に消える | 残す（`RETAIN`）。PITR、削除保護 |
+| ユーザープール | スタックと一緒に消える | 残す（`RETAIN`）。削除保護 |
+| 添付のバケット | スタックと一緒に消える | 残す（`RETAIN`） |
+| ログ（サーバー、Lambda） | 1 日 | 30 日 |
+| 開発用のユーザー | 作る | 作らない（サインアップで作る） |
+| ログインの方式 | SRP と、パスワードの方式（`USER_PASSWORD_AUTH`。E2E が使う） | SRP だけ |
+| 確認メール | Cognito の既定の送信 | 同じ |
+
+永続環境を片付けるときは、`-c releaseData=true` を付けてデプロイしてから消します。データを消せる設定（`DESTROY`、削除保護なし）になります。
 
 ### デプロイのファイルとイメージの置き場
 
@@ -146,12 +165,18 @@ AWS_ACCOUNT_ID=<デプロイ先のアカウント ID> pnpm aws:assets:deploy   #
 ```bash
 cd apps/taskmanager
 export AWS_ACCOUNT_ID=<デプロイ先のアカウント ID>   # aws:deploy と aws:destroy の両方で使う
-pnpm aws:deploy                                  # フロントエンドとサーバーをビルドしてデプロイ（8 分ほど）
+pnpm aws:deploy                                  # フロントエンドとサーバーをビルドしてデプロイ（初回は 16 分ほど。VPC オリジンの作成に 8 分ほどかかる）
 pnpm aws:deploy -- -c authMaxAgeSeconds=20       # E2E の 08-token-refresh を流すとき
 pnpm aws:deploy -- -c ttlMinutes=120             # 自分を消すまでの分数を変える（0 で消さない）
 ```
 
 出力の `Url` がフロントエンドの URL、`ExpiresAt` がスタックが自分を消す時刻（UTC）です。
+
+永続環境は、環境名を付けてデプロイします。
+
+```bash
+pnpm aws:deploy -- -c env=demo
+```
 
 ### E2E を流す
 
@@ -166,13 +191,27 @@ E2E_BASE_URL=<Url> COGNITO_ENDPOINT= COGNITO_REGION=us-east-1 COGNITO_CLIENT_ID=
 ### 消す
 
 ```bash
-pnpm aws:destroy                      # スタックを消し、試験環境のファイルとイメージも消す
+pnpm aws:destroy                      # スタックを消し、試験環境のファイルとイメージも消す（15 分ほど）
 pnpm aws:destroy -- --assets-only     # ファイルとイメージだけ（スタックがもう消えているとき）
+
+# 永続環境をデータも含めてすっかり片付ける
+pnpm aws:deploy -- -c env=demo -c releaseData=true
+pnpm aws:destroy -- demo --with-assets
 ```
 
-`scripts/aws-destroy.mts` が、`cdk destroy` のあとに、その環境のファイルとイメージ（`test/<環境名>/`、`test-<環境名>-`）を消します。スタックが自分を消したときや、消し忘れたときも、置き場の寿命の決まりで 1 日後に消えます。永続環境のものは消しません。
+`scripts/aws-destroy.mts` が、`cdk destroy` のあとに、その環境のファイルとイメージ（`test/<環境名>/`、`test-<環境名>-`）を消します。スタックが自分を消したときや、消し忘れたときも、置き場の寿命の決まりで 1 日後に消えます。永続環境のもの（`env/<環境名>/`、`env-<環境名>-`）は、`--with-assets` を付けたときだけ消します。永続環境を `releaseData` なしで消すと、データ（テーブル・ユーザープール・添付のバケット）はスタックの外に残ります。
 
 スタックのほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループ（`/burmaculex/<環境名>/taskmanager-<識別子>/functions`。識別子はスタック ID の先頭 8 文字）に出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
+
+### 本番で使うときに足すとよいもの
+
+このサンプルには入れていません。
+
+- 独自のドメインと、CloudFront から ALB までの HTTPS：今は CloudFront から ALB までが AWS の中の HTTP なので、通信をすべて暗号化するため
+- WAF：CloudFront の前で、よくある攻撃や大量のリクエストを止めるため
+- private サブネットと、NAT Gateway または VPC エンドポイント：タスクに公開 IP を持たせないため
+- SES：Cognito の既定の送信は 1 日 50 通までなので、確認メールを多く送るため
+- 監視のアラーム：サーバーの異常やエラーの増加に気づくため
 
 ## 認証と Realtime の接続
 

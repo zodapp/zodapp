@@ -22,6 +22,8 @@ const number = (key: string, fallback?: number) => {
 };
 
 const isTest = (config.kind ?? "test") === "test";
+// 永続環境の片付け：`-c releaseData=true` でデプロイすると、データを消せる設定になる（そのあと aws:destroy）
+const releaseData = app.node.tryGetContext("releaseData") === "true";
 
 // デプロイのファイルとイメージを、burmaculex 専用の置き場に入れる（試験環境の分は 1 日で消える）。
 // CloudFormation のデプロイは、今までどおり bootstrap の deploy ロールで行う
@@ -42,5 +44,10 @@ new TaskmanagerStack(app, `burmaculex-taskmanager-${envName}`, {
   ttlMinutes: number("ttlMinutes", isTest ? 60 : 0)!,
   // E2E でトークンの入れ替えを確かめるときだけ指定する（例 20）
   authMaxAgeSeconds: number("authMaxAgeSeconds"),
-  devUsers: app.node.tryGetContext("devUsers") !== "false",
+  // 試験環境：データは消す、開発用のユーザーとパスワードの方式のログイン（E2E が使う）を入れる。
+  // 永続環境：データは残す（PITR、削除保護）、ユーザーはサインアップでだけ作る、ログインは SRP だけ
+  persistent: !isTest,
+  keepData: !isTest && !releaseData,
+  devUsers: isTest && app.node.tryGetContext("devUsers") !== "false",
+  passwordAuth: isTest,
 });
