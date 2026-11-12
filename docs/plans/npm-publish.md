@@ -3,6 +3,7 @@
 - ステータス: プラン（実装未着手）
 - 対象ブランチ: `claude/project-thread-134yuz`（main から。このプランと同じブランチに実装を積む）
 - 対象パッケージ: `packages/` の `@zodapp/*` のうち private でない21個
+- 範囲: **公開の準備だけ**。npm への公開（Mac からの最初の公開、trusted publisher の登録）はこの作業では行わない
 
 ---
 
@@ -11,12 +12,12 @@
 | 項目 | 決定 |
 | --- | --- |
 | 公開する範囲 | `@zodapp/*` の21個。`@zodapp/zod-form-widget` と `@repo/*` は private のまま |
-| バージョン | 全パッケージ同じバージョン（changesets の `fixed`）。最初は `0.1.0` |
+| バージョン | 全パッケージ同じバージョン（changesets の `fixed`）。最初の公開は `0.1.0`。この作業では `0.0.0` のまま |
 | src を exports している6個 | ほかと同じく dist だけを exports する（ワークスペースでも dist を使う） |
 | CSS Modules | `stringMultiline.module.css` をなくし、Mantine の `styles` prop に移す。公開するパッケージに CSS ファイルを持たない |
-| 最初の公開 | `0.1.0` は Mac から手で出す。そのあと trusted publisher を登録し、以後は GitHub Actions から出す |
+| 最初の公開 | `0.1.0` は Mac から手で出す。そのあと trusted publisher を登録し、以後は GitHub Actions から出す。この作業では手順書を書くだけで、実行しない |
 | 公開の認証 | trusted publishing（OIDC）。npm のトークンは CI に置かない |
-| 範囲外 | 英語の README（リリースの直前に作る）、公開先のリポジトリ名の決定（掃除のスレッドで決める） |
+| 範囲外 | npm への公開そのもの、英語の README（リリースの直前に作る）、公開先のリポジトリ名の決定（掃除のスレッドで決める） |
 
 公開する21個：
 
@@ -128,7 +129,7 @@ zod-form-widget の `AutoTable.module.css` は、private のままなので今�
 - `repository.url` は **公開先のリポジトリが決まってから** 入れる。決まるまでは、いまの `https://github.com/zodapp/zodapp.git` にそろえておく。
   trusted publishing は `repository.url` の完全一致を見るので、最初の公開の前に必ず確定させる。
 - `engines.node` を `>=22` にそろえる（ルートに合わせる）。
-- `version` を `0.1.0` にそろえる（21個と、`fixed` に入れない private のものは 0.0.0 のまま）。
+- `version` はこの作業では `0.0.0` のまま。`0.1.0` にするのは公開する時点（5.1）。
 
 ### 4.5 `pnpm pack` の中身を確かめる検査
 
@@ -180,7 +181,8 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 
 `.github/workflows/release.yml` を足す（trusted publisher にはこのファイル名で登録する）。
 
-- きっかけ：main への push。
+- きっかけ：**この作業では手動（`workflow_dispatch`）だけ**。main への push で動くと、npm の認証がないまま公開を試みて失敗するため。
+  公開を始めるとき（5.2）に `push: branches: [main]` を足す。ファイルの先頭のコメントにもそう書いておく。
 - `changesets/action` を使う。
   - 未公開の changeset があれば「Version Packages」の PR を作る（または更新する）。
   - その PR がマージされて changeset がなくなったら、`pnpm release` で公開する。
@@ -194,19 +196,20 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 
 ---
 
-## 5. 公開の手順（ユーザが行うこと）
+## 5. 公開の手順（ユーザが行うこと。この作業では実行しない）
 
-手順書は `docs/releasing.md`（ja）として実装の中で書く。流れは次のとおり。
+手順書は `docs/releasing.md`（ja）として実装の中で書く。この作業で行うのは手順書と補助のスクリプトを用意するところまで。流れは次のとおり。
 
 ### 5.1 最初の公開（Mac から）
 
 1. 公開先のリポジトリと `repository.url` が確定し、この作業が main に入っていること。
-2. Mac で npm 11.15.0 以上にする（`npm install -g npm@^11.15.0`）。npm のアカウントの 2FA を有効にしておく。
-3. `npm login`。
-4. `pnpm install --frozen-lockfile && pnpm build && pnpm check:pack`。
-5. `pnpm -r --filter "./packages/*" publish --access public --no-git-checks`（private は自動で飛ばされる）。
+2. 21個の `version` を `0.1.0` にそろえるコミットを main に入れる。
+3. Mac で npm 11.15.0 以上にする（`npm install -g npm@^11.15.0`）。npm のアカウントの 2FA を有効にしておく。
+4. `npm login`。
+5. `pnpm install --frozen-lockfile && pnpm build && pnpm check:pack`。
+6. `pnpm -r --filter "./packages/*" publish --access public --no-git-checks`（private は自動で飛ばされる）。
    2FA の OTP を求められたら入力する。21個あるので、途中で失敗したら同じコマンドをもう一度実行すれば、出したものは飛ばされる。
-6. `git tag` で各パッケージの `@zodapp/<name>@0.1.0` のタグを打って push する（`changeset tag` で打てる）。
+7. `git tag` で各パッケージの `@zodapp/<name>@0.1.0` のタグを打って push する（`changeset tag` で打てる）。
 
 この時点では provenance は付かない（手元から出すため）。
 
@@ -217,8 +220,9 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 1. 用意しておくスクリプト `tools/npm-trust-all.sh` を実行する。21個について
    `npm trust github @zodapp/<name> --file release.yml --repo <owner>/<repo> --env npm --allow-publish --yes` を2秒おきに呼ぶ。
    最初の 2FA で「5分間省く」を選ぶ。
-2. 「Version Packages」の PR をマージし、release ワークフローの成功を確かめる。
-3. 各パッケージの設定を「Require two-factor authentication and disallow tokens」にする（`npm access` で一括にできるかは実装のときに確かめ、できれば同じスクリプトに入れる）。
+2. release ワークフローに `push: branches: [main]` を足す。
+3. 「Version Packages」の PR をマージし、release ワークフローの成功を確かめる。
+4. 各パッケージの設定を「Require two-factor authentication and disallow tokens」にする（`npm access` で一括にできるかは実装のときに確かめ、できれば同じスクリプトに入れる）。
 
 ---
 
@@ -234,7 +238,7 @@ React や Mantine を peer に持つパッケージは、peer を一時ディレ
 
 ---
 
-## 7. 決めること
+## 7. 公開するときに決めること（この作業では保留）
 
 ### 7.1 CI から直接出すか、承認待ちの公開にするか
 
@@ -256,4 +260,4 @@ provenance が付かない。公開はできるので、まず private のまま
 3. 21個の `files`、LICENSE、メタデータ、バージョンをそろえる
 4. `tools/check-pack.mjs`、publint、attw、煙試験と CI への追加
 5. changesets の導入
-6. release ワークフロー、`tools/npm-trust-all.sh`、`docs/releasing.md`
+6. release ワークフロー（手動のみ）、`tools/npm-trust-all.sh`、`docs/releasing.md`
