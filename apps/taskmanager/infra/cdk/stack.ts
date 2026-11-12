@@ -15,6 +15,7 @@ import {
   CfnOutput,
   CustomResource,
   Duration,
+  Fn,
   RemovalPolicy,
   Stack,
   Tags,
@@ -128,11 +129,22 @@ export class TaskmanagerStack extends Stack {
     Tags.of(this).add("burmaculex:app", "taskmanager");
 
     /**
+     * デプロイの識別子：スタック ID の UUID の先頭 8 文字。更新では変わらず、作り直すと変わる。
+     * 一時的なリソースの固定の名前（ロググループ）に入れ、どのデプロイのものかを見分けられるようにする。
+     * 消したあとに何かが残っても、次のデプロイと名前がぶつからない
+     */
+    const deployId = Fn.select(
+      0,
+      Fn.split("-", Fn.select(2, Fn.split("/", this.stackId))),
+    );
+    const logPrefix = `/burmaculex/${envName}/taskmanager-${deployId}`;
+
+    /**
      * スタックの Lambda（カスタムリソースなど）のログ。スタックと一緒に消す。
-     * 名前は CDK に任せる（消したあとにログが遅れて届いて同じ名前で作り直されても、次のデプロイとぶつからない）。
-     * 作り直されないように、Lambda にはロググループを作らせない（このファイルの最後）
+     * 消したあとに遅れて届いたログで作り直されないように、Lambda にはロググループを作らせない（このファイルの最後）
      */
     const functionLogs = new logs.LogGroup(this, "FunctionLogs", {
+      logGroupName: `${logPrefix}/functions`,
       retention: logs.RetentionDays.ONE_DAY,
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -306,7 +318,7 @@ export class TaskmanagerStack extends Stack {
     });
 
     const serverLogs = new logs.LogGroup(this, "ServerLogs", {
-      logGroupName: `/burmaculex/${envName}/taskmanager`,
+      logGroupName: `${logPrefix}/server`,
       retention: logs.RetentionDays.ONE_DAY,
       removalPolicy: RemovalPolicy.DESTROY,
     });
