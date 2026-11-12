@@ -50,7 +50,16 @@ const createRealtimeTransport = (): {
   }
   // 発行と購読に同じインスタンスを渡す。発行したメッセージは、同じプロセスの Gateway に届く
   console.log("[realtime] in-process (memoryTransport)");
-  const transport = memoryTransport();
+  const recorded = memoryTransport();
+  // memoryTransport は発行したメッセージを published に記録し続ける（テストで確かめるため）。
+  // サーバーでは記録が要らないので、発行のたびに捨て、メモリが増え続けないようにする
+  const transport: RealtimeTransport = {
+    ...recorded,
+    publish: async (topic, message) => {
+      await recorded.publish(topic, message);
+      recorded.published.length = 0;
+    },
+  };
   return {
     publisher: createChangePublisher({ transport, endpoints, prefix: MQTT_PREFIX }),
     gatewayTransport: transport,
