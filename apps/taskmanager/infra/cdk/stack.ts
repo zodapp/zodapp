@@ -1,7 +1,7 @@
 /**
  * taskmanager の試験用のスタック（ECS Fargate の構成）。
  *
- *   ブラウザ ── CloudFront ──┬─ S3（画面。/config.js に Cognito の ID などを入れる）
+ *   ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
  *                           └─ /api/* ─ ALB ─ Fargate（Express と Realtime Gateway）
  *   Fargate ── DynamoDB、S3（添付ファイル。ブラウザは署名付き URL で直接読み書き）、
  *              Cognito（ID トークンの検証）、IoT Core（変更の配送。SigV4 の WebSocket）
@@ -39,13 +39,9 @@ import * as cr from "aws-cdk-lib/custom-resources";
 import type { PhysicalTable } from "@zodapp/zod-dynamodb";
 import type { Construct } from "constructs";
 import { appTable } from "../../src/shared/table";
+import type { EnvConfig } from "./config";
 
-export type EnvConfig = {
-  account: string;
-  region: string;
-  /** CloudFront からの接続だけを ALB に通すための、AWS 管理のプレフィックスリスト（リージョンごとに ID が違う） */
-  cloudFrontPrefixListId: string;
-};
+export type { EnvConfig };
 
 export type TaskmanagerStackProps = StackProps & {
   envName: string;
@@ -196,7 +192,7 @@ export class TaskmanagerStack extends Stack {
       preventUserExistenceErrors: true,
     });
 
-    // ---- 画面の配信 ----
+    // ---- フロントエンドの配信 ----
 
     const webBucket = new s3.Bucket(this, "WebBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -234,13 +230,13 @@ export class TaskmanagerStack extends Stack {
       idleTimeout: Duration.minutes(5),
     });
 
-    // CloudFront：画面は S3、/api/* は ALB（同じオリジンにして、Cookie や CORS を使わずに済ませる）
+    // CloudFront：フロントエンドは S3、/api/* は ALB（同じオリジンにして、Cookie や CORS を使わずに済ませる）
     const spaRewrite = new cloudfront.Function(this, "SpaRewrite", {
       code: cloudfront.FunctionCode.fromInline(
         [
           "function handler(event) {",
           "  var request = event.request;",
-          "  // 拡張子のないパスは、画面のルート（TanStack Router）として index.html を返す",
+          "  // 拡張子のないパスは、フロントエンドのルート（TanStack Router）として index.html を返す",
           "  if (!/\\.[a-zA-Z0-9]+$/.test(request.uri)) request.uri = '/index.html';",
           "  return request;",
           "}",
@@ -421,7 +417,7 @@ export class TaskmanagerStack extends Stack {
       deregistrationDelay: Duration.seconds(5),
     });
 
-    // ---- 画面のファイルと、配信のときの設定 ----
+    // ---- フロントエンドのビルド成果物と、配信のときの設定 ----
 
     new s3deploy.BucketDeployment(this, "WebDeployment", {
       destinationBucket: webBucket,

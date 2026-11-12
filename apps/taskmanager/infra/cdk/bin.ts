@@ -6,8 +6,9 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { App } from "aws-cdk-lib";
-import { TaskmanagerStack, type EnvConfig } from "./stack";
+import { App, DefaultStackSynthesizer } from "aws-cdk-lib";
+import { assetPrefixes, type EnvConfig } from "./config";
+import { TaskmanagerStack } from "./stack";
 
 const app = new App();
 const envName = String(app.node.tryGetContext("env") ?? "test");
@@ -26,12 +27,25 @@ const number = (key: string, fallback?: number) => {
   return value === undefined || value === "" ? fallback : Number(value);
 };
 
+const isTest = (config.kind ?? "test") === "test";
+
+// デプロイのファイルとイメージを、burmaculex 専用の置き場に入れる（試験環境の分は 1 日で消える）。
+// CloudFormation のデプロイは、今までどおり bootstrap の deploy ロールで行う
+const synthesizer = new DefaultStackSynthesizer({
+  fileAssetsBucketName: config.assets.bucketName,
+  imageAssetsRepositoryName: config.assets.repositoryName,
+  fileAssetPublishingRoleArn: config.assets.publishingRoleArn,
+  imageAssetPublishingRoleArn: config.assets.publishingRoleArn,
+  ...assetPrefixes(envName, config),
+});
+
 new TaskmanagerStack(app, `burmaculex-taskmanager-${envName}`, {
   env: { account: config.account, region: config.region },
+  synthesizer,
   envName,
   config,
-  // 作成（と更新）から、この分数でスタックが自分を消す。0 なら消さない
-  ttlMinutes: number("ttlMinutes", 60)!,
+  // 作成（と更新）から、この分数でスタックが自分を消す。0 なら消さない（永続環境の既定）
+  ttlMinutes: number("ttlMinutes", isTest ? 60 : 0)!,
   // E2E でトークンの入れ替えを確かめるときだけ指定する（例 20）
   authMaxAgeSeconds: number("authMaxAgeSeconds"),
   devUsers: app.node.tryGetContext("devUsers") !== "false",

@@ -100,7 +100,7 @@ E2E は、GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）で
 試験用に、AWS（ECS Fargate の構成）へデプロイできます。CDK のコードは `infra/cdk/` です。使い終わったらすぐに消す前提で、消し忘れても作成・更新から 1 時間でスタックが自分を消します。
 
 ```
-ブラウザ ── CloudFront ──┬─ S3（画面。/config.js に Cognito の ID などを入れる）
+ブラウザ ── CloudFront ──┬─ S3（フロントエンド。/config.js に Cognito の ID などを入れる）
                         └─ /api/* ─ ALB ─ Fargate 1 台（Express と Realtime Gateway）
 Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークンの検証）、IoT Core（変更の配送）
 ```
@@ -112,26 +112,37 @@ Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークン
 | ファイル | S3Proxy | S3（ブラウザが署名付き URL で直接読み書き） |
 | リアルタイムの配送 | aedes | IoT Core（タスクロールで SigV4 の署名をした WebSocket。証明書は使わない。`src/server/iot.ts`） |
 | API と Realtime Gateway | Express（`pnpm dev`） | ECS Fargate 1 台（`pnpm build:server` の 1 ファイル。`infra/server.Dockerfile`） |
-| 画面 | Vite | CloudFront + S3 |
+| フロントエンド | Vite | CloudFront + S3 |
 | 開発用のユーザー | サーバーの起動時に作る | スタックの中で作る（alice・bob・vic、パスワードは同じ） |
 
 - Realtime Gateway は接続の状態をメモリーに持つので、Fargate は 1 台だけ動かします
 - VPC は自分のもの（`10.40.0.0/16`、公開サブネットだけで NAT Gateway なし）です。ALB は CloudFront からの接続だけを受けます
 - 名前とタグは `burmaculex` で始めます（スタック `burmaculex-taskmanager-<環境名>`、タグ `burmaculex:env`）
-- アカウントとリージョンは `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`）
+- アカウントとリージョン、試験環境か永続環境か（`kind`）、デプロイのファイルとイメージの置き場（`assets`）は `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`。ほかの環境は `pnpm aws:deploy -- -c env=<環境名>`）
+
+### デプロイのファイルとイメージの置き場
+
+CDK は、デプロイに使うファイル（テンプレート、フロントエンドのビルド成果物、Lambda のコード）とコンテナのイメージを、いったん置き場に入れます。試験環境のものを寿命で消せるように、bootstrap の置き場ではなく専用の置き場に入れます（`infra/cdk/bin.ts` の `DefaultStackSynthesizer`）。
+
+| もの | 置き場 | 試験環境（`kind: test`） | 永続環境（`kind: persistent`） |
+|---|---|---|---|
+| ファイル | S3 `burmaculex-assets-<アカウント>-<リージョン>` | `test/<環境名>/…`。1 日で自動的に消える | `env/<環境名>/…`。消さない |
+| イメージ | ECR `burmaculex/assets` | タグ `test-<環境名>-…`。1 日で自動的に消える | タグ `env-<環境名>-…`。消さない |
+
+置き場と、そこに書き込むロール（`burmaculex-asset-publishing`）は、`burmaculex-automation` のスタック（Mac の `burmaculex/infra/`。SSO でデプロイ）が持ちます。デプロイは、今までどおり bootstrap の deploy ロールで行います。
 
 ### デプロイする
 
-必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier。やり直さない）、デプロイできる認証情報。
+必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier。やり直さない）、置き場（上）、bootstrap の deploy ロールと `burmaculex-asset-publishing` を引き受けられる認証情報。
 
 ```bash
 cd apps/taskmanager
-pnpm aws:deploy                                  # 画面とサーバーを作ってデプロイ（8 分ほど）
+pnpm aws:deploy                                  # フロントエンドとサーバーをビルドしてデプロイ（8 分ほど）
 pnpm aws:deploy -- -c authMaxAgeSeconds=20       # E2E の 08-token-refresh を流すとき
 pnpm aws:deploy -- -c ttlMinutes=120             # 自分を消すまでの分数を変える（0 で消さない）
 ```
 
-出力の `Url` が画面の URL、`ExpiresAt` がスタックが自分を消す時刻（UTC）です。
+出力の `Url` がフロントエンドの URL、`ExpiresAt` がスタックが自分を消す時刻（UTC）です。
 
 ### E2E を流す
 
@@ -146,12 +157,13 @@ E2E_BASE_URL=<Url> COGNITO_ENDPOINT= COGNITO_REGION=us-east-1 COGNITO_CLIENT_ID=
 ### 消す
 
 ```bash
-pnpm aws:destroy
+pnpm aws:destroy                      # スタックを消し、試験環境のファイルとイメージも消す
+pnpm aws:destroy -- --assets-only     # ファイルとイメージだけ（スタックがもう消えているとき）
 ```
 
-スタックを消しても、コンテナのイメージ（CDK の bootstrap の ECR リポジトリ）と、画面などのアセット（bootstrap の S3 のバケット）は残ります。
+`scripts/aws-destroy.mts` が、`cdk destroy` のあとに、その環境のファイルとイメージ（`test/<環境名>/`、`test-<環境名>-`）を消します。スタックが自分を消したときや、消し忘れたときも、置き場の寿命の決まりで 1 日後に消えます。永続環境のものは消しません。
 
-ほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループに出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
+スタックのほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループ（`/burmaculex/<環境名>/taskmanager-<識別子>/functions`。識別子はスタック ID の先頭 8 文字）に出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
 
 ## 認証と Realtime の接続
 

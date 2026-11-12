@@ -20,7 +20,7 @@
     "aws:build": "pnpm build && pnpm build:server",
     "aws:synth": "pnpm aws:build && cd infra/cdk && cdk synth --quiet",
     "aws:deploy": "pnpm aws:build && cd infra/cdk && cdk deploy --require-approval never",
-    "aws:destroy": "cd infra/cdk && cdk destroy --force"
+    "aws:destroy": "tsx scripts/aws-destroy.mts"
   },
   "dependencies": {
     "@aws-crypto/sha256-js": "^5.2.0",
@@ -70,6 +70,8 @@
   },
   "devDependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1159.0",
+    "@aws-sdk/client-ecr": "^3.1167.0",
+    "@aws-sdk/client-sts": "^3.1167.0",
     "@playwright/test": "1.63.0",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
