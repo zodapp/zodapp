@@ -768,11 +768,14 @@ export function useTableSettingDrawer({
           inner: {
             pointerEvents: "none",
           },
+          // オーバーレイを出さないので、下の表との境界を線と上向きの影で示す
           content: {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             pointerEvents: "auto",
+            borderTop: "1px solid var(--mantine-color-default-border)",
+            boxShadow: "0 -4px 16px rgba(0, 0, 0, 0.08)",
           },
           body: {
             flex: 1,
