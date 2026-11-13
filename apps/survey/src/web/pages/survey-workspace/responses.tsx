@@ -321,19 +321,21 @@ const ResponsesView = ({
           resolverContext={resolverContext}
           scrollParent={scrollParent}
           virtualizeThreshold={50}
+          trailingRow={
+            <div style={{ paddingBottom: "8px" }}>
+              <FetchMore
+                isLoading={isLoading}
+                hasMore={list.hasMore}
+                fetchMore={handleFetchMore}
+                scannedCount={list.items.length}
+                filteredCount={filtered.length}
+                itemCount={responses.length}
+                emptyWithMoreMessage="条件に一致する回答が見つかりませんでした"
+                emptyNoMoreMessage="回答がまだありません。"
+              />
+            </div>
+          }
         />
-        <div style={{ position: "sticky", left: 0, paddingBottom: "8px" }}>
-          <FetchMore
-            isLoading={isLoading}
-            hasMore={list.hasMore}
-            fetchMore={handleFetchMore}
-            scannedCount={list.items.length}
-            filteredCount={filtered.length}
-            itemCount={responses.length}
-            emptyWithMoreMessage="条件に一致する回答が見つかりませんでした"
-            emptyNoMoreMessage="回答がまだありません。"
-          />
-        </div>
         <div ref={bottomAnchorRef} />
       </div>
 

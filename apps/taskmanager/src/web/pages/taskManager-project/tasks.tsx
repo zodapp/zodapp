@@ -682,19 +682,21 @@ const TasksPage = () => {
           resolverContext={resolverContext}
           scrollParent={scrollParent}
           virtualizeThreshold={50}
+          trailingRow={
+            <div style={{ paddingBottom: "8px" }}>
+              <FetchMore
+                isLoading={isLoading}
+                hasMore={hasMore}
+                fetchMore={handleFetchMore}
+                scannedCount={scannedCount}
+                filteredCount={filteredCount}
+                itemCount={tasks.length}
+                emptyWithMoreMessage="フィルタ条件に一致するタスクが見つかりませんでした"
+                emptyNoMoreMessage="タスクがありません。新規作成してください。"
+              />
+            </div>
+          }
         />
-        <div style={{ position: "sticky", left: 0, paddingBottom: "8px" }}>
-          <FetchMore
-            isLoading={isLoading}
-            hasMore={hasMore}
-            fetchMore={handleFetchMore}
-            scannedCount={scannedCount}
-            filteredCount={filteredCount}
-            itemCount={tasks.length}
-            emptyWithMoreMessage="フィルタ条件に一致するタスクが見つかりませんでした"
-            emptyNoMoreMessage="タスクがありません。新規作成してください。"
-          />
-        </div>
         <div ref={bottomAnchorRef} />
       </div>
 
