@@ -54,10 +54,11 @@ export const projects = tableConfig({
   create: projectBodySchema,
   key: { partition: ["workspaceId"], sort: ["projectId"] },
   indexes: {
+    // 末尾の projectId は同順位の決め手（tie breaker）
     byStatus: {
       slot: "GSI1",
       partition: ["workspaceId", "status"],
-      sort: ["createdAt"],
+      sort: ["createdAt", "projectId"],
     },
   },
   generateKey: {

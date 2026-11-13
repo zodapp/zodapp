@@ -382,9 +382,9 @@ export const tasks = tableConfig({
 
   // 物理GSIのスロットを明示して割り当てる
   indexes: {
-    byStatus: { slot: "GSI1", partition: ["workspaceId", "status"], sort: ["priority", "updatedAt"] },
-    byAssignee: { slot: "GSI2", partition: ["workspaceId", "assignee"], sort: ["updatedAt"] },
-    byDue: { slot: "GSI3", partition: ["workspaceId"], sort: ["dueDate"] },
+    byStatus: { slot: "GSI1", partition: ["workspaceId", "status"], sort: ["priority", "updatedAt", "taskId"] },
+    byAssignee: { slot: "GSI2", partition: ["workspaceId", "assignee"], sort: ["updatedAt", "taskId"] },
+    byDue: { slot: "GSI3", partition: ["workspaceId"], sort: ["dueDate", "taskId"] },
   },
 
   // ライフサイクルフック。マージする値を返す。マージと検証はライブラリが行う
@@ -408,6 +408,12 @@ export const tasks = tableConfig({
 | `indexes.*.slot` | 物理レイアウトに存在するスロットであること。同じエンティティで同じスロットを二度使わないこと | 同上 |
 
 unionの `keyof` は共通フィールドになるため、ベーステーブルのキーにはすべてのItemが持つフィールドしか指定できない。一部のvariantにしかないフィールドをIndexに指定すると、そのvariantのItemだけが載るsparse indexになる（§5.5）。
+
+### 同順位の決め手（tie breaker）
+
+Indexの `sort` が同じ値になるItemが並ぶと、DynamoDBはその中の順を決めない。主キーの順になるとも限らない。一方、ライブの一覧（§9）は「Sort Key、同じなら主キー」の順で並べ、どこまで読んだかを判定する。順を一意に決めたいIndexでは、`sort` の末尾に主キーのフィールド（`partition` と `sort` にまだ入っていないもの）を書く。上の例の `taskId` がそれである。
+
+Firestoreのようにライブラリが主キーを自動で付けることはしない。`sort` がすでに一意な値（ナチュラルキー）で終わっている場合にまで、Sort Keyを長くしないためである。付け忘れると、同じSort Keyのものがページの境界をまたいだとき、ライブの一覧で読み込んだ項目の一部が隠れる（「さらに読み込む」で現れる）。ライブの一覧で使うIndexには必ず書く。
 
 ### 変更しないフィールド（`immutable`）
 

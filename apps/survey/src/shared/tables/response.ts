@@ -83,13 +83,14 @@ export const responses = tableConfig({
   create: responseBodySchema,
   key: { partition: ["workspaceId"], sort: ["responseId"] },
   indexes: {
+    // どちらも末尾の responseId は同順位の決め手（tie breaker）
     // ワークスペース内の全回答（回答日時の新しい順）
-    bySubmittedAt: { slot: "GSI1", partition: ["workspaceId"], sort: ["submittedAt"] },
+    bySubmittedAt: { slot: "GSI1", partition: ["workspaceId"], sort: ["submittedAt", "responseId"] },
     // アンケートごとの回答
     bySurvey: {
       slot: "GSI2",
       partition: ["workspaceId", "surveyId"],
-      sort: ["submittedAt"],
+      sort: ["submittedAt", "responseId"],
     },
   },
   generateKey: {

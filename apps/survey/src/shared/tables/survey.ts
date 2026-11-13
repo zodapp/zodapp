@@ -68,10 +68,11 @@ export const surveys = tableConfig({
   key: { partition: ["workspaceId"], sort: ["surveyId"] },
   indexes: {
     // 有効なアンケート（deletedAt が null）とゴミ箱を、Sort Key の先頭で分ける
+    // 末尾の surveyId は同順位の決め手（tie breaker）
     byDeletedAt: {
       slot: "GSI1",
       partition: ["workspaceId"],
-      sort: ["deletedAt", "createdAt"],
+      sort: ["deletedAt", "createdAt", "surveyId"],
     },
   },
   generateKey: {
