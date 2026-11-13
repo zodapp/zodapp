@@ -1419,6 +1419,10 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
         await waitForAnimationFrame();
         await waitForAnimationFrame();
         virtualizer.scrollBy(offsetPx, { behavior: "auto" });
+        // 位置が落ち着いてから返す。書いた直後に次のスクロール（なめらかな最後の一歩）を始めると、
+        // その書き込みのスクロールの通知が利用者の操作と読まれ、最後の一歩が途中で止まる
+        await waitForAnimationFrame();
+        await waitForAnimationFrame();
       }
     },
     [useVirtualized, virtualizer],
@@ -1432,6 +1436,10 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
         await waitForAnimationFrame();
         await waitForAnimationFrame();
         virtualizer.scrollBy(-offsetPx, { behavior: "auto" });
+        // 位置が落ち着いてから返す。書いた直後に次のスクロール（なめらかな最後の一歩）を始めると、
+        // その書き込みのスクロールの通知が利用者の操作と読まれ、最後の一歩が途中で止まる
+        await waitForAnimationFrame();
+        await waitForAnimationFrame();
       }
     },
     [useVirtualized, virtualizer],
