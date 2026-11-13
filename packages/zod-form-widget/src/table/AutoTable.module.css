@@ -109,3 +109,27 @@
   display: inline-flex;
   text-decoration: none;
 }
+
+/* 最後の行（trailingRow）のセル。Mantine の Table.Tr / Table.Td を使わないので、
+   行に向けたホバーの色・罫線・余白は付かない */
+.trailingRowCell {
+  padding: 0;
+  border: 0;
+}
+
+/* sticky の left の % はスクロール領域の見えている幅に対する割合。
+   左端を見えている幅の中央に留め、自分の幅の半分だけ戻して、中央に置く */
+.trailingRowContent {
+  position: sticky;
+  left: 50%;
+  display: inline-block;
+  transform: translateX(-50%);
+}
+
+/* 仮想スクロールで描かない行の分の高さを取る行。罫線・余白・ホバーの色を付けない */
+.spacerRow,
+.spacerRow > td {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}

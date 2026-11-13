@@ -212,10 +212,8 @@ export function useAutoTableScroll(options: UseAutoTableScrollOptions): UseAutoT
       if (keepFabVisible) {
         hasStartedAutoScrollRef.current = true;
       }
-      scrollParent?.scrollTo({
-        top: scrollParent.scrollHeight,
-        behavior
-      });
+      // 末尾への最後の一歩も表に任せる（仮想スクロールでは、行の測り直しに合わせて位置を直してくれる）
+      tableRef.current?.scrollToBottom({ behavior });
       if (scrollParent && behavior === 'auto') {
         setScrollState(buildScrollState(scrollParent, edgeThresholdPx));
       }
@@ -230,15 +228,17 @@ export function useAutoTableScroll(options: UseAutoTableScrollOptions): UseAutoT
       return;
     }
 
+    // 読み込んだ後は、末尾へ一度で移る。位置の計算と、行を測り直した後の合わせ直しは表（仮想スクロール）に任せる。
+    // 「さらに読み込む」を表の最後の行（trailingRow）にしておけば、その下端まで届く
     const animationFrameId = window.requestAnimationFrame(() => {
-      void (async () => {
-        await scrollToBottom({ behavior: 'auto', keepFabVisible: false });
-        setIsFetchMoreScrollPending(false);
-      })();
+      tableRef.current?.scrollToBottom({ behavior: 'auto' });
+      // スクロールの通知を待たずに、移った後の位置で「末尾へ」の表示を決める（1コマだけ出るのを防ぐ）
+      if (scrollParent) setScrollState(buildScrollState(scrollParent, edgeThresholdPx));
+      setIsFetchMoreScrollPending(false);
     });
 
     return () => window.cancelAnimationFrame(animationFrameId);
-  }, [isFetchMoreScrollPending, itemCount, isLoading, scrollToBottom]);
+  }, [edgeThresholdPx, isFetchMoreScrollPending, itemCount, isLoading, scrollParent]);
 
   useEffect(() => {
     if (!autoScrollDirection || !hasStartedAutoScrollRef.current) return;

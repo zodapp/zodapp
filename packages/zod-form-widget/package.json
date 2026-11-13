@@ -30,12 +30,12 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@mantine/dropzone": "^9.6.3",
     "@tabler/icons-react": "^3.36.1",
+    "@tanstack/react-virtual": "^3.14.26",
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-form-mantine": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",
     "@zodapp/zod-tabular": "workspace:*",
     "lodash": "^4.17.21",
-    "react-virtuoso": "^4.18.3",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
