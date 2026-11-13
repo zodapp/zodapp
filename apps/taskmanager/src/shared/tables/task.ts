@@ -117,17 +117,18 @@ export const tasks = tableConfig({
   key: { partition: ["workspaceId", "projectId"], sort: ["taskId"] },
   indexes: {
     // 有効なタスク（deletedAt が null）とゴミ箱を、Sort Key の先頭で分ける
+    // 末尾の taskId は同順位の決め手（tie breaker）。まとめて投入すると createdAt がそろうため
     byDeletedAt: {
       slot: "GSI2",
       partition: ["workspaceId", "projectId"],
-      sort: ["deletedAt", "createdAt"],
+      sort: ["deletedAt", "createdAt", "taskId"],
     },
     // ステータスで絞った有効なタスク。DynamoDB はキーでしか絞り込めないので、
     // 画面の検索条件のうちステータスはこの Index で、残りはブラウザで絞る
     byStatus: {
       slot: "GSI1",
       partition: ["workspaceId", "projectId", "status"],
-      sort: ["deletedAt", "createdAt"],
+      sort: ["deletedAt", "createdAt", "taskId"],
     },
   },
   // 作成日時は作成した後に変えない（更新でこのフィールドを書き換えようとするとエラーになる）

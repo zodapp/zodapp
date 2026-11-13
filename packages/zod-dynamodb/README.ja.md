@@ -28,7 +28,7 @@ export const tasks = tableConfig({
     byStatus: {
       slot: "GSI1",
       partition: ["workspaceId", "status"],
-      sort: ["priority", "updatedAt"],
+      sort: ["priority", "updatedAt", "taskId"],
     },
   },
   onCreate: ({ now }) => ({ createdAt: now, updatedAt: now }),
