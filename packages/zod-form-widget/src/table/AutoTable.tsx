@@ -5,16 +5,13 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { Table, Loader } from "@mantine/core";
-import {
-  TableVirtuoso,
-  type TableComponents,
-  type TableVirtuosoHandle,
-} from "react-virtuoso";
+import { useVirtualizer, type VirtualItem, type Virtualizer } from "@tanstack/react-virtual";
 import {
   IconChevronDown,
   IconChevronUp,
@@ -112,6 +109,12 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   defaultSortState?: SortState | null;
   scrollParent?: HTMLElement | null;
   virtualizeThreshold?: number;
+  /**
+   * 仮想スクロールで、まだ描画していない行の高さの見込み（px）。
+   * 行の高さが決まっている表で実際の値を渡すと、離れた行へ飛んだ直後の位置の補正が小さくなります。
+   * 見込みとずれていても、描画した行は実測されるので表示は破綻しません。
+   */
+  estimatedRowHeight?: number;
   onScrollStateChange?: (state: AutoTableScrollState) => void;
   onRowClick?: (item: AutoTableItem<TSchema>) => void;
   getRowClassName?: (item: AutoTableItem<TSchema>) => string | undefined;
@@ -120,6 +123,11 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   selectedRowClassName?: string;
   trailingSchema?: z.ZodTypeAny;
   trailingDefaultFieldPaths?: string[];
+  /**
+   * 表の最後の行として描く中身（「さらに読み込む」など）。全列をまたぐ1つのセルに入る。
+   * 仮想スクロールでは他の行と同じように測られ、末尾へのスクロールの目標にも含まれる
+   */
+  trailingRow?: React.ReactNode;
 };
 
 type AutoTablePropsWithSchema<TSchema extends z.ZodTypeAny> =
@@ -161,10 +169,6 @@ const SCROLL_EDGE_THRESHOLD = 8;
 const USE_FIXED_WIDTH_IN_PREVIEW = true;
 const STRIPED_ROW_STYLE: React.CSSProperties = {
   backgroundColor: "var(--table-striped-color)",
-};
-const VIRTUALIZED_ROW_BORDER_STYLE: React.CSSProperties = {
-  borderBottom:
-    "calc(0.0625rem * var(--mantine-scale)) solid var(--mantine-color-gray-3)",
 };
 
 const EMPTY_COLUMN_SCHEMA = z.string().optional();
@@ -215,10 +219,6 @@ const buildScrollState = (element: HTMLElement): AutoTableScrollState => {
       scrollTop + clientHeight >= scrollHeight - SCROLL_EDGE_THRESHOLD,
   };
 };
-
-const toVirtuosoScrollBehavior = (
-  behavior: ScrollBehavior,
-): "auto" | "smooth" => (behavior === "smooth" ? "smooth" : "auto");
 
 const waitForAnimationFrame = () =>
   new Promise<void>((resolve) => {
@@ -972,6 +972,42 @@ const RowCells = memo(RowCellsInner) as <TItem extends TableRowData>(
 ) => React.ReactElement;
 
 const DEFAULT_ITEM_HEIGHT = 38;
+// 見えている範囲の上下に余分に描く行の数
+const OVERSCAN_ROWS = 5;
+
+// 行の高さを丸めずに測る。TanStack Virtual は既定で Math.round で測るので、
+// 端数の出る環境（デバイスピクセル比が 1 以外、ズームなど。例：39.6875px が 40px）では、
+// 測った行の数だけ見積もりと実際の位置がずれていく
+const measureRowHeight = (
+  element: HTMLTableRowElement,
+  entry: ResizeObserverEntry | undefined,
+) => entry?.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height;
+
+type AutoTableVirtualizer = Virtualizer<HTMLElement, HTMLTableRowElement>;
+
+// 行の高さが変わったとき、スクロール位置をその分ずらして見えている行を留めるか。
+// TanStack Virtual の既定の判定と同じだが、スクロール領域が末尾にあるときはずらさない。
+// 末尾では、行が伸びれば anchorTo: "end" が末尾に留め、縮めばブラウザが末尾に収める。
+// 既定のままだと、スクロールバーで一気に末尾へ動かした直後に上の行を初めて測ったとき、
+// 内部の位置が実際より遅れていて「末尾にいない」と判定され、末尾から十数 px 上にずれることがある
+const shouldAdjustScrollOnRowResize = (
+  item: VirtualItem,
+  _delta: number,
+  instance: AutoTableVirtualizer,
+) => {
+  const element = instance.scrollElement;
+  if (
+    element &&
+    element.scrollHeight - element.clientHeight - element.scrollTop <= SCROLL_EDGE_THRESHOLD
+  ) {
+    return false;
+  }
+  const scrollOffset = instance.scrollOffset ?? 0;
+  const isFirstMeasure = !instance.itemSizeCache.has(item.key);
+  return isFirstMeasure
+    ? item.start < scrollOffset
+    : item.end <= scrollOffset && instance.scrollDirection !== "backward";
+};
 
 type SharedViewProps<TItem extends TableRowData> = {
   fields: AutoTableField[];
@@ -994,10 +1030,36 @@ type SharedViewProps<TItem extends TableRowData> = {
   selectedRowKey?: AutoTableRowKey | null;
   rowClassName?: string;
   selectedRowClassName?: string;
+  trailingRow?: React.ReactNode;
 };
+
+const TRAILING_ROW_KEY = "__autoTableTrailingRow";
+
+// 全列をまたぐ1つのセル。横にスクロールする表でも、中身はスクロール領域の見えている幅の中央に留める。
+// sticky の left の % はスクロール領域の見えている幅に対する割合なので、
+// 左端を見えている幅の中央に留め、自分の幅の半分だけ戻すと、いつも中央に来る
+function TrailingRowCell({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
+  return (
+    <td colSpan={colSpan} className={styles.trailingRowCell}>
+      <div className={styles.trailingRowContent}>{children}</div>
+    </td>
+  );
+}
+
+// 仮想スクロールで描かない行の分の高さを取る、中身のない行
+function SpacerRow({ height, colSpan }: { height: number; colSpan: number }) {
+  if (height <= 0) return null;
+  return (
+    <tr aria-hidden="true" className={styles.spacerRow}>
+      <td colSpan={colSpan} style={{ height }} />
+    </tr>
+  );
+}
 
 type BodyRowProps<TItem extends TableRowData> = {
   item: TItem;
+  index: number;
+  measureRef?: (node: HTMLTableRowElement | null) => void;
   fields: AutoTableField[];
   isPreviewing: boolean;
   focusedColumnId: string | undefined;
@@ -1013,6 +1075,8 @@ type BodyRowProps<TItem extends TableRowData> = {
 
 function BodyRowInner<TItem extends TableRowData>({
   item,
+  index,
+  measureRef,
   fields,
   isPreviewing,
   focusedColumnId,
@@ -1027,6 +1091,8 @@ function BodyRowInner<TItem extends TableRowData>({
 }: BodyRowProps<TItem>) {
   return (
     <Table.Tr
+      ref={measureRef}
+      data-index={index}
       className={resolveRowClassName({
         item,
         isSelected,
@@ -1060,7 +1126,10 @@ const BodyRow = memo(BodyRowInner) as <TItem extends TableRowData>(
   props: BodyRowProps<TItem>,
 ) => React.ReactElement;
 
-function LegacyTableView<TItem extends TableRowData>({
+// 普通の表と仮想スクロールの表を、同じ table のまま描く。
+// 仮想スクロールでは、見えている範囲の行だけを描き、上下の描かない行の分は中身のない行で高さを取る。
+// 件数がしきい値をまたいでも table を作り直さないので、中身のないコマが出ない
+function TableView<TItem extends TableRowData>({
   fields,
   sortedData,
   keyField,
@@ -1081,9 +1150,42 @@ function LegacyTableView<TItem extends TableRowData>({
   rowClassName,
   selectedRowClassName,
   tableRefCallback,
+  tbodyRef,
+  trailingRow,
+  virtualizer,
 }: SharedViewProps<TItem> & {
   tableRefCallback: ReactRefCallbackLike<HTMLTableElement>;
+  tbodyRef: React.Ref<HTMLTableSectionElement>;
+  // 仮想スクロールしないときは null
+  virtualizer: AutoTableVirtualizer | null;
 }) {
+  const virtualItems = virtualizer?.getVirtualItems() ?? null;
+  const rows = virtualItems
+    ? virtualItems.map((virtualItem) => ({
+        index: virtualItem.index,
+        item: sortedData[virtualItem.index],
+      }))
+    : sortedData.map((item, index) => ({ index, item }));
+  // 仮想スクロールでは、最後の行（trailingRow）も仮想スクロールの行の1つとして測る。
+  // 表の外に置くと、仮想スクロールが末尾の位置を知らず、末尾に合わせた位置がその高さの分ずれる
+  const trailingIndex = sortedData.length;
+  const showTrailingRow =
+    trailingRow != null &&
+    (virtualItems == null ||
+      virtualItems.some((virtualItem) => virtualItem.index === trailingIndex));
+
+  let paddingTop = 0;
+  let paddingBottom = 0;
+  if (virtualizer && virtualItems && virtualItems.length > 0) {
+    const { scrollMargin } = virtualizer.options;
+    const first = virtualItems[0]!;
+    const last = virtualItems[virtualItems.length - 1]!;
+    paddingTop = first.start - scrollMargin;
+    paddingBottom = virtualizer.getTotalSize() - (last.end - scrollMargin);
+  } else if (virtualizer) {
+    paddingTop = virtualizer.getTotalSize();
+  }
+
   return (
     <Table
       ref={tableRefCallback}
@@ -1114,14 +1216,18 @@ function LegacyTableView<TItem extends TableRowData>({
           ))}
         </Table.Tr>
       </Table.Thead>
-      <Table.Tbody>
-        {sortedData.map((item, index) => {
+      <Table.Tbody ref={tbodyRef}>
+        <SpacerRow height={paddingTop} colSpan={fields.length} />
+        {rows.map(({ index, item }) => {
+          if (index === trailingIndex || !item) return null;
           const isSelected = isSelectedRow(item[keyField], selectedRowKey);
 
           return (
             <BodyRow
               key={String(item[keyField])}
               item={item}
+              index={index}
+              measureRef={virtualizer?.measureElement}
               fields={fields}
               isPreviewing={isPreviewing}
               focusedColumnId={focusedColumnId}
@@ -1136,188 +1242,19 @@ function LegacyTableView<TItem extends TableRowData>({
             />
           );
         })}
+        {showTrailingRow ? (
+          <tr
+            key={TRAILING_ROW_KEY}
+            ref={virtualizer?.measureElement}
+            data-index={trailingIndex}
+            role="presentation"
+          >
+            <TrailingRowCell colSpan={fields.length}>{trailingRow}</TrailingRowCell>
+          </tr>
+        ) : null}
+        <SpacerRow height={paddingBottom} colSpan={fields.length} />
       </Table.Tbody>
     </Table>
-  );
-}
-
-function VirtualizedTableView<TItem extends TableRowData>({
-  fields,
-  sortedData,
-  keyField,
-  totalWidthWeight,
-  isPreviewing,
-  sortable,
-  sortState,
-  focusedColumnId,
-  activeResizeColumn,
-  focusedThRef,
-  handlePreviewPointerDown,
-  handleSortToggle,
-  tableClassName,
-  tableStyle,
-  onRowClick,
-  getRowClassName,
-  selectedRowKey,
-  rowClassName,
-  selectedRowClassName,
-  tableRefCallback,
-  scrollParent,
-  virtuosoRef,
-}: SharedViewProps<TItem> & {
-  tableRefCallback: (node: HTMLTableElement | null) => void;
-  scrollParent: HTMLElement;
-  virtuosoRef: React.RefObject<TableVirtuosoHandle | null>;
-}) {
-  type RowData = TItem;
-  const components = useMemo<TableComponents<RowData>>(
-    () => {
-      const VirtuosoTable = React.forwardRef<
-        HTMLTableElement,
-        React.ComponentPropsWithRef<"table">
-      >(({ style, ...props }, _ref) => (
-        <Table
-          {...props}
-          ref={tableRefCallback}
-          className={tableClassName}
-          highlightOnHover
-          style={{ ...tableStyle, ...style }}
-        />
-      ));
-      VirtuosoTable.displayName = "AutoTableVirtuosoTable";
-
-      return {
-        Table: VirtuosoTable,
-        TableRow: ({ style, item, ...props }) => {
-          const itemKey = item ? String(item[keyField]) : undefined;
-          const rowIndex = props["data-index"];
-          const isSelected = item
-            ? isSelectedRow(item[keyField], selectedRowKey)
-            : false;
-          const isStripedRow =
-            !isSelected && Number.isInteger(rowIndex) && rowIndex % 2 === 0;
-
-          return (
-            <tr
-              {...props}
-              className={
-                item
-                  ? resolveRowClassName({
-                      item,
-                      isSelected,
-                      getRowClassName,
-                      rowClassName,
-                      selectedRowClassName,
-                    })
-                  : undefined
-              }
-              onClick={
-                item
-                  ? (event) => {
-                      if (!shouldHandleRowClick(event)) return;
-                      onRowClick?.(item);
-                    }
-                  : undefined
-              }
-              style={{
-                ...style,
-                ...VIRTUALIZED_ROW_BORDER_STYLE,
-                ...(isStripedRow ? STRIPED_ROW_STYLE : {}),
-              }}
-              key={itemKey}
-            />
-          );
-        },
-      };
-    },
-    [
-      getRowClassName,
-      keyField,
-      onRowClick,
-      rowClassName,
-      selectedRowClassName,
-      selectedRowKey,
-      tableClassName,
-      tableStyle,
-      tableRefCallback,
-    ],
-  );
-
-  const fixedHeaderContent = useCallback(
-    () => (
-      <Table.Tr className={styles.stickyHeaderRow}>
-        {fields.map((field) => (
-          <HeaderCell
-            key={field.key}
-            field={field}
-            cellRef={focusedColumnId === field.key ? focusedThRef : undefined}
-            isPreviewing={isPreviewing}
-            totalWidthWeight={totalWidthWeight}
-            canSort={sortable && field.isSortTarget}
-            sortOrder={
-              sortState?.sortKey === field.propertyName
-                ? sortState.order
-                : undefined
-            }
-            isFocused={focusedColumnId === field.key}
-            isResizing={activeResizeColumn === field.key}
-            onPreviewPointerDown={handlePreviewPointerDown}
-            onSortToggle={handleSortToggle}
-          />
-        ))}
-      </Table.Tr>
-    ),
-    [
-      fields,
-      totalWidthWeight,
-      isPreviewing,
-      sortable,
-      sortState,
-      focusedColumnId,
-      activeResizeColumn,
-      focusedThRef,
-      handlePreviewPointerDown,
-      handleSortToggle,
-    ],
-  );
-
-  const itemContent = useCallback(
-    (_index: number, item: TItem) => (
-      <RowCells
-        fields={fields}
-        item={item}
-        isPreviewing={isPreviewing}
-        focusedColumnId={focusedColumnId}
-        activeResizeColumn={activeResizeColumn}
-        onPreviewPointerDown={handlePreviewPointerDown}
-      />
-    ),
-    [
-      fields,
-      isPreviewing,
-      focusedColumnId,
-      activeResizeColumn,
-      handlePreviewPointerDown,
-    ],
-  );
-
-  const computeItemKey = useCallback(
-    (_index: number, item: TItem) => String(item[keyField]),
-    [keyField],
-  );
-
-  return (
-    <TableVirtuoso
-      ref={virtuosoRef}
-      data={sortedData}
-      customScrollParent={scrollParent}
-      defaultItemHeight={DEFAULT_ITEM_HEIGHT}
-      fixedHeaderContent={fixedHeaderContent}
-      itemContent={itemContent}
-      computeItemKey={computeItemKey}
-      components={components}
-      increaseViewportBy={200}
-    />
   );
 }
 
@@ -1338,8 +1275,10 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     controller,
     trailingSchema,
     trailingDefaultFieldPaths,
+    trailingRow,
     scrollParent,
     virtualizeThreshold,
+    estimatedRowHeight = DEFAULT_ITEM_HEIGHT,
     onScrollStateChange,
     onRowClick,
     getRowClassName,
@@ -1418,88 +1357,92 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
   }, []);
 
   const useVirtualized =
-    virtualizeThreshold != null &&
     scrollParent != null &&
+    virtualizeThreshold != null &&
     data.length >= virtualizeThreshold;
-  const virtuosoRef = useRef<TableVirtuosoHandle | null>(null);
+
+  // 表の行の始まり（tbody の上端）が、スクロール領域の中身の上端からどれだけ下にあるか。
+  // 見出しや、スクロール領域の中で表より上にあるものの高さの分。仮想スクロールが行の位置を計算するのに使う
+  const tbodyRef = useRef<HTMLTableSectionElement | null>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useLayoutEffect(() => {
+    const tbody = tbodyRef.current;
+    if (!useVirtualized || !scrollParent || !tbody) return;
+    const update = () => {
+      const next =
+        tbody.getBoundingClientRect().top -
+        scrollParent.getBoundingClientRect().top +
+        scrollParent.scrollTop;
+      setScrollMargin((current) => (Math.abs(current - next) < 0.5 ? current : next));
+    };
+    update();
+    // 見出しの高さが変わる（列の幅が変わって折り返すなど）と、行の始まりも動く
+    const thead = tbody.parentElement?.querySelector("thead");
+    if (!thead) return;
+    const observer = new ResizeObserver(update);
+    observer.observe(thead);
+    return () => observer.disconnect();
+  }, [scrollParent, useVirtualized]);
+
+  const virtualizer = useVirtualizer<HTMLElement, HTMLTableRowElement>({
+    // 最後の行（trailingRow）があれば、その分も1行として数える
+    count: sortedData.length + (trailingRow != null ? 1 : 0),
+    getScrollElement: () => scrollParent ?? null,
+    estimateSize: () => estimatedRowHeight,
+    // 測った高さを、何番目の行かではなく、行のキーで覚える
+    getItemKey: (index) => {
+      const item = sortedData[index];
+      return item ? String(item[keyField]) : TRAILING_ROW_KEY;
+    },
+    measureElement: measureRowHeight,
+    overscan: OVERSCAN_ROWS,
+    scrollMargin,
+    // 末尾にいる間に行の高さが変わったら（画像の読み込みなど）、末尾に留まる
+    anchorTo: "end",
+    enabled: useVirtualized,
+  });
+
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = shouldAdjustScrollOnRowResize;
 
   const getScrollElement = useCallback(
     () => scrollParent ?? tableRef.current?.parentElement ?? null,
     [scrollParent, tableRef],
   );
 
+  // 先頭・末尾へのスクロールは仮想スクロールに任せる。仮想スクロールは、行を測り直して目標が動いても、
+  // 位置が落ち着くまで合わせ直す（最長 5 秒で止まる）。外から scrollTop を書くと、その合わせ直しと引っ張り合いになる
   const ensureFirstItemVisible = useCallback(
     async ({ offsetPx = 0 } = {}) => {
-      if (!useVirtualized || !virtuosoRef.current) return;
-
-      const scrollElement = getScrollElement();
-
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        virtuosoRef.current.scrollToIndex({
-          index: 0,
-          align: "start",
-          behavior: "auto",
-        });
-
+      if (!useVirtualized) return;
+      virtualizer.scrollToIndex(0, { align: "start", behavior: "auto" });
+      if (offsetPx > 0) {
         await waitForAnimationFrame();
         await waitForAnimationFrame();
-
-        if ((scrollElement?.scrollTop ?? 0) <= SCROLL_EDGE_THRESHOLD + offsetPx)
-          break;
-      }
-
-      if (offsetPx > 0 && scrollElement) {
-        scrollElement.scrollTo({ top: offsetPx, behavior: "auto" });
+        virtualizer.scrollBy(offsetPx, { behavior: "auto" });
       }
     },
-    [getScrollElement, useVirtualized],
+    [useVirtualized, virtualizer],
   );
 
   const ensureLastItemVisible = useCallback(
     async ({ offsetPx = 0 } = {}) => {
-      if (!useVirtualized || !virtuosoRef.current) return;
-
-      const scrollElement = getScrollElement();
-      let previousScrollHeight = -1;
-
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        virtuosoRef.current.scrollToIndex({
-          index: "LAST",
-          align: "end",
-          behavior: "auto",
-        });
-
+      if (!useVirtualized) return;
+      virtualizer.scrollToEnd({ behavior: "auto" });
+      if (offsetPx > 0) {
         await waitForAnimationFrame();
         await waitForAnimationFrame();
-
-        const nextScrollHeight =
-          scrollElement?.scrollHeight ?? previousScrollHeight;
-        if (nextScrollHeight === previousScrollHeight) break;
-        previousScrollHeight = nextScrollHeight;
-      }
-
-      if (offsetPx > 0 && scrollElement) {
-        const maxScroll =
-          scrollElement.scrollHeight - scrollElement.clientHeight;
-        scrollElement.scrollTo({
-          top: Math.max(0, maxScroll - offsetPx),
-          behavior: "auto",
-        });
+        virtualizer.scrollBy(-offsetPx, { behavior: "auto" });
       }
     },
-    [getScrollElement, useVirtualized],
+    [useVirtualized, virtualizer],
   );
 
   useImperativeHandle(
     ref,
     () => ({
       scrollToTop: ({ behavior = "smooth" } = {}) => {
-        if (useVirtualized && virtuosoRef.current) {
-          virtuosoRef.current.scrollToIndex({
-            index: 0,
-            align: "start",
-            behavior: toVirtuosoScrollBehavior(behavior),
-          });
+        if (useVirtualized) {
+          virtualizer.scrollToOffset(0, { behavior });
           return;
         }
         const element = getScrollElement();
@@ -1507,12 +1450,8 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
         element.scrollTo({ top: 0, behavior });
       },
       scrollToBottom: ({ behavior = "smooth" } = {}) => {
-        if (useVirtualized && virtuosoRef.current) {
-          virtuosoRef.current.scrollToIndex({
-            index: "LAST",
-            align: "end",
-            behavior: toVirtuosoScrollBehavior(behavior),
-          });
+        if (useVirtualized) {
+          virtualizer.scrollToEnd({ behavior });
           return;
         }
         const element = getScrollElement();
@@ -1527,6 +1466,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
       ensureLastItemVisible,
       getScrollElement,
       useVirtualized,
+      virtualizer,
     ],
   );
 
@@ -1551,57 +1491,32 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
       resolverContext={resolverContext}
       collectionReferenceActions={collectionReferenceActions}
     >
-      {useVirtualized ? (
-        <VirtualizedTableView
-          fields={fields}
-          sortedData={sortedData}
-          keyField={keyField}
-          totalMinWidth={totalMinWidth}
-          totalWidthWeight={totalWidthWeight}
-          isPreviewing={isPreviewing}
-          sortable={sortable}
-          sortState={sortState}
-          focusedColumnId={focusedColumnId}
-          activeResizeColumn={activeResizeColumn}
-          focusedThRef={focusedThRef}
-          handlePreviewPointerDown={handlePreviewPointerDown}
-          handleSortToggle={handleSortToggle}
-          tableClassName={tableClassName}
-          tableStyle={tableStyle}
-          onRowClick={onRowClick}
-          getRowClassName={getRowClassName}
-          selectedRowKey={selectedRowKey}
-          rowClassName={rowClassName}
-          selectedRowClassName={selectedRowClassName}
-          tableRefCallback={tableRefCallback}
-          scrollParent={scrollParent}
-          virtuosoRef={virtuosoRef}
-        />
-      ) : (
-        <LegacyTableView
-          fields={fields}
-          sortedData={sortedData}
-          keyField={keyField}
-          totalMinWidth={totalMinWidth}
-          totalWidthWeight={totalWidthWeight}
-          isPreviewing={isPreviewing}
-          sortable={sortable}
-          sortState={sortState}
-          focusedColumnId={focusedColumnId}
-          activeResizeColumn={activeResizeColumn}
-          focusedThRef={focusedThRef}
-          handlePreviewPointerDown={handlePreviewPointerDown}
-          handleSortToggle={handleSortToggle}
-          tableClassName={tableClassName}
-          tableStyle={tableStyle}
-          onRowClick={onRowClick}
-          getRowClassName={getRowClassName}
-          selectedRowKey={selectedRowKey}
-          rowClassName={rowClassName}
-          selectedRowClassName={selectedRowClassName}
-          tableRefCallback={tableRefCallback}
-        />
-      )}
+      <TableView
+        fields={fields}
+        sortedData={sortedData}
+        trailingRow={trailingRow}
+        keyField={keyField}
+        totalMinWidth={totalMinWidth}
+        totalWidthWeight={totalWidthWeight}
+        isPreviewing={isPreviewing}
+        sortable={sortable}
+        sortState={sortState}
+        focusedColumnId={focusedColumnId}
+        activeResizeColumn={activeResizeColumn}
+        focusedThRef={focusedThRef}
+        handlePreviewPointerDown={handlePreviewPointerDown}
+        handleSortToggle={handleSortToggle}
+        tableClassName={tableClassName}
+        tableStyle={tableStyle}
+        onRowClick={onRowClick}
+        getRowClassName={getRowClassName}
+        selectedRowKey={selectedRowKey}
+        rowClassName={rowClassName}
+        selectedRowClassName={selectedRowClassName}
+        tableRefCallback={tableRefCallback}
+        tbodyRef={tbodyRef}
+        virtualizer={useVirtualized ? virtualizer : null}
+      />
     </ZodFormContextProvider>
   );
 };
