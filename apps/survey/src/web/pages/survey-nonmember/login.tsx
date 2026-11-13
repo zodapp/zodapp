@@ -147,7 +147,7 @@ const LoginPage = () => {
   };
 
   return (
-    <Container size="xs">
+    <Container size="xs" w="100%">
       <Paper radius="md" p="xl" withBorder>
         <Stack gap="lg">
           <Stack gap="xs" align="center">
