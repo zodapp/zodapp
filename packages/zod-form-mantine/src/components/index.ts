@@ -30,6 +30,7 @@ export { component as StringComponent } from "./string.js";
 export { component as StringLazyComponent } from "./string_lazy.js";
 export { component as StringMultilineComponent } from "./string_multiline.js";
 export { component as StringPasswordComponent } from "./string_password.js";
+export { component as StringSelectComponent } from "./string_select.js";
 export { component as TupleComponent } from "./tuple.js";
 export { component as UnionComponent } from "./union.js";
 
@@ -69,6 +70,7 @@ export const componentLibrary: ComponentLibrary = {
     import("./string_multiline.js")) as DynamicZodFormDef,
   string_lazy: (() => import("./string_lazy.js")) as DynamicZodFormDef,
   string_password: (() => import("./string_password.js")) as DynamicZodFormDef,
+  string_select: (() => import("./string_select.js")) as DynamicZodFormDef,
   tuple: (() => import("./tuple.js")) as DynamicZodFormDef,
   union: (() => import("./union.js")) as DynamicZodFormDef,
 };

@@ -9,6 +9,7 @@ import {
   type FnInput,
   type StringSuggestion,
 } from "./index";
+import type { RegisteredValueActionConfig } from "../valueAction/types";
 
 type CommonMeta = {
   label?: string;
@@ -24,12 +25,14 @@ type CommonMeta = {
 type StringMeta = CommonMeta & {
   formatter?: (value: string) => ComputedValue;
   suggestions?: StringSuggestion[];
+  valueAction?: RegisteredValueActionConfig;
 };
 type NumberMeta = CommonMeta & {
   formatter?: (value: number) => ComputedValue;
 };
 type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
+  valueAction?: RegisteredValueActionConfig;
   schemas?: Record<string, z.ZodLiteral<string>>;
 };
 

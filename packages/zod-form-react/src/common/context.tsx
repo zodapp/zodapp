@@ -5,9 +5,11 @@ import type {
   ExternalKeyResolvers,
   ExternalKeyResolverResult,
   BaseExternalKeyConfig,
-  BaseExternalKeyActionConfig,
-  RegisteredExternalKeyActionConfig,
 } from "@zodapp/zod-form/externalKey/types";
+import type {
+  BaseValueActionConfig,
+  RegisteredValueActionConfig,
+} from "@zodapp/zod-form/valueAction/types";
 import type {
   FileResolvers,
   FileResolverResult,
@@ -30,12 +32,12 @@ import { basicMediaResolvers } from "../mediaResolvers";
 export type CollectionReferenceActionEntry = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reference: object;
-  action: RegisteredExternalKeyActionConfig;
+  action: RegisteredValueActionConfig;
 };
 
 type CollectionReferenceActionMap = ReadonlyMap<
   object,
-  RegisteredExternalKeyActionConfig
+  RegisteredValueActionConfig
 >;
 
 const toCollectionReferenceActionMap = (
@@ -63,28 +65,33 @@ export type DynamicZodFormDef =
  */
 export type ComponentLibrary = Record<string, DynamicZodFormDef>;
 
-export type ExternalKeyActionWrapper = (
+/** 値ごとの操作の描画を包む関数（リンクで包むなど） */
+export type ValueActionWrapper = (
   children: React.ReactNode,
 ) => React.ReactNode;
 
-export type BaseExternalKeyActionResolver<
-  TActionConfig = BaseExternalKeyActionConfig,
+/**
+ * 値ごとの操作（`valueAction`）を、実際の描画（リンクなど）に変える関数。
+ * アプリが router などの実装に合わせて渡す。
+ */
+export type BaseValueActionResolver<
+  TActionConfig = BaseValueActionConfig,
 > = (ctx: {
   value: string;
   actionConfig: TActionConfig;
   newTab?: boolean;
   resolverContext: RegisteredResolverContext;
-}) => ExternalKeyActionWrapper | undefined;
+}) => ValueActionWrapper | undefined;
 
-export type ExternalKeyActionResolver =
-  BaseExternalKeyActionResolver<RegisteredExternalKeyActionConfig>;
+export type ValueActionResolver =
+  BaseValueActionResolver<RegisteredValueActionConfig>;
 
 type ZodFormContextType = {
   componentLibrary: ComponentLibrary;
   loadingComponent: ZodForm;
   notFoundComponent: ZodForm;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（timestamp encoding 時に使用） */
@@ -124,7 +131,7 @@ export const ZodFormContextProvider = ({
   loadingComponent,
   notFoundComponent,
   externalKeyResolvers,
-  externalKeyActionResolver,
+  valueActionResolver,
   fileResolvers,
   mediaResolvers,
   timezone,
@@ -136,7 +143,7 @@ export const ZodFormContextProvider = ({
   loadingComponent?: ZodForm;
   notFoundComponent?: ZodForm;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   /** タイムゾーン（省略時はブラウザのローカルTZ） */
@@ -180,8 +187,8 @@ export const ZodFormContextProvider = ({
       notFoundComponent: notFoundComponent || parentContext.notFoundComponent,
       externalKeyResolvers:
         externalKeyResolvers ?? parentContext.externalKeyResolvers,
-      externalKeyActionResolver:
-        externalKeyActionResolver ?? parentContext.externalKeyActionResolver,
+      valueActionResolver:
+        valueActionResolver ?? parentContext.valueActionResolver,
       fileResolvers: fileResolvers ?? parentContext.fileResolvers,
       mediaResolvers: mediaResolvers ?? parentContext.mediaResolvers,
       timezone: timezone ?? parentContext.timezone,
@@ -191,7 +198,7 @@ export const ZodFormContextProvider = ({
     [
       collectionReferenceActionMap,
       componentLibrary,
-      externalKeyActionResolver,
+      valueActionResolver,
       externalKeyResolvers,
       fileResolvers,
       loadingComponent,
@@ -199,7 +206,7 @@ export const ZodFormContextProvider = ({
       merge,
       notFoundComponent,
       parentContext.componentLibrary,
-      parentContext.externalKeyActionResolver,
+      parentContext.valueActionResolver,
       parentContext.externalKeyResolvers,
       parentContext.fileResolvers,
       parentContext.loadingComponent,

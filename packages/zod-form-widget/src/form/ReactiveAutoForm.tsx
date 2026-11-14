@@ -12,7 +12,7 @@ import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
 import type {
   MediaResolvers,
-  ExternalKeyActionResolver,
+  ValueActionResolver,
   CollectionReferenceActionEntry,
   ComponentLibrary
 } from '@zodapp/zod-form-react';
@@ -69,7 +69,7 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
    */
   componentLibrary?: ComponentLibrary;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   resolverContext?: RegisteredResolverContext;
@@ -86,7 +86,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   showPreview = false,
   componentLibrary = defaultReactiveComponentLibrary,
   externalKeyResolvers,
-  externalKeyActionResolver,
+  valueActionResolver,
   fileResolvers,
   mediaResolvers,
   resolverContext,
@@ -125,7 +125,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
         merge
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
-        externalKeyActionResolver={externalKeyActionResolver}
+        valueActionResolver={valueActionResolver}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
         resolverContext={resolverContext}

@@ -3,14 +3,15 @@ import { getMeta } from "@zodapp/zod-form";
 import {
   useExternalKeyResolver,
   useZodFormContext,
-  type ExternalKeyActionWrapper,
+  type ValueActionWrapper,
 } from "../common/context";
 import type {
   ExternalKeyConfig,
   BaseExternalKeyConfig,
   ExternalKeyResolverResult,
-  RegisteredExternalKeyActionConfig,
 } from "@zodapp/zod-form/externalKey/types";
+import type { RegisteredValueActionConfig } from "@zodapp/zod-form/valueAction/types";
+import { useValueAction } from "./valueAction";
 import type z from "zod";
 
 type ExternalKeySchema = z.ZodString;
@@ -119,16 +120,12 @@ export const useExternalKeyAction = (
   schema: ExternalKeySchema,
   value: string | null | undefined,
   newTab?: boolean,
-): ExternalKeyActionWrapper | undefined => {
+): ValueActionWrapper | undefined => {
   const meta = getMeta(schema, "externalKey");
-  const {
-    externalKeyActionResolver,
-    resolverContext,
-    collectionReferenceActionMap,
-  } = useZodFormContext();
+  const { collectionReferenceActionMap } = useZodFormContext();
 
-  const explicitActionConfig = meta?.externalKeyActionConfig as
-    | RegisteredExternalKeyActionConfig
+  const explicitActionConfig = meta?.valueAction as
+    | RegisteredValueActionConfig
     | undefined;
 
   const externalKeyConfig = meta?.externalKeyConfig;
@@ -153,24 +150,9 @@ export const useExternalKeyAction = (
     return undefined;
   }, [explicitActionConfig, collectionReferenceActionMap, resolvedConfig]);
 
-  const resolvedActionConfig = explicitActionConfig ?? referenceActionConfig;
-
-  return useMemo(() => {
-    if (!value || !resolvedActionConfig || !externalKeyActionResolver) {
-      return undefined;
-    }
-
-    return externalKeyActionResolver({
-      value,
-      actionConfig: resolvedActionConfig,
-      newTab,
-      resolverContext: resolverContext ?? {},
-    });
-  }, [
-    resolvedActionConfig,
-    externalKeyActionResolver,
-    newTab,
+  return useValueAction(
+    explicitActionConfig ?? referenceActionConfig,
     value,
-    resolverContext,
-  ]);
+    newTab,
+  );
 };

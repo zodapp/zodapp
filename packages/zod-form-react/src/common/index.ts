@@ -13,12 +13,13 @@ export {
   useAllResolverContext,
   type DynamicZodFormDef,
   type ComponentLibrary,
-  type ExternalKeyActionWrapper,
-  type BaseExternalKeyActionResolver,
-  type ExternalKeyActionResolver,
+  type ValueActionWrapper,
+  type BaseValueActionResolver,
+  type ValueActionResolver,
   type CollectionReferenceActionEntry,
 } from "./context";
 export { useExternalKeyAction } from "../utils/externalKey";
+export { useValueAction, useSchemaValueAction } from "../utils/valueAction";
 export {
   FormProvider,
   useFormApi,

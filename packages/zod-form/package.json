@@ -70,6 +70,26 @@
         "default": "./dist/externalKey/types.cjs"
       }
     },
+    "./valueAction": {
+      "import": {
+        "types": "./dist/valueAction/index.d.mts",
+        "default": "./dist/valueAction/index.mjs"
+      },
+      "require": {
+        "types": "./dist/valueAction/index.d.ts",
+        "default": "./dist/valueAction/index.cjs"
+      }
+    },
+    "./valueAction/types": {
+      "import": {
+        "types": "./dist/valueAction/types.d.mts",
+        "default": "./dist/valueAction/types.mjs"
+      },
+      "require": {
+        "types": "./dist/valueAction/types.d.ts",
+        "default": "./dist/valueAction/types.cjs"
+      }
+    },
     "./file": {
       "import": {
         "types": "./dist/file/index.d.mts",

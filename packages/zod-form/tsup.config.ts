@@ -6,6 +6,8 @@ export default defineConfig({
     "src/def/index.ts",
     "src/externalKey/index.ts",
     "src/externalKey/types.ts",
+    "src/valueAction/index.ts",
+    "src/valueAction/types.ts",
     "src/file/index.ts",
     "src/file/types.ts",
     "src/resolverContext/index.ts",

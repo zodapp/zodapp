@@ -21,7 +21,7 @@ import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   MediaResolvers,
-  ExternalKeyActionResolver,
+  ValueActionResolver,
   CollectionReferenceActionEntry,
   ComponentLibrary,
 } from "@zodapp/zod-form-react";
@@ -50,7 +50,7 @@ type AutoFormProps<T extends z.ZodTypeAny> = {
    */
   componentLibrary?: ComponentLibrary;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   resolverContext?: RegisteredResolverContext;
@@ -71,7 +71,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   showPreview = false,
   componentLibrary = defaultComponentLibrary,
   externalKeyResolvers,
-  externalKeyActionResolver,
+  valueActionResolver,
   fileResolvers,
   mediaResolvers,
   resolverContext,
@@ -175,7 +175,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         merge
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
-        externalKeyActionResolver={externalKeyActionResolver}
+        valueActionResolver={valueActionResolver}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
         resolverContext={resolverContext}

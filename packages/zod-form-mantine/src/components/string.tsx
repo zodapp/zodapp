@@ -4,11 +4,17 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  useSchemaValueAction,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
-import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
-import { normalizeStringSuggestions } from "./stringSuggestions.js";
+import {
+  ReadonlyText,
+  WithValueAction,
+  inputWrapperStyle,
+  normalizeStringSuggestions,
+  renderComputedValue,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type StringSchema = z.ZodString;
 
@@ -27,6 +33,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
   const suggestionData = normalizeStringSuggestions(suggestions);
 
   const value = typeof field.value === "string" ? field.value : "";
+  const actionWrapper = useSchemaValueAction(schema, value);
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,14 +56,16 @@ const StringComponent = wrapComponent(function StringComponentImplement({
         labelElement="div"
         style={inputWrapperStyle}
       >
-        {value && formatter
-          ? renderComputedValue(formatter(value), "readOnly")
-          : <ReadonlyText>{value}</ReadonlyText>}
+        <WithValueAction wrapper={actionWrapper} label={label || undefined} align="center">
+          {value && formatter
+            ? renderComputedValue(formatter(value), "readOnly")
+            : <ReadonlyText>{value}</ReadonlyText>}
+        </WithValueAction>
       </InputWrapper>
     );
   }
 
-  return suggestionData.length > 0 ? (
+  const input = suggestionData.length > 0 ? (
     <Autocomplete
       ref={ref}
       value={value}
@@ -83,6 +92,12 @@ const StringComponent = wrapComponent(function StringComponentImplement({
       disabled={readOnly || field.disabled}
       style={inputWrapperStyle}
     />
+  );
+
+  return (
+    <WithValueAction wrapper={actionWrapper} label={label || undefined}>
+      {input}
+    </WithValueAction>
   );
 });
 

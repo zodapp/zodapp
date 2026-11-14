@@ -12,7 +12,7 @@ import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
 import type {
   MediaResolvers,
-  ExternalKeyActionResolver,
+  ValueActionResolver,
   CollectionReferenceActionEntry
 } from '@zodapp/zod-form-react';
 import type { StandardSchemaV1 } from '@tanstack/react-form';
@@ -26,7 +26,7 @@ type AutoSearchProps<T extends z.ZodTypeAny> = {
   debounceMs?: number;
   showPreview?: boolean;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   resolverContext?: RegisteredResolverContext;
@@ -40,7 +40,7 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
   debounceMs = 100,
   showPreview = false,
   externalKeyResolvers,
-  externalKeyActionResolver,
+  valueActionResolver,
   fileResolvers,
   mediaResolvers,
   resolverContext,
@@ -99,7 +99,7 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
       <ZodFormContextProvider
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
-        externalKeyActionResolver={externalKeyActionResolver}
+        valueActionResolver={valueActionResolver}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
         resolverContext={resolverContext}

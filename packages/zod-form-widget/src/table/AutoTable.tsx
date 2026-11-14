@@ -25,7 +25,7 @@ import {
   tableComponentLibrary,
   ExternalKeyResolvers,
 } from "@zodapp/zod-form-mantine";
-import type { ExternalKeyActionResolver } from "@zodapp/zod-form-mantine";
+import type { ValueActionResolver } from "@zodapp/zod-form-mantine";
 import type { CollectionReferenceActionEntry } from "@zodapp/zod-form-react";
 import { z } from "zod";
 import type {
@@ -102,7 +102,7 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   data: AutoTableItem<TSchema>[];
   keyField: AutoTableKeyField<TSchema>;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   resolverContext?: RegisteredResolverContext;
   collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
   /** `false` の場合はヘッダーからのソート操作のみ無効化します */
@@ -1266,7 +1266,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     data,
     keyField,
     externalKeyResolvers,
-    externalKeyActionResolver,
+    valueActionResolver,
     resolverContext,
     collectionReferenceActions,
     sortable = true,
@@ -1494,7 +1494,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     <ZodFormContextProvider
       componentLibrary={tableComponentLibrary}
       externalKeyResolvers={externalKeyResolvers}
-      externalKeyActionResolver={externalKeyActionResolver}
+      valueActionResolver={valueActionResolver}
       resolverContext={resolverContext}
       collectionReferenceActions={collectionReferenceActions}
     >

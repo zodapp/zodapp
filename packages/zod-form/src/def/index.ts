@@ -23,8 +23,8 @@ import {
 import type {
   ExternalKeyConfig,
   RegisteredExternalKeyConfig,
-  RegisteredExternalKeyActionConfig,
 } from "../externalKey/types";
+import type { RegisteredValueActionConfig } from "../valueAction/types";
 import type { FileConfig, RegisteredFileConfig } from "../file/types";
 import type {
   RegisteredResolverContextId,
@@ -231,7 +231,8 @@ export type ExternalKeyMetaDef = z.infer<
   typeof zodExtendableCommonDefSchema
 > & {
   externalKeyConfig: ExternalKeyConfig<RegisteredExternalKeyConfig>;
-  externalKeyActionConfig?: RegisteredExternalKeyActionConfig;
+  /** 選んだ値に対する操作（リンクで開くなど） */
+  valueAction?: RegisteredValueActionConfig;
 };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
@@ -272,7 +273,11 @@ export const defineDynamicMeta = <TValue = any, TParent = any>(
 ): RegistryValue<DynamicMetaDef> =>
   asRegistryValue(meta as DynamicMetaDef);
 
+// 値ごとの操作（選んだ値をリンクで開くなど）。実行時の resolver が解釈するため、core では構造だけ受ける
+const valueActionSchema = z.custom<RegisteredValueActionConfig>().optional();
+
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
+// uiType: "select" を指定すると suggestions から選ぶ形で描画する（検証は string のまま）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
   formatter: z
     .function({
@@ -281,6 +286,8 @@ const stringMetaSchema = zodExtendableCommonDefSchema.extend({
     })
     .optional(),
   suggestions: z.array(stringSuggestionSchema).optional(),
+  /** 選んだ値に対する操作（リンクで開くなど） */
+  valueAction: valueActionSchema,
 });
 
 // number 専用メタスキーマ（formatter で表示時の整形を指定可能）
@@ -316,10 +323,8 @@ const hidden = extendCustom(
 const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
   externalKeyConfig: z.custom<ExternalKeyConfig<RegisteredExternalKeyConfig>>(),
-  // action は runtime resolver が解釈するため、core では構造だけ受ける
-  externalKeyActionConfig: z
-    .custom<RegisteredExternalKeyActionConfig>()
-    .optional(),
+  // 選んだ値に対する操作（リンクで開くなど）
+  valueAction: valueActionSchema,
 }) as z.ZodType<ExternalKeyMetaDef>;
 
 const externalKey = extendCustom(
@@ -406,7 +411,12 @@ const zf = {
   tuple: extendTuple(zodExtendableCommonDefSchema),
   record: extendRecord(zodExtendableCommonDefSchema),
   set: extendSet(zodExtendableCommonDefSchema),
-  enum: extendEnum(zodExtendableCommonDefSchema),
+  enum: extendEnum(
+    zodExtendableCommonDefSchema.extend({
+      /** 選んだ値に対する操作（リンクで開くなど） */
+      valueAction: valueActionSchema,
+    }),
+  ),
   object: extendObject(zodExtendableObjectDefSchema),
   union: extendUnion(
     zodExtendableCommonDefSchema.extend({

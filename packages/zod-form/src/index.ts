@@ -11,6 +11,9 @@ export { pruneValueToSchema, adaptValueToSchema } from "./utils/prune";
 // External key types
 export * from "./externalKey";
 
+// Value action types
+export * from "./valueAction";
+
 // File types
 export * from "./file";
 
