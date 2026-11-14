@@ -145,6 +145,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@zodapp/caching-utilities": "workspace:*",
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-propagating-registry": "workspace:*",

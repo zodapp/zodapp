@@ -130,7 +130,15 @@ type AsyncState =
 export const useDynamicSchema = (
   meta: DynamicMetaDef | undefined,
   fieldPath: string,
+  options: {
+    /**
+     * false なら（optional の中にあるなら）、登録する schema を optional にする。
+     * 値が無いときに、決まった schema の「必須」で止めないため
+     */
+    required?: boolean;
+  } = {},
 ): DynamicSchemaState => {
+  const optional = options.required === false;
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);
@@ -163,7 +171,14 @@ export const useDynamicSchema = (
 
   const seenRevRef = useRef(runtime.currentRev());
   const appliedRef = useRef<
-    { key: string; schema: z.ZodTypeAny; path: string; depth: number } | undefined
+    | {
+        key: string;
+        schema: z.ZodTypeAny;
+        path: string;
+        depth: number;
+        optional: boolean;
+      }
+    | undefined
   >(undefined);
   const requestRef = useRef(0);
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
@@ -200,7 +215,8 @@ export const useDynamicSchema = (
         previous.key === resolved.key &&
         previous.schema === resolved.schema &&
         previous.path === fieldPath &&
-        previous.depth === depth
+        previous.depth === depth &&
+        previous.optional === optional
       ) {
         return;
       }
@@ -209,6 +225,7 @@ export const useDynamicSchema = (
         schema: resolved.schema,
         path: fieldPath,
         depth,
+        optional,
       };
       if (
         applyCause === "user" &&
@@ -225,7 +242,7 @@ export const useDynamicSchema = (
       }
       runtime.set(fieldPath, depth, {
         status: "resolved",
-        schema: resolved.schema,
+        schema: optional ? resolved.schema.optional() : resolved.schema,
       });
     };
 
@@ -293,7 +310,7 @@ export const useDynamicSchema = (
     }
     // result が undefined のときは、決まるまで pending のまま
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outcome, fieldPath, depth]);
+  }, [outcome, fieldPath, depth, optional]);
 
   if (outcome.kind === "thrown") {
     return {

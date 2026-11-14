@@ -61,14 +61,14 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       expectTypeOf(schema).toBeObject();
     });
 
-    it("BaseExternalKeyConfig を関数形式で指定できる", () => {
-      const schema = zf.string().register(zf.externalKey.registry, {
+    it("BaseExternalKeyConfig を関数形式では指定できない（ただのデータにする）", () => {
+      zf.string().register(zf.externalKey.registry, {
         label: "テスト",
+        // @ts-expect-error 関数で返す形は持たない。変えるときは zf.dynamic で包む
         externalKeyConfig: () => ({
           type: "anyResolver",
         }),
       });
-      expectTypeOf(schema).toBeObject();
     });
 
     it("valueAction を指定できる", () => {

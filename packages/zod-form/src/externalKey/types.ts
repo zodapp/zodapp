@@ -60,14 +60,6 @@ export type ExternalKeyResolverEntry<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ExternalKeyResolvers = ExternalKeyResolverEntry<any, any>[];
 
-/**
- * 外部キー設定
- * 直接指定またはrender時に解決する関数形式をサポート
- */
-export type ExternalKeyConfig<
-  TConfig extends BaseExternalKeyConfig = BaseExternalKeyConfig,
-> = TConfig | (() => TConfig);
-
 // === 案3: declare module 用の型拡張ポイント ===
 
 /**

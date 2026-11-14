@@ -20,12 +20,9 @@ import {
   type ZodPropagatingRegistryType,
 } from "@zodapp/zod-extendable";
 
-import type {
-  ExternalKeyConfig,
-  RegisteredExternalKeyConfig,
-} from "../externalKey/types";
+import type { RegisteredExternalKeyConfig } from "../externalKey/types";
 import type { RegisteredValueActionConfig } from "../valueAction/types";
-import type { FileConfig, RegisteredFileConfig } from "../file/types";
+import type { RegisteredFileConfig } from "../file/types";
 import type {
   RegisteredResolverContextId,
   RegisteredResolverContextMap,
@@ -230,13 +227,26 @@ export type DynamicMetaDef<TValue = any, TParent = any> = z.infer<
 export type ExternalKeyMetaDef = z.infer<
   typeof zodExtendableCommonDefSchema
 > & {
-  externalKeyConfig: ExternalKeyConfig<RegisteredExternalKeyConfig>;
+  /**
+   * 選択肢の取得先。ただのデータ（関数で返す形は持たない）。
+   * 親の値や context で変えるときは、zf.dynamic で包んで externalKey の schema を返す。
+   */
+  externalKeyConfig: RegisteredExternalKeyConfig;
   /** 選んだ値に対する操作（リンクで開くなど） */
   valueAction?: RegisteredValueActionConfig;
+  /**
+   * 選択肢に無い値も通す（string + 選択式にする）。
+   * 既定 false（enum で厳しく検証する）
+   */
+  allowUnlisted?: boolean;
 };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
-  fileConfig: FileConfig<RegisteredFileConfig>;
+  /**
+   * 保存先の設定。ただのデータ（関数で返す形は持たない）。
+   * 親の値や context で変えるときは、zf.dynamic で包んで file の schema を返す。
+   */
+  fileConfig: RegisteredFileConfig;
 };
 
 export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
@@ -322,9 +332,11 @@ const hidden = extendCustom(
 // 外部キー用設定スキーマ
 const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
-  externalKeyConfig: z.custom<ExternalKeyConfig<RegisteredExternalKeyConfig>>(),
+  externalKeyConfig: z.custom<RegisteredExternalKeyConfig>(),
   // 選んだ値に対する操作（リンクで開くなど）
   valueAction: valueActionSchema,
+  // 選択肢に無い値も通す（string + 選択式にする）。既定 false（enum で厳しく検証する）
+  allowUnlisted: z.boolean().optional(),
 }) as z.ZodType<ExternalKeyMetaDef>;
 
 const externalKey = extendCustom(
@@ -337,7 +349,7 @@ const externalKey = extendCustom(
 // ファイル設定用メタスキーマ
 const fileConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredFileConfig を使用（declare module で拡張可能）
-  fileConfig: z.custom<FileConfig<RegisteredFileConfig>>(),
+  fileConfig: z.custom<RegisteredFileConfig>(),
 }) as z.ZodType<FileMetaDef>;
 
 const file = extendCustom(

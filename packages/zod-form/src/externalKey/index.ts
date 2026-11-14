@@ -10,7 +10,6 @@ export type {
   BaseExternalKeyConfig,
   ExternalKeyResolverEntry,
   ExternalKeyResolvers,
-  ExternalKeyConfig,
   ExternalKeyConfigRegistry,
   RegisteredExternalKeyConfig,
 } from "./types";

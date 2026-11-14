@@ -16,7 +16,6 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import type {
-  FileConfig,
   BaseFileConfig,
   FileResolverResult,
 } from "@zodapp/zod-form/file/types";
@@ -26,19 +25,6 @@ import { DataBasedPreview } from "@zodapp/zod-form-mantine-lite";
 import type z from "zod";
 
 type FileSchema = z.ZodString;
-
-/**
- * FileConfigからconfigを解決する
- * 関数形式の場合はrender時に実行
- */
-const resolveConfig = <TConfig extends BaseFileConfig>(
-  config: FileConfig<TConfig>,
-): TConfig => {
-  if (typeof config === "function") {
-    return config();
-  }
-  return config as TConfig;
-};
 
 /** デフォルトの最大ファイルサイズ: 5MB */
 const DEFAULT_MAX_SIZE = 5 * 1024 ** 2;
@@ -64,19 +50,14 @@ const FileComponent = wrapComponent(function FileComponentImplement({
   const meta = getMeta(schema, "file");
   const label = labelFromParent ?? meta?.label;
 
-  // FileConfigからconfigを解決
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fileConfig = (meta as any)?.fileConfig as
-    | FileConfig<BaseFileConfig>
-    | undefined;
+  // config はただのデータ（親や context で変えるときは zf.dynamic で包む）
+  const config = meta?.fileConfig as BaseFileConfig | undefined;
 
-  if (!fileConfig) {
+  if (!config) {
     throw new Error(
       "fileConfig is not defined in schema. Use zf.file.registry to register the config.",
     );
   }
-
-  const config = useMemo(() => resolveConfig(fileConfig), [fileConfig]);
 
   // resolverを取得
   const resolverResult = useFileResolver(config);

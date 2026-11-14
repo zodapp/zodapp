@@ -1186,6 +1186,9 @@ importers:
       '@tanstack/react-form':
         specifier: ^1.33.1
         version: 1.33.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@zodapp/caching-utilities':
+        specifier: workspace:*
+        version: link:../caching-utilities
       '@zodapp/zod-extendable':
         specifier: workspace:*
         version: link:../zod-extendable

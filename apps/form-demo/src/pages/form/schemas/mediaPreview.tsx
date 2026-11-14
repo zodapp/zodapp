@@ -24,39 +24,39 @@ export const schema = z
       .string()
       .register(zf.file.registry, {
         label: "画像（imageMediaResolver → <img> プレビュー）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["image/png", "image/jpeg", "image/gif", "image/webp"],
-        }),
+        },
       })
       .optional(),
     audio: zf
       .string()
       .register(zf.file.registry, {
         label: "音声（audioMediaResolver → <audio> プレビュー）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg"],
-        }),
+        },
       })
       .optional(),
     textFile: zf
       .string()
       .register(zf.file.registry, {
         label: "テキスト（自作の data ベース resolver で内容を表示）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["text/plain", "text/csv", "text/markdown"],
-        }),
+        },
       })
       .optional(),
     anyFile: zf
       .string()
       .register(zf.file.registry, {
         label: "その他（genericMediaResolver → ダウンロードリンク）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
-        }),
+        },
       })
       .optional(),
   })

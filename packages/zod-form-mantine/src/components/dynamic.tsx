@@ -12,6 +12,24 @@ import { getMeta } from "@zodapp/zod-form";
 
 type DynamicSchema = z.ZodTypeAny;
 
+/** 取得に失敗したときの表示。再試行のボタンを出す */
+export const DynamicErrorView = ({
+  label,
+  retry,
+}: {
+  label: string | undefined;
+  retry: () => void;
+}) => (
+  <Alert color="red" data-dynamic-status="error">
+    <Group justify="space-between">
+      <Text size="sm">{label ? `${label}を` : ""}取得できませんでした</Text>
+      <Button size="xs" variant="light" onClick={retry}>
+        再試行
+      </Button>
+    </Group>
+  </Alert>
+);
+
 /**
  * 実行時に決まる schema で描画する部品。
  *
@@ -25,7 +43,9 @@ const DynamicComponent = React.memo(function DynamicComponent(
   const { fieldPath, schema } = props;
   const meta = getMeta(schema, "dynamic");
   const depth = useDynamicDepth(fieldPath);
-  const state = useDynamicSchema(meta, fieldPath);
+  const state = useDynamicSchema(meta, fieldPath, {
+    required: props.required,
+  });
 
   if (state.status === "loading" || state.status === "pending") {
     return (
@@ -39,18 +59,7 @@ const DynamicComponent = React.memo(function DynamicComponent(
   }
 
   if (state.status === "error") {
-    return (
-      <Alert color="red" data-dynamic-status="error">
-        <Group justify="space-between">
-          <Text size="sm">
-            {meta?.label ? `${meta.label}を` : ""}取得できませんでした
-          </Text>
-          <Button size="xs" variant="light" onClick={state.retry}>
-            再試行
-          </Button>
-        </Group>
-      </Alert>
-    );
+    return <DynamicErrorView label={meta?.label} retry={state.retry} />;
   }
 
   return (

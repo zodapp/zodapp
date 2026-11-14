@@ -44,14 +44,14 @@ describe("FileConfig 型テスト（base package）", () => {
       expectTypeOf(schema).toBeObject();
     });
 
-    it("BaseFileConfig を関数形式で指定できる", () => {
-      const schema = zf.string().register(zf.file.registry, {
+    it("BaseFileConfig を関数形式では指定できない（ただのデータにする）", () => {
+      zf.string().register(zf.file.registry, {
         label: "テスト",
+        // @ts-expect-error 関数で返す形は持たない。変えるときは zf.dynamic で包む
         fileConfig: () => ({
           type: "anyStorage",
         }),
       });
-      expectTypeOf(schema).toBeObject();
     });
 
     it("BaseFileConfig のオプションプロパティを指定できる", () => {
