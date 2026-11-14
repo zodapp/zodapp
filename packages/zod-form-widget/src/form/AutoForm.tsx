@@ -13,6 +13,7 @@ import {
   FormProvider,
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
+  FormRuntime,
   useZodForm,
   componentLibrary as defaultComponentLibrary,
 } from "@zodapp/zod-form-mantine";
@@ -24,7 +25,6 @@ import type {
   CollectionReferenceActionEntry,
   ComponentLibrary,
 } from "@zodapp/zod-form-react";
-import type { StandardSchemaV1 } from "@tanstack/react-form";
 import type { z } from "zod";
 import {
   type AutoFormAction,
@@ -87,13 +87,15 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     ((data: z.output<T>) => void) | undefined
   >(undefined);
 
-  // TanStack Form 1.33 以降の validators は `RejectPromiseValidator<T>` を要求する。
-  // これは naked type parameter に対する conditional type なので、`T` が未解決の
-  // ジェネリックのままでは TS が解決できず assignable にならない。zod schema は
-  // 関数型ではないため実体としては常に許容される。validators が受け取れるもう一方の形
-  // (standard schema) へ明示的に落として渡す。`StandardSchemaV1` は 1.28 系にも
-  // 同じ形で存在するため、この書き方は両バージョンで通る。
-  const validator = schema as StandardSchemaV1<z.input<T>, unknown>;
+  // 実行時に決まる schema（zf.dynamic）の登録先。フォーム全体の validator を包み、
+  // 静的な schema に加えて、登録された path の schema でも検証する。
+  // 包んだ validator は standard schema の形なので、TanStack Form 1.33 以降の
+  // validators の型（RejectPromiseValidator<T>）にもそのまま渡せる。
+  const [runtime] = useState(() => new FormRuntime());
+  const validator = useMemo(
+    () => runtime.wrapValidator<z.input<T>>(schema),
+    [runtime, schema],
+  );
 
   const form = useZodForm({
     defaultValues: initialValues,
@@ -147,8 +149,11 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         .handleSubmit()
         .then(() => {
           if (!form.state.isValid) {
+            // 登録された schema（読み込み中・取得失敗を含む）でも通るときだけ送る
+            const hasIssues =
+              runtime.validate(schema, form.state.values).length > 0;
             const parsed = schema.safeParse(form.state.values);
-            if (parsed.success) {
+            if (!hasIssues && parsed.success) {
               const handler = pendingSubmitHandlerRef.current;
               pendingSubmitHandlerRef.current = undefined;
               handler?.(parsed.data as z.output<T>);
@@ -162,7 +167,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         })
         .catch(reject);
     });
-  }, [form, schema]);
+  }, [form, schema, runtime]);
 
   return (
     <Suspense fallback={<Loader />}>
@@ -176,7 +181,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         resolverContext={resolverContext}
         collectionReferenceActions={collectionReferenceActions}
       >
-        <FormProvider form={form}>
+        <FormProvider form={form} runtime={runtime}>
           <ValidatePrecedingFieldsProvider>
             <div>
               {normalizedActionComponents.length > 0 && (

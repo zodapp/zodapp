@@ -182,25 +182,50 @@ export type ComputedMetaDef<
 > = z.infer<typeof zodExtendableCommonDefSchema> &
   FnMeta<"compute", TValue, TParent, TResult>;
 
+/** dynamic の resolve が返す schema と、その schema を見分ける key */
+export type ResolvedSchema = {
+  schema: z.ZodTypeAny;
+  /**
+   * schema を見分ける key。key が変わったら別の schema とみなし、
+   * 利用者の編集が原因なら値を新しい schema に合わせて削る。
+   * key が同じなら描画だけを更新する。
+   */
+  key: string;
+};
+
+/**
+ * 何度でも schema を届ける購読。key があれば、同じ key のあいだは購読を張り直さない。
+ * 取得に失敗したら fail を呼ぶ。
+ */
+export type SchemaSubscription = {
+  key?: string;
+  subscribe: (
+    emit: (resolved: ResolvedSchema) => void,
+    fail: (error: unknown) => void,
+  ) => () => void;
+};
+
+/** resolve の戻り値。同期・Promise・購読のどれでもよい */
+export type SchemaResolveResult =
+  | ResolvedSchema
+  | Promise<ResolvedSchema | undefined>
+  | SchemaSubscription
+  | undefined;
+
 export type SchemaResolver<
   TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = (
-  value: TValue,
-  context: TContext,
-) => z.ZodTypeAny | Promise<z.ZodTypeAny | undefined> | undefined;
+  TParent = unknown,
+  TContext = unknown,
+> = (input: FnInput<TValue, TParent, TContext>) => SchemaResolveResult;
 
-export type DynamicSchemaResolver<
-  TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = SchemaResolver<TValue, TContext>;
-
-export type DynamicMetaDef<
-  TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = z.infer<typeof zodExtendableCommonDefSchema> & {
-  resolve: DynamicSchemaResolver<TValue, TContext>;
-};
+/**
+ * dynamic の meta。resolve は { value, parent, context } を受け取り、
+ * 実際に描画・検証する schema を返す。
+ */
+export type DynamicMetaDef<TValue = any, TParent = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
+  FnMeta<"resolve", TValue, TParent, SchemaResolveResult>;
 
 export type ExternalKeyMetaDef = z.infer<
   typeof zodExtendableCommonDefSchema
@@ -219,12 +244,33 @@ export const asRegistryValue = <TValue,>(
   value: TValue,
 ): RegistryValue<TValue> => value as unknown as RegistryValue<TValue>;
 
+/**
+ * resolve 関数を registry に渡せる型にする。Promise や購読を返す resolve は、
+ * registry の型変換（schema の置き換え）を通らないため、これで包む。
+ */
 export const asRegistrySchemaResolver = <
-  TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+  TValue = any,
+  TParent = any,
+  TContext = any,
 >(
-  resolver: SchemaResolver<TValue, TContext>,
-): RegistryValue<SchemaResolver<TValue, TContext>> => asRegistryValue(resolver);
+  resolver: SchemaResolver<TValue, TParent, TContext>,
+): RegistryValue<SchemaResolver<TValue, TParent, TContext>> =>
+  asRegistryValue(resolver);
+
+/**
+ * dynamic の meta 全体を registry に渡せる型にする。
+ * `dependsOnParent` / `contextId` に合わせて resolve の入力の型が絞られる。
+ *
+ * @example
+ * zf.dynamic().register(zf.dynamic.registry, defineDynamicMeta({
+ *   dependsOnParent: true,
+ *   resolve: ({ parent }) => ({ schema: buildSchema(parent), key: parent.kind }),
+ * }));
+ */
+export const defineDynamicMeta = <TValue = any, TParent = any>(
+  meta: DynamicMetaDef<TValue, TParent>,
+): RegistryValue<DynamicMetaDef> =>
+  asRegistryValue(meta as DynamicMetaDef);
 
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
@@ -329,13 +375,14 @@ const computed = extendCustom(
   schemaType<z.ZodType>(),
 );
 
-// dynamic: 該当フィールドの現在値と resolverContext から実際に描画する schema を解決する
+// dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める
 const dynamic = extendCustom(
   z.never,
   "dynamic",
   zodExtendableCommonDefSchema.extend({
-    resolve: z.custom<DynamicSchemaResolver>(),
-  }) as z.ZodType<DynamicMetaDef>,
+    ...fnSourceMetaSchema.shape,
+    resolve: z.custom<SchemaResolver<any, any, any>>(),
+  }) as unknown as z.ZodType<DynamicMetaDef>,
   schemaType<z.ZodType>(),
 );
 

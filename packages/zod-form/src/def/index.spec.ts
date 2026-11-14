@@ -4,8 +4,9 @@ import {
   getMeta,
   zf,
   asRegistrySchemaResolver,
+  defineDynamicMeta,
   type ComputedValue,
-  type DynamicSchemaResolver,
+  type FnInput,
   type StringSuggestion,
 } from "./index";
 
@@ -205,17 +206,25 @@ describe("zod-form def/index", () => {
     });
     const schema = fallback.register(zf.dynamic.registry, {
       label: "動的スキーマ",
-      resolve: asRegistrySchemaResolver(() => dynamic),
+      resolve: asRegistrySchemaResolver(() => ({
+        schema: dynamic,
+        key: "dynamic",
+      })),
     });
 
     const meta = getMeta(schema, "dynamic");
+    const input: FnInput = {
+      value: undefined,
+      parent: undefined,
+      context: undefined,
+    };
 
     expect(meta?.typeName).toBe("dynamic");
     expect(meta?.label).toBe("動的スキーマ");
-    expect(meta?.resolve(undefined, {})).toBe(dynamic);
-    expectTypeOf(meta?.resolve).toEqualTypeOf<
-      DynamicSchemaResolver | undefined
-    >();
+    expect(meta?.resolve(input as never)).toEqual({
+      schema: dynamic,
+      key: "dynamic",
+    });
   });
 
   it("getMeta accepts async dynamic schema resolver", async () => {
@@ -224,14 +233,38 @@ describe("zod-form def/index", () => {
       type: z.literal("dynamic"),
     });
     const schema = fallback.register(zf.dynamic.registry, {
-      resolve: asRegistrySchemaResolver(async () => dynamic),
+      resolve: asRegistrySchemaResolver(async ({ value }) => ({
+        schema: dynamic,
+        key: String(value),
+      })),
     });
 
     const meta = getMeta(schema, "dynamic");
 
-    await expect(meta?.resolve(undefined, {})).resolves.toBe(dynamic);
-    expectTypeOf(meta?.resolve).toEqualTypeOf<
-      DynamicSchemaResolver | undefined
-    >();
+    await expect(
+      meta?.resolve({ value: "a", parent: undefined, context: undefined } as never),
+    ).resolves.toEqual({ schema: dynamic, key: "a" });
+  });
+
+  it("dynamic の resolve は dependsOnParent: true のときだけ parent を型に入れる", () => {
+    zf.dynamic().register(
+      zf.dynamic.registry,
+      defineDynamicMeta<unknown, { kind: string }>({
+        dependsOnParent: true,
+        resolve: ({ parent }) => {
+          expectTypeOf(parent).toEqualTypeOf<{ kind: string }>();
+          return undefined;
+        },
+      }),
+    );
+    zf.dynamic().register(
+      zf.dynamic.registry,
+      defineDynamicMeta({
+        resolve: ({ parent }) => {
+          expectTypeOf(parent).toEqualTypeOf<undefined>();
+          return undefined;
+        },
+      }),
+    );
   });
 });
