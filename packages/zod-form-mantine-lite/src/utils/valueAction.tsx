@@ -24,8 +24,10 @@ export const ValueActionIcon = ({
           aria-label={`${label ?? "選択済み項目"}を開く`}
           style={
             {
-              "--ai-color": "var(--zod-form-external-key-action-color)",
-              "--ai-hover": "var(--zod-form-external-key-action-hover-color)",
+              "--ai-color":
+                "var(--zod-form-external-key-action-color, var(--mantine-color-anchor))",
+              "--ai-hover":
+                "var(--zod-form-external-key-action-hover-color, var(--mantine-color-default-hover))",
             } as React.CSSProperties
           }
         >
