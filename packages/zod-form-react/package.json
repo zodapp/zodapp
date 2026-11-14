@@ -101,6 +101,16 @@
         "default": "./dist/utils/dateConverter.cjs"
       }
     },
+    "./utils/timeConverter": {
+      "import": {
+        "types": "./dist/utils/timeConverter.d.mts",
+        "default": "./dist/utils/timeConverter.mjs"
+      },
+      "require": {
+        "types": "./dist/utils/timeConverter.d.ts",
+        "default": "./dist/utils/timeConverter.cjs"
+      }
+    },
     "./utils/externalKey": {
       "import": {
         "types": "./dist/utils/externalKey.d.mts",

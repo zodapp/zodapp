@@ -70,6 +70,21 @@ const dateMetaSchema = zodExtendableCommonDefSchema.extend({
   encoding: z.enum(["timestamp", "utcEncode", "native"]).optional(),
 });
 
+// time 用メタスキーマ（timezone naive の時刻）
+// 「データの持ち方」と「UI 上の精度」は独立している
+const timeMetaSchema = zodExtendableCommonDefSchema.extend({
+  // UI 上の精度。省略時はデータの持ち方に合わせる
+  // - string: precision -1 → minute、0 → second、1〜3 → millisecond、省略 → second
+  // - number: encoding と同じ粒度
+  // データより細かい指定は定義の誤り
+  unit: z.enum(["hour", "minute", "second", "millisecond"]).optional(),
+  // number のデータの持ち方（0 時からの経過量、整数）。省略時は secondsOfDay
+  // string のデータの持ち方は zod の precision で決まるので、ここには書かない
+  encoding: z
+    .enum(["hoursOfDay", "minutesOfDay", "secondsOfDay", "millisecondsOfDay"])
+    .optional(),
+});
+
 /**
  * ComputedValue - React非依存の計算結果型
  * compute 関数の戻り値として使用。UI層（zod-form-mantine 等）が適切にレンダリングする。
@@ -368,6 +383,14 @@ const date = extendCustom(
   schemaType<z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate>(),
 );
 
+// zf.time: z.iso.time(), z.number() に対応
+const time = extendCustom(
+  z.iso.time, // ベース型（実際には z.number() も受け入れる）
+  "time",
+  timeMetaSchema,
+  schemaType<z.ZodISOTime | z.ZodNumber>(),
+);
+
 /**
  * {@link FnSourceMeta} の Zod スキーマ。関数を受け取る meta のメタスキーマに混ぜて使う。
  */
@@ -413,6 +436,7 @@ const zf = {
   number: extendNumber(numberMetaSchema),
   bigint: extendBigint(zodExtendableCommonDefSchema),
   date, // extendCustom パターンに変更
+  time,
   boolean: extendBoolean(booleanMetaSchema),
   array: extendArray(
     zodExtendableCommonDefSchema.extend({

@@ -16,6 +16,7 @@ export { component as BooleanCheckboxComponent } from "./boolean_checkbox.js";
 export { component as BooleanSelectComponent } from "./boolean_select.js";
 export { component as ComputedComponent } from "./computed.js";
 export { component as DateComponent } from "./date.js";
+export { component as TimeComponent } from "./time.js";
 export { component as EnumComponent } from "./enum.js";
 export { component as ExternalKeyComponent } from "./externalKey.js";
 export { component as FileComponent } from "./file.js";
@@ -54,6 +55,7 @@ export const componentLibrary: ComponentLibrary = {
   boolean_select: (() => import("./boolean_select.js")) as DynamicZodFormDef,
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
   date: (() => import("./date.js")) as DynamicZodFormDef,
+  time: (() => import("./time.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,
   enum_badge: (() => import("./enum.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,

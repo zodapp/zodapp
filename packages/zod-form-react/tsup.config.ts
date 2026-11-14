@@ -9,6 +9,7 @@ export default defineConfig({
     "src/mediaResolvers/index.ts",
     "src/def/index.ts",
     "src/utils/dateConverter.ts",
+    "src/utils/timeConverter.ts",
     "src/utils/externalKey.ts",
   ],
   format: ["esm", "cjs"],
