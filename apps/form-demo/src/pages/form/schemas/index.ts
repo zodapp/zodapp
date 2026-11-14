@@ -12,6 +12,7 @@ import * as mediaPreview from "./mediaPreview";
 import * as customWidget from "./customWidget";
 import * as computed from "./computed";
 import * as date from "./date";
+import * as time from "./time";
 import * as enumSelect from "./enumSelect";
 import * as union from "./union";
 import * as discriminatedUnion from "./discriminatedUnion";
@@ -42,6 +43,7 @@ import mediaPreviewCode from "./mediaPreview.tsx?raw";
 import customWidgetCode from "./customWidget.tsx?raw";
 import computedCode from "./computed.ts?raw";
 import dateCode from "./date.ts?raw";
+import timeCode from "./time.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
 import unionCode from "./union.ts?raw";
 import discriminatedUnionCode from "./discriminatedUnion.ts?raw";
@@ -72,6 +74,7 @@ export const formSchemas = {
   [mediaPreview.formId]: mediaPreview,
   [customWidget.formId]: customWidget,
   [date.formId]: date,
+  [time.formId]: time,
   [enumSelect.formId]: enumSelect,
   [arrayFields.formId]: arrayFields,
   [readOnly.formId]: readOnly,
@@ -104,6 +107,7 @@ export const formCodes = {
   [mediaPreview.formId]: mediaPreviewCode,
   [customWidget.formId]: customWidgetCode,
   [date.formId]: dateCode,
+  [time.formId]: timeCode,
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
   [readOnly.formId]: readOnlyCode,

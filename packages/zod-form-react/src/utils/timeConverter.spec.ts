@@ -52,8 +52,10 @@ describe("createTimeConverter: string", () => {
     ).toThrow();
     // 粗くする方向は自由
     expect(
-      createTimeConverter({ schema: z.iso.time({ precision: 0 }), unit: "hour" })
-        .unit,
+      createTimeConverter({
+        schema: z.iso.time({ precision: 0 }),
+        unit: "hour",
+      }).unit,
     ).toBe("hour");
   });
 
