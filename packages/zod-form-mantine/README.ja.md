@@ -104,7 +104,7 @@ export const MyForm = () => {
 `apps/form-demo` では `AutoForm` / `AutoTable` で、`componentLibrary` / `tableComponentLibrary` を `ZodFormContextProvider` に渡して `Dynamic` を描画しています。
 
 - `apps/form-demo/src/components/AutoForm.tsx`: `componentLibrary` + `useZodForm` + `FormProvider` + `ValidatePrecedingFieldsProvider`
-- `apps/form-demo/src/components/AutoTable.tsx`: `tableComponentLibrary` + `Dynamic`（computed は `defaultValue` に親オブジェクトを渡す）
+- `apps/form-demo/src/components/AutoTable.tsx`: `tableComponentLibrary` + `Dynamic`（行の値は `TableRowProvider` で渡し、computed / dynamic はそこから `parent` を受け取る）
 
 ## API（抜粋）
 
