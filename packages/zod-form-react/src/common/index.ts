@@ -39,6 +39,7 @@ export {
 } from "./schemaRegistry";
 export {
   useDynamicSchema,
+  useResolvedSchema,
   useDynamicDepth,
   DynamicDepthProvider,
   type DynamicSchemaState,

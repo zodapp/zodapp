@@ -339,3 +339,105 @@ export const useDynamicSchema = (
     ? { status: "pending", schema: asyncState.resolved.schema }
     : { status: "loading" };
 };
+
+/**
+ * フォームの外（表など読み取り専用の場所）で dynamic の resolve を呼び、schema を得る hook。
+ * 登録・検証・prune はしない。同期・Promise・購読のどれにも対応する。
+ */
+export const useResolvedSchema = (
+  meta: DynamicMetaDef | undefined,
+  input: FnInput,
+): DynamicSchemaState => {
+  const [retryToken, setRetryToken] = useState(0);
+  const outcome = useMemo<ResolveOutcome>(() => {
+    try {
+      return {
+        kind: "value",
+        result: meta
+          ? (meta.resolve as (input: FnInput) => SchemaResolveResult)(input)
+          : undefined,
+      };
+    } catch (error) {
+      return { kind: "thrown", error };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meta, input, retryToken]);
+  const syncResolved =
+    outcome.kind === "value" && isResolvedSchema(outcome.result)
+      ? outcome.result
+      : undefined;
+  const [asyncState, setAsyncState] = useState<AsyncState>({
+    status: "pending",
+  });
+  const subscriptionKeyRef = useRef<string | undefined>(undefined);
+  const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
+  const requestRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      requestRef.current += 1;
+      unsubscribeRef.current?.();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (outcome.kind === "thrown" || syncResolved) return;
+    const result = outcome.result;
+    if (
+      isSubscription(result) &&
+      result.key !== undefined &&
+      result.key === subscriptionKeyRef.current
+    ) {
+      return;
+    }
+    requestRef.current += 1;
+    unsubscribeRef.current?.();
+    unsubscribeRef.current = undefined;
+    const request = requestRef.current;
+    const deliver = (resolved: ResolvedSchema | undefined) => {
+      if (request !== requestRef.current || !resolved) return;
+      setAsyncState({ status: "resolved", resolved });
+    };
+    const fail = (error: unknown) => {
+      if (request !== requestRef.current) return;
+      setAsyncState((state) => ({
+        status: "error",
+        error,
+        resolved: state.resolved,
+      }));
+    };
+    setAsyncState((state) => ({ status: "pending", resolved: state.resolved }));
+    if (isSubscription(result)) {
+      subscriptionKeyRef.current = result.key;
+      try {
+        unsubscribeRef.current = result.subscribe(deliver, fail);
+      } catch (error) {
+        fail(error);
+      }
+    } else if (result instanceof Promise) {
+      subscriptionKeyRef.current = undefined;
+      result.then(deliver, fail);
+    }
+  }, [outcome, syncResolved]);
+
+  const retry = () => {
+    subscriptionKeyRef.current = undefined;
+    setRetryToken((token) => token + 1);
+  };
+  if (outcome.kind === "thrown") {
+    return { status: "error", error: outcome.error, retry };
+  }
+  if (syncResolved) {
+    return { status: "resolved", schema: syncResolved.schema };
+  }
+  if (asyncState.status === "error") {
+    return { status: "error", error: asyncState.error, retry };
+  }
+  if (asyncState.status === "resolved") {
+    return { status: "resolved", schema: asyncState.resolved.schema };
+  }
+  return asyncState.resolved
+    ? { status: "pending", schema: asyncState.resolved.schema }
+    : { status: "loading" };
+};
