@@ -11,13 +11,16 @@ import { formSchemas, formCodes, defaultFormId, type FormId } from "./schemas";
 import "@mantine/code-highlight/styles.css";
 import { createMockFileResolver } from "@zodapp/zod-form";
 import { useMemoryState } from "@zodapp/react-storage";
+import {
+  demoExternalKeyResolvers,
+  demoValueActionResolver,
+} from "../../shared/demo/resolvers";
 
 type FormDef = (typeof formSchemas)[FormId];
 type ReactiveFormDef = Extract<FormDef, { reactive: true }>;
 
-const isReactiveFormDef = (
-  formDef: FormDef,
-): formDef is ReactiveFormDef => "reactive" in formDef && formDef.reactive === true;
+const isReactiveFormDef = (formDef: FormDef): formDef is ReactiveFormDef =>
+  "reactive" in formDef && formDef.reactive === true;
 
 // スキーマモジュールが Component を export している場合は、
 // 汎用の AutoForm 描画の代わりにそのコンポーネントを表示する。
@@ -84,6 +87,8 @@ const FormPageInner = () => {
                 defaultValues={formDef.defaultValues}
                 key={formId}
                 fileResolvers={fileResolvers}
+                externalKeyResolvers={demoExternalKeyResolvers}
+                valueActionResolver={demoValueActionResolver}
                 showPreview={true}
               />
             )}

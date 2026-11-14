@@ -8,6 +8,9 @@ import * as schemaTransform from "./schemaTransform";
 import * as validatePreceding from "./validatePreceding";
 import * as formActions from "./formActions";
 import * as dynamicSchema from "./dynamicSchema";
+import * as tableView from "./tableView";
+import * as dynamicAdvanced from "./dynamicAdvanced";
+import * as selectAndExternalKey from "./selectAndExternalKey";
 import * as mediaPreview from "./mediaPreview";
 import * as customWidget from "./customWidget";
 import * as computed from "./computed";
@@ -39,6 +42,9 @@ import schemaTransformCode from "./schemaTransform.tsx?raw";
 import validatePrecedingCode from "./validatePreceding.ts?raw";
 import formActionsCode from "./formActions.tsx?raw";
 import dynamicSchemaCode from "./dynamicSchema.ts?raw";
+import tableViewCode from "./tableView.tsx?raw";
+import dynamicAdvancedCode from "./dynamicAdvanced.tsx?raw";
+import selectAndExternalKeyCode from "./selectAndExternalKey.ts?raw";
 import mediaPreviewCode from "./mediaPreview.tsx?raw";
 import customWidgetCode from "./customWidget.tsx?raw";
 import computedCode from "./computed.ts?raw";
@@ -71,6 +77,9 @@ export const formSchemas = {
   [validatePreceding.formId]: validatePreceding,
   [formActions.formId]: formActions,
   [dynamicSchema.formId]: dynamicSchema,
+  [tableView.formId]: tableView,
+  [dynamicAdvanced.formId]: dynamicAdvanced,
+  [selectAndExternalKey.formId]: selectAndExternalKey,
   [mediaPreview.formId]: mediaPreview,
   [customWidget.formId]: customWidget,
   [date.formId]: date,
@@ -104,6 +113,9 @@ export const formCodes = {
   [validatePreceding.formId]: validatePrecedingCode,
   [formActions.formId]: formActionsCode,
   [dynamicSchema.formId]: dynamicSchemaCode,
+  [tableView.formId]: tableViewCode,
+  [dynamicAdvanced.formId]: dynamicAdvancedCode,
+  [selectAndExternalKey.formId]: selectAndExternalKeyCode,
   [mediaPreview.formId]: mediaPreviewCode,
   [customWidget.formId]: customWidgetCode,
   [date.formId]: dateCode,

@@ -7,6 +7,13 @@
 // declare module を有効にするためにインポート
 import "./resolverContext";
 import "./fileConfig";
+import "./externalKeyConfig";
+import "./valueAction";
 
 export type { WebFileConfig } from "./fileConfig";
-export type { WebResolverContextId, WebResolverContextMap } from "./resolverContext";
+export type { WebExternalKeyConfig } from "./externalKeyConfig";
+export type { WebValueActionConfig, WebValueActionParams } from "./valueAction";
+export type {
+  WebResolverContextId,
+  WebResolverContextMap,
+} from "./resolverContext";
