@@ -31,8 +31,8 @@ export const schema = z
   .object({
     anyValue: anyValueSchema,
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "z.lazyを使って、ネストした構造を表現できます。オブジェクト内にさらに任意の値を持つことができます。ただし、z.lazyはoptional()をともに使わないと無限再帰で落ちます。",
       })

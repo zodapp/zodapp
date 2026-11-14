@@ -64,8 +64,8 @@ export const schema = z
     emergencyContact: emergencyContactSchema,
 
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "Reactive版ではネストオブジェクトの各フィールドに確認UIが付きます。",
       })

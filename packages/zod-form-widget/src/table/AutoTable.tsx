@@ -21,6 +21,7 @@ import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext
 import {
   ZodFormContextProvider,
   Switch,
+  TableRowProvider,
   tableComponentLibrary,
   ExternalKeyResolvers,
 } from "@zodapp/zod-form-mantine";
@@ -915,15 +916,13 @@ function BodyCellInner({
       <div className={isPreviewing ? styles.previewContent : undefined}>
         {field.propertyName ? (
           <Suspense fallback={<Loader size="xs" />}>
-            <Switch
-              fieldPath={field.propertyName}
-              schema={field.schema}
-              defaultValue={
-                field.meta.typeName === "computed"
-                  ? item
-                  : getNestedValue(item, field.propertyName)
-              }
-            />
+            <TableRowProvider row={item}>
+              <Switch
+                fieldPath={field.propertyName}
+                schema={field.schema}
+                defaultValue={getNestedValue(item, field.propertyName)}
+              />
+            </TableRowProvider>
           </Suspense>
         ) : null}
       </div>

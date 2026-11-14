@@ -10,7 +10,6 @@ export { component as DateComponent } from "./date.js";
 export { component as ArrayComponent } from "./array.js";
 export { component as ObjectComponent } from "./object.js";
 export { component as ComputedComponent } from "./computed.js";
-export { component as DerivedComponent } from "./derived.js";
 export { component as ExternalKeyComponent } from "./externalKey.js";
 export { component as LiteralComponent } from "./literal.js";
 export { component as UnionComponent } from "./union.js";
@@ -28,7 +27,6 @@ export const tableComponentLibrary: ComponentLibrary = {
   array: (() => import("./array.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
-  derived: (() => import("./derived.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
   union: (() => import("./union.js")) as DynamicZodFormDef,
 };

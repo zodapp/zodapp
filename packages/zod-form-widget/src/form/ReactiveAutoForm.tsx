@@ -3,6 +3,7 @@ import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
 import {
   ReactiveFormContextProvider,
   Switch,
+  TableRowProvider,
   ZodFormContextProvider,
   reactiveComponentLibrary as defaultReactiveComponentLibrary,
   type ReactiveFieldEvent
@@ -135,12 +136,15 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
           onConfirm={handleConfirm}
         >
           <Stack gap="md">
-            <Switch
-              fieldPath=""
-              schema={schema}
-              defaultValue={values as z.input<T>}
-              readOnly={readOnly}
-            />
+            {/* computed などが parent を読めるよう、フォーム全体の値を行の値として渡す */}
+            <TableRowProvider row={values}>
+              <Switch
+                fieldPath=""
+                schema={schema}
+                defaultValue={values as z.input<T>}
+                readOnly={readOnly}
+              />
+            </TableRowProvider>
 
             {showPreview && (
               <Code block style={{ maxHeight: 200, overflow: 'auto' }}>

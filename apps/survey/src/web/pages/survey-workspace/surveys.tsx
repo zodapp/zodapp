@@ -112,7 +112,8 @@ const SurveysPage = () => {
             label: "復元",
             width: 60,
             align: "center" as const,
-            compute: (row: Survey) => (
+            dependsOnParent: true,
+            compute: ({ parent: row }: { parent: Survey }) => (
               <Tooltip label="復元する">
                 <ActionIcon
                   variant="light"

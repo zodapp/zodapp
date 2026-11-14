@@ -61,8 +61,8 @@ export const schema = z
       .enum(hobbyLiterals)
       .register(zf.enum.registry, { label: "一番好きな趣味(enum)" }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () => "これはReactive版のreadOnlyモードサンプルです",
       })
       .optional(),

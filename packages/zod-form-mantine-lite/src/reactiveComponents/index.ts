@@ -19,7 +19,6 @@ export { component as EnumComponent } from "./enum.js";
 export { component as DateComponent } from "./date.js";
 export { component as ExternalKeyComponent } from "./externalKey.js";
 export { component as LiteralComponent } from "./literal.js";
-export { component as DerivedComponent } from "./derived.js";
 export { component as ObjectComponent } from "./object.js";
 export { component as RecordComponent } from "./record.js";
 export { component as ComputedComponent } from "./computed.js";
@@ -38,7 +37,6 @@ export const reactiveComponentLibrary: ComponentLibrary = {
   date: (() => import("./date.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
   literal: (() => import("./literal.js")) as DynamicZodFormDef,
-  derived: (() => import("./derived.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
 };

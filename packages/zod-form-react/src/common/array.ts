@@ -1,5 +1,10 @@
 import { useMemo, useRef } from "react";
 import type { AnyFieldApi } from "@tanstack/react-form";
+import {
+  normalizeIssuePath,
+  parseFieldPath,
+  type PathSegment,
+} from "../utils/path";
 
 let idCounter = 0;
 function generateKey() {
@@ -15,29 +20,11 @@ type ArrayFieldError = {
   message?: string;
 };
 
-type PathSegment = string | number;
-
-const parseFieldPath = (fieldPath: string): PathSegment[] =>
-  fieldPath
-    .replace(/\[(\d+)\]/g, ".$1")
-    .split(".")
-    .filter(Boolean)
-    .map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
-
 const getIssuePath = (error: unknown): PathSegment[] | undefined => {
   if (!error || typeof error !== "object" || !("path" in error)) return undefined;
   const path = (error as { path?: unknown }).path;
   if (!Array.isArray(path)) return undefined;
-  return path.flatMap((segment) => {
-    if (typeof segment === "string" || typeof segment === "number") {
-      return [segment];
-    }
-    if (segment && typeof segment === "object" && "key" in segment) {
-      const key = (segment as { key?: unknown }).key;
-      return typeof key === "string" || typeof key === "number" ? [key] : [];
-    }
-    return [];
-  });
+  return normalizeIssuePath(path);
 };
 
 const pathsEqual = (left: readonly PathSegment[], right: readonly PathSegment[]) =>

@@ -3,7 +3,7 @@
  *
  * answers は質問の種類ごとに型が異なる（string / number / boolean。日付は YYYY-MM-DD の文字列）ため、
  * 表示側でこの関数を通す。
- * `zf.derived` の compute として登録することで、テーブルセルでもそのまま使える
+ * `zf.computed` の compute として登録することで、テーブルセルでもそのまま使える
  * （`ComputedValue` は string を含む union なので戻り値をそのまま渡せる）。
  */
 export const formatAnswerValue = (value: unknown): string => {

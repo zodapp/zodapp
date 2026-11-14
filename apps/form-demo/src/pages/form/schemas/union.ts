@@ -54,8 +54,8 @@ export const schema = z
         selectorLabel: "連絡先タイプ",
       }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。",
       })

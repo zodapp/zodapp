@@ -106,51 +106,81 @@ const stringSuggestionSchema = z.union([
   }),
 ]);
 
-type ComputedMetaWithoutContext<TResult, TParent = any> = {
-  contextId?: undefined;
-  compute: (parent: TParent) => TResult;
+/**
+ * meta の関数が受け取る入力。
+ *
+ * - `value`: 自分の値（値を持たない欄では undefined）
+ * - `parent`: 親の値。`dependsOnParent: true` のときだけ入る
+ * - `context`: resolverContext の一部。`contextId` を指定したときだけ入る
+ */
+export type FnInput<TValue = unknown, TParent = unknown, TContext = unknown> = {
+  value: TValue;
+  parent: TParent;
+  context: TContext;
 };
 
-type ComputedMetaWithContext<TResult, TParent = any> = {
-  [K in RegisteredResolverContextId]: {
-    contextId: K;
-    compute: (
-      parent: TParent,
-      context: RegisteredResolverContextMap[K],
-    ) => TResult;
-  };
-}[RegisteredResolverContextId];
-
-export type ComputedMetaDef<TResult, TParent = any> = z.infer<
-  typeof zodExtendableCommonDefSchema
-> &
-  (
-    | ComputedMetaWithoutContext<TResult, TParent>
-    | ComputedMetaWithContext<TResult, TParent>
-  );
-
-type DerivedMetaWithoutContext<TResult, TValue = any> = {
-  contextId?: undefined;
-  compute: (value: TValue) => TResult;
+/**
+ * 関数を受け取る meta（computed / dynamic）に共通の指定。
+ * 何に反応して関数を呼び直すかを決める。
+ */
+export type FnSourceMeta = {
+  /** 自分の値が変わったら関数を呼び直す。既定 true */
+  dependsOnValue?: boolean;
+  /** 親の値を購読し、変わったら呼び直す。既定 false */
+  dependsOnParent?: boolean;
+  /** resolverContext のどの部分を context として渡すか。変わったら呼び直す */
+  contextId?: RegisteredResolverContextId;
 };
 
-type DerivedMetaWithContext<TResult, TValue = any> = {
-  [K in RegisteredResolverContextId]: {
-    contextId: K;
-    compute: (
-      value: TValue,
-      context: RegisteredResolverContextMap[K],
-    ) => TResult;
-  };
-}[RegisteredResolverContextId];
+// contextId の値で context の型を絞る
+type FnWithContextVariants<
+  TKey extends string,
+  TValue,
+  TParent,
+  TResult,
+> =
+  | ({ contextId?: undefined } & {
+      [P in TKey]: (input: FnInput<TValue, TParent, undefined>) => TResult;
+    })
+  | {
+      [K in RegisteredResolverContextId]: { contextId: K } & {
+        [P in TKey]: (
+          input: FnInput<TValue, TParent, RegisteredResolverContextMap[K]>,
+        ) => TResult;
+      };
+    }[RegisteredResolverContextId];
 
-export type DerivedMetaDef<TResult, TValue = any> = z.infer<
-  typeof zodExtendableCommonDefSchema
-> &
-  (
-    | DerivedMetaWithoutContext<TResult, TValue>
-    | DerivedMetaWithContext<TResult, TValue>
-  );
+/**
+ * 関数を受け取る meta の型。`dependsOnParent: true` のときだけ `parent` を必須の型にし、
+ * `contextId` の値で `context` の型を絞る。
+ */
+export type FnMeta<TKey extends string, TValue, TParent, TResult> = {
+  dependsOnValue?: boolean;
+} & (
+  | ({ dependsOnParent: true } & FnWithContextVariants<
+      TKey,
+      TValue,
+      TParent,
+      TResult
+    >)
+  | ({ dependsOnParent?: false } & FnWithContextVariants<
+      TKey,
+      TValue,
+      undefined,
+      TResult
+    >)
+);
+
+/**
+ * computed の meta。値を持たない欄（z.never）に付ければ表示専用、
+ * 値を持つ欄に付ければその値から表示を作る。
+ */
+export type ComputedMetaDef<
+  TResult,
+  TValue = any,
+  TParent = any,
+> = z.infer<typeof zodExtendableCommonDefSchema> &
+  FnMeta<"compute", TValue, TParent, TResult>;
 
 export type SchemaResolver<
   TValue = unknown,
@@ -275,35 +305,27 @@ const date = extendCustom(
   schemaType<z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate>(),
 );
 
-// computed: 親オブジェクトを受け取り ComputedValue を返す
-// contextId を指定すると compute(parent, context) の形で resolverContext slice が渡される
-// contextId を省略すると context は渡されない
+/**
+ * {@link FnSourceMeta} の Zod スキーマ。関数を受け取る meta のメタスキーマに混ぜて使う。
+ */
+export const fnSourceMetaSchema = z.object({
+  dependsOnValue: z.boolean().optional(),
+  dependsOnParent: z.boolean().optional(),
+  contextId: z.custom<RegisteredResolverContextId>().optional(),
+});
+
+// computed: { value, parent, context } を受け取り ComputedValue を返す
+// 値を持たない欄（z.never）に付ければ表示専用、値を持つ欄に付ければその値の表示になる
 const computed = extendCustom(
   z.never,
   "computed",
   zodExtendableCommonDefSchema.extend({
-    contextId: z.custom<RegisteredResolverContextId>().optional(),
+    ...fnSourceMetaSchema.shape,
     compute: z.function({
-      input: [z.any(), z.any().optional()],
+      input: [z.any()],
       output: computedValueSchema,
     }),
-  }) as z.ZodType<ComputedMetaDef<ComputedValue>>,
-  schemaType<z.ZodType>(),
-);
-
-// derived: 該当フィールドの値を受け取り ComputedValue を返す
-// contextId を指定すると compute(value, context) の形で resolverContext slice が渡される
-// contextId を省略すると context は渡されない
-const derived = extendCustom(
-  z.never,
-  "derived",
-  zodExtendableCommonDefSchema.extend({
-    contextId: z.custom<RegisteredResolverContextId>().optional(),
-    compute: z.function({
-      input: [z.any(), z.any().optional()],
-      output: computedValueSchema,
-    }),
-  }) as z.ZodType<DerivedMetaDef<ComputedValue>>,
+  }) as unknown as z.ZodType<ComputedMetaDef<ComputedValue>>,
   schemaType<z.ZodType>(),
 );
 
@@ -319,8 +341,7 @@ const dynamic = extendCustom(
 
 /**
  * zf - React非依存のZodスキーマ拡張
- * computed: 親オブジェクトを受け取る（複数フィールド横断の計算）
- * derived: 該当フィールドの値を受け取る（単一フィールドの変換）
+ * computed: { value, parent, context } から表示を作る
  */
 const zf = {
   literal: extendLiteral(zodExtendableCommonDefSchema),
@@ -355,7 +376,6 @@ const zf = {
   externalKey,
   file,
   computed,
-  derived,
   dynamic,
 };
 

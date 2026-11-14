@@ -4,9 +4,9 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconSparkles } from "@tabler/icons-react";
 
 export const formId = "computedVariants";
-export const title = "derived / computed と ComputedValue";
+export const title = "computed と ComputedValue";
 export const description =
-  "derived（単一フィールド値の変換）と computed（行全体からの算出）の使い分け、ComputedValue の各表示型（badge / link / icon / title）";
+  "computed で自分の値を変換する形と親全体から算出する形、ComputedValue の各表示型（badge / link / icon / title）";
 export const icon = IconSparkles;
 export const category = "Advanced";
 
@@ -33,7 +33,7 @@ export const schema = z
         }),
       })
       .optional(),
-    // derived: 「そのフィールドの値」だけを受け取って表示を変換する。
+    // 値を持つ欄の computed: 「そのフィールドの値」を受け取って表示を変換する。
     // 値の保存形式（"active" 等）と表示（バッジ）を分離できる。
     // フォームでは表示専用（保存済みの値をテーブルセルや詳細表示で
     // 整形するのが主用途）。
@@ -48,29 +48,31 @@ export const schema = z
       .register(zf.enum.registry, { label: "ステータス（編集用）" }),
     statusBadge: zf
       .string()
-      .register(zf.derived.registry, {
-        label: "ステータス（derivedでバッジ表示）",
-        compute: (value: string) =>
+      .register(zf.computed.registry, {
+        label: "ステータス（computedでバッジ表示）",
+        compute: ({ value }: { value: string }) =>
           statusBadges[value as Status] ?? { type: "badge", label: value },
       })
       .optional(),
     firstName: zf.string().register(zf.string.registry, { label: "名" }),
     lastName: zf.string().register(zf.string.registry, { label: "姓" }),
-    // computed: 「親オブジェクト全体」を受け取って算出する。
-    // 複数フィールドを跨いだ計算は computed を使う。
+    // dependsOnParent: true の computed: 「親オブジェクト全体」を受け取って算出する。
+    // 複数フィールドを跨いだ計算はこちらを使う。
     fullName: zfReact
       .computed()
       .register(zf.computed.registry, {
         label: "氏名（computedで結合）",
-        compute: (parent) => `${parent?.lastName ?? ""} ${parent?.firstName ?? ""}`,
+        dependsOnParent: true,
+        compute: ({ parent }) =>
+          `${parent?.lastName ?? ""} ${parent?.firstName ?? ""}`,
       })
       .optional(),
     homepage: zf.string().register(zf.string.registry, { label: "URL" }),
     homepageLink: zf
       .string()
-      .register(zf.derived.registry, {
+      .register(zf.computed.registry, {
         label: "リンク（type: link）",
-        compute: (value: string) =>
+        compute: ({ value }: { value: string }) =>
           value ? { type: "link", label: value, href: value } : "",
       })
       .optional(),

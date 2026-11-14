@@ -149,7 +149,8 @@ const TasksPage = () => {
               label: "選択",
               width: 40,
               align: "center" as const,
-              compute: (row: SelectableTaskData) => (
+              dependsOnParent: true,
+              compute: ({ parent: row }: { parent: SelectableTaskData }) => (
                 <Checkbox
                   checked={row._selected}
                   onChange={() => toggleTaskSelection(row.taskId)}
@@ -193,7 +194,8 @@ const TasksPage = () => {
             label: "復元",
             width: 60,
             align: "center" as const,
-            compute: (row: TaskData) => (
+            dependsOnParent: true,
+            compute: ({ parent: row }: { parent: TaskData }) => (
               <Tooltip label="復元する">
                 <ActionIcon
                   variant="light"

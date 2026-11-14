@@ -47,8 +47,8 @@ export const schema = z
         label: "承認済(literal型+booleanコンポーネントを強制)",
       }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () => "これはReactive版の基本入力フォームサンプルです",
       })
       .optional(),

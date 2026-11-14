@@ -27,6 +27,12 @@ export {
   useFormValues,
 } from "./form";
 export {
+  useFnInput,
+  useTableFnInput,
+  TableRowProvider,
+  useTableRow,
+} from "./fnInput";
+export {
   LazyProvider,
   useLazyFactory,
   type LazyComponentFactory,

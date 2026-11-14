@@ -106,8 +106,8 @@ export const schema = z
         uiType: "multipleEnum",
       }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "zf.enumで1つの選択肢を、zf.array(zf.enum())で複数選択を表現します",
       })

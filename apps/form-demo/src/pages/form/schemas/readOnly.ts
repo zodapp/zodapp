@@ -117,8 +117,8 @@ export const schema = z
     // discriminatedUnion
     contact: contactSchema,
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () => "これはreadOnlyモードのサンプルです",
       })
       .optional(),

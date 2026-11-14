@@ -32,7 +32,7 @@ describe("computed context 型テスト", () => {
       const schema = zf.computed().register(zf.computed.registry, {
         label: "テスト",
         contextId: "workspace",
-        compute: (_parent, context) => {
+        compute: ({ context }) => {
           expectTypeOf(context).toEqualTypeOf<WebResolverContextMap["workspace"]>();
           return context.workspaceId;
         },
@@ -41,15 +41,31 @@ describe("computed context 型テスト", () => {
       expectTypeOf(schema).toBeObject();
     });
 
-    it("contextId を省略すると compute は第2引数を取らない", () => {
+    it("contextId を省略すると context は undefined になる", () => {
       type ContextlessComputed = Extract<
         ComputedMetaDef<string, unknown>,
-        { contextId?: undefined }
+        { contextId?: undefined; dependsOnParent?: false }
       >;
 
-      expectTypeOf<Parameters<ContextlessComputed["compute"]>>().toEqualTypeOf<
-        [unknown]
-      >();
+      expectTypeOf<
+        Parameters<ContextlessComputed["compute"]>[0]["context"]
+      >().toEqualTypeOf<undefined>();
+    });
+
+    it("dependsOnParent: true のときだけ parent が型に入る", () => {
+      zf.computed().register(zf.computed.registry, {
+        dependsOnParent: true,
+        compute: ({ parent }) => {
+          expectTypeOf(parent).toBeAny();
+          return "";
+        },
+      });
+      zf.computed().register(zf.computed.registry, {
+        compute: ({ parent }) => {
+          expectTypeOf(parent).toEqualTypeOf<undefined>();
+          return "";
+        },
+      });
     });
   });
 
@@ -58,7 +74,7 @@ describe("computed context 型テスト", () => {
       const schema = zfReact.computed().register(zfReact.computed.registry, {
         label: "テスト",
         contextId: "workspace",
-        compute: (_parent, context) => {
+        compute: ({ context }) => {
           expectTypeOf(context).toEqualTypeOf<WebResolverContextMap["workspace"]>();
           return context.workspaceId;
         },

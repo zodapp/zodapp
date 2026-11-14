@@ -34,8 +34,8 @@ export const schema = z
       uiType: "password",
     }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "refineを使用すると、複数フィールドにまたがるカスタムバリデーション（パスワード一致確認など）を実装できます。whenオプションでバリデーション条件の指定も可能です。",
       })
