@@ -119,6 +119,26 @@ type AsyncState =
   | { status: "error"; error: unknown; resolved?: ResolvedSchema };
 
 /**
+ * resolve を描画中に呼ぶ。React は描画を捨てたりやり直したりするので、
+ * 返った Promise が使われずに捨てられることがある。その失敗が未処理の例外にならないよう、
+ * 何もしない catch を付けておく（使うときは effect の側で then を付ける）。
+ */
+const callResolve = (
+  meta: DynamicMetaDef | undefined,
+  input: FnInput,
+): ResolveOutcome => {
+  try {
+    const result = meta
+      ? (meta.resolve as (input: FnInput) => SchemaResolveResult)(input)
+      : undefined;
+    if (result instanceof Promise) result.catch(() => {});
+    return { kind: "value", result };
+  } catch (error) {
+    return { kind: "thrown", error };
+  }
+};
+
+/**
  * dynamic の resolve を呼び、決まった schema をフォームの登録先に置く hook。
  *
  * - 同期で返る resolve は描画中に計算する（読み込み中を出さない）。副作用を持たないこと
@@ -146,16 +166,7 @@ export const useDynamicSchema = (
   const [retryToken, setRetryToken] = useState(0);
 
   const outcome = useMemo<ResolveOutcome>(() => {
-    try {
-      return {
-        kind: "value",
-        result: meta
-          ? (meta.resolve as (input: FnInput) => SchemaResolveResult)(input)
-          : undefined,
-      };
-    } catch (error) {
-      return { kind: "thrown", error };
-    }
+    return callResolve(meta, input);
     // retryToken は取り直しのため
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta, input, retryToken]);
@@ -350,16 +361,7 @@ export const useResolvedSchema = (
 ): DynamicSchemaState => {
   const [retryToken, setRetryToken] = useState(0);
   const outcome = useMemo<ResolveOutcome>(() => {
-    try {
-      return {
-        kind: "value",
-        result: meta
-          ? (meta.resolve as (input: FnInput) => SchemaResolveResult)(input)
-          : undefined,
-      };
-    } catch (error) {
-      return { kind: "thrown", error };
-    }
+    return callResolve(meta, input);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta, input, retryToken]);
   const syncResolved =
