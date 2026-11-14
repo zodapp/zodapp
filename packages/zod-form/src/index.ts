@@ -5,6 +5,7 @@ export * from "./def";
 export * from "./utils/zod";
 export * from "./utils/schema";
 export * from "./utils/default";
+export { stripPreprocess, normalizePreprocessValue } from "./utils/preprocess";
 
 // External key types
 export * from "./externalKey";
