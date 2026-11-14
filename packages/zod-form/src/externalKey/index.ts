@@ -13,3 +13,6 @@ export type {
   ExternalKeyConfigRegistry,
   RegisteredExternalKeyConfig,
 } from "./types";
+
+export type { MockExternalKeyConfig, MockExternalKeyOption } from "./mock";
+export { createMockExternalKeyResolver } from "./mock";

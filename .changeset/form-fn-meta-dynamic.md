@@ -14,4 +14,5 @@
 - externalKey を dynamic + ラッパーで作る。externalKey と file の config はただのデータにし、関数の形はなくす。externalKey に `allowUnlisted` を足す
 - 表（AutoTable）で行の値を `TableRowProvider` で渡し、表用の dynamic の部品を足す
 - 時刻だけを持つ `zf.time` を足す
+- 開発用のモック `createMockExternalKeyResolver` を足す
 - `z.iso.datetime` の precision に合わせて書く。union を包む preprocess を描画で外す
