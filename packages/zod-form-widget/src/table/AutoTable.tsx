@@ -21,6 +21,7 @@ import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext
 import { isSortableColumn, sortValueOf } from "./sort-values";
 import {
   ZodFormContextProvider,
+  useZodFormContext,
   Switch,
   TableRowProvider,
   tableComponentLibrary,
@@ -1301,6 +1302,11 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
   const [sortState, setSortState] = useState<SortState | null>(
     defaultSortState,
   );
+  // 並べ替えで computed を計算するときも、セルと同じ resolverContext を使う
+  // （props に無ければ、外側の ZodFormContextProvider のものを引き継ぐ）
+  const parentContext = useZodFormContext();
+  const effectiveResolverContext =
+    resolverContext ?? parentContext.resolverContext;
   const { fields, sortedData, totalMinWidth, totalWidthWeight } =
     useAutoTableModel({
       schema,
@@ -1311,7 +1317,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
       storageColumns,
       isPreviewing,
       sortState,
-      resolverContext,
+      resolverContext: effectiveResolverContext,
     });
 
   const {
