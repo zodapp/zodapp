@@ -53,7 +53,9 @@ test("都道府県を消すと、市区町村・町名は選択肢が0件にな�
   await expect(field(page, "市区町村")).toHaveValue("新宿区");
   // 都道府県の × で消す
   await field(page, "都道府県")
-    .locator("xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]")
+    .locator(
+      "xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]",
+    )
     .locator("button")
     .first()
     .click();

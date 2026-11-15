@@ -42,7 +42,9 @@ test("担当者を選んでから画面の部署を変えても、同じく消�
   pageErrors: _,
 }) => {
   await choose(page, ASSIGNEE, "鈴木 一郎（営業）");
-  await expect.poll(async () => (await previewValue(page)).assignee).toBe("u-003");
+  await expect
+    .poll(async () => (await previewValue(page)).assignee)
+    .toBe("u-003");
 
   await page.getByText("開発", { exact: true }).first().click();
   await expect
@@ -61,7 +63,9 @@ test("unlisted: keep の欄は、一覧から外れた値を残し、不正な�
     .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）", "（不正な値）"]);
   expect((await previewValue(page)).assigneeKeep).toBe("u-001");
   await expect(field(page, KEEP)).toHaveValue("（不正な値）");
-  await expect(page.getByText("選択肢に無い値です。選び直してください。")).toBeVisible();
+  await expect(
+    page.getByText("選択肢に無い値です。選び直してください。"),
+  ).toBeVisible();
 
   await page.getByText("営業", { exact: true }).first().click();
   await expect(field(page, KEEP)).toHaveValue("山田 太郎（営業）");

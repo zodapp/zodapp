@@ -66,3 +66,67 @@ export const optionsOf = async (page: Page, label: string) => {
   await page.keyboard.press("Escape");
   return texts;
 };
+
+/** 遅延の分け方を選ぶ（e2e 用のデモページ） */
+export const setDelayMode = async (
+  page: Page,
+  label:
+    | "見やすい遅延"
+    | "すぐ届く"
+    | "1 フレーム後"
+    | "2 フレーム後"
+    | "止めておく",
+) => {
+  await page
+    .getByTestId("fetch-control")
+    .locator("label")
+    .filter({ hasText: new RegExp(`^${escape(label)}$`) })
+    .click();
+  await expect(page.getByTestId("delay-mode")).toHaveText(
+    `選んだ分け方：${label}`,
+  );
+};
+
+/** 止めておいた取得のうち、名前が合うもの */
+export const pendingFetch = (page: Page, name: string) =>
+  page.getByTestId("pending-fetch").filter({ hasText: name });
+
+/** 見るための部品の「送信」を押す */
+export const submit = async (page: Page) => {
+  await page.getByRole("button", { name: "送信", exact: true }).click();
+};
+
+/** 送信の試みが n 回目まで終わる（通った・止まった）のを待つ */
+export const waitSubmitSettled = async (page: Page, times: number) => {
+  await expect
+    .poll(
+      async () =>
+        (await logOf(page, "submit")).filter(
+          (entry) => entry.result !== "attempted",
+        ).length,
+    )
+    .toBe(times);
+};
+
+/** 選択の欄の × で値を消す */
+export const clearSelect = async (page: Page, label: string) => {
+  await field(page, label)
+    .locator(
+      "xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]",
+    )
+    .locator("button")
+    .first()
+    .click();
+};
+
+/** 欄のエラーの表示（欄の下に出る文言） */
+export const fieldError = (page: Page, label: string) =>
+  field(page, label)
+    .locator(
+      "xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]",
+    )
+    .locator(".mantine-InputWrapper-error");
+
+/** 読み込み中・失敗の dynamic の欄 */
+export const dynamicStatuses = (page: Page) =>
+  page.locator("[data-dynamic-status]");
