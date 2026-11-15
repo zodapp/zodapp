@@ -7,13 +7,13 @@
 .stickyHeaderRow {
   position: sticky;
   top: 0;
-  background-color: white;
+  background-color: var(--mantine-color-body);
   z-index: 10;
 }
 
 .headerCell {
   text-align: center;
-  background-color: white;
+  background-color: var(--mantine-color-body);
 }
 
 .previewHeaderCell {
@@ -33,7 +33,7 @@
 }
 
 .previewHeaderCell[data-focused='true'] {
-  background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 12%, white);
+  background-color: color-mix(in srgb, var(--mantine-primary-color-filled) 12%, var(--mantine-color-body));
 }
 
 .previewContent {
