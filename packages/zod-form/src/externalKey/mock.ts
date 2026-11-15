@@ -1,7 +1,15 @@
+import { getResolverContextSlice } from "../resolverContext/runtime";
 import type { BaseExternalKeyConfig, ExternalKeyResolverEntry } from "./types";
 
-/** モックの選択肢 */
-export type MockExternalKeyOption = { label: string; value: string };
+/**
+ * モックの選択肢。`label` と `value` のほかに、`filter` で使う項目（部署など）を持たせてよい。
+ * 欄に届けるのは `label` と `value` だけ
+ */
+export type MockExternalKeyOption = {
+  label: string;
+  value: string;
+  [field: string]: unknown;
+};
 
 /**
  * 値を一つ持ち、変更を購読者に届けるだけのオブジェクト（pub/sub）。
@@ -41,12 +49,19 @@ export const createMockTopic = <T>(initial: T): MockTopic<T> => {
  * - `topic`: 選択肢の出どころ（`createMockExternalKeyResolver` の `topics` のキー）。
  *   親の値で選択肢を変えるときは、`cities/${prefecture}` のように名前に値を入れる
  * - `delayMs`: 最初の選択肢を返すまでの待ち時間。読み込み中の表示を見るため
+ * - `contextId`: `filter` に渡す resolverContext の部分
+ * - `filter`: 届いた選択肢の絞り込み。`contextId` の resolverContext を第 2 引数で受け取る
+ *   （実際の resolver の filter と同じ形）。context の値が変わると取り直す
  */
-export type MockExternalKeyConfig<TType extends string = "mock"> =
-  BaseExternalKeyConfig<TType> & {
-    topic: string;
-    delayMs?: number;
-  };
+export type MockExternalKeyConfig<
+  TType extends string = "mock",
+  TContext = unknown,
+> = BaseExternalKeyConfig<TType> & {
+  topic: string;
+  delayMs?: number;
+  contextId?: string;
+  filter?: (option: MockExternalKeyOption, context: TContext) => boolean;
+};
 
 /**
  * ローカル開発用のモック externalKey resolver。
@@ -58,7 +73,10 @@ export type MockExternalKeyConfig<TType extends string = "mock"> =
  * createMockExternalKeyResolver({ topics: { users } });
  * // あとで users.set(...) すると、購読中の欄に新しい選択肢が届く
  */
-export const createMockExternalKeyResolver = <TType extends string = "mock">({
+export const createMockExternalKeyResolver = <
+  TType extends string = "mock",
+  TContext = unknown,
+>({
   type = "mock" as TType,
   topics,
   delayMs: defaultDelayMs = 300,
@@ -66,19 +84,34 @@ export const createMockExternalKeyResolver = <TType extends string = "mock">({
   type?: TType;
   topics: Record<string, MockTopic<MockExternalKeyOption[]>>;
   delayMs?: number;
-}): ExternalKeyResolverEntry<TType, MockExternalKeyConfig<TType>> => ({
+}): ExternalKeyResolverEntry<
+  TType,
+  MockExternalKeyConfig<TType, TContext>
+> => ({
   type,
-  resolver: (config) => ({
+  resolver: (config, resolverContext) => ({
     subscribe: (callback) => {
       const topic = topics[config.topic];
+      const context = getResolverContextSlice(
+        resolverContext,
+        config.contextId,
+      ) as TContext;
+      const { filter } = config;
+      const deliver = (options: MockExternalKeyOption[]) =>
+        callback(
+          (filter
+            ? options.filter((option) => filter(option, context))
+            : options
+          ).map(({ label, value }) => ({ label, value })),
+        );
       let unsubscribeTopic: (() => void) | undefined;
       const timer = setTimeout(() => {
         if (!topic) {
           callback([]);
           return;
         }
-        callback(topic.get());
-        unsubscribeTopic = topic.subscribe(callback);
+        deliver(topic.get());
+        unsubscribeTopic = topic.subscribe(deliver);
       }, config.delayMs ?? defaultDelayMs);
       return () => {
         clearTimeout(timer);

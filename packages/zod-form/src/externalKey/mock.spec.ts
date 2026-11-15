@@ -131,4 +131,41 @@ describe("createMockExternalKeyResolver", () => {
     vi.advanceTimersByTime(1);
     expect(callback).toHaveBeenCalledTimes(1);
   });
+
+  it("filter で絞り込み、contextId の resolverContext を受け取る。届けるのは label と value だけ", () => {
+    const members = createMockTopic<MockExternalKeyOption[]>([
+      { label: "山田", value: "u1", team: "sales" },
+      { label: "佐藤", value: "u2", team: "dev" },
+    ]);
+    const entry = createMockExternalKeyResolver({
+      delayMs: 0,
+      topics: { members },
+    });
+    const filter = vi.fn(
+      (option: MockExternalKeyOption, context: unknown) =>
+        option.team === (context as { team: string }).team,
+    );
+    const callback = vi.fn();
+    entry
+      .resolver({ type: "mock", topic: "members", contextId: "team", filter }, {
+        team: { team: "dev" },
+      } as never)
+      .subscribe(callback);
+    vi.advanceTimersByTime(0);
+    expect(filter).toHaveBeenCalledWith(
+      { label: "山田", value: "u1", team: "sales" },
+      { team: "dev" },
+    );
+    expect(callback).toHaveBeenLastCalledWith([{ label: "佐藤", value: "u2" }]);
+
+    // topic が変わっても同じ filter で絞って届け直す
+    members.set((prev) => [
+      ...prev,
+      { label: "鈴木", value: "u3", team: "dev" },
+    ]);
+    expect(callback).toHaveBeenLastCalledWith([
+      { label: "佐藤", value: "u2" },
+      { label: "鈴木", value: "u3" },
+    ]);
+  });
 });
