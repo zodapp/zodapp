@@ -5,6 +5,7 @@ import "./components/zod-errormap.ja";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/dropzone/styles.css";
+import "@zodapp/zod-form-widget/styles.css";
 import "./styles/globals.css";
 import { App } from "./App";
 
