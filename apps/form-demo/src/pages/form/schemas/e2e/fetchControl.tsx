@@ -155,23 +155,43 @@ export const useFetchControl = (control: FetchControl) =>
 /**
  * 今の分け方で、externalKey の選択肢を届ける resolver を作る。
  * 購読のたびに topic を作り、すぐ届く分け方では値のある topic を、ほかは値の無い topic を渡して、
- * 決めた時機に set（失敗させるなら fail）する。
- * optionsOf が undefined を返す topic は作らない（モックの無い topic になる）
+ * 決めた時機に set（失敗させるなら fail）する。届ける選択肢は、届けるときの optionsOf で決める。
+ * optionsOf が undefined を返す topic は作らない（モックの無い topic になる）。
+ *
+ * republish は、購読中の欄に、同じ購読のまま選択肢を届け直す（時機は今の分け方で決める）
  */
 export const createControlledExternalKeyResolvers = (
   control: FetchControl,
   optionsOf: (topic: string) => MockExternalKeyOption[] | undefined,
-): ExternalKeyResolvers => {
+): {
+  resolvers: ExternalKeyResolvers;
+  republish: (name: string) => void;
+} => {
   const topics: Record<string, MockTopic<MockExternalKeyOption[]>> = {};
+  const active = new Map<string, Set<MockTopic<MockExternalKeyOption[]>>>();
   const mock = createMockExternalKeyResolver({ topics });
-  return withFetchLog([
+  const failError = () => new Error("取得に失敗しました（e2e）");
+
+  const settleLater = (
+    name: string,
+    topic: MockTopic<MockExternalKeyOption[]>,
+  ) =>
+    control.schedule(
+      `externalKey: ${name}`,
+      () => topic.set(optionsOf(name) ?? []),
+      () => topic.fail(failError()),
+      HUMAN_DELAY_MS.externalKey,
+    );
+
+  const resolvers = withFetchLog([
     {
       type: mock.type,
       resolver: (config, resolverContext) => ({
         subscribe: (callback, onError) => {
-          const options = optionsOf(config.topic);
+          const name = config.topic;
+          const options = optionsOf(name);
           if (options === undefined) {
-            delete topics[config.topic];
+            delete topics[name];
             return mock
               .resolver(config, resolverContext)
               .subscribe(callback, onError);
@@ -182,26 +202,39 @@ export const createControlledExternalKeyResolvers = (
           const topic = immediate
             ? createMockTopic(options)
             : createMockTopic<MockExternalKeyOption[]>();
-          topics[config.topic] = topic;
+          topics[name] = topic;
+          const set = active.get(name) ?? new Set();
+          set.add(topic);
+          active.set(name, set);
           const unsubscribe = mock
             .resolver(config, resolverContext)
             .subscribe(callback, onError);
-          const cancel = immediate
-            ? () => {}
-            : control.schedule(
-                `externalKey: ${config.topic}`,
-                () => topic.set(options),
-                () => topic.fail(new Error("取得に失敗しました（e2e）")),
-                HUMAN_DELAY_MS.externalKey,
-              );
+          const cancel = immediate ? () => {} : settleLater(name, topic);
           return () => {
             cancel();
+            set.delete(topic);
             unsubscribe();
           };
         },
       }),
     },
   ]);
+
+  return {
+    resolvers,
+    republish: (name) => {
+      for (const topic of active.get(name) ?? []) {
+        if (
+          control.getState().mode === "immediate" &&
+          !control.getState().failing
+        ) {
+          topic.set(optionsOf(name) ?? []);
+        } else {
+          settleLater(name, topic);
+        }
+      }
+    },
+  };
 };
 
 /**

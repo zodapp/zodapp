@@ -150,10 +150,8 @@ const optionsOf = (topic: string) => {
   return undefined;
 };
 
-const externalKeyResolvers = createControlledExternalKeyResolvers(
-  control,
-  optionsOf,
-);
+const { resolvers: externalKeyResolvers } =
+  createControlledExternalKeyResolvers(control, optionsOf);
 
 // 帳票の種類を、今と違う方に書き込む
 const toggleTemplate: HarnessWrite["run"] = (form) =>
