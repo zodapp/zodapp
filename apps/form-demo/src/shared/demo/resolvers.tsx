@@ -3,6 +3,7 @@
  *
  * - externalKey: 下のデータを topic（createMockTopic）に入れ、createMockExternalKeyResolver で選択肢として届ける。
  *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする。
+ *   親が空のとき（`cities/`・`towns/`）は、空の topic で 0 件の選択肢を届ける（無い topic は失敗になるため）。
  *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う。
  *   モックは待たずに届けるので、読み込み中を見せるためにデモの側で包んで遅らせる（withDemoDelay）
  * - valueAction: getActionParams が返す href をリンクにする
@@ -99,6 +100,9 @@ export const demoTopics = {
   onDuty: createMockTopic(users),
   ...topicsOf("cities", cities),
   ...topicsOf("towns", towns),
+  // 親が空のときの topic。0 件の選択肢を届け、欄に「選択肢がありません」（emptyMessage）を出す
+  "cities/": createMockTopic<MockExternalKeyOption[]>([]),
+  "towns/": createMockTopic<MockExternalKeyOption[]>([]),
 };
 
 /**

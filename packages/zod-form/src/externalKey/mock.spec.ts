@@ -76,12 +76,43 @@ describe("createMockExternalKeyResolver", () => {
     expect(callback).toHaveBeenCalledWith([option("p1")]);
   });
 
-  it("知らない topic は、購読したその場で空の選択肢を一度届ける", () => {
+  it("無い topic は、購読したその場で onError に失敗を届け、選択肢は届けない", () => {
     const { entry } = setup();
     const callback = vi.fn();
-    entry.resolver({ type: "mock", topic: "none" }, {}).subscribe(callback);
-    expect(callback).toHaveBeenCalledTimes(1);
+    const onError = vi.fn();
+    entry
+      .resolver({ type: "mock", topic: "none" }, {})
+      .subscribe(callback, onError);
+    expect(callback).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0]![0]).toBeInstanceOf(Error);
+    expect((onError.mock.calls[0]![0] as Error).message).toBe(
+      'topic "none" がありません',
+    );
+  });
+
+  it("無い topic を onError なしで購読しても、例外にならず何も届けない", () => {
+    const { entry } = setup();
+    const callback = vi.fn();
+    const unsubscribe = entry
+      .resolver({ type: "mock", topic: "none" }, {})
+      .subscribe(callback);
+    expect(callback).not.toHaveBeenCalled();
+    expect(() => unsubscribe()).not.toThrow();
+  });
+
+  it("空の topic は、0 件の選択肢を届ける", () => {
+    const empty = createMockTopic<MockExternalKeyOption[]>([]);
+    const entry = createMockExternalKeyResolver({
+      topics: { "cities/": empty },
+    });
+    const callback = vi.fn();
+    const onError = vi.fn();
+    entry
+      .resolver({ type: "mock", topic: "cities/" }, {})
+      .subscribe(callback, onError);
     expect(callback).toHaveBeenCalledWith([]);
+    expect(onError).not.toHaveBeenCalled();
   });
 
   it("topic を set すると届け直す", () => {

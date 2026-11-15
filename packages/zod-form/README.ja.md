@@ -13,7 +13,7 @@
 - `valueAction`: 選んだ値に対する操作（リンクで開くなど）の型
 - `zf.time`: 時刻だけを持つ値（`z.iso.time()` と、0 時からの経過量を持つ `z.number()`）
 - `createMockFileResolver`: ローカル開発用のモック（Data URL で保持）
-- `createMockTopic` / `createMockExternalKeyResolver`: ローカル開発用の externalKey のモック。topic に入れた選択肢を届け、topic が変わるたびに届け直す。モックは待たない。topic に値があれば購読したその場で届け、値の無い topic（`createMockTopic()`）は最初の `set` まで何も届けない（欄は読み込み中のまま）。読み込み中を見せたいときは、使う側で resolver を包んで遅らせる。config の `filter(option, context)` で、`contextId` の resolverContext を使って絞れる
+- `createMockTopic` / `createMockExternalKeyResolver`: ローカル開発用の externalKey のモック。topic に入れた選択肢を届け、topic が変わるたびに届け直す。モックは待たない。topic に値があれば購読したその場で届け、値の無い topic（`createMockTopic()`）は最初の `set` まで何も届けない（欄は読み込み中のまま）。読み込み中を見せたいときは、使う側で resolver を包んで遅らせる。config の `filter(option, context)` で、`contextId` の resolverContext を使って絞れる。`topics` に無い名前の topic を購読すると、その場で `onError` に `Error('topic "<名前>" がありません')` を届ける（欄は error になり「再試行」が出る。名前の間違いに気づけるように）。0 件の選択肢を届けたいときは、空の topic（`createMockTopic([])`）を置く
 
 実際のフォーム描画（React コンポーネント）は `@zodapp/zod-form-react` / `@zodapp/zod-form-mantine` を使います。
 

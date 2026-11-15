@@ -106,7 +106,9 @@ export type MockExternalKeyConfig<
  * - topic にまだ値が無ければ何も届けない（欄は読み込み中のまま）。最初の `set` で届ける
  * - そのあとは topic が変わるたびに届け直す
  * - topic の `fail` で onError を呼ぶ。失敗の状態の topic を購読すると、その場で onError を呼ぶ
- * - 無い topic は、購読したその場で空の選択肢を一度届ける
+ * - 無い topic（`topics` に名前が無い）は、購読したその場で onError に
+ *   `Error('topic "<名前>" がありません')` を届ける（名前の間違いに気づけるように）。
+ *   0 件の選択肢を届けたいときは、空の topic（`createMockTopic([])`）を置く
  *
  * @example
  * const users = createMockTopic([{ label: "利用者 A", value: "u1" }]);
@@ -131,7 +133,7 @@ export const createMockExternalKeyResolver = <
     subscribe: (callback, onError) => {
       const topic = topics[config.topic];
       if (!topic) {
-        callback([]);
+        onError?.(new Error(`topic "${config.topic}" がありません`));
         return () => {};
       }
       const context = getResolverContextSlice(

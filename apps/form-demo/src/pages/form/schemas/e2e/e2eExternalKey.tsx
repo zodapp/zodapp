@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { zf, defineDynamicMeta } from "@zodapp/zod-form";
-import { Button, Group, SegmentedControl, Stack, Text } from "@mantine/core";
+import { zf, defineDynamicMeta, hideSchemaFields } from "@zodapp/zod-form";
+import {
+  Button,
+  Group,
+  SegmentedControl,
+  Stack,
+  Switch,
+  Text,
+} from "@mantine/core";
 import { IconTestPipe } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../../components/AutoForm";
@@ -17,7 +24,7 @@ import {
 export const formId = "e2e-external-key";
 export const title = "e2e：選択肢の届き方";
 export const description =
-  "画面の部署で絞る担当者（clear と keep）、config の key で取り直すレビュー担当、無い topic の欄、上限が変わる数量の欄。遅延の分け方を選び、止めておく分け方では「届ける」「失敗させる」で進める。「選択肢を 0 件にする」「選択肢を戻す」で、同じ購読のまま選択肢を届け直す";
+  "画面の部署で絞る担当者（clear と keep）、config の key で取り直すレビュー担当、無い topic の欄（「無い topic の欄を出す」で出す）、上限が変わる数量の欄。遅延の分け方を選び、止めておく分け方では「届ける」「失敗させる」で進める。「選択肢を 0 件にする」「選択肢を戻す」で、同じ購読のまま選択肢を届け直す";
 export const icon = IconTestPipe;
 export const category = "e2e";
 
@@ -136,7 +143,7 @@ export const schema = z
       ])
       .register(zf.enum.registry, { label: "レビューする部署" }),
     reviewer,
-    // 無い topic の欄（送信を止めないよう optional にする）
+    // 無い topic の欄。購読すると失敗になり、送信を止めるので、スイッチで出したときだけ描く
     missing: zf
       .string()
       .register(zf.externalKey.registry, {
@@ -166,8 +173,12 @@ const setMembersEmpty = (empty: boolean) => {
   republish("members");
 };
 
+// 無い topic の欄を描かない schema（既定）
+const schemaWithoutMissing = hideSchemaFields(schema, { paths: ["missing"] });
+
 export const Component = () => {
   const [team, setTeam] = useState<Team>("sales");
+  const [showMissing, setShowMissing] = useState(false);
   const resolverContext = useMemo(() => ({ team: { team } }), [team]);
 
   // 分け方・失敗・選択肢・上限はページをまたいで残るので、離れるときに戻す
@@ -221,8 +232,13 @@ export const Component = () => {
           上限を 10 にする
         </Button>
       </Group>
+      <Switch
+        label="無い topic の欄を出す（出すと取得に失敗し、送信が止まる）"
+        checked={showMissing}
+        onChange={(event) => setShowMissing(event.currentTarget.checked)}
+      />
       <AutoForm
-        schema={schema}
+        schema={showMissing ? schema : schemaWithoutMissing}
         defaultValues={defaultValues}
         resolverContext={resolverContext}
         externalKeyResolvers={externalKeyResolvers}

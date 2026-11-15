@@ -5,6 +5,7 @@ import {
   field,
   fieldError,
   formDemo,
+  logOf,
   openDemo,
   pendingFetch,
   previewValue,
@@ -147,6 +148,40 @@ test("取得に失敗すると「再試行」が出て送信が止まり、取�
   await waitSubmitSettled(page, 2);
   expect((await formDemo(page)).submitted.count).toBe(1);
   await expect(page.getByTestId("form-submit-blocked")).toHaveCount(0);
+});
+
+test("無い topic の欄は、取得できなかったことと「再試行」を出し、送信を止める", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "すぐ届く");
+  await page
+    .getByRole("switch", { name: /無い topic の欄を出す/ })
+    .check({ force: true });
+  const missing = page
+    .locator('[data-dynamic-status="error"]')
+    .filter({ hasText: "無い topic の欄を取得できませんでした" });
+  await expect(missing).toBeVisible();
+  await expect(missing.getByRole("button", { name: "再試行" })).toBeVisible();
+  // ほかの欄は失敗しない
+  await expect(page.locator('[data-dynamic-status="error"]')).toHaveCount(1);
+  // ログには、無い topic の購読の失敗が残る
+  expect(
+    (await logOf(page, "fetch")).some(
+      (entry) => entry.field === "no-such-topic" && entry.result === "failed",
+    ),
+  ).toBe(true);
+
+  // 再試行しても、topic が無いままなので失敗のまま
+  await missing.getByRole("button", { name: "再試行" }).click();
+  await expect(missing).toBeVisible();
+
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  expect((await formDemo(page)).submitted.count).toBe(0);
+  await expect(page.getByTestId("form-submit-blocked")).toContainText(
+    "取得できなかった欄があるため、送信できませんでした",
+  );
 });
 
 test("clear で消えた欄には、触る前は必須のエラーが出ない。送信すると出る", async ({
