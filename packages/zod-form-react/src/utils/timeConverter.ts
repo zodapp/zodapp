@@ -35,6 +35,12 @@ export type TimeConverter = {
   fromPickerValue: (pickerValue: string | null) => unknown;
   /** 推論された（または指定された）unit */
   unit: TimeUnit;
+  /**
+   * ピッカーの文字列で受け付ける、秒の小数の桁数の上限。データが持てる桁数に合わせる
+   * （string は precision の桁数、precision なしは制限なし（undefined）、number は 3）。
+   * ミリ秒より細かい桁は値には入らない（0 として書く）
+   */
+  fractionDigits: number | undefined;
 };
 
 // ============================================================
@@ -208,5 +214,11 @@ export function createTimeConverter(
     return msToValue(truncated);
   };
 
-  return { toPickerValue, fromPickerValue, unit };
+  const fractionDigits = !isString
+    ? 3
+    : precision === undefined
+      ? undefined
+      : Math.max(precision, 0);
+
+  return { toPickerValue, fromPickerValue, unit, fractionDigits };
 }
