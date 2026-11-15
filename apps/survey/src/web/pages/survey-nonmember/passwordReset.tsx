@@ -16,6 +16,7 @@ import { zf } from "@zodapp/zod-form";
 import { useAuthContext } from "../../shared/auth";
 import { loginRoute } from "./login.route";
 import { AutoForm } from "../../components/AutoForm";
+import { fullWidthSubmitAction } from "../../components/fullWidthSubmitAction";
 
 const passwordResetSchema = z
   .object({
@@ -109,17 +110,17 @@ const PasswordResetPage = () => {
               </Alert>
               <AutoForm
                 schema={passwordConfirmSchema}
-                onSubmit={handleConfirm}
                 isLoading={isSubmitting}
-                submitLabel="再設定する"
+                actionsPosition="bottom"
+                actions={[fullWidthSubmitAction<typeof passwordConfirmSchema>("再設定する", handleConfirm)]}
               />
             </Stack>
           ) : (
             <AutoForm
               schema={passwordResetSchema}
-              onSubmit={handleSubmit}
               isLoading={isSubmitting}
-              submitLabel="送信する"
+              actionsPosition="bottom"
+              actions={[fullWidthSubmitAction<typeof passwordResetSchema>("送信する", handleSubmit)]}
             />
           )}
 

@@ -44,6 +44,10 @@ type AutoFormProps<T extends z.ZodTypeAny> = {
   cancelLabel?: string;
   showPreview?: boolean;
   /**
+   * ボタンの行を入力欄の上と下のどちらに置くか。省略時は "top"。
+   */
+  actionsPosition?: "top" | "bottom";
+  /**
    * 描画に使う ComponentLibrary。省略時は zod-form-mantine の
    * componentLibrary。カスタムウィジェットを使う場合は
    * `{ ...componentLibrary, 独自キー: ... }` を渡す。
@@ -69,6 +73,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   submitLabel = "保存",
   cancelLabel = "キャンセル",
   showPreview = false,
+  actionsPosition = "top",
   componentLibrary = defaultComponentLibrary,
   externalKeyResolvers,
   externalKeyActionResolver,
@@ -164,6 +169,21 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     });
   }, [form, schema]);
 
+  const actionsGroup = normalizedActionComponents.length > 0 && (
+    <Group justify="flex-end" mt="md">
+      {normalizedActionComponents.map((ActionComponent, index) => {
+        return (
+          <ActionComponent
+            key={index}
+            form={form}
+            handleSubmit={handleSubmit}
+            isLoading={isLoading}
+          />
+        );
+      })}
+    </Group>
+  );
+
   return (
     <Suspense fallback={<Loader />}>
       <ZodFormContextProvider
@@ -178,21 +198,22 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
       >
         <FormProvider form={form}>
           <ValidatePrecedingFieldsProvider>
-            <div>
-              {normalizedActionComponents.length > 0 && (
-                <Group justify="flex-end" mt="md">
-                  {normalizedActionComponents.map((ActionComponent, index) => {
-                    return (
-                      <ActionComponent
-                        key={index}
-                        form={form}
-                        handleSubmit={handleSubmit}
-                        isLoading={isLoading}
-                      />
-                    );
-                  })}
-                </Group>
-              )}
+            {/*
+              TanStack Form の公式の書き方に合わせて form で包む。Enter を押すと、
+              ブラウザが最初の type="submit" のボタン（submit のアクション）を押す。
+              送信はボタンの onClick で行うので、ここではページの遷移を止めるだけにする。
+              stopPropagation は、モーダルの中の AutoForm の submit が、React の
+              イベントとして外側の form に伝わらないようにするため。
+              noValidate は、ブラウザ自前の入力チェックを出さず、zod の検証に任せるため。
+            */}
+            <form
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
+              {actionsPosition === "top" && actionsGroup}
               {/* デモ・デバッグ用: リアクティブに現在の値を表示 */}
               {showPreview && (
                 <Code block style={{ maxHeight: 200, overflow: "auto" }}>
@@ -209,7 +230,8 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
                 </Code>
               )}
               <Switch fieldPath="" schema={schema} readOnly={readOnly} />
-            </div>
+              {actionsPosition === "bottom" && actionsGroup}
+            </form>
           </ValidatePrecedingFieldsProvider>
         </FormProvider>
       </ZodFormContextProvider>
