@@ -7,3 +7,8 @@ export {
   type RenderComputedValueVariant,
 } from "./renderComputedValue";
 export { inputWrapperStyle, stringMultilineStyles } from "./styles";
+export {
+  normalizeStringSuggestions,
+  type NormalizedStringSuggestion,
+} from "./stringSuggestions";
+export { ValueActionIcon, WithValueAction } from "./valueAction";

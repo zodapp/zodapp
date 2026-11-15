@@ -102,6 +102,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@playwright/test':
+        specifier: 1.63.0
+        version: 1.63.0
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../../packages/eslint-config
@@ -1186,6 +1189,9 @@ importers:
       '@tanstack/react-form':
         specifier: ^1.33.1
         version: 1.33.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@zodapp/caching-utilities':
+        specifier: workspace:*
+        version: link:../caching-utilities
       '@zodapp/zod-extendable':
         specifier: workspace:*
         version: link:../zod-extendable

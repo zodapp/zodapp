@@ -59,8 +59,8 @@ export const schema = z
       ])
       .register(zf.tuple.registry, { label: "座標(tuple)" }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () => "これは基本入力フォームのサンプルです",
       })
       .optional(),

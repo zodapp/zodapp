@@ -1,5 +1,12 @@
 import { useMemo, useRef } from "react";
 import type { AnyFieldApi } from "@tanstack/react-form";
+import { useRunAsUserEdit } from "./form";
+import { isPendingIssue } from "./schemaRegistry";
+import {
+  normalizeIssuePath,
+  parseFieldPath,
+  type PathSegment,
+} from "../utils/path";
 
 let idCounter = 0;
 function generateKey() {
@@ -15,29 +22,11 @@ type ArrayFieldError = {
   message?: string;
 };
 
-type PathSegment = string | number;
-
-const parseFieldPath = (fieldPath: string): PathSegment[] =>
-  fieldPath
-    .replace(/\[(\d+)\]/g, ".$1")
-    .split(".")
-    .filter(Boolean)
-    .map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
-
 const getIssuePath = (error: unknown): PathSegment[] | undefined => {
   if (!error || typeof error !== "object" || !("path" in error)) return undefined;
   const path = (error as { path?: unknown }).path;
   if (!Array.isArray(path)) return undefined;
-  return path.flatMap((segment) => {
-    if (typeof segment === "string" || typeof segment === "number") {
-      return [segment];
-    }
-    if (segment && typeof segment === "object" && "key" in segment) {
-      const key = (segment as { key?: unknown }).key;
-      return typeof key === "string" || typeof key === "number" ? [key] : [];
-    }
-    return [];
-  });
+  return normalizeIssuePath(path);
 };
 
 const pathsEqual = (left: readonly PathSegment[], right: readonly PathSegment[]) =>
@@ -52,6 +41,7 @@ export const getArrayFieldError = (
   const error = errors.flat(Number.POSITIVE_INFINITY).find((candidate) => {
     if (typeof candidate === "string") return true;
     if (!candidate || typeof candidate !== "object") return false;
+    if (isPendingIssue(candidate)) return false;
     const issuePath = getIssuePath(candidate);
     return issuePath === undefined || pathsEqual(issuePath, ownPath);
   });
@@ -75,6 +65,7 @@ export const useArray = (
   discriminator: string | undefined,
 ) => {
   const keysRef = useRef<string[]>([]);
+  const runAsUserEdit = useRunAsUserEdit();
   const value = fieldApi.state.value as unknown[] | undefined;
   const len = value?.length ?? 0;
 
@@ -133,18 +124,18 @@ export const useArray = (
     const insert = (index: number, newItem: unknown) => {
       const prepared = ensureDiscriminator(newItem);
       keysRef.current.splice(index, 0, keyFor(prepared));
-      fieldApi.insertValue(index, prepared);
+      runAsUserEdit(() => fieldApi.insertValue(index, prepared));
     };
 
     const remove = (index: number) => {
       keysRef.current.splice(index, 1);
-      fieldApi.removeValue(index);
+      runAsUserEdit(() => fieldApi.removeValue(index));
     };
 
     const append = (newItem: unknown) => {
       const prepared = ensureDiscriminator(newItem);
       keysRef.current.push(keyFor(prepared));
-      fieldApi.pushValue(prepared);
+      runAsUserEdit(() => fieldApi.pushValue(prepared));
     };
 
     const move = (fromIndex: number, toIndex: number) => {
@@ -159,11 +150,11 @@ export const useArray = (
       }
       const [movedKey] = keys.splice(fromIndex, 1);
       keys.splice(toIndex, 0, movedKey!);
-      fieldApi.moveValue(fromIndex, toIndex);
+      runAsUserEdit(() => fieldApi.moveValue(fromIndex, toIndex));
     };
 
     return { insert, remove, append, move };
-  }, [fieldApi, discriminator]);
+  }, [fieldApi, discriminator, runAsUserEdit]);
 
   return {
     items,

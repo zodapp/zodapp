@@ -16,6 +16,7 @@ import {
   getDefaultValue,
   useZodFormContext,
   useFormValues,
+  useRunAsUserEdit,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -432,10 +433,14 @@ const UnionBody = React.memo(function UnionBody({
     return () => redistributeIssues(undefined);
   }, [distributableIssues, accessor, field.api.form]);
 
+  const runAsUserEdit = useRunAsUserEdit();
   const handleSelect = useCallback(
     (id: string | null) => {
       const setValueWithoutValidation = (nextValue: unknown) => {
-        accessor.setValue(nextValue, { dontValidate: true });
+        // 腕の切り替えは利用者の編集として記録する
+        runAsUserEdit(() =>
+          accessor.setValue(nextValue, { dontValidate: true }),
+        );
         queueMicrotask(() => {
           const errorMap = field.api.state.meta.errorMap;
           if (!errorMap?.onChange && !errorMap?.onBlur) return;
@@ -505,7 +510,15 @@ const UnionBody = React.memo(function UnionBody({
         : undefined;
       field.onChange(normalized ?? undefined);
     },
-    [field, compiledOptions, formValue, accessor, required, selectedProfile],
+    [
+      field,
+      compiledOptions,
+      formValue,
+      accessor,
+      required,
+      selectedProfile,
+      runAsUserEdit,
+    ],
   );
   const shouldHideSelector = hideSelector === true;
   const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;

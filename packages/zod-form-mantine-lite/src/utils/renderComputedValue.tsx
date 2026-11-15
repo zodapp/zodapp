@@ -14,7 +14,7 @@ type LinkComputedValue = { type: "link"; label: string; href: string };
  * variant:
  * - "table"    → string は lineClamp 付き Text、それ以外はそのまま
  * - "readOnly" → 全体を ReadonlyText で wrap
- * - 省略       → string は素の Text、それ以外はそのまま（derived/computed 用）
+ * - 省略       → string は素の Text、それ以外はそのまま（computed 用）
  */
 export function renderComputedValue(
   content: unknown,
@@ -65,7 +65,7 @@ export function renderComputedValue(
 }
 
 /**
- * computed / derived の表示で使う共通ラッパー。
+ * computed の表示で使う共通ラッパー。
  * string は ReadonlyText、その他は同じ高さの Text block で包む。
  */
 export function renderComputedFieldValue(content: unknown): React.ReactNode {

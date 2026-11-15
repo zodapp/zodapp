@@ -8,10 +8,15 @@ import * as schemaTransform from "./schemaTransform";
 import * as validatePreceding from "./validatePreceding";
 import * as formActions from "./formActions";
 import * as dynamicSchema from "./dynamicSchema";
+import * as tableView from "./tableView";
+import * as dynamicAdvanced from "./dynamicAdvanced";
+import * as selectAndExternalKey from "./selectAndExternalKey";
+import * as externalKeyFilter from "./externalKeyFilter";
 import * as mediaPreview from "./mediaPreview";
 import * as customWidget from "./customWidget";
 import * as computed from "./computed";
 import * as date from "./date";
+import * as time from "./time";
 import * as enumSelect from "./enumSelect";
 import * as union from "./union";
 import * as discriminatedUnion from "./discriminatedUnion";
@@ -38,10 +43,15 @@ import schemaTransformCode from "./schemaTransform.tsx?raw";
 import validatePrecedingCode from "./validatePreceding.ts?raw";
 import formActionsCode from "./formActions.tsx?raw";
 import dynamicSchemaCode from "./dynamicSchema.ts?raw";
+import tableViewCode from "./tableView.tsx?raw";
+import dynamicAdvancedCode from "./dynamicAdvanced.tsx?raw";
+import selectAndExternalKeyCode from "./selectAndExternalKey.ts?raw";
+import externalKeyFilterCode from "./externalKeyFilter.tsx?raw";
 import mediaPreviewCode from "./mediaPreview.tsx?raw";
 import customWidgetCode from "./customWidget.tsx?raw";
 import computedCode from "./computed.ts?raw";
 import dateCode from "./date.ts?raw";
+import timeCode from "./time.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
 import unionCode from "./union.ts?raw";
 import discriminatedUnionCode from "./discriminatedUnion.ts?raw";
@@ -62,27 +72,32 @@ export const formSchemas = {
   [basicInput.formId]: basicInput,
   [formatterAndSuggestions.formId]: formatterAndSuggestions,
   [booleanVariants.formId]: booleanVariants,
+  [date.formId]: date,
+  [time.formId]: time,
+  [enumSelect.formId]: enumSelect,
+  [arrayFields.formId]: arrayFields,
+  [nestedObject.formId]: nestedObject,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
+  [union.formId]: union,
+  [discriminatedUnion.formId]: discriminatedUnion,
+  [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
+  [recursiveData.formId]: recursiveData,
+  [refineValidation.formId]: refineValidation,
+  [file.formId]: file,
+  [mediaPreview.formId]: mediaPreview,
+  [computed.formId]: computed,
   [computedVariants.formId]: computedVariants,
+  [dynamicSchema.formId]: dynamicSchema,
+  [dynamicAdvanced.formId]: dynamicAdvanced,
+  [selectAndExternalKey.formId]: selectAndExternalKey,
+  [externalKeyFilter.formId]: externalKeyFilter,
+  [readOnly.formId]: readOnly,
   [schemaTransform.formId]: schemaTransform,
   [validatePreceding.formId]: validatePreceding,
   [formActions.formId]: formActions,
-  [dynamicSchema.formId]: dynamicSchema,
-  [mediaPreview.formId]: mediaPreview,
   [customWidget.formId]: customWidget,
-  [date.formId]: date,
-  [enumSelect.formId]: enumSelect,
-  [arrayFields.formId]: arrayFields,
-  [readOnly.formId]: readOnly,
-  [discriminatedUnion.formId]: discriminatedUnion,
-  [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
-  [computed.formId]: computed,
-  [union.formId]: union,
-  [nestedObject.formId]: nestedObject,
-  [refineValidation.formId]: refineValidation,
-  [recursiveData.formId]: recursiveData,
-  [file.formId]: file,
+  [tableView.formId]: tableView,
   [reactiveBasicInput.formId]: reactiveBasicInput,
   [reactiveEnumSelect.formId]: reactiveEnumSelect,
   [reactiveNestedObject.formId]: reactiveNestedObject,
@@ -94,27 +109,32 @@ export const formCodes = {
   [basicInput.formId]: basicInputCode,
   [formatterAndSuggestions.formId]: formatterAndSuggestionsCode,
   [booleanVariants.formId]: booleanVariantsCode,
-  [objectLayout.formId]: objectLayoutCode,
-  [recordEntries.formId]: recordEntriesCode,
-  [computedVariants.formId]: computedVariantsCode,
-  [schemaTransform.formId]: schemaTransformCode,
-  [validatePreceding.formId]: validatePrecedingCode,
-  [formActions.formId]: formActionsCode,
-  [dynamicSchema.formId]: dynamicSchemaCode,
-  [mediaPreview.formId]: mediaPreviewCode,
-  [customWidget.formId]: customWidgetCode,
   [date.formId]: dateCode,
+  [time.formId]: timeCode,
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
-  [readOnly.formId]: readOnlyCode,
+  [nestedObject.formId]: nestedObjectCode,
+  [objectLayout.formId]: objectLayoutCode,
+  [recordEntries.formId]: recordEntriesCode,
   [union.formId]: unionCode,
   [discriminatedUnion.formId]: discriminatedUnionCode,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevelCode,
-  [nestedObject.formId]: nestedObjectCode,
-  [refineValidation.formId]: refineValidationCode,
   [recursiveData.formId]: recursiveDataCode,
-  [computed.formId]: computedCode,
+  [refineValidation.formId]: refineValidationCode,
   [file.formId]: fileCode,
+  [mediaPreview.formId]: mediaPreviewCode,
+  [computed.formId]: computedCode,
+  [computedVariants.formId]: computedVariantsCode,
+  [dynamicSchema.formId]: dynamicSchemaCode,
+  [dynamicAdvanced.formId]: dynamicAdvancedCode,
+  [selectAndExternalKey.formId]: selectAndExternalKeyCode,
+  [externalKeyFilter.formId]: externalKeyFilterCode,
+  [readOnly.formId]: readOnlyCode,
+  [schemaTransform.formId]: schemaTransformCode,
+  [validatePreceding.formId]: validatePrecedingCode,
+  [formActions.formId]: formActionsCode,
+  [customWidget.formId]: customWidgetCode,
+  [tableView.formId]: tableViewCode,
   [reactiveBasicInput.formId]: reactiveBasicInputCode,
   [reactiveEnumSelect.formId]: reactiveEnumSelectCode,
   [reactiveNestedObject.formId]: reactiveNestedObjectCode,

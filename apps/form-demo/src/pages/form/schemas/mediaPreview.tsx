@@ -12,7 +12,7 @@ import { IconPhotoVideo } from "@tabler/icons-react";
 import { AutoForm } from "../../../components/AutoForm";
 
 export const formId = "mediaPreview";
-export const title = "メディアプレビュー（mediaResolvers）";
+export const title = "zf.file（プレビューの種類）";
 export const description =
   "アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示）";
 export const icon = IconPhotoVideo;
@@ -24,39 +24,39 @@ export const schema = z
       .string()
       .register(zf.file.registry, {
         label: "画像（imageMediaResolver → <img> プレビュー）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["image/png", "image/jpeg", "image/gif", "image/webp"],
-        }),
+        },
       })
       .optional(),
     audio: zf
       .string()
       .register(zf.file.registry, {
         label: "音声（audioMediaResolver → <audio> プレビュー）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg"],
-        }),
+        },
       })
       .optional(),
     textFile: zf
       .string()
       .register(zf.file.registry, {
         label: "テキスト（自作の data ベース resolver で内容を表示）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["text/plain", "text/csv", "text/markdown"],
-        }),
+        },
       })
       .optional(),
     anyFile: zf
       .string()
       .register(zf.file.registry, {
         label: "その他（genericMediaResolver → ダウンロードリンク）",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
-        }),
+        },
       })
       .optional(),
   })

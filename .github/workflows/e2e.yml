@@ -1,4 +1,4 @@
-# DB を使うサンプル（apps/taskmanager・apps/survey）の Playwright E2E。
+# apps の Playwright E2E（DB を使うサンプル apps/taskmanager・apps/survey と、DB を使わない apps/form-demo）。
 # ライブラリの CI（ci.yml）とは別のワークフローで、ブランチの保護の必須チェックには入れない。
 # サンプルごとに別のジョブで動かす（ポートが同じなので、同じマシンでは並べられない）。
 name: E2E (samples)
@@ -9,6 +9,7 @@ on:
     paths:
       - apps/taskmanager/**
       - apps/survey/**
+      - apps/form-demo/**
       - packages/**
       - pnpm-lock.yaml
       - .github/workflows/e2e.yml
@@ -17,6 +18,7 @@ on:
     paths:
       - apps/taskmanager/**
       - apps/survey/**
+      - apps/form-demo/**
       - packages/**
       - pnpm-lock.yaml
       - .github/workflows/e2e.yml
@@ -33,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [taskmanager, survey]
+        app: [taskmanager, survey, form-demo]
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
@@ -65,12 +67,13 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      # DynamoDB Local・magnito（taskmanager は S3Proxy も）。infra/compose.yml
-      - run: pnpm infra:up
-      # メールの記録とアプリ（AUTH_MAX_AGE_SECONDS=20）は Playwright の webServer が起動する
+      # DynamoDB Local・magnito（taskmanager は S3Proxy も）。infra/compose.yml。form-demo は DB を使わない
+      - if: matrix.app != 'form-demo'
+        run: pnpm infra:up
+      # アプリ（DB のサンプルはメールの記録と AUTH_MAX_AGE_SECONDS=20 も）は Playwright の webServer が起動する
       - run: pnpm e2e
 
-      - if: failure()
+      - if: failure() && matrix.app != 'form-demo'
         run: docker compose -f infra/compose.yml logs
       - if: always()
         uses: actions/upload-artifact@v4
@@ -80,5 +83,5 @@ jobs:
             apps/${{ matrix.app }}/playwright-report/
             apps/${{ matrix.app }}/test-results/
           retention-days: 14
-      - if: always()
+      - if: always() && matrix.app != 'form-demo'
         run: pnpm infra:down

@@ -20,12 +20,9 @@ import {
   type ZodPropagatingRegistryType,
 } from "@zodapp/zod-extendable";
 
-import type {
-  ExternalKeyConfig,
-  RegisteredExternalKeyConfig,
-  RegisteredExternalKeyActionConfig,
-} from "../externalKey/types";
-import type { FileConfig, RegisteredFileConfig } from "../file/types";
+import type { RegisteredExternalKeyConfig } from "../externalKey/types";
+import type { RegisteredValueActionConfig } from "../valueAction/types";
+import type { RegisteredFileConfig } from "../file/types";
 import type {
   RegisteredResolverContextId,
   RegisteredResolverContextMap,
@@ -73,6 +70,21 @@ const dateMetaSchema = zodExtendableCommonDefSchema.extend({
   encoding: z.enum(["timestamp", "utcEncode", "native"]).optional(),
 });
 
+// time 用メタスキーマ（timezone naive の時刻）
+// 「データの持ち方」と「UI 上の精度」は独立している
+const timeMetaSchema = zodExtendableCommonDefSchema.extend({
+  // UI 上の精度。省略時はデータの持ち方に合わせる
+  // - string: precision -1 → minute、0 → second、1〜3 → millisecond、省略 → second
+  // - number: encoding と同じ粒度
+  // データより細かい指定は定義の誤り
+  unit: z.enum(["hour", "minute", "second", "millisecond"]).optional(),
+  // number のデータの持ち方（0 時からの経過量、整数）。省略時は secondsOfDay
+  // string のデータの持ち方は zod の precision で決まるので、ここには書かない
+  encoding: z
+    .enum(["hoursOfDay", "minutesOfDay", "secondsOfDay", "millisecondsOfDay"])
+    .optional(),
+});
+
 /**
  * ComputedValue - React非依存の計算結果型
  * compute 関数の戻り値として使用。UI層（zod-form-mantine 等）が適切にレンダリングする。
@@ -106,81 +118,182 @@ const stringSuggestionSchema = z.union([
   }),
 ]);
 
-type ComputedMetaWithoutContext<TResult, TParent = any> = {
-  contextId?: undefined;
-  compute: (parent: TParent) => TResult;
+/**
+ * meta の関数が受け取る入力。
+ *
+ * - `value`: 自分の値（値を持たない欄では undefined）
+ * - `parent`: 親の値。`dependsOnParent: true` のときだけ入る
+ * - `context`: resolverContext の一部。`contextId` を指定したときだけ入る
+ */
+export type FnInput<TValue = unknown, TParent = unknown, TContext = unknown> = {
+  value: TValue;
+  parent: TParent;
+  context: TContext;
 };
 
-type ComputedMetaWithContext<TResult, TParent = any> = {
-  [K in RegisteredResolverContextId]: {
-    contextId: K;
-    compute: (
-      parent: TParent,
-      context: RegisteredResolverContextMap[K],
-    ) => TResult;
-  };
-}[RegisteredResolverContextId];
-
-export type ComputedMetaDef<TResult, TParent = any> = z.infer<
-  typeof zodExtendableCommonDefSchema
-> &
-  (
-    | ComputedMetaWithoutContext<TResult, TParent>
-    | ComputedMetaWithContext<TResult, TParent>
-  );
-
-type DerivedMetaWithoutContext<TResult, TValue = any> = {
-  contextId?: undefined;
-  compute: (value: TValue) => TResult;
+/**
+ * 関数を受け取る meta（computed / dynamic）に共通の指定。
+ * 何に反応して関数を呼び直すかを決める。
+ */
+export type FnSourceMeta = {
+  /** 自分の値が変わったら関数を呼び直す。既定 true */
+  dependsOnValue?: boolean;
+  /** 親の値を購読し、変わったら呼び直す。既定 false */
+  dependsOnParent?: boolean;
+  /** resolverContext のどの部分を context として渡すか。変わったら呼び直す */
+  contextId?: RegisteredResolverContextId;
 };
 
-type DerivedMetaWithContext<TResult, TValue = any> = {
-  [K in RegisteredResolverContextId]: {
-    contextId: K;
-    compute: (
-      value: TValue,
-      context: RegisteredResolverContextMap[K],
-    ) => TResult;
-  };
-}[RegisteredResolverContextId];
+// contextId の値で context の型を絞る
+type FnWithContextVariants<
+  TKey extends string,
+  TValue,
+  TParent,
+  TResult,
+> =
+  | ({ contextId?: undefined } & {
+      [P in TKey]: (input: FnInput<TValue, TParent, undefined>) => TResult;
+    })
+  | {
+      [K in RegisteredResolverContextId]: { contextId: K } & {
+        [P in TKey]: (
+          input: FnInput<TValue, TParent, RegisteredResolverContextMap[K]>,
+        ) => TResult;
+      };
+    }[RegisteredResolverContextId];
 
-export type DerivedMetaDef<TResult, TValue = any> = z.infer<
-  typeof zodExtendableCommonDefSchema
-> &
-  (
-    | DerivedMetaWithoutContext<TResult, TValue>
-    | DerivedMetaWithContext<TResult, TValue>
-  );
+/**
+ * 関数を受け取る meta の型。`dependsOnParent: true` のときだけ `parent` を必須の型にし、
+ * `contextId` の値で `context` の型を絞る。
+ */
+export type FnMeta<TKey extends string, TValue, TParent, TResult> = {
+  dependsOnValue?: boolean;
+} & (
+  | ({ dependsOnParent: true } & FnWithContextVariants<
+      TKey,
+      TValue,
+      TParent,
+      TResult
+    >)
+  | ({ dependsOnParent?: false } & FnWithContextVariants<
+      TKey,
+      TValue,
+      undefined,
+      TResult
+    >)
+);
+
+/**
+ * computed の meta。値を持たない欄（z.never）に付ければ表示専用、
+ * 値を持つ欄に付ければその値から表示を作る。
+ */
+export type ComputedMetaDef<
+  TResult,
+  TValue = any,
+  TParent = any,
+> = z.infer<typeof zodExtendableCommonDefSchema> &
+  FnMeta<"compute", TValue, TParent, TResult>;
+
+/** dynamic の resolve が返す schema と、その schema を見分ける key */
+export type ResolvedSchema = {
+  schema: z.ZodTypeAny;
+  /**
+   * schema を見分ける key。key が変わったら別の schema とみなし、
+   * 利用者の編集が原因なら値を新しい schema に合わせて削る。
+   * key が同じなら描画だけを更新する。
+   */
+  key: string;
+};
+
+/**
+ * 非同期に届く schema。key は省略でき、省略したら取得の key（{@link SchemaLoad} / {@link SchemaSubscription} の key）を使う。
+ * 取得のあとでないと schema の同一性が決まらないとき（リビジョンなど）は、ここで key を返す。
+ */
+export type DeliveredSchema = {
+  schema: z.ZodTypeAny;
+  key?: string;
+};
+
+/**
+ * 一度だけ schema を届ける取得。
+ *
+ * - `key` は取得の単位。同じ key のあいだは load を呼び直さない（再試行のときだけ呼び直す）
+ * - load は呼ばれた時点の入力を閉じ込める。load が使う値は key に入れること
+ */
+export type SchemaLoad = {
+  key: string;
+  load: () => Promise<DeliveredSchema | undefined>;
+};
+
+/**
+ * 何度でも schema を届ける購読。
+ *
+ * - `key` は購読の単位。同じ key のあいだは購読を張り直さない
+ * - 取得に失敗したら fail を呼ぶ
+ */
+export type SchemaSubscription = {
+  key: string;
+  subscribe: (
+    emit: (delivered: DeliveredSchema) => void,
+    fail: (error: unknown) => void,
+  ) => () => void;
+};
+
+/** resolve の戻り値。同期（{@link ResolvedSchema}）・一度だけの取得・購読のどれでもよい */
+export type SchemaResolveResult =
+  | ResolvedSchema
+  | SchemaLoad
+  | SchemaSubscription
+  | undefined;
 
 export type SchemaResolver<
   TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = (
-  value: TValue,
-  context: TContext,
-) => z.ZodTypeAny | Promise<z.ZodTypeAny | undefined> | undefined;
+  TParent = unknown,
+  TContext = unknown,
+> = (input: FnInput<TValue, TParent, TContext>) => SchemaResolveResult;
 
-export type DynamicSchemaResolver<
-  TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = SchemaResolver<TValue, TContext>;
+/**
+ * dynamic の meta。resolve は { value, parent, context } を受け取り、
+ * 実際に描画・検証する schema を返す。
+ */
+export type DynamicMetaDef<TValue = any, TParent = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
+  FnMeta<"resolve", TValue, TParent, SchemaResolveResult>;
 
-export type DynamicMetaDef<
-  TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
-> = z.infer<typeof zodExtendableCommonDefSchema> & {
-  resolve: DynamicSchemaResolver<TValue, TContext>;
-};
+/** 値が選択肢に無いときの扱い。clear：消す（既定）。keep：残して「（不正な値）」と出す */
+export type UnlistedPolicy = "keep" | "clear";
 
 export type ExternalKeyMetaDef = z.infer<
   typeof zodExtendableCommonDefSchema
 > & {
-  externalKeyConfig: ExternalKeyConfig<RegisteredExternalKeyConfig>;
-  externalKeyActionConfig?: RegisteredExternalKeyActionConfig;
+  /**
+   * 選択肢の取得先。ただのデータ（関数で返す形は持たない）。
+   * 親の値や context で変えるときは、zf.dynamic で包んで externalKey の schema を返す。
+   */
+  externalKeyConfig: RegisteredExternalKeyConfig;
+  /** 選んだ値に対する操作（リンクで開くなど） */
+  valueAction?: RegisteredValueActionConfig;
+  /**
+   * 選択肢に無い値も通す（string + 選択式にする）。
+   * 既定 false（enum で厳しく検証する）
+   */
+  allowUnlisted?: boolean;
+  /**
+   * 値が選択肢に無いときの扱い（選択肢の enum に渡す）。
+   * clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
+   */
+  unlisted?: UnlistedPolicy;
+  /** 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」） */
+  emptyMessage?: string;
 };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
-  fileConfig: FileConfig<RegisteredFileConfig>;
+  /**
+   * 保存先の設定。ただのデータ（関数で返す形は持たない）。
+   * 親の値や context で変えるときは、zf.dynamic で包んで file の schema を返す。
+   */
+  fileConfig: RegisteredFileConfig;
 };
 
 export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
@@ -189,14 +302,39 @@ export const asRegistryValue = <TValue,>(
   value: TValue,
 ): RegistryValue<TValue> => value as unknown as RegistryValue<TValue>;
 
+/**
+ * resolve 関数を registry に渡せる型にする。Promise や購読を返す resolve は、
+ * registry の型変換（schema の置き換え）を通らないため、これで包む。
+ */
 export const asRegistrySchemaResolver = <
-  TValue = unknown,
-  TContext extends RegisteredResolverContext = RegisteredResolverContext,
+  TValue = any,
+  TParent = any,
+  TContext = any,
 >(
-  resolver: SchemaResolver<TValue, TContext>,
-): RegistryValue<SchemaResolver<TValue, TContext>> => asRegistryValue(resolver);
+  resolver: SchemaResolver<TValue, TParent, TContext>,
+): RegistryValue<SchemaResolver<TValue, TParent, TContext>> =>
+  asRegistryValue(resolver);
+
+/**
+ * dynamic の meta 全体を registry に渡せる型にする。
+ * `dependsOnParent` / `contextId` に合わせて resolve の入力の型が絞られる。
+ *
+ * @example
+ * zf.dynamic().register(zf.dynamic.registry, defineDynamicMeta({
+ *   dependsOnParent: true,
+ *   resolve: ({ parent }) => ({ schema: buildSchema(parent), key: parent.kind }),
+ * }));
+ */
+export const defineDynamicMeta = <TValue = any, TParent = any>(
+  meta: DynamicMetaDef<TValue, TParent>,
+): RegistryValue<DynamicMetaDef> =>
+  asRegistryValue(meta as DynamicMetaDef);
+
+// 値ごとの操作（選んだ値をリンクで開くなど）。実行時の resolver が解釈するため、core では構造だけ受ける
+const valueActionSchema = z.custom<RegisteredValueActionConfig>().optional();
 
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
+// uiType: "select" を指定すると suggestions から選ぶ形で描画する（検証は string のまま）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
   formatter: z
     .function({
@@ -205,6 +343,8 @@ const stringMetaSchema = zodExtendableCommonDefSchema.extend({
     })
     .optional(),
   suggestions: z.array(stringSuggestionSchema).optional(),
+  /** 選んだ値に対する操作（リンクで開くなど） */
+  valueAction: valueActionSchema,
 });
 
 // number 専用メタスキーマ（formatter で表示時の整形を指定可能）
@@ -236,14 +376,21 @@ const hidden = extendCustom(
   schemaType<z.ZodType>(),
 );
 
+/** 値が選択肢に無いときの扱い（enum・externalKey の unlisted） */
+const unlistedSchema = z.enum(["keep", "clear"]).optional();
+
 // 外部キー用設定スキーマ
 const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
-  externalKeyConfig: z.custom<ExternalKeyConfig<RegisteredExternalKeyConfig>>(),
-  // action は runtime resolver が解釈するため、core では構造だけ受ける
-  externalKeyActionConfig: z
-    .custom<RegisteredExternalKeyActionConfig>()
-    .optional(),
+  externalKeyConfig: z.custom<RegisteredExternalKeyConfig>(),
+  // 選んだ値に対する操作（リンクで開くなど）
+  valueAction: valueActionSchema,
+  // 選択肢に無い値も通す（string + 選択式にする）。既定 false（enum で厳しく検証する）
+  allowUnlisted: z.boolean().optional(),
+  // 値が選択肢に無いときの扱い（enum の unlisted に渡す）。既定 clear
+  unlisted: unlistedSchema,
+  // 選択肢が0件のときに出す文言（enum の emptyMessage に渡す）
+  emptyMessage: z.string().optional(),
 }) as z.ZodType<ExternalKeyMetaDef>;
 
 const externalKey = extendCustom(
@@ -256,7 +403,7 @@ const externalKey = extendCustom(
 // ファイル設定用メタスキーマ
 const fileConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredFileConfig を使用（declare module で拡張可能）
-  fileConfig: z.custom<FileConfig<RegisteredFileConfig>>(),
+  fileConfig: z.custom<RegisteredFileConfig>(),
 }) as z.ZodType<FileMetaDef>;
 
 const file = extendCustom(
@@ -275,52 +422,52 @@ const date = extendCustom(
   schemaType<z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate>(),
 );
 
-// computed: 親オブジェクトを受け取り ComputedValue を返す
-// contextId を指定すると compute(parent, context) の形で resolverContext slice が渡される
-// contextId を省略すると context は渡されない
+// zf.time: z.iso.time(), z.number() に対応
+const time = extendCustom(
+  z.iso.time, // ベース型（実際には z.number() も受け入れる）
+  "time",
+  timeMetaSchema,
+  schemaType<z.ZodISOTime | z.ZodNumber>(),
+);
+
+/**
+ * {@link FnSourceMeta} の Zod スキーマ。関数を受け取る meta のメタスキーマに混ぜて使う。
+ */
+export const fnSourceMetaSchema = z.object({
+  dependsOnValue: z.boolean().optional(),
+  dependsOnParent: z.boolean().optional(),
+  contextId: z.custom<RegisteredResolverContextId>().optional(),
+});
+
+// computed: { value, parent, context } を受け取り ComputedValue を返す
+// 値を持たない欄（z.never）に付ければ表示専用、値を持つ欄に付ければその値の表示になる
 const computed = extendCustom(
   z.never,
   "computed",
   zodExtendableCommonDefSchema.extend({
-    contextId: z.custom<RegisteredResolverContextId>().optional(),
+    ...fnSourceMetaSchema.shape,
     compute: z.function({
-      input: [z.any(), z.any().optional()],
+      input: [z.any()],
       output: computedValueSchema,
     }),
-  }) as z.ZodType<ComputedMetaDef<ComputedValue>>,
+  }) as unknown as z.ZodType<ComputedMetaDef<ComputedValue>>,
   schemaType<z.ZodType>(),
 );
 
-// derived: 該当フィールドの値を受け取り ComputedValue を返す
-// contextId を指定すると compute(value, context) の形で resolverContext slice が渡される
-// contextId を省略すると context は渡されない
-const derived = extendCustom(
-  z.never,
-  "derived",
-  zodExtendableCommonDefSchema.extend({
-    contextId: z.custom<RegisteredResolverContextId>().optional(),
-    compute: z.function({
-      input: [z.any(), z.any().optional()],
-      output: computedValueSchema,
-    }),
-  }) as z.ZodType<DerivedMetaDef<ComputedValue>>,
-  schemaType<z.ZodType>(),
-);
-
-// dynamic: 該当フィールドの現在値と resolverContext から実際に描画する schema を解決する
+// dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める
 const dynamic = extendCustom(
   z.never,
   "dynamic",
   zodExtendableCommonDefSchema.extend({
-    resolve: z.custom<DynamicSchemaResolver>(),
-  }) as z.ZodType<DynamicMetaDef>,
+    ...fnSourceMetaSchema.shape,
+    resolve: z.custom<SchemaResolver<any, any, any>>(),
+  }) as unknown as z.ZodType<DynamicMetaDef>,
   schemaType<z.ZodType>(),
 );
 
 /**
  * zf - React非依存のZodスキーマ拡張
- * computed: 親オブジェクトを受け取る（複数フィールド横断の計算）
- * derived: 該当フィールドの値を受け取る（単一フィールドの変換）
+ * computed: { value, parent, context } から表示を作る
  */
 const zf = {
   literal: extendLiteral(zodExtendableCommonDefSchema),
@@ -328,6 +475,7 @@ const zf = {
   number: extendNumber(numberMetaSchema),
   bigint: extendBigint(zodExtendableCommonDefSchema),
   date, // extendCustom パターンに変更
+  time,
   boolean: extendBoolean(booleanMetaSchema),
   array: extendArray(
     zodExtendableCommonDefSchema.extend({
@@ -338,7 +486,24 @@ const zf = {
   tuple: extendTuple(zodExtendableCommonDefSchema),
   record: extendRecord(zodExtendableCommonDefSchema),
   set: extendSet(zodExtendableCommonDefSchema),
-  enum: extendEnum(zodExtendableCommonDefSchema),
+  enum: extendEnum(
+    zodExtendableCommonDefSchema.extend({
+      /** 選んだ値に対する操作（リンクで開くなど） */
+      valueAction: valueActionSchema,
+      /**
+       * 値が選択肢に無いとき（選択肢が変わって外れた、保存済みの値が選択肢から消えたなど）の扱い。
+       * 決めるのは enum の部品（描かれている欄だけに効く）。
+       * clear：消す（既定。開いたときの保存値も消す。下の dynamic へ連鎖する）。
+       * keep：値を残し、欄に「（不正な値）」と出してエラーにする（条件を戻せば値も戻る）
+       */
+      unlisted: unlistedSchema,
+      /**
+       * 選択肢が0件のときに出す文言（既定「選択肢がありません」）。
+       * 0件のあいだは欄を無効にし、必須エラーは出さない（ここでは直せないため）
+       */
+      emptyMessage: z.string().optional(),
+    }),
+  ),
   object: extendObject(zodExtendableObjectDefSchema),
   union: extendUnion(
     zodExtendableCommonDefSchema.extend({
@@ -355,7 +520,6 @@ const zf = {
   externalKey,
   file,
   computed,
-  derived,
   dynamic,
 };
 

@@ -14,12 +14,14 @@ import { zf } from "./index";
 import type {
   RegisteredExternalKeyConfig,
   BaseExternalKeyConfig,
-  RegisteredExternalKeyActionConfig,
-  RegisteredExternalKeyActionParams,
-  BaseExternalKeyActionConfig,
-  BaseExternalKeyActionParams,
   ExternalKeyConfigRegistry,
 } from "../externalKey/types";
+import type {
+  RegisteredValueActionConfig,
+  RegisteredValueActionParams,
+  BaseValueActionConfig,
+  BaseValueActionParams,
+} from "../valueAction/types";
 
 type UnregisteredExternalKeyConfigFallback = BaseExternalKeyConfig &
   Record<string, unknown>;
@@ -38,12 +40,12 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       expectTypeOf<RegisteredExternalKeyConfig>().toEqualTypeOf<UnregisteredExternalKeyConfigFallback>();
     });
 
-    it("RegisteredExternalKeyActionConfig は未拡張時 BaseExternalKeyActionConfig にフォールバック", () => {
-      expectTypeOf<RegisteredExternalKeyActionConfig>().toEqualTypeOf<BaseExternalKeyActionConfig>();
+    it("RegisteredValueActionConfig は未拡張時 BaseValueActionConfig にフォールバック", () => {
+      expectTypeOf<RegisteredValueActionConfig>().toEqualTypeOf<BaseValueActionConfig>();
     });
 
-    it("RegisteredExternalKeyActionParams は未拡張時 BaseExternalKeyActionParams にフォールバック", () => {
-      expectTypeOf<RegisteredExternalKeyActionParams>().toEqualTypeOf<BaseExternalKeyActionParams>();
+    it("RegisteredValueActionParams は未拡張時 BaseValueActionParams にフォールバック", () => {
+      expectTypeOf<RegisteredValueActionParams>().toEqualTypeOf<BaseValueActionParams>();
     });
   });
 
@@ -59,25 +61,25 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       expectTypeOf(schema).toBeObject();
     });
 
-    it("BaseExternalKeyConfig を関数形式で指定できる", () => {
-      const schema = zf.string().register(zf.externalKey.registry, {
+    it("BaseExternalKeyConfig を関数形式では指定できない（ただのデータにする）", () => {
+      zf.string().register(zf.externalKey.registry, {
         label: "テスト",
+        // @ts-expect-error 関数で返す形は持たない。変えるときは zf.dynamic で包む
         externalKeyConfig: () => ({
           type: "anyResolver",
         }),
       });
-      expectTypeOf(schema).toBeObject();
     });
 
-    it("BaseExternalKeyActionConfig を指定できる", () => {
+    it("valueAction を指定できる", () => {
       const schema = zf.string().register(zf.externalKey.registry, {
         label: "テスト",
         externalKeyConfig: {
           type: "anyResolver",
         },
-        externalKeyActionConfig: {
+        valueAction: {
           contextId: "anyAction",
-          getActionParams: (value: string, context: unknown) => ({
+          getActionParams: ({ value, context }) => ({
             value,
             context,
           }),
@@ -141,8 +143,10 @@ describe("ExternalKeyConfig 型テスト（base package）", () => {
       // BaseExternalKeyConfig は type を持つ
       expectTypeOf<BaseExternalKeyConfig["type"]>().toEqualTypeOf<string>();
 
-      // BaseExternalKeyActionConfig は contextId / getActionParams を持つ
-      expectTypeOf<BaseExternalKeyActionConfig["contextId"]>().toEqualTypeOf<string>();
+      // BaseValueActionConfig は contextId（省略可）/ getActionParams を持つ
+      expectTypeOf<BaseValueActionConfig["contextId"]>().toEqualTypeOf<
+        string | undefined
+      >();
     });
   });
 });

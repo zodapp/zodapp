@@ -8,8 +8,12 @@
 
 - `zf.*`: Zod v4 registry を用いた拡張ファクトリ（`label` / `uiType` / `readOnly` 等のメタ）
 - `getMeta(schema)`: スキーマから付与されたメタデータを取り出す
-- `externalKey` / `file`: 外部キー選択・ファイルアップロードのための型/設定を扱う土台
+- `externalKey` / `file`: 外部キー選択・ファイルアップロードのための型/設定を扱う土台（config はただのデータ。親や context で変えるときは `zf.dynamic` で包む。選択肢を取り直すかどうかは config を文字列にしたものと context の値で決まるので、関数だけが違う config に差し替えるときは config に `key` を書く）
+- `computed` / `dynamic`: `{ value, parent, context }` を受け取る関数で、表示や実際に使う schema を実行時に決める
+- `valueAction`: 選んだ値に対する操作（リンクで開くなど）の型
+- `zf.time`: 時刻だけを持つ値（`z.iso.time()` と、0 時からの経過量を持つ `z.number()`）
 - `createMockFileResolver`: ローカル開発用のモック（Data URL で保持）
+- `createMockTopic` / `createMockExternalKeyResolver`: ローカル開発用の externalKey のモック。topic に入れた選択肢を届け、topic が変わるたびに届け直す。config の `filter(option, context)` で、`contextId` の resolverContext を使って絞れる
 
 実際のフォーム描画（React コンポーネント）は `@zodapp/zod-form-react` / `@zodapp/zod-form-mantine` を使います。
 
@@ -80,8 +84,11 @@ const fileResolvers = [createMockFileResolver()];
 ## API（抜粋）
 
 - `zf` / `getMeta`
-- `externalKey` 型: `ExternalKeyConfig`, `ExternalKeyResolverEntry`, `ExternalKeyResolvers`, `BaseExternalKeyConfig`, `RegisteredExternalKeyConfig`, ...
-- `file` 型/関数: `FileConfig`, `FileResolverEntry`, `FileResolvers`, `BaseFileConfig`, `RegisteredFileConfig`, `parseMimeTypeFromUrl`, `createMockFileResolver`, ...
+- 関数を受け取る meta: `FnInput`, `FnSourceMeta`, `ComputedMetaDef`, `DynamicMetaDef`, `SchemaResolver`, `asRegistrySchemaResolver`, `defineDynamicMeta`
+- 値の調整: `pruneValueToSchema`, `adaptValueToSchema`
+- `valueAction` 型: `BaseValueActionConfig`, `ValueActionRegistry`, `RegisteredValueActionConfig`
+- `externalKey` 型: `ExternalKeyResolverEntry`, `ExternalKeyResolvers`, `BaseExternalKeyConfig`, `RegisteredExternalKeyConfig`, ...
+- `file` 型/関数: `FileResolverEntry`, `FileResolvers`, `BaseFileConfig`, `RegisteredFileConfig`, `parseMimeTypeFromUrl`, `createMockFileResolver`, ...
 
 ## 関連
 

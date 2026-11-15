@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconGitBranch } from "@tabler/icons-react";
 
 export const formId = "discriminatedUnion";
-export const title = "Discriminated Union";
+export const title = "z.discriminatedUnion";
 export const description = "discriminated keyを使った安定したUnion";
 export const icon = IconGitBranch;
 export const category = "Standard";
@@ -55,12 +55,33 @@ const contactSchema = z
     selectorLabel: "連絡先タイプ",
   });
 
+// 判別子（type）の無い古い形のデータに type を補う。
+// 描画では preprocess を外して中の union を描き、値は先にこの変換を通して中の形にそろえる
+const fillContactType = (value: unknown) => {
+  if (value && typeof value === "object" && !("type" in value)) {
+    return { ...value, type: "email" in value ? "email" : "phone" };
+  }
+  return value;
+};
+
+const legacyContactSchema = z.preprocess(
+  fillContactType,
+  z
+    .discriminatedUnion("type", contactSchema.options)
+    .register(zf.union.registry, {
+      label:
+        "連絡先（z.preprocess で包んだ union。初期値は type の無い古い形）",
+      selectorLabel: "連絡先タイプ",
+    }),
+);
+
 export const schema = z
   .object({
     contact: contactSchema,
+    legacyContact: legacyContactSchema,
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。",
       })
@@ -74,6 +95,8 @@ export const defaultValues: z.input<typeof schema> = {
     email: "du@example.com",
     note: "",
   },
+  // type の無い古い形。開くと preprocess で type: "email" が補われた形で表示される
+  legacyContact: { email: "legacy@example.com", note: "" },
 };
 
 export type SchemaType = z.infer<typeof schema>;

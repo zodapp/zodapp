@@ -3,6 +3,7 @@ import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
 import {
   ReactiveFormContextProvider,
   Switch,
+  TableRowProvider,
   ZodFormContextProvider,
   reactiveComponentLibrary as defaultReactiveComponentLibrary,
   type ReactiveFieldEvent
@@ -11,7 +12,7 @@ import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
 import type {
   MediaResolvers,
-  ExternalKeyActionResolver,
+  ValueActionResolver,
   CollectionReferenceActionEntry,
   ComponentLibrary
 } from '@zodapp/zod-form-react';
@@ -68,7 +69,7 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
    */
   componentLibrary?: ComponentLibrary;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   fileResolvers?: FileResolvers;
   mediaResolvers?: MediaResolvers;
   resolverContext?: RegisteredResolverContext;
@@ -85,7 +86,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   showPreview = false,
   componentLibrary = defaultReactiveComponentLibrary,
   externalKeyResolvers,
-  externalKeyActionResolver,
+  valueActionResolver,
   fileResolvers,
   mediaResolvers,
   resolverContext,
@@ -124,7 +125,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
         merge
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
-        externalKeyActionResolver={externalKeyActionResolver}
+        valueActionResolver={valueActionResolver}
         fileResolvers={fileResolvers}
         mediaResolvers={mediaResolvers}
         resolverContext={resolverContext}
@@ -135,12 +136,15 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
           onConfirm={handleConfirm}
         >
           <Stack gap="md">
-            <Switch
-              fieldPath=""
-              schema={schema}
-              defaultValue={values as z.input<T>}
-              readOnly={readOnly}
-            />
+            {/* computed などが parent を読めるよう、フォーム全体の値を行の値として渡す */}
+            <TableRowProvider row={values}>
+              <Switch
+                fieldPath=""
+                schema={schema}
+                defaultValue={values as z.input<T>}
+                readOnly={readOnly}
+              />
+            </TableRowProvider>
 
             {showPreview && (
               <Code block style={{ maxHeight: 200, overflow: 'auto' }}>

@@ -47,19 +47,8 @@ const ObjectComponent = React.memo(function ObjectComponent({
       property: { propertyName: string; schema: z.ZodTypeAny },
       index: number,
     ) => {
-      const meta = getMeta(property.schema);
-      const unwrappedSchema =
-        property.schema instanceof z.ZodOptional
-          ? (property.schema.unwrap() as z.ZodTypeAny)
-          : undefined;
-
-      const isComputed =
-        meta?.typeName === "computed" ||
-        (unwrappedSchema !== undefined &&
-          getMeta(unwrappedSchema)?.typeName === "computed");
-      const fieldDefaultValue = isComputed
-        ? defaultValue
-        : defaultValue && property.propertyName in defaultValue
+      const fieldDefaultValue =
+        defaultValue && property.propertyName in defaultValue
           ? defaultValue[property.propertyName]
           : undefined;
       return (

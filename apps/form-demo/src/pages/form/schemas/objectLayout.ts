@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconLayout } from "@tabler/icons-react";
 
 export const formId = "objectLayout";
-export const title = "レイアウト制御";
+export const title = "zf.object（並べ方）";
 export const description =
-  "objectのuiType（horizontal / horizontal-wrap / box）と properties による表示順制御";
+  "項目を横に並べる、枠で囲む、表示順を変える";
 export const icon = IconLayout;
 export const category = "Basic";
 

@@ -4,8 +4,9 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconUsers } from "@tabler/icons-react";
 
 export const formId = "union";
-export const title = "Union";
-export const description = "Union型を使った複数タイプの連絡先入力";
+export const title = "zf.union";
+export const description =
+  "電話番号かメールアドレスのどちらかを入力する";
 export const icon = IconUsers;
 export const category = "Advanced";
 
@@ -54,8 +55,8 @@ export const schema = z
         selectorLabel: "連絡先タイプ",
       }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。",
       })

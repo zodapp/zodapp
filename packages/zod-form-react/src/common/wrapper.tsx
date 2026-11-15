@@ -3,7 +3,8 @@ import z from "zod";
 import type { AnyFieldApi } from "@tanstack/react-form";
 import type { ZodForm, ZodFormProps } from "../utils/type";
 import { getMeta } from "@zodapp/zod-form";
-import { useZodField } from "./form";
+import { useRunAsUserEdit, useZodField } from "./form";
+import { isPendingIssue } from "./schemaRegistry";
 
 type AdaptedError =
   | {
@@ -85,9 +86,13 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
     const fieldApi = useZodField<z.infer<TSchema>>(fieldPath, {});
     const refRef = useRef<HTMLElement | null>(null);
 
+    const runAsUserEdit = useRunAsUserEdit();
     const rawErrors = fieldApi.state.meta.errors;
 
-    const error = rawErrors.flat()[0] as AdaptedError | undefined;
+    // 取り直し中（読み込み中）の issue は、欄のエラーとしては表示しない
+    const error = rawErrors.flat().find((candidate) => !isPendingIssue(candidate)) as
+      | AdaptedError
+      | undefined;
 
     const showError =
       fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted;
@@ -106,7 +111,8 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
         value: fieldApi.state.value as z.infer<TSchema>,
         onChange: (next) => {
           const coerced = coerceValueFromEvent(next);
-          fieldApi.handleChange(coerced as unknown);
+          // 部品からの入力は利用者の編集として記録する
+          runAsUserEdit(() => fieldApi.handleChange(coerced as unknown));
           // blur 由来のエラーは change 後も meta.errors に残るため、表示が消えない。
           // change を発火したタイミングで onBlur エラーをクリアしておく。
           queueMicrotask(() => {
@@ -131,7 +137,7 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
         disabled: fieldApi.state.meta.isValidating,
         api: fieldApi,
       }),
-      [fieldApi],
+      [fieldApi, runAsUserEdit],
     );
 
     const meta = getMeta(props.schema);

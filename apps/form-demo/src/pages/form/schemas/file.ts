@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconUpload } from "@tabler/icons-react";
 
 export const formId = "file";
-export const title = "ファイル";
+export const title = "zf.file";
 export const description =
-  "ファイルアップロード・プレビュー機能のサンプル。fileResolverを切り替えることで、複数のクラウドストレージに対応できる。このサンプルではmockFileResolverを利用してdataURLとして保存。";
+  "ファイルを添付してプレビューする。保存先は差し替えられる";
 export const icon = IconUpload;
 export const category = "Basic";
 
@@ -15,50 +15,50 @@ export const schema = z
       .string()
       .register(zf.file.registry, {
         label: "プロフィール画像",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["image/png", "image/jpeg", "image/gif", "image/webp"],
-        }),
+        },
       })
       .optional(),
     document: zf
       .string()
       .register(zf.file.registry, {
         label: "ドキュメント",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["application/pdf", "text/plain"],
-        }),
+        },
       })
       .optional(),
     video: zf
       .string()
       .register(zf.file.registry, {
         label: "動画ファイル",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["video/mp4", "video/webm"],
-        }),
+        },
       })
       .optional(),
     audio: zf
       .string()
       .register(zf.file.registry, {
         label: "音声ファイル",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           mimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg"],
-        }),
+        },
       })
       .optional(),
     anyFile: zf
       .string()
       .register(zf.file.registry, {
         label: "任意のファイル",
-        fileConfig: () => ({
+        fileConfig: {
           type: "mock",
           // mimeTypesを省略すると全ての種類を許可
-        }),
+        },
       })
       .optional(),
   })

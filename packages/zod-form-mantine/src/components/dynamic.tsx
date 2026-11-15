@@ -1,158 +1,77 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense } from "react";
 import z from "zod";
+import { Alert, Button, Group, Loader, Text } from "@mantine/core";
 import {
   Switch,
-  ZodFormInternalProps,
-  wrapComponent,
-  useFormValues,
-  useLazyFactory,
-  useZodFormContext,
-  type DynamicZodFormDef,
+  DynamicDepthProvider,
+  useDynamicDepth,
+  useDynamicSchema,
+  type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 
 type DynamicSchema = z.ZodTypeAny;
-type DynamicSchemaResult =
-  | DynamicSchema
-  | Promise<DynamicSchema | undefined>
-  | undefined;
 
-const componentCache = new WeakMap<
-  DynamicZodFormDef,
-  React.ComponentType<ZodFormInternalProps<DynamicSchema>>
->();
-
-const getLazyComponent = (
-  componentDef: DynamicZodFormDef,
-  lazyFactory: ReturnType<typeof useLazyFactory>,
-) => {
-  const cached = componentCache.get(componentDef);
-  if (cached) return cached;
-
-  const result = componentDef();
-  const Component = (
-    result instanceof Promise ? lazyFactory(() => result) : result.component
-  ) as React.ComponentType<ZodFormInternalProps<DynamicSchema>>;
-
-  componentCache.set(componentDef, Component);
-  return Component;
-};
-
-const FallbackSwitch = (props: ZodFormInternalProps<DynamicSchema>) => {
-  const lazyFactory = useLazyFactory();
-  const { componentLibrary, notFoundComponent: NotFoundComponent } =
-    useZodFormContext();
-  const meta = getMeta(props.schema);
-  const { uiType } = meta ?? {};
-  const schemaType = props.schema.type;
-  const componentDef =
-    componentLibrary[`${schemaType}_${uiType}`] || componentLibrary[schemaType];
-
-  if (!componentDef) {
-    return <NotFoundComponent {...props} />;
-  }
-
-  const Component = getLazyComponent(componentDef, lazyFactory);
-  // eslint-disable-next-line react-hooks/static-components
-  return <Component {...props} />;
-};
-
-const DynamicRootValueProvider = React.memo(function DynamicRootValueProvider({
-  children,
+/** 取得に失敗したときの表示。再試行のボタンを出す */
+export const DynamicErrorView = ({
+  label,
+  retry,
 }: {
-  children: (value: unknown) => React.ReactNode;
-}) {
-  const value = useFormValues();
-  return <>{children(value)}</>;
-});
-
-const DynamicNestedValueProvider = React.memo(
-  function DynamicNestedValueProvider({
-    fieldPath,
-    field,
-    children,
-  }: {
-    fieldPath: string;
-    field: ZodFormInternalProps<DynamicSchema>["field"];
-    children: (value: unknown) => React.ReactNode;
-  }) {
-    const value = field.api.form.getFieldValue(fieldPath);
-    return <>{children(value)}</>;
-  },
+  label: string | undefined;
+  retry: () => void;
+}) => (
+  <Alert color="red" data-dynamic-status="error">
+    <Group justify="space-between">
+      <Text size="sm">{label ? `${label}を` : ""}取得できませんでした</Text>
+      <Button size="xs" variant="light" onClick={retry}>
+        再試行
+      </Button>
+    </Group>
+  </Alert>
 );
 
-const DynamicBody = React.memo(function DynamicBody({
-  value,
-  ...props
-}: ZodFormInternalProps<DynamicSchema> & { value: unknown }) {
-  const { resolverContext } = useZodFormContext();
-  const meta = getMeta(props.schema, "dynamic");
-  const requestIdRef = useRef(0);
-  const [dynamicSchema, setDynamicSchema] = useState<DynamicSchema>();
+/** 読み込み中の表示 */
+const DynamicLoadingView = ({ status }: { status?: "loading" | "pending" }) => (
+  <Group gap="xs" data-dynamic-status={status}>
+    <Loader size="xs" />
+    <Text size="sm" c="dimmed">
+      読み込み中
+    </Text>
+  </Group>
+);
 
-  useEffect(() => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    let active = true;
+/**
+ * 実行時に決まる schema で描画する部品。
+ *
+ * - 最初の resolve が終わるまでと取り直し中は、読み込み中の表示にする（選べない）
+ * - 取得に失敗したら、再試行のボタンを出す
+ * - 子に React の key を付けない。返す schema が変わっても、同じ型の部品は作り直さない
+ * - 子の部品を読み込むあいだは、この欄だけを読み込み中にする（フォーム全体を止めない）
+ */
+const DynamicComponent = React.memo(function DynamicComponent(
+  props: ZodFormProps<DynamicSchema>,
+) {
+  const { fieldPath, schema } = props;
+  const meta = getMeta(schema, "dynamic");
+  const depth = useDynamicDepth(fieldPath);
+  const state = useDynamicSchema(meta, fieldPath, {
+    required: props.required,
+  });
 
-    const applyResult = (schema: DynamicSchema | undefined) => {
-      if (!active || requestIdRef.current !== requestId) return;
-      setDynamicSchema(schema);
-    };
-    const scheduleResult = (schema: DynamicSchema | undefined) => {
-      void Promise.resolve().then(() => applyResult(schema));
-    };
-
-    try {
-      const result = meta?.resolve(
-        value,
-        resolverContext ?? {},
-      ) as DynamicSchemaResult;
-
-      if (result instanceof Promise) {
-        result.then(applyResult).catch((error: unknown) => {
-          if (!active || requestIdRef.current !== requestId) return;
-          console.warn("Failed to resolve zod-form schema", error);
-          applyResult(undefined);
-        });
-        return () => {
-          active = false;
-        };
-      }
-
-      scheduleResult(result);
-    } catch (error) {
-      console.warn("Failed to resolve zod-form schema", error);
-      scheduleResult(undefined);
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [meta, resolverContext, value]);
-
-  if (!dynamicSchema || dynamicSchema === props.schema) {
-    return <FallbackSwitch {...props} defaultValue={value} />;
+  if (state.status === "loading" || state.status === "pending") {
+    return <DynamicLoadingView status={state.status} />;
   }
 
-  return <Switch {...props} schema={dynamicSchema} defaultValue={value} />;
-});
-
-const DynamicComponent = wrapComponent(function DynamicComponentImplement(
-  props: ZodFormInternalProps<DynamicSchema>,
-) {
-  if (props.fieldPath === "") {
-    return (
-      <DynamicRootValueProvider>
-        {(value) => <DynamicBody {...props} value={value} />}
-      </DynamicRootValueProvider>
-    );
+  if (state.status === "error") {
+    return <DynamicErrorView label={meta?.label} retry={state.retry} />;
   }
 
   return (
-    <DynamicNestedValueProvider fieldPath={props.fieldPath} field={props.field}>
-      {(value) => <DynamicBody {...props} value={value} />}
-    </DynamicNestedValueProvider>
+    <Suspense fallback={<DynamicLoadingView />}>
+      <DynamicDepthProvider path={fieldPath} depth={depth}>
+        <Switch {...props} schema={state.schema} />
+      </DynamicDepthProvider>
+    </Suspense>
   );
 });
 

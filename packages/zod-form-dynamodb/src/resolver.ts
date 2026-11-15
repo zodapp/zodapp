@@ -83,7 +83,8 @@ export const createDynamoExternalKeyResolver = <TType extends string = "dynamodb
         const emit = () => {
           const state = store.getState();
           if (state.status !== "ready") return;
-          const items = core.filter ? state.items.filter(core.filter) : state.items;
+          const { filter } = core;
+          const items = filter ? state.items.filter((item) => filter(item, context)) : state.items;
           callback(
             items.map((item) => ({
               label: labelOf(core, item),

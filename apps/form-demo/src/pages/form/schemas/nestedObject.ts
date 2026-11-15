@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconSitemap } from "@tabler/icons-react";
 
 export const formId = "nestedObject";
-export const title = "ネストしたスキーマ";
+export const title = "zf.object";
 export const description = "通常フィールドとネストしたオブジェクトの組み合わせ";
 export const icon = IconSitemap;
 export const category = "Advanced";
@@ -66,8 +66,8 @@ export const schema = z
     emergencyContact: emergencyContactSchema,
 
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "ネストしたオブジェクトをそのままフォームとして表現できます。",
       })

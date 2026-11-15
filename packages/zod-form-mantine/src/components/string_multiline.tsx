@@ -13,7 +13,7 @@ import {
   renderComputedValue,
   stringMultilineStyles,
 } from "@zodapp/zod-form-mantine-lite/utils";
-import { normalizeStringSuggestions } from "./stringSuggestions.js";
+import { normalizeStringSuggestions } from "@zodapp/zod-form-mantine-lite/utils";
 
 type StringSchema = z.ZodString;
 

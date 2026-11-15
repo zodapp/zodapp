@@ -110,6 +110,24 @@ describe("createDynamoExternalKeyResolver", () => {
     expect(callback).toHaveBeenLastCalledWith([{ label: "Alice", value: "u1" }]);
   });
 
+  it("filter は params と同じ resolverContext を受け取る", () => {
+    const store = createFakeLiveStore();
+    const api = {
+      members: { byWorkspace: Object.assign(async () => ({ items: [] }), { live: () => store }) },
+    };
+    // context で決まる条件で絞る（ここでは w1 のときだけ viewer を出す）
+    const filter = vi.fn(
+      (item: Item, ctx: { workspaceId: string }) => ctx.workspaceId === "w1" && item.role === "viewer",
+    );
+    const callback = vi.fn();
+    createDynamoExternalKeyResolver(api)
+      .resolver({ ...baseConfig, filter }, resolverContext)
+      .subscribe(callback);
+    store.set(members);
+    expect(filter).toHaveBeenCalledWith(members[0], { workspaceId: "w1" });
+    expect(callback).toHaveBeenLastCalledWith([{ label: "Bob", value: "u2" }]);
+  });
+
   it("live がなければ、ページをたどって 1 回だけ読む", async () => {
     const fn = vi.fn(async (_params: unknown, options?: { cursor?: string }) =>
       options?.cursor

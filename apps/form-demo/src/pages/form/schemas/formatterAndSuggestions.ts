@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconWand } from "@tabler/icons-react";
 
 export const formId = "formatterAndSuggestions";
-export const title = "入力補助（suggestions / formatter）";
+export const title = "zf.string";
 export const description =
-  "文字列の入力候補（Autocomplete）と、readOnly表示時のformatterによる整形";
+  "入力候補と、readOnly で表示するときの値の整形";
 export const icon = IconWand;
 export const category = "Basic";
 

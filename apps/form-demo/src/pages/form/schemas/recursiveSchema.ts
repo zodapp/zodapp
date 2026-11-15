@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconRefresh } from "@tabler/icons-react";
 
 export const formId = "recursiveSchema";
-export const title = "再帰的スキーマ";
+export const title = "z.lazy";
 export const description = "z.lazyを使った再帰的なデータ構造";
 export const icon = IconRefresh;
 export const category = "Advanced";
@@ -31,8 +31,8 @@ export const schema = z
   .object({
     anyValue: anyValueSchema,
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () =>
           "z.lazyを使って、ネストした構造を表現できます。オブジェクト内にさらに任意の値を持つことができます。ただし、z.lazyはoptional()をともに使わないと無限再帰で落ちます。",
       })

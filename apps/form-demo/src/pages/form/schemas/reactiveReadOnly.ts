@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "reactiveReadOnly";
-export const title = "readOnly (Reactive)";
+export const title = "閲覧専用の表示 (Reactive)";
 export const description =
   "reactiveComponentLibrary によるreadOnlyモード。非対応型（bigint, tuple, array, discriminatedUnion）は除外。";
 export const icon = IconForms;
@@ -61,8 +61,8 @@ export const schema = z
       .enum(hobbyLiterals)
       .register(zf.enum.registry, { label: "一番好きな趣味(enum)" }),
     message: zfReact
-      .derived()
-      .register(zf.derived.registry, {
+      .computed()
+      .register(zf.computed.registry, {
         compute: () => "これはReactive版のreadOnlyモードサンプルです",
       })
       .optional(),

@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import type { ZodForm, ZodFormProps } from "../utils/type";
-import { getMeta } from "@zodapp/zod-form";
+import {
+  getMeta,
+  isPreprocessPipe,
+  normalizePreprocessValue,
+  stripPreprocess,
+} from "@zodapp/zod-form";
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
+import { useFormApi } from "./form";
 
 const memoizeGetLazyComponentMap = new WeakMap<
   DynamicZodFormDef,
@@ -39,6 +45,93 @@ const getLazyComponent = (
  * switch loader が Promise を返す場合は `LazyComponentFactory` で遅延ロードします。
  */
 export const Switch: ZodForm = (props: ZodFormProps) => {
+  if (isPreprocessPipe(props.schema)) {
+    return <PreprocessSwitch {...props} />;
+  }
+  return <SchemaSwitch {...props} />;
+};
+
+const isEqualValue = (a: unknown, b: unknown): boolean => {
+  if (Object.is(a, b)) return true;
+  if (a instanceof Date && b instanceof Date) {
+    return a.getTime() === b.getTime();
+  }
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null ||
+    Array.isArray(a) !== Array.isArray(b)
+  ) {
+    return false;
+  }
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every((key) =>
+    isEqualValue(
+      (a as Record<string, unknown>)[key],
+      (b as Record<string, unknown>)[key],
+    ),
+  );
+};
+
+/**
+ * `z.preprocess` を描画する。
+ *
+ * preprocess は「型に合わない保存データを中の schema の形にそろえる」変換なので、
+ * フォームの値を先にそろえてから（触った扱いにはしない）、preprocess を外した
+ * schema で描画する。preprocess に付けた meta は中の schema に移す。
+ */
+const PreprocessSwitch = (props: ZodFormProps) => {
+  const { schema, fieldPath, defaultValue } = props;
+  const form = useFormApi();
+  const displaySchema = useMemo(() => stripPreprocess(schema), [schema]);
+  const normalizedDefaultValue = useMemo(
+    () =>
+      defaultValue === undefined
+        ? undefined
+        : normalizePreprocessValue(schema, defaultValue),
+    [schema, defaultValue],
+  );
+
+  useEffect(() => {
+    const isRoot = fieldPath === "";
+    const read = () =>
+      isRoot ? form.state.values : form.getFieldValue(fieldPath);
+    // 値の参照が変わったときだけ確かめる（他のフィールドの変更では何もしない）
+    let lastSeen: unknown = Symbol("unseen");
+    const normalize = () => {
+      const current = read();
+      if (Object.is(current, lastSeen)) return;
+      lastSeen = current;
+      const next = normalizePreprocessValue(schema, current);
+      if (isEqualValue(current, next)) return;
+      if (isRoot) {
+        form.baseStore.setState((state: any) => ({ ...state, values: next }));
+      } else {
+        form.setFieldValue(fieldPath, next as never, {
+          dontUpdateMeta: true,
+          dontValidate: true,
+        });
+      }
+    };
+    normalize();
+    // reset などで値が入れ替わったときも、そろえ直す
+    const subscription = form.store.subscribe(normalize);
+    return () => subscription.unsubscribe();
+  }, [form, fieldPath, schema]);
+
+  return (
+    <Switch
+      {...props}
+      schema={displaySchema}
+      defaultValue={normalizedDefaultValue}
+    />
+  );
+};
+
+const SchemaSwitch = (props: ZodFormProps) => {
   const lazyFactory = useLazyFactory();
 
   const { schema } = props;

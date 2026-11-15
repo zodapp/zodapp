@@ -95,7 +95,9 @@ const schema = z
 
 ### `computed`（apps/form-demo の例）
 
-`computed` は、親オブジェクトの値を受け取って **表示用の値（ReactNode）**を計算できます。
+`computed` は、`{ value, parent, context }` を受け取って **表示用の値（ReactNode）**を計算できます。
+値を持たない欄（`zfReact.computed()`）に付ければ表示専用、値を持つ欄に付ければその値の表示になります。
+`parent` は `dependsOnParent: true` のときだけ入り、`context` は `contextId` を指定したときだけ入ります。
 
 `apps/form-demo/src/pages/form/schemas/computed.ts` では次のように利用しています:
 
@@ -111,7 +113,8 @@ export const schema = z.object({
     .computed()
     .register(zf.computed.registry, {
       label: "合計",
-      compute: (parent) => {
+      dependsOnParent: true,
+      compute: ({ parent }) => {
         const unitPrice = parent?.unitPrice ?? 0;
         const quantity = parent?.quantity ?? 0;
         return `¥${(unitPrice * quantity).toLocaleString()}`;
@@ -132,6 +135,10 @@ export const schema = z.object({
   - `useZodForm(...)`: TanStack Form ベースのフォーム作成
   - `useZodField(...)`, `useFormValues(...)`: フィールド/値参照のヘルパー
   - `useArray(fieldApi, fieldPath, discriminator?)`: 配列フィールドの insert/remove/append/move を扱うラッパー
+- **実行時の schema / 編集の出どころ**
+  - `useRunAsUserEdit()`: 渡した関数の中の値の変更を「利用者の編集」として記録する（dynamic の prune の判断に使う）
+  - `useDynamicSchema(meta, fieldPath)`: dynamic の resolve を呼び、結果をフォームの登録先に登録する
+  - `TableRowProvider` / `useTableRow()`: 表の行の値を渡す（表用の部品はここから `parent` を受け取る）
 - **遅延ロード/検証**
   - `useLazyFactory()`: Dynamic の lazy ロード戦略（デフォルトは `React.lazy`）
   - `useValidatePrecedingFields({ name, ref })`: フォーカス時に「前のフィールド」をまとめて検証（Providerが必要）

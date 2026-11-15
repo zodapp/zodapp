@@ -3,7 +3,7 @@ import { zf } from "@zodapp/zod-form";
 import { IconCalendar } from "@tabler/icons-react";
 
 export const formId = "date";
-export const title = "日付";
+export const title = "zf.date";
 export const description =
   "日付・時刻の入力（様々なZod型、粒度、エンコーディング）";
 export const icon = IconCalendar;
@@ -98,6 +98,18 @@ export const schema = z
       label: "z.iso.datetime() - 分単位（minute）",
       unit: "minute",
     }),
+    // precision はデータの持ち方。値を変えたときだけ、その形式で書く（開いただけでは触らない）
+    isoDatetimePrecisionMinute: z.iso
+      .datetime({ precision: -1 })
+      .register(zf.date.registry, {
+        label:
+          'z.iso.datetime({ precision: -1 }) - データは分まで（"2026-11-14T02:30Z"）、unit も minute',
+      }),
+    isoDatetimePrecisionSecond: z.iso
+      .datetime({ precision: 0 })
+      .register(zf.date.registry, {
+        label: "z.iso.datetime({ precision: 0 }) - データは秒まで",
+      }),
 
     // ============================================================
     // 4. z.iso.datetime({ local: true }) - ISO datetime local (TZ依存)
@@ -112,6 +124,12 @@ export const schema = z
       .register(zf.date.registry, {
         label: "z.iso.datetime({ local: true }) - 分単位（minute）",
         unit: "minute",
+      }),
+    isoDatetimeLocalPrecisionMinute: z.iso
+      .datetime({ local: true, precision: -1 })
+      .register(zf.date.registry, {
+        label:
+          'z.iso.datetime({ local: true, precision: -1 }) - データは分まで（"2026-11-14T11:30"）',
       }),
 
     // ============================================================
@@ -160,10 +178,13 @@ export const defaultValues: z.input<typeof schema> = {
   // z.iso.datetime()
   isoDatetimeDefault: now.toISOString(),
   isoDatetimeMinute: now.toISOString(),
+  isoDatetimePrecisionMinute: `${now.toISOString().slice(0, 16)}Z`,
+  isoDatetimePrecisionSecond: `${now.toISOString().slice(0, 19)}Z`,
 
   // z.iso.datetime({ local: true })
   isoDatetimeLocalDefault: formatLocalDateTime(now),
   isoDatetimeLocalMinute: formatLocalDateTime(now),
+  isoDatetimeLocalPrecisionMinute: formatLocalDateTime(now).slice(0, 16),
 
   // z.iso.date()
   isoDateDefault: formatIsoDate(now),

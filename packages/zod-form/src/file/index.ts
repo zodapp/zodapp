@@ -11,7 +11,6 @@ export type {
   BaseFileConfig,
   FileResolverEntry,
   FileResolvers,
-  FileConfig,
   FileConfigRegistry,
   RegisteredFileConfig,
 } from "./types";

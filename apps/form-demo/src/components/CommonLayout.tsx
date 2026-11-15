@@ -3,9 +3,11 @@ import {
   ActionIcon,
   AppShell,
   Badge,
+  Box,
   Burger,
   Group,
   NavLink,
+  ScrollArea,
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery, useLocalStorage } from "@mantine/hooks";
@@ -251,10 +253,16 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       </AppShell.Header>
 
       {hasNavbar && (
-        <AppShell.Navbar p="xs">
-          {renderBackLink()}
-          {navItems.map(renderNavItem)}
-          {extraNavContent?.({ closeMobile })}
+        <AppShell.Navbar>
+          {/* Navbar は画面の高さに固定されるので、中身が多いときはこの中でスクロールする。
+              余白はスクロール領域の内側に付け、スクロールバーを Navbar の端（境界線）にそろえる */}
+          <AppShell.Section grow component={ScrollArea}>
+            <Box p="xs">
+              {renderBackLink()}
+              {navItems.map(renderNavItem)}
+              {extraNavContent?.({ closeMobile })}
+            </Box>
+          </AppShell.Section>
         </AppShell.Navbar>
       )}
 

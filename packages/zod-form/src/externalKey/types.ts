@@ -33,26 +33,14 @@ export type ExternalKeyResolverResult = {
  */
 export type BaseExternalKeyConfig<TType extends ResolverId = ResolverId> = {
   type: TType;
-};
-
-/**
- * 外部キー action の基底パラメータ。
- * core は router/link 実装を知らないため、広い object 型に留める。
- */
-export type BaseExternalKeyActionParams = Record<string, unknown>;
-
-/**
- * 外部キー action 設定の基底型。
- * contextId は resolverContext のどの部分を使うかの識別子。
- * getActionParams は resolverContext を受けて action params を返す。
- */
-export type BaseExternalKeyActionConfig<
-  TContextId extends string = string,
-  TContext = unknown,
-  TParams extends BaseExternalKeyActionParams = BaseExternalKeyActionParams,
-> = {
-  contextId: TContextId;
-  getActionParams: (value: string, context: TContext) => TParams;
+  /**
+   * config の同一性。選択肢を取り直すかどうかを決める key に使う。
+   *
+   * 省略すると config を文字列にしたものを使う。文字列にすると関数は消えるので、
+   * dynamic で関数（filter など）だけが違う config に差し替えるときは、違いを `key` で表す。
+   * resolverContext の値は、書いても書かなくても自動で key に入る。
+   */
+  key?: string;
 };
 
 /**
@@ -80,14 +68,6 @@ export type ExternalKeyResolverEntry<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ExternalKeyResolvers = ExternalKeyResolverEntry<any, any>[];
 
-/**
- * 外部キー設定
- * 直接指定またはrender時に解決する関数形式をサポート
- */
-export type ExternalKeyConfig<
-  TConfig extends BaseExternalKeyConfig = BaseExternalKeyConfig,
-> = TConfig | (() => TConfig);
-
 // === 案3: declare module 用の型拡張ポイント ===
 
 /**
@@ -113,27 +93,3 @@ export type RegisteredExternalKeyConfig = ExternalKeyConfigRegistry extends {
 }
   ? T
   : BaseExternalKeyConfig & Record<string, unknown>;
-
-/**
- * 登録済みの外部キー action 設定型
- * - ExternalKeyConfigRegistry に actionConfig が登録されていればその型を使用
- * - 未登録なら BaseExternalKeyActionConfig にフォールバック
- */
-export type RegisteredExternalKeyActionConfig =
-  ExternalKeyConfigRegistry extends {
-    actionConfig: infer T;
-  }
-    ? T
-    : BaseExternalKeyActionConfig;
-
-/**
- * 登録済みの外部キー action params 型
- * - ExternalKeyConfigRegistry に actionParams が登録されていればその型を使用
- * - 未登録なら BaseExternalKeyActionParams にフォールバック
- */
-export type RegisteredExternalKeyActionParams =
-  ExternalKeyConfigRegistry extends {
-    actionParams: infer T;
-  }
-    ? T
-    : BaseExternalKeyActionParams;

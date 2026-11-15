@@ -26,7 +26,8 @@ export const createActionSchema = <Row,>({
       label,
       width,
       align: "center" as const,
-      compute: (row: Row) => {
+      dependsOnParent: true,
+      compute: ({ parent: row }: { parent: Row }) => {
         const linkProps = getParams(row);
         return (
           <Link {...linkProps} className={styles.actionLink}>

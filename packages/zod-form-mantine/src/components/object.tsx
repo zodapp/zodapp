@@ -8,6 +8,7 @@ import {
   ZodFormInternalProps,
   getDefaultValue,
   useZodField,
+  useRunAsUserEdit,
   wrapComponent,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -153,13 +154,14 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
   const meta = getMeta(schema);
   const label = labelFromParent ?? meta?.label;
   const isSet = value !== undefined;
+  const runAsUserEdit = useRunAsUserEdit();
 
   const handleAdd = () => {
-    field.handleChange(getObjectDefaultValue(schema));
+    runAsUserEdit(() => field.handleChange(getObjectDefaultValue(schema)));
   };
 
   const handleRemove = () => {
-    field.handleChange(undefined);
+    runAsUserEdit(() => field.handleChange(undefined));
     // 配下フィールドに残ったエラー meta を掃除する
     const prefix = `${fieldPath}.`;
     const fieldMeta = field.form.state.fieldMeta as Record<string, unknown>;

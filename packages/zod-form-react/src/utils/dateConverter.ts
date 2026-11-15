@@ -76,8 +76,13 @@ export type SupportedDateSchema =
  *
  * Unit 制約と自動推論のデフォルト値:
  * - z.date(), z.number(): 全 unit 使用可（デフォルト: second）
- * - z.iso.datetime(): TimeOnlyUnit のみ（デフォルト: second）
+ * - z.iso.datetime(): TimeOnlyUnit のみ（デフォルト: second。precision があれば
+ *   -1 → minute、0 → second、1 以上 → millisecond）
  * - z.iso.date(): DateOnlyUnit のみ（デフォルト: day）
+ *
+ * z.iso.datetime の保存形式は precision に合わせる（-1 なら `YYYY-MM-DDTHH:mm`）。
+ * precision が無ければミリ秒まで書く。unit は UI の粒度だけを決めるので、
+ * 「データは秒まで持てる形式で、UI は分まで」は precision なし + unit: "minute" で書ける。
  *
  * 注: millisecond は明示的に指定した場合のみ使用（readOnly 表示でミリ秒精度を維持）
  *
@@ -259,6 +264,8 @@ export function createDateConverter(
 ): DateConverter {
   const { schema } = params;
   const schemaType = detectSchemaType(schema);
+  // z.iso.datetime({ precision }) の精度。保存する文字列の形をこれに合わせる
+  const precision = getIsoDatetimePrecision(schema);
   // unit が未指定の場合はスキーマから推論
   const unit = params.unit ?? inferDefaultUnit(schema);
   // encoding が未指定の場合はスキーマから推論
@@ -320,9 +327,13 @@ export function createDateConverter(
       case "number":
         return d.valueOf();
       case "isoDatetime":
-        return d.toISOString(); // "YYYY-MM-DDTHH:mm:ss.SSSZ"
+        // precision 未指定: "YYYY-MM-DDTHH:mm:ss.SSSZ"
+        return precision === undefined
+          ? d.toISOString()
+          : `${formatIsoDatetimeBody(d.utc(), precision)}Z`;
       case "isoDatetimeLocal":
-        return d.format("YYYY-MM-DDTHH:mm:ss.SSS"); // オフセットなし
+        // オフセットなし。precision 未指定: "YYYY-MM-DDTHH:mm:ss.SSS"
+        return formatIsoDatetimeBody(d, precision ?? 3);
       case "isoDate":
         return d.format("YYYY-MM-DD");
     }
@@ -413,8 +424,47 @@ function inferDefaultUnit(schema: SupportedDateSchema): DateUnit {
   if (schema instanceof z.ZodISODate) {
     return "day";
   }
+  // z.iso.datetime({ precision }) は精度から決める（-1: 分、0: 秒、1 以上: ミリ秒）
+  const precision = getIsoDatetimePrecision(schema);
+  if (precision !== undefined) {
+    if (precision < 0) return "minute";
+    if (precision === 0) return "second";
+    return "millisecond";
+  }
   // ZodDate, ZodNumber, ZodISODateTime はデフォルト second
   return "second";
+}
+
+// ============================================================
+// z.iso.datetime の precision（内部関数）
+// ============================================================
+
+/**
+ * `z.iso.datetime({ precision })` の精度を返す。指定がなければ undefined。
+ *
+ * - -1: 分まで（`YYYY-MM-DDTHH:mm`）
+ * - 0: 秒まで（`YYYY-MM-DDTHH:mm:ss`）
+ * - n (1 以上): 秒の小数 n 桁まで
+ */
+function getIsoDatetimePrecision(
+  schema: SupportedDateSchema,
+): number | undefined {
+  if (!(schema instanceof z.ZodISODateTime)) return undefined;
+  const precision = (schema._zod.def as { precision?: number | null })
+    .precision;
+  return typeof precision === "number" ? precision : undefined;
+}
+
+/**
+ * dayjs を、オフセットなしの ISO 日時文字列に precision の桁数で書く。
+ * ミリ秒より細かい桁は 0 で埋める。
+ */
+function formatIsoDatetimeBody(d: dayjs.Dayjs, precision: number): string {
+  if (precision < 0) return d.format("YYYY-MM-DDTHH:mm");
+  const seconds = d.format("YYYY-MM-DDTHH:mm:ss");
+  if (precision === 0) return seconds;
+  const fraction = d.format("SSS").padEnd(precision, "0").slice(0, precision);
+  return `${seconds}.${fraction}`;
 }
 
 // ============================================================

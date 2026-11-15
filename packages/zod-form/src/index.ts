@@ -5,9 +5,14 @@ export * from "./def";
 export * from "./utils/zod";
 export * from "./utils/schema";
 export * from "./utils/default";
+export { stripPreprocess, normalizePreprocessValue } from "./utils/preprocess";
+export { pruneValueToSchema, adaptValueToSchema } from "./utils/prune";
 
 // External key types
 export * from "./externalKey";
+
+// Value action types
+export * from "./valueAction";
 
 // File types
 export * from "./file";

@@ -1,6 +1,6 @@
 /**
  * React依存のスキーマ拡張
- * zf.computed, zf.derived をReact対応（+JSX）に拡張
+ * zf.computed をReact対応（+JSX）に拡張
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -12,13 +12,12 @@ import {
   getMeta as getZodExtendableMeta,
   MetaOf,
 } from "@zodapp/zod-extendable";
-import { zf, zodExtendableCommonDefSchema } from "@zodapp/zod-form";
-import type {
-  ComputedMetaDef,
-  ComputedValue,
-  DerivedMetaDef,
+import {
+  zf,
+  zodExtendableCommonDefSchema,
+  fnSourceMetaSchema,
 } from "@zodapp/zod-form";
-import type { RegisteredResolverContextId } from "@zodapp/zod-form/resolverContext/types";
+import type { ComputedMetaDef, ComputedValue } from "@zodapp/zod-form";
 import { reactNodeSchema } from "./reactNode";
 
 // ComputedValue | ReactNode を受け付けるスキーマ
@@ -28,48 +27,28 @@ const computedOrReactNodeSchema = z.union([
   z.custom<ComputedValue>(),
 ]);
 
-// computed: 親オブジェクトを受け取り ComputedValue | ReactNode を返す
+// computed: { value, parent, context } を受け取り ComputedValue | ReactNode を返す
 // zf.computed を上書きし、JSX（ReactNode）も返せるように拡張
-// contextId を指定すると compute(parent, context) の形で resolverContext slice が渡される
-// contextId を省略すると context は渡されない
 const computed = extendCustom(
   z.never,
   "computed",
   zodExtendableCommonDefSchema.extend({
-    contextId: z.custom<RegisteredResolverContextId>().optional(),
+    ...fnSourceMetaSchema.shape,
     compute: z.function({
-      input: [z.any(), z.any().optional()],
+      input: [z.any()],
       output: computedOrReactNodeSchema,
     }),
-  }) as z.ZodType<ComputedMetaDef<ComputedValue | ReactNode>>,
-  schemaType<z.ZodType>(),
-);
-
-// derived: 該当フィールドの値を受け取り ComputedValue | ReactNode を返す
-// zf.derived を上書きし、JSX（ReactNode）も返せるように拡張
-// contextId を指定すると compute(value, context) の形で resolverContext slice が渡される
-// contextId を省略すると context は渡されない
-const derived = extendCustom(
-  z.never,
-  "derived",
-  zodExtendableCommonDefSchema.extend({
-    contextId: z.custom<RegisteredResolverContextId>().optional(),
-    compute: z.function({
-      input: [z.any(), z.any().optional()],
-      output: computedOrReactNodeSchema,
-    }),
-  }) as z.ZodType<DerivedMetaDef<ComputedValue | ReactNode>>,
+  }) as unknown as z.ZodType<ComputedMetaDef<ComputedValue | ReactNode>>,
   schemaType<z.ZodType>(),
 );
 
 /**
  * zfReact - React依存のスキーマ拡張を含むzf
- * zfの全機能に加えて、computed(+JSX), derived(+JSX)を提供
+ * zfの全機能に加えて、computed(+JSX)を提供
  */
 export const zfReact = {
   ...zf,
   computed,
-  derived,
 };
 
 // Registry key types
@@ -80,7 +59,7 @@ type ZfReactRegistryKey = {
 }[keyof typeof zfReact];
 
 /**
- * getMetaReact - zfReactのcomputed, derivedを含むgetMeta
+ * getMetaReact - zfReactのcomputedを含むgetMeta
  */
 export const getMetaReact = <
   S extends z.ZodTypeAny,

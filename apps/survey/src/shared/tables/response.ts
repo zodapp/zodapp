@@ -48,12 +48,12 @@ export const responseBodySchema = z
       })
       .optional(),
     // 回答本体。キーは質問定義（SurveyFieldDef）の id。
-    // 表示は derived メタで整形する（テーブルセルでもそのまま使える）
+    // 表示は computed メタで整形する（テーブルセルでもそのまま使える）
     answers: z
       .record(
         zf.string(),
-        answerValueSchema.register(zf.derived.registry, {
-          compute: (value: unknown) => formatAnswerValue(value),
+        answerValueSchema.register(zf.computed.registry, {
+          compute: ({ value }) => formatAnswerValue(value),
         }),
       )
       .register(zf.record.registry, { label: "回答", width: 200 }),

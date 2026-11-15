@@ -21,10 +21,11 @@ import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext
 import {
   ZodFormContextProvider,
   Switch,
+  TableRowProvider,
   tableComponentLibrary,
   ExternalKeyResolvers,
 } from "@zodapp/zod-form-mantine";
-import type { ExternalKeyActionResolver } from "@zodapp/zod-form-mantine";
+import type { ValueActionResolver } from "@zodapp/zod-form-mantine";
 import type { CollectionReferenceActionEntry } from "@zodapp/zod-form-react";
 import { z } from "zod";
 import type {
@@ -101,7 +102,7 @@ type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   data: AutoTableItem<TSchema>[];
   keyField: AutoTableKeyField<TSchema>;
   externalKeyResolvers?: ExternalKeyResolvers;
-  externalKeyActionResolver?: ExternalKeyActionResolver;
+  valueActionResolver?: ValueActionResolver;
   resolverContext?: RegisteredResolverContext;
   collectionReferenceActions?: readonly CollectionReferenceActionEntry[];
   /** `false` の場合はヘッダーからのソート操作のみ無効化します */
@@ -915,15 +916,13 @@ function BodyCellInner({
       <div className={isPreviewing ? styles.previewContent : undefined}>
         {field.propertyName ? (
           <Suspense fallback={<Loader size="xs" />}>
-            <Switch
-              fieldPath={field.propertyName}
-              schema={field.schema}
-              defaultValue={
-                field.meta.typeName === "computed"
-                  ? item
-                  : getNestedValue(item, field.propertyName)
-              }
-            />
+            <TableRowProvider row={item}>
+              <Switch
+                fieldPath={field.propertyName}
+                schema={field.schema}
+                defaultValue={getNestedValue(item, field.propertyName)}
+              />
+            </TableRowProvider>
           </Suspense>
         ) : null}
       </div>
@@ -1267,7 +1266,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     data,
     keyField,
     externalKeyResolvers,
-    externalKeyActionResolver,
+    valueActionResolver,
     resolverContext,
     collectionReferenceActions,
     sortable = true,
@@ -1495,7 +1494,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     <ZodFormContextProvider
       componentLibrary={tableComponentLibrary}
       externalKeyResolvers={externalKeyResolvers}
-      externalKeyActionResolver={externalKeyActionResolver}
+      valueActionResolver={valueActionResolver}
       resolverContext={resolverContext}
       collectionReferenceActions={collectionReferenceActions}
     >

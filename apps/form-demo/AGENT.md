@@ -29,7 +29,13 @@ pnpm --filter form-demo dev
 pnpm --filter form-demo check-types
 pnpm --filter form-demo build
 pnpm --filter form-demo build:pages   # GitHub Pages 向け（base: /zodapp/）
+
+# E2E（Playwright。Vite は起動していなければ自動で起動する）
+pnpm --filter form-demo e2e
 ```
+
+E2E は `e2e/` に、デモページ 1 つにつき spec を 1 つ置きます。spec の手順は、そのページを開いて試す手順と同じにします。
+`all-pages.spec.ts` は、サイドバーのすべてのページが開けて例外が起きないことを確かめます。
 
 ---
 

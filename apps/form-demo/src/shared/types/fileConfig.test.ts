@@ -34,14 +34,14 @@ describe("FileConfig 型テスト", () => {
         expectTypeOf(schema).toBeObject();
       });
 
-      it("MockFileConfig を関数形式で指定できる", () => {
-        const schema = zf.string().register(zf.file.registry, {
+      it("MockFileConfig を関数形式では指定できない（ただのデータにする）", () => {
+        zf.string().register(zf.file.registry, {
           label: "テスト",
+          // @ts-expect-error 関数で返す形は持たない。変えるときは zf.dynamic で包む
           fileConfig: () => ({
             type: "mock",
           }),
         });
-        expectTypeOf(schema).toBeObject();
       });
 
       it("MockFileConfig にオプションプロパティを指定できる", () => {

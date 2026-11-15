@@ -3,9 +3,9 @@ import { zf, asRegistrySchemaResolver } from "@zodapp/zod-form";
 import { IconBolt } from "@tabler/icons-react";
 
 export const formId = "dynamicSchema";
-export const title = "動的スキーマ（zf.dynamic）";
+export const title = "zf.dynamic";
 export const description =
-  "フィールドの現在値からスキーマを実行時に解決する。通知方法の選択に応じて設定項目が切り替わる";
+  "入力内容でスキーマを切り替える（通知方法ごとの設定項目）";
 export const icon = IconBolt;
 export const category = "Advanced";
 
@@ -66,17 +66,20 @@ const fallbackSchema = z
 export const schema = z
   .object({
     name: zf.string().register(zf.string.registry, { label: "ルール名" }),
-    // zf.dynamic: resolve(value, context) が返したスキーマで描画される。
-    // resolve は Promise を返してもよい（外部からのスキーマ取得などの
-    // 遅延解決にも対応）。
+    // zf.dynamic: resolve({ value, parent, context }) が返した { schema, key } で
+    // 描画・検証される。key が変わると別の schema とみなし、利用者の操作が原因なら
+    // 値を新しい schema に合わせて削る。resolve は Promise や購読を返してもよい
+    // （外部からのスキーマ取得などの遅延解決にも対応）。
     notification: zf
       .dynamic()
       .register(zf.dynamic.registry, {
         label: "通知設定",
-        resolve: asRegistrySchemaResolver((value) => {
+        resolve: asRegistrySchemaResolver(({ value }) => {
           const type = (value as { type?: NotificationType } | undefined)
             ?.type;
-          return type ? notificationSchemas[type] : fallbackSchema;
+          return type
+            ? { schema: notificationSchemas[type], key: type }
+            : { schema: fallbackSchema, key: "" };
         }),
       })
       .optional(),

@@ -3,42 +3,31 @@ import {
   zfReact as zf,
   getMetaReact,
 } from "@zodapp/zod-form-react";
-import type { ComputedMetaDef } from "@zodapp/zod-form";
-import { useResolverContext } from "@zodapp/zod-form-react/common";
+import type { ComputedMetaDef, FnInput } from "@zodapp/zod-form";
+import { useTableFnInput } from "@zodapp/zod-form-react/common";
 import { renderComputedValue } from "../utils/renderComputedValue";
 
 type ComputedSchema = ReturnType<typeof zf.computed>;
 
 type ComputedRuntimeMeta = ComputedMetaDef<unknown>;
 
-const runComputed = (
-  meta: ComputedRuntimeMeta | undefined,
-  parent: unknown,
-  context: unknown,
-) => {
-  if (!meta) {
-    return undefined;
-  }
-  if (meta.contextId === undefined) {
-    return meta.compute(parent);
-  }
-  if (context === undefined) {
-    throw new Error(`resolverContext["${meta.contextId}"] is required for computed`);
-  }
-  return (meta.compute as (value: unknown, resolverContext: unknown) => unknown)(
-    parent,
-    context,
-  );
-};
-
+/**
+ * テーブル表示用 computed コンポーネント。
+ * value はセルの値（defaultValue）、parent は行の値（TableRowProvider）から取り出す。
+ */
 const ComputedComponent = ({
   schema,
   defaultValue,
+  fieldPath,
 }: ZodFormProps<ComputedSchema>) => {
-  const meta = getMetaReact(schema, "computed") as ComputedRuntimeMeta | undefined;
-  const context = useResolverContext(meta?.contextId);
+  const meta = getMetaReact(schema, "computed") as
+    | ComputedRuntimeMeta
+    | undefined;
+  const input = useTableFnInput(meta, fieldPath, defaultValue);
 
-  const content = runComputed(meta, defaultValue, context);
+  const content = meta
+    ? (meta.compute as (input: FnInput) => unknown)(input)
+    : undefined;
 
   return <>{renderComputedValue(content)}</>;
 };

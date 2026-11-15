@@ -8,13 +8,15 @@ export type {
   ExternalKeyOptionsHandler,
   ExternalKeyResolverResult,
   BaseExternalKeyConfig,
-  BaseExternalKeyActionConfig,
-  BaseExternalKeyActionParams,
   ExternalKeyResolverEntry,
   ExternalKeyResolvers,
-  ExternalKeyConfig,
   ExternalKeyConfigRegistry,
   RegisteredExternalKeyConfig,
-  RegisteredExternalKeyActionConfig,
-  RegisteredExternalKeyActionParams,
 } from "./types";
+
+export type {
+  MockExternalKeyConfig,
+  MockExternalKeyOption,
+  MockTopic,
+} from "./mock";
+export { createMockExternalKeyResolver, createMockTopic } from "./mock";

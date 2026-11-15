@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconListDetails } from "@tabler/icons-react";
 
 export const formId = "recordEntries";
-export const title = "Record（キー/値エディタ）";
+export const title = "zf.record";
 export const description =
-  "uiType: entries による Record のキー/値ペアの追加・削除・編集UI";
+  "キーと値の組を、追加・削除・編集する";
 export const icon = IconListDetails;
 export const category = "Standard";
 

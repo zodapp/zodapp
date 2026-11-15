@@ -351,6 +351,13 @@ describe("myFunction", () => {
 });
 ```
 
+### E2E（apps）
+
+- `apps/` のアプリには、原則 Playwright の E2E を置く。置き場所は `apps/<名前>/e2e`、実行は `pnpm e2e`
+- 画面の振る舞いを変えたら、その振る舞いを E2E で確かめる（単体テストでわかる部分は単体テストで）
+- 新しいアプリは `.github/workflows/e2e.yml` の matrix に加える
+- `apps/form-demo` は、1 つのデモページを 1 つの spec にする。spec の手順は、そのページを開いて試す手順と同じにし、ユーザーテストの台本としても読めるようにする
+
 ## 新規パッケージ追加
 
 1. `packages/` に新規ディレクトリを作成

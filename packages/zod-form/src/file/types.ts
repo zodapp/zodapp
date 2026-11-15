@@ -69,14 +69,6 @@ export type FileResolverEntry<
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FileResolvers = FileResolverEntry<any, any>[];
 
-/**
- * ファイル設定
- * 直接指定またはrender時に解決する関数形式をサポート
- */
-export type FileConfig<TConfig extends BaseFileConfig = BaseFileConfig> =
-  | TConfig
-  | (() => TConfig);
-
 // === 案3: declare module 用の型拡張ポイント ===
 
 /**
