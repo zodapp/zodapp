@@ -6,6 +6,7 @@ import { Alert, Badge, Group, Stack, Text } from "@mantine/core";
 import { IconPlayerPlay } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "formActions";
 export const title = "カスタムアクション";
@@ -33,6 +34,9 @@ export const defaultValues: z.input<typeof schema> = {
 };
 
 type SchemaType = z.infer<typeof schema>;
+
+// 見るための部品。このページは actions のボタンが主題なので、部品の「送信」は出さない
+const harness = [createE2eHarness<typeof schema>({ formId, submit: false })];
 
 export const Component = () => {
   // 下書きとして保存済みの値。AutoForm の defaultValues に渡すことで、
@@ -91,7 +95,7 @@ export const Component = () => {
         schema={schema}
         defaultValues={draft}
         actions={actions}
-        showPreview={true}
+        actionComponents={harness}
       />
       {published && (
         <Alert color="green" title="公開済みの内容">

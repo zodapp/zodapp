@@ -20,11 +20,30 @@ export const openDemo = async (page: Page, formId: string, title: string) => {
   ).toBeVisible();
 };
 
-/** 入力中の値（showPreview の JSON） */
+/** 見るための部品が window.__formDemo に置く中身 */
+export type FormDemoState = {
+  formId: string;
+  values: Record<string, unknown>;
+  errors: { fields: Record<string, string[]>; form: string[] };
+  isDirty: boolean;
+  submitted: { count: number; values: unknown };
+  log: (Record<string, unknown> & { type: string; at: number })[];
+};
+
+/** 見るための部品の中身（window.__formDemo）を読む */
+export const formDemo = async (page: Page): Promise<FormDemoState> => {
+  await page.waitForFunction(() => window.__formDemo !== undefined);
+  return page.evaluate(() => window.__formDemo as unknown as FormDemoState);
+};
+
+/** 入力中の値 */
 export const previewValue = async (
   page: Page,
-): Promise<Record<string, unknown>> =>
-  JSON.parse(await page.locator("pre").first().innerText());
+): Promise<Record<string, unknown>> => (await formDemo(page)).values;
+
+/** ログのうち、type が合うもの */
+export const logOf = async (page: Page, type: string) =>
+  (await formDemo(page)).log.filter((entry) => entry.type === type);
 
 /** ラベルで欄を探す（ラベルは前方一致） */
 export const field = (page: Page, label: string) =>

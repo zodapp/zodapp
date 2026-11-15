@@ -17,6 +17,7 @@ import {
 } from "@zodapp/zod-form";
 import type { ValueActionResolver } from "@zodapp/zod-form-react/common";
 import type { WebExternalKeyConfig } from "../types/externalKeyConfig";
+import { withFetchLog } from "./formDemoLog";
 
 export const users: MockExternalKeyOption[] = [
   { label: "山田 太郎", value: "u-001" },
@@ -125,9 +126,10 @@ export const withDemoDelay = (
   }),
 });
 
-export const demoExternalKeyResolvers: ExternalKeyResolvers = [
+// 購読・届いた選択肢・失敗は、見るための部品のログに書く
+export const demoExternalKeyResolvers: ExternalKeyResolvers = withFetchLog([
   withDemoDelay(createMockExternalKeyResolver({ topics: demoTopics }), 400),
-];
+]);
 
 /** 値を、getActionParams が返した href へのリンクで包む */
 export const demoValueActionResolver: ValueActionResolver = ({

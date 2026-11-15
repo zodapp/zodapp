@@ -5,6 +5,7 @@ import { Button, Group, Stack, Switch, Text } from "@mantine/core";
 import { IconListSearch } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 import {
   demoExternalKeyResolvers,
   demoTopics,
@@ -156,6 +157,9 @@ export type SchemaType = z.infer<typeof schema>;
 const deliverOnDuty = (without?: string) =>
   demoTopics.onDuty.set(users.filter((user) => user.value !== without));
 
+// 見るための部品（値・エラー・送信・ログ）
+const harness = [createE2eHarness({ formId })];
+
 export const Component = () => {
   const [rotating, setRotating] = useState(false);
 
@@ -199,7 +203,7 @@ export const Component = () => {
         defaultValues={defaultValues}
         externalKeyResolvers={demoExternalKeyResolvers}
         valueActionResolver={demoValueActionResolver}
-        showPreview={true}
+        actionComponents={harness}
       />
     </Stack>
   );

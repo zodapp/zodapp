@@ -11,6 +11,7 @@ import { Group, InputWrapper, Rating, Select } from "@mantine/core";
 import { IconPuzzle } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "customWidget";
 export const title = "カスタムウィジェット";
@@ -146,9 +147,7 @@ const customComponentLibrary: ComponentLibrary = {
 
 export const schema = z
   .object({
-    productName: zf
-      .string()
-      .register(zf.string.registry, { label: "商品名" }),
+    productName: zf.string().register(zf.string.registry, { label: "商品名" }),
     rating: zf
       .number()
       .min(1, "評価を選択してください")
@@ -170,12 +169,15 @@ export const defaultValues: z.input<typeof schema> = {
   region: { prefecture: "東京都", city: "新宿区" },
 };
 
+// 見るための部品（値・エラー・送信・ログ）
+const harness = [createE2eHarness({ formId })];
+
 export const Component = () => (
   <AutoForm
     schema={schema}
     defaultValues={defaultValues}
     componentLibrary={customComponentLibrary}
-    showPreview={true}
+    actionComponents={harness}
   />
 );
 

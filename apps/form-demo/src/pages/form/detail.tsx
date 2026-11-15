@@ -7,6 +7,8 @@ import { AutoForm } from "../../components/AutoForm";
 import { ReactiveAutoForm } from "../../components/ReactiveAutoForm";
 import { formDetailRoute } from "./detail.route";
 import { formSchemas, formCodes, defaultFormId, type FormId } from "./schemas";
+import { e2eSchemas, e2eCodes, type E2eFormId } from "./schemas/e2e";
+import { createE2eHarness } from "../../components/E2eHarness";
 
 import "@mantine/code-highlight/styles.css";
 import { createMockFileResolver } from "@zodapp/zod-form";
@@ -16,7 +18,11 @@ import {
   demoValueActionResolver,
 } from "../../shared/demo/resolvers";
 
-type FormDef = (typeof formSchemas)[FormId];
+type FormDef = (typeof formSchemas)[FormId] | (typeof e2eSchemas)[E2eFormId];
+
+// メニューに出るデモと、e2e 用のデモ（メニューに出さない）の両方から引く
+const allSchemas: Record<string, FormDef> = { ...formSchemas, ...e2eSchemas };
+const allCodes: Record<string, string> = { ...formCodes, ...e2eCodes };
 type ReactiveFormDef = Extract<FormDef, { reactive: true }>;
 
 const isReactiveFormDef = (formDef: FormDef): formDef is ReactiveFormDef =>
@@ -41,15 +47,18 @@ const FormPage = () => {
 
 const FormPageInner = () => {
   const { formId: rawFormId } = useSearch({ from: formDetailRoute.id });
-  const formId = (rawFormId as FormId) ?? defaultFormId;
+  const formId: string = rawFormId ?? defaultFormId;
 
-  const formDef = formSchemas[formId];
+  const formDef = allSchemas[formId]!;
   const { title, description } = formDef;
   const isReactive = isReactiveFormDef(formDef);
   const CustomComponent = getCustomComponent(formDef);
 
   // ファイルフォーム用のresolver
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
+
+  // 見るための部品（値・エラー・送信・ログ）。window.__formDemo にも同じ中身を置く
+  const harness = useMemo(() => [createE2eHarness({ formId })], [formId]);
 
   // 「表示 / コード」のタブ。メモリに置くので、別のデモに移っても選んだタブのまま開く
   // （ページを読み込み直すと既定の「表示」に戻る）
@@ -89,7 +98,7 @@ const FormPageInner = () => {
                 fileResolvers={fileResolvers}
                 externalKeyResolvers={demoExternalKeyResolvers}
                 valueActionResolver={demoValueActionResolver}
-                showPreview={true}
+                actionComponents={harness}
               />
             )}
           </Suspense>
@@ -97,7 +106,7 @@ const FormPageInner = () => {
 
         <Tabs.Panel value="code" pt="md">
           <CodeHighlight
-            code={formCodes[formId]}
+            code={allCodes[formId] ?? ""}
             language="typescript"
             withCopyButton
           />

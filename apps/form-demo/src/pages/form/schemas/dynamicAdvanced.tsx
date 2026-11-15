@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
-import { Stack, Switch, Text } from "@mantine/core";
+import { Stack, Switch } from "@mantine/core";
 import { IconBolt } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 import {
   demoExternalKeyResolvers,
   demoValueActionResolver,
 } from "../../../shared/demo/resolvers";
+import { logLoad } from "../../../shared/demo/formDemoLog";
 
 export const formId = "dynamicAdvanced";
 export const title = "zf.dynamic（読み込み・購読・連動）";
@@ -71,12 +73,12 @@ const templateFieldsSchema = z.unknown().register(
       const template = parent?.template ?? "invoice";
       return {
         key: template,
-        load: async () => {
+        load: logLoad("templateFields", template, async () => {
           await wait(1000);
           if (failure.on) throw new Error("取得に失敗しました（デモ）");
           // 取得した定義のリビジョンを key に含める（リビジョンが変われば別の schema とみなす）
           return { key: `${template}@1`, schema: templateFields[template]() };
-        },
+        }),
       };
     },
   }),
@@ -195,9 +197,11 @@ export const defaultValues = {
 
 export type SchemaType = z.infer<typeof schema>;
 
+// 見るための部品（値・エラー・送信・ログ）
+const harness = [createE2eHarness({ formId })];
+
 export const Component = () => {
   const [failing, setFailing] = useState(false);
-  const [submitted, setSubmitted] = useState<SchemaType>();
 
   return (
     <Stack>
@@ -215,20 +219,8 @@ export const Component = () => {
         defaultValues={defaultValues}
         externalKeyResolvers={demoExternalKeyResolvers}
         valueActionResolver={demoValueActionResolver}
-        actions={[
-          {
-            type: "submit",
-            label: "送信",
-            onSubmit: (data) => setSubmitted(data),
-          },
-        ]}
-        showPreview={true}
+        actionComponents={harness}
       />
-      {submitted && (
-        <Text size="sm" c="dimmed">
-          送信した値: {JSON.stringify(submitted)}
-        </Text>
-      )}
     </Stack>
   );
 };

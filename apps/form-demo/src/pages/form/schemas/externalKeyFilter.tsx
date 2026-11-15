@@ -5,6 +5,7 @@ import { SegmentedControl, Stack, Text } from "@mantine/core";
 import { IconFilter } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 import {
   demoExternalKeyResolvers,
   demoValueActionResolver,
@@ -103,6 +104,9 @@ export const defaultValues = {
 
 export type SchemaType = z.infer<typeof schema>;
 
+// 見るための部品（値・エラー・送信・ログ）
+const harness = [createE2eHarness({ formId })];
+
 export const Component = () => {
   const [team, setTeam] = useState<Team>("sales");
   const resolverContext = useMemo(() => ({ team: { team } }), [team]);
@@ -126,7 +130,7 @@ export const Component = () => {
         resolverContext={resolverContext}
         externalKeyResolvers={demoExternalKeyResolvers}
         valueActionResolver={demoValueActionResolver}
-        showPreview={true}
+        actionComponents={harness}
       />
     </Stack>
   );

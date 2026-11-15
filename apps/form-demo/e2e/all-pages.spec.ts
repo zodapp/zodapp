@@ -26,3 +26,30 @@ test("すべてのデモページが開ける", async ({ page }) => {
     });
   }
 });
+
+// e2e 用のデモページ（メニューに出さない）も、すべて開け、例外が起きない。
+// サイドバーからはたどれないので、登録簿の formId を dev サーバーから読む
+test("e2e 用のデモページがすべて開ける", async ({ page }) => {
+  await page.goto("/form/detail?formId=basicInput");
+  const formIds = await page.evaluate(async () => {
+    const path = "/src/pages/form/schemas/e2e/index.ts";
+    const registry = (await import(/* @vite-ignore */ path)) as {
+      e2eSchemas: Record<string, { title: string }>;
+    };
+    return Object.entries(registry.e2eSchemas).map(([formId, def]) => ({
+      formId,
+      title: def.title,
+    }));
+  });
+  for (const { formId, title } of formIds) {
+    expect(formId).toMatch(/^e2e-/);
+    await test.step(formId, async () => {
+      await page.goto(`/form/detail?formId=${formId}`);
+      await expect(
+        page.getByRole("heading", { name: title, exact: true }),
+      ).toBeVisible();
+      // サイドバーには出さない
+      await expect(page.locator(`a[href*="formId=${formId}"]`)).toHaveCount(0);
+    });
+  }
+});
