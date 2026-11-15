@@ -1,4 +1,16 @@
-# form-demo に、メニューに出さない e2e 用のデモページを足す
+# スモーク e2e の残りを片付け、form-demo の e2e をそろえる
+
+## 全体像
+
+このファイル 1 つで、PR #21 に残っている作業をすべて書く。承認されたら、「進め方」の順に、確認を挟まずに実装する。
+
+| 状態 | 内容 |
+|---|---|
+| 済み | A：unlisted の届け直し、B：ミリ秒の時刻欄、C：unlisted の README、D：日時の書き方を時刻にそろえる、precision 1・2 のミリ秒の欄の指摘 |
+| 実装中 | モックの externalKey を topic の set だけで届ける形に、externalKey の失敗を dynamic の失敗につなぐ、e2e の土台、`e2e-dynamic`・`e2e-time-input`・`e2e-precision` |
+| この計画で足す | ライブラリの直し 7 つ（「ライブラリの直し」の節）と、e2e のページ 4 つ（`e2e-external-key`・`e2e-open-rewrite`・`e2e-union`・`e2e-table`） |
+
+この計画のあとに残るものは無い（PR #21 のマージだけ）。
 
 ## 目的
 
@@ -10,7 +22,7 @@ e2e が失敗したとき、人が同じ URL を開き、同じ手順を手で�
 
 ## 前提
 
-- A・B・D の修正と同じブランチ（PR #21）で続けて実装する。B・D はすでに入っているので、3 つのページを順に作る
+- A・B・D の修正と同じブランチ（PR #21）で続けて実装する
 - 選択肢を届け直すボタン（A）は、公開のデモページ「zf.externalKey」に置いたままにする。この計画では動かさない
 
 ## 置き場所と登録
@@ -99,7 +111,7 @@ externalKey の resolver の `subscribe` は選択肢を受け取る関数しか
 
 e2e：`e2e-dynamic` の都道府県 → 市区町村 → 町名で、topic を失敗させると「再試行」が出て送信が止まり、失敗をやめて再試行すると戻ることを確かめる。
 
-## 最初に作るページ
+## 実装中のページ
 
 ### 1. `e2e-dynamic`：dynamic の読み込み・失敗・再試行・連鎖
 
@@ -134,11 +146,116 @@ e2e：
 - 各欄を編集すると、決めた形で書かれる（precision なしの日時は unit で決まる。minute でも秒まで `:00` を書く）
 - unit が保存値より粗い欄は、編集すると細かい部分が 0 になる
 
-## 対象外（あとで足す）
+## ライブラリの直し
 
-- 開いたときの書き換え（unlisted の clear・preprocess）と isDirty
-- union の腕の切り替え
-- 表（並べ替え・dynamic のセル・選択肢に無い値）
+スモーク e2e で見つかって、まだ直していないもの。項目ごとに別のコミットにし、単体テストと README を合わせて直す。
+
+### L1. clear・prune で値を消しても、その欄を「触った」「変えた」にしない
+
+今は、unlisted の clear は `field.onChange`、dynamic の prune は `form.setFieldValue` で書くので、TanStack Form がその欄を touched・dirty にする。そのため、
+
+- 消えた欄に、まだ触っていないのにすぐ「必ず入力してください」が出る
+- 開いただけで clear が値を消すと、isDirty が true になる
+
+直し方：clear と prune は、`form.setFieldValue(path, value, { dontUpdateMeta: true })` で書く（preprocess の union を開いたときにそろえる処理と同じ）。clear は今と同じく `runAsUserEdit` で包み、下の dynamic への連鎖はそのまま残す。
+
+決まること：
+- 消えた欄の必須のエラーは、ほかの必須の欄と同じく、触るか送信するまで出ない
+- 開いたときの書き換え（clear・preprocess の union）では isDirty は false のまま。書き換えは仕様として残す（README に書く）
+- 利用者が上の欄を変えて下の欄が消えたときは、上の欄の編集で isDirty が true になる
+
+### L2. 送信が止まった理由を画面に出す（zod-form-widget の AutoForm）
+
+今は送信が止まっても console に出るだけ。止まったとき、`runtime.validate` の結果から理由を数えて、ボタンの行の近くに出す。
+
+- 読み込み中の欄がある：「読み込み中の欄があるため、送信できませんでした」
+- 取得できなかった欄がある：「取得できなかった欄があるため、送信できませんでした」
+- 入力の誤りがある：「入力に誤りがあるため、送信できませんでした」
+- 当てはまるものをすべて出す。次に送信を押すまで出したままにし、送信が通れば消す
+- `data-testid="form-submit-blocked"` を付ける
+
+### L3. モックの無い topic を失敗にする
+
+今は空の選択肢が届くだけで、名前の間違いに気づけない。無い topic を購読したら、`onError` で `Error('topic "…" がありません')` を届ける。欄には error と「再試行」が出る。
+
+### L4. `allowUnlisted` と `unlisted` を同時に書けないようにする
+
+`allowUnlisted: true` のときは選択肢に無い値も正しい値なので、`unlisted` は効かない。名前は変えず、config の型で両方を同時に書けないようにし（`allowUnlisted: true` なら `unlisted?: never`）、README に違いを書く。
+
+### L5. `useRunAsUserEdit` の効く範囲を README に書く
+
+API は残す。unlisted の作り直しのあと、出どころ（利用者の編集か外からか）で変わるのは、型が合わない値の prune だけになったことを README に書く。`e2e-dynamic` の「利用者の編集として書き込む」ボタンで確かめる。
+
+### L6. clear は描かれている欄だけに効くことを README に書く
+
+clear は enum の部品が消すので、描かれていない欄（union の選ばれていない腕など）の値は消さない。
+
+### L7. 表の並べ替えの基準を列の種類ごとに決める（zod-form-widget の AutoTable）
+
+今は生の値で並ぶ（拠点は ID 順、担当は ID 順、金額は円とセントを同じ数として比べる）。小計（computed）は並べ替えできない。
+
+| 列 | 並べ方 |
+|---|---|
+| 数・日付・時刻・文字・真偽 | 値で並べる（今のまま） |
+| select（enum） | 選択肢を定義した順。選択肢に無い値は最後 |
+| externalKey | 表示名（ラベル）。届く前と選択肢に無い値は最後 |
+| computed | 計算した値。計算した値の型で上の決まりに従う |
+| dynamic | 並べ替えできない（行ごとに意味が変わるため） |
+
+### L8. README から公開リポジトリで使わない語を消す
+
+`packages/zod-form/README.ja.md` の 85〜88 行。
+
+## 足す e2e のページ
+
+すでにある e2e（`external-key-filter.spec.ts`・`select-and-external-key.spec.ts`・`dynamic-advanced.spec.ts`・`table-view.spec.ts`・`date.spec.ts`・`time.spec.ts`）は残す。新しいページでは、それらが確かめていない時機や組み合わせを確かめる。
+
+### 4. `e2e-external-key`：選択肢の届き方
+
+ページ：部署（context）で絞る担当者（clear・keep の 2 つ）、config の key で取り直すレビュー担当、無い topic の欄、subscribe で上限が変わる数量の欄。遅延の分け方の選択と、止めておく分け方の「届ける」「失敗させる」ボタン、選択肢を 0 件にする・戻すボタン
+
+e2e：
+- 選択肢を止めておいたまま部署を変え、そのあと届けると、clear の欄は外れた値を消し、keep の欄は残して「（不正な値）」とエラーを出す
+- 選択肢を止めておいたまま送信すると止まり、「読み込み中の欄があるため、送信できませんでした」が出る（L2）
+- 同じ購読のまま選択肢が 0 件になると、clear の欄は消え、keep の欄は残る。戻すと keep の欄のエラーが消える
+- 失敗させると「再試行」が出て送信が止まり、「取得できなかった欄があるため、送信できませんでした」が出る。失敗をやめて再試行すると戻る
+- 無い topic の欄は「再試行」が出る（L3）
+- clear で消えた欄には、触る前は必須のエラーが出ない。送信すると出る（L1）
+- 上限が変わると、上限を超えたときだけエラーになり、値は消えない
+- すぐ届く・1 フレーム後・2 フレーム後のそれぞれで、上の値の結果が同じになる
+
+### 5. `e2e-open-rewrite`：開いただけで書き換えるもの
+
+ページ：選択肢に無い初期値を持つ clear の欄と keep の欄、type の無い古い形の初期値を持つ preprocess の union、precision の欄
+
+e2e：
+- 開くと、clear の欄の値は消え、keep の欄は残ってエラーが出る
+- preprocess の union は、開くと `type` が補われた形になる
+- precision の欄の値は初期値のまま
+- 上のどれでも、開いただけでは isDirty は false（L1）
+- 欄を 1 つ編集すると isDirty が true になる
+
+### 6. `e2e-union`：union の腕の切り替え
+
+今のふるまい（`union.tsx`）：腕を切り替えると、新しい腕の既定の値に、今の値のうち新しい腕にもある項目を重ね、判別の値を入れる。前の腕だけにあった項目は消える。
+
+ページ：判別の値で腕が変わる discriminatedUnion（腕どうしで共通の項目と、腕ごとの項目を持つ）と、その中の clear の選択の欄
+
+e2e：
+- 腕を切り替えると、共通の項目は残り、前の腕だけの項目は消え、新しい腕の既定の値が入る
+- 元の腕に戻すと、前の腕だけの項目は既定の値に戻る（前の値は戻らない）
+- 選ばれていない腕の選択の欄は、選択肢が変わっても clear されない（描かれていないため。L6）
+- 切り替えたあと、新しい腕の必須の欄は、触る前はエラーを出さない
+
+### 7. `e2e-table`：表
+
+ページ：数・日付・select・externalKey・computed・dynamic（行の通貨で表示が変わる金額）の列を持つ表。選択肢に無い値を持つ行を含める
+
+e2e：
+- 各列の並べ替えが L7 の決まりに従う（昇順・降順）
+- dynamic の列は並べ替えの印が出ず、見出しを押しても順が変わらない
+- dynamic のセルは行の通貨で表示が変わる
+- 選択肢に無い値のセルは「（不正な値）」と出る
 
 ## e2e の実行まわり
 
@@ -152,12 +269,13 @@ e2e：
 
 ## 進め方
 
-1. モックの externalKey の変更（zod-form）と、それに合わせた公開のデモの直し
-2. externalKey の取得の失敗を dynamic の失敗につなぐ
-3. 登録簿・詳細ページの引き方・見るための共通の部品（直接読むルートとログを含む、全ページ）・ポートの環境変数・all-pages の追加
-4. `e2e-dynamic` のページと e2e
-5. `e2e-time-input` のページと e2e
-6. `e2e-precision` のページと e2e
-7. ドキュメント
+1. モックの externalKey の変更（zod-form）と、それに合わせた公開のデモの直し（実装中）
+2. externalKey の取得の失敗を dynamic の失敗につなぐ（実装中）
+3. 登録簿・詳細ページの引き方・見るための共通の部品（直接読むルートとログを含む、全ページ）・ポートの環境変数・all-pages の追加（実装中）
+4. `e2e-dynamic`・`e2e-time-input`・`e2e-precision` のページと e2e（実装中）
+5. ライブラリの直し L1〜L8（項目ごとに別のコミット）
+6. `e2e-external-key`・`e2e-open-rewrite`・`e2e-union`・`e2e-table` のページと e2e
+7. ドキュメント（e2e のページの置き場所と読み方、L1・L4・L5・L6 の README）
+8. push して PR #21 を更新
 
-各段階で `pnpm check-types`・`pnpm --filter form-demo build`・form-demo の e2e を通してからコミットする。
+各段階で `pnpm check-types`・関係するパッケージの単体テスト・`pnpm --filter form-demo build`・form-demo の e2e を通してからコミットする。
