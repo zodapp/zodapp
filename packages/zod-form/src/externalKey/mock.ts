@@ -9,12 +9,15 @@ export type MockExternalKeyOption = { label: string; value: string };
  * - `source`: 選択肢の出どころの名前（`createMockExternalKeyResolver` の `sources` のキー）
  * - `params`: 出どころに渡す値（親の値で選択肢を変えるときなど）
  * - `delayMs`: 選択肢を返すまでの待ち時間。読み込み中の表示を見るため
+ * - `updateIntervalMs`: 指定すると、この間隔で選択肢を届け直す（購読の更新を見るため）。
+ *   出どころの関数は 2 つ目の引数に、何回目に届けるか（0 始まり）を受け取る
  */
 export type MockExternalKeyConfig<TType extends string = "mock"> =
   BaseExternalKeyConfig<TType> & {
     source: string;
     params?: Record<string, string | number | boolean | null | undefined>;
     delayMs?: number;
+    updateIntervalMs?: number;
   };
 
 /**
@@ -39,6 +42,7 @@ export const createMockExternalKeyResolver = <TType extends string = "mock">({
     string,
     (
       params: NonNullable<MockExternalKeyConfig["params"]>,
+      tick: number,
     ) => MockExternalKeyOption[]
   >;
   delayMs?: number;
@@ -47,11 +51,22 @@ export const createMockExternalKeyResolver = <TType extends string = "mock">({
   resolver: (config) => ({
     subscribe: (callback) => {
       const source = sources[config.source];
-      const timer = setTimeout(
-        () => callback(source ? source(config.params ?? {}) : []),
-        config.delayMs ?? defaultDelayMs,
-      );
-      return () => clearTimeout(timer);
+      let tick = 0;
+      const send = () => {
+        callback(source ? source(config.params ?? {}, tick) : []);
+        tick += 1;
+      };
+      let interval: ReturnType<typeof setInterval> | undefined;
+      const timer = setTimeout(() => {
+        send();
+        if (config.updateIntervalMs) {
+          interval = setInterval(send, config.updateIntervalMs);
+        }
+      }, config.delayMs ?? defaultDelayMs);
+      return () => {
+        clearTimeout(timer);
+        if (interval) clearInterval(interval);
+      };
     },
   }),
 });
