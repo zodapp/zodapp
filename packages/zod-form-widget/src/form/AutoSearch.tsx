@@ -17,7 +17,8 @@ import type {
 } from '@zodapp/zod-form-react';
 import type { StandardSchemaV1 } from '@tanstack/react-form';
 import type { z } from 'zod';
-import debounce from 'lodash/debounce';
+// Node の ESM から読めるように拡張子まで書く（lodash は exports を持たない）
+import debounce from 'lodash/debounce.js';
 
 type AutoSearchProps<T extends z.ZodTypeAny> = {
   schema: T;
