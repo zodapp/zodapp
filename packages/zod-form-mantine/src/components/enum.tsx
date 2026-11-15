@@ -27,7 +27,8 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   field,
   error,
 }: ZodFormInternalProps<EnumSchema>) {
-  const { label: labelFromMeta, uiType, unlisted } = getMeta(schema) ?? {};
+  const { label: labelFromMeta, uiType, unlisted, emptyMessage } =
+    getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 
@@ -96,6 +97,23 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
           <ReadonlyText>{displayLabel}</ReadonlyText>
         </WithValueAction>
       </InputWrapper>
+    );
+  }
+
+  // 選択肢が0件（上の欄が未選択など）なら、選べないことを示す。理由は meta の emptyMessage で書ける。
+  // ここでは直せないので、必須エラーは出さない（値は unlisted に従う。既定 clear なら消える）
+  if (data.length === 0) {
+    return (
+      <Select
+        ref={ref}
+        value={null}
+        data={[]}
+        label={label || undefined}
+        placeholder={emptyMessage ?? "選択肢がありません"}
+        required={required !== false}
+        disabled={true}
+        style={inputWrapperStyle}
+      />
     );
   }
 

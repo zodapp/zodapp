@@ -193,6 +193,7 @@ const buildOptionsSchema = (
       ...display,
       valueAction,
       unlisted: meta.unlisted,
+      emptyMessage: meta.emptyMessage,
     });
 };
 

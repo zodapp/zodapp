@@ -134,6 +134,8 @@ const citySchema = z.string().register(
           type: "mock",
           topic: `cities/${parent?.prefecture ?? ""}`,
         },
+        // 都道府県が未選択なら選択肢が0件になる。その理由を出す
+        emptyMessage: "先に都道府県を選んでください",
       }),
     }),
   }),
@@ -152,6 +154,7 @@ const townSchema = z.string().register(
           type: "mock",
           topic: `towns/${parent?.city ?? ""}`,
         },
+        emptyMessage: "先に市区町村を選んでください",
       }),
     }),
   }),

@@ -238,6 +238,25 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "gone" });
   });
 
+  it("選択肢が0件なら欄を無効にして emptyMessage を出し、必須エラーは出さない", async () => {
+    const r = makeResolvers();
+    renderForm(
+      z.object({
+        owner: zf.string().register(zf.externalKey.registry, {
+          label: "担当者",
+          externalKeyConfig: { type: "list", list: "members" },
+          emptyMessage: "先にチームを選んでください",
+        }),
+      }),
+      {},
+      r.resolvers,
+    );
+    await r.publish("members", []);
+    const input = await screen.findByPlaceholderText("先にチームを選んでください");
+    expect((input as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByText("必ず入力してください。")).toBeNull();
+  });
+
   it("選択肢だけが更新されても購読を張り直さない。unlisted: keep なら値を消さない", async () => {
     const r = makeResolvers();
     const t = renderForm(

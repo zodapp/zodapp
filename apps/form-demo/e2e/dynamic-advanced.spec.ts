@@ -45,3 +45,34 @@ test("都道府県を変えると、選択肢に無くなった下の欄を順�
     .toBeUndefined();
   expect((await previewValue(page)).prefecture).toBe("osaka");
 });
+
+test("都道府県を消すと、市区町村・町名は選択肢が0件になり、理由を出して選べなくなる。必須エラーは出さない", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await expect(field(page, "市区町村")).toHaveValue("新宿区");
+  // 都道府県の × で消す
+  await field(page, "都道府県")
+    .locator("xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]")
+    .locator("button")
+    .first()
+    .click();
+  await expect
+    .poll(async () => (await previewValue(page)).prefecture)
+    .toBeUndefined();
+  await expect
+    .poll(async () => (await previewValue(page)).city)
+    .toBeUndefined();
+  await expect
+    .poll(async () => (await previewValue(page)).town)
+    .toBeUndefined();
+  await expect(field(page, "市区町村")).toBeDisabled();
+  await expect(field(page, "市区町村")).toHaveAttribute(
+    "placeholder",
+    "先に都道府県を選んでください",
+  );
+  await expect(field(page, "町名")).toHaveAttribute(
+    "placeholder",
+    "先に市区町村を選んでください",
+  );
+});

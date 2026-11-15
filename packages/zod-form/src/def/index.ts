@@ -284,6 +284,8 @@ export type ExternalKeyMetaDef = z.infer<
    * clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
    */
   unlisted?: UnlistedPolicy;
+  /** 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」） */
+  emptyMessage?: string;
 };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
@@ -387,6 +389,8 @@ const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   allowUnlisted: z.boolean().optional(),
   // 値が選択肢に無いときの扱い（enum の unlisted に渡す）。既定 clear
   unlisted: unlistedSchema,
+  // 選択肢が0件のときに出す文言（enum の emptyMessage に渡す）
+  emptyMessage: z.string().optional(),
 }) as z.ZodType<ExternalKeyMetaDef>;
 
 const externalKey = extendCustom(
@@ -493,6 +497,11 @@ const zf = {
        * keep：値を残し、欄に「（不正な値）」と出してエラーにする（条件を戻せば値も戻る）
        */
       unlisted: unlistedSchema,
+      /**
+       * 選択肢が0件のときに出す文言（既定「選択肢がありません」）。
+       * 0件のあいだは欄を無効にし、必須エラーは出さない（ここでは直せないため）
+       */
+      emptyMessage: z.string().optional(),
     }),
   ),
   object: extendObject(zodExtendableObjectDefSchema),

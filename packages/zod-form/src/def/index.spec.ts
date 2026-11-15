@@ -34,6 +34,7 @@ type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
   valueAction?: RegisteredValueActionConfig;
   unlisted?: "keep" | "clear";
+  emptyMessage?: string;
   schemas?: Record<string, z.ZodLiteral<string>>;
 };
 
