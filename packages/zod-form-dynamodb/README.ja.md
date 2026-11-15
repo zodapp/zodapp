@@ -9,7 +9,7 @@ zod-form の外部キーの項目（`zf.externalKey`）の選択肢を、`@zodap
 ```ts
 import type { DynamoExternalKeyConfig } from "@zodapp/zod-form-dynamodb";
 
-type Context = { workspace: { workspaceId: string } };
+type Context = { workspace: { workspaceId: string; showViewers: boolean } };
 
 declare module "@zodapp/zod-form/externalKey/types" {
   interface ExternalKeyConfigRegistry {
@@ -26,7 +26,7 @@ const assignee = zf.string().register(zf.externalKey.registry, {
     params: (ctx) => ({ workspaceId: ctx.workspaceId }),
     valueField: "email",
     labelField: "displayName", // または labelFormatter: (item) => ...
-    filter: (item) => item.role !== "viewer", // クエリで表せない絞り込み
+    filter: (item, ctx) => item.role !== "viewer" || ctx.showViewers, // クエリで表せない絞り込み。ctx は params と同じ
   },
 });
 ```
@@ -42,3 +42,5 @@ const externalKeyResolvers = [createDynamoExternalKeyResolver(api)]; // api は 
 - クエリに `live` があればリアルタイムで購読し、一覧が変われば選択肢も変わります
 - `live` がなければ、ページをたどって全体を 1 回だけ読みます
 - 表示は `labelFormatter`、`labelField`、`valueField` の順に使います。読んだ一覧から作るので、Get で個別には引きません
+- `filter` は `params` と同じ resolverContext を受け取ります。context で変わる条件はここで読めば、config を差し替えずに済みます。context の値が変わると選択肢を取り直します
+- config の関数（`filter` や `labelFormatter`）を `zf.dynamic` で差し替えるときは、config に `key` を書いて違いを表します。関数は、取り直すかどうかを決める key に入らないためです

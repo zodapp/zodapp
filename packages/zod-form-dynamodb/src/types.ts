@@ -27,8 +27,11 @@ export type DynamoExternalKeyConfigCore<
   labelField?: string;
   /** 表示を作る関数。`labelField` より優先する */
   labelFormatter?: (item: ExternalKeyItem) => string;
-  /** 読み込んだ一覧の絞り込み（DynamoDB のクエリでは表せない条件） */
-  filter?: (item: ExternalKeyItem) => boolean;
+  /**
+   * 読み込んだ一覧の絞り込み（DynamoDB のクエリでは表せない条件）。
+   * `params` と同じ resolverContext を受け取る
+   */
+  filter?: (item: ExternalKeyItem, context: TContext) => boolean;
 };
 
 /**
