@@ -50,8 +50,9 @@ const matches = (option: OptionDataType, search: string) => {
  * 選択済みの値もバッジで出す Select（uiType が badge の enum 用）。
  *
  * - 閉じている間は、入力欄の位置に選択済みの値をバッジで出す
- * - フォーカス中は文字入力になり、選択済みの値のラベルを placeholder に出す。
- *   入力した文字でラベルと値を部分一致で絞り込む（入力欄は空から始まる）
+ * - 開いている間（フォーカスしたとき・クリックしたとき・打ち込んだとき）は文字入力になり、
+ *   選択済みの値のラベルを placeholder に出す。入力した文字でラベルと値を部分一致で絞り込む
+ *   （入力欄は空から始まる）。選ぶか閉じると、フォーカスが残っていてもバッジに戻る
  * - クリアボタンで値を消せる。値がないときはシェブロンを出す
  *
  * Mantine の Select は入力欄が `<input>` で、選択済みの値の描画を差し替えられないため、
@@ -74,7 +75,6 @@ export const BadgeSelect = ({
   inputRef,
 }: BadgeSelectProps) => {
   const [search, setSearch] = useState("");
-  const [focused, setFocused] = useState(false);
   const combobox = useCombobox({
     onDropdownClose: () => {
       combobox.resetSelectedOption();
@@ -94,8 +94,11 @@ export const BadgeSelect = ({
     [data, search],
   );
 
-  const showBadge = selected !== undefined && !focused && search === "";
-  const inputPlaceholder = focused
+  // 開いている間は文字入力（選択済みのラベルを placeholder に出す）。
+  // 閉じたら、フォーカスが残っていてもバッジに戻す（選んだ直後もバッジで見える）
+  const opened = combobox.dropdownOpened;
+  const showBadge = selected !== undefined && !opened && search === "";
+  const inputPlaceholder = opened
     ? (selected?.label ?? placeholder)
     : selected
       ? undefined
@@ -171,12 +174,10 @@ export const BadgeSelect = ({
           }}
           onClick={() => combobox.openDropdown()}
           onFocus={() => {
-            setFocused(true);
             combobox.openDropdown();
             onFocus?.();
           }}
           onBlur={() => {
-            setFocused(false);
             combobox.closeDropdown();
             setSearch("");
             onBlur?.();
