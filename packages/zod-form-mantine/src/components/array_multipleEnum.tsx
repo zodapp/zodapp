@@ -116,8 +116,16 @@ const ArrayOfEnumComponent = wrapComponent(
                 variant="transparent"
                 c="inherit"
                 aria-label={`${option.label}を外す`}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={onRemove}
+                // Mantine の Pill の削除ボタンと同じく、入れ物（PillsInput）の
+                // mousedown / click（フォーカス・開閉）へ伝えない
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRemove();
+                }}
               />
             ) : undefined,
         });
