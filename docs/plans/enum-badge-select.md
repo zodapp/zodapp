@@ -1,6 +1,6 @@
 # enum の badge 表示：選択済みの値もバッジにするプラン
 
-- ステータス: プラン（実装未着手）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-2d9cdh`（このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/zod-form-mantine-lite`、`@zodapp/zod-form-mantine`（利用側: `apps/form-demo`、`apps/taskmanager`）
 
@@ -33,8 +33,11 @@ Mantine 9.6.3 の `Select` は入力欄が `<input>` で、選択済みの値の
 
 1. **badge の enum は Combobox で組んだ専用の部品にする（案(2)）。**
    - 閉じている間：入力欄の位置に、選択済みの値を `Badge`（`variant="light"`、選択肢の `color`、既定 `gray`）で出す。
-   - フォーカス中：入力欄を文字入力に切り替え、選択済みの値のラベルを placeholder（薄い文字）で出す。
-     入力した文字でラベルと値を部分一致で絞り込む。入力欄は空から始まるので、既存の文字に足されることはない。
+   - ドロップダウンを開いている間（フォーカス・クリック・打ち込み）：入力欄を文字入力に切り替え、
+     選択済みの値のラベルを placeholder（薄い文字）で出す。入力した文字でラベルと値を部分一致で絞り込む。
+     入力欄は空から始まるので、既存の文字に足されることはない。
+   - 選ぶか閉じると、フォーカスが残っていてもバッジに戻す（実装時に、選んだ直後に薄い文字だけになり
+     選べていないように見えたため、切り替えの条件をフォーカスからドロップダウンの開閉に変えた）。
    - クリアボタン（×）で値を消せる。値がないときはシェブロンを出す。
    - ドロップダウンの各行は、今と同じ `renderSelectOption` の見た目（選択中にチェック＋バッジ）。
 2. **読み取り専用表示もバッジにする。** 値がないときは今と同じく空。
@@ -69,8 +72,8 @@ type BadgeSelectProps = {
 ```
 
 - `useCombobox` ＋ `Combobox.Target` に `InputBase`（`<input>`）。
-- フォーカス状態を持ち、`value` があってフォーカスしていない間は、入力欄の左にバッジを重ねる
-  （`pointer-events: none` の絶対配置。入力欄の文字は空）。
+- `value` があってドロップダウンが閉じている間は、入力欄の左にバッジを重ねる
+  （`InputBase` の `inputContainer` の中に `pointer-events: none` の絶対配置。入力欄の文字は空）。
 - 検索文字は部品内の state。開くたび・閉じるたびに空に戻す。
 - `Combobox.Option` に `disabled` を渡す（`unlisted: "keep"` の「（不正な値）」を選べないまま表示するため）。
 - キーボード：上下で移動、Enter で確定、Esc で閉じる（Mantine の Combobox 標準の操作に任せる）。
@@ -90,6 +93,8 @@ type BadgeSelectProps = {
   `confirmableRightSectionProps` の確定・取消ボタンを `rightSection` で渡す。
 - **`zod-form-mantine/src/components/array_multipleEnum.tsx`**：`uiType === "multipleEnumBadge"` のとき
   `renderOption` に加えて `renderPill` でバッジを出す。読み取り専用表示もバッジを並べる。
+  バッジの × は、Mantine の Pill の削除ボタンと同じく mousedown / click を PillsInput へ伝えない
+  （伝えるとクリックで外せない）。
 - **`zod-form-mantine/src/components/index.ts`**：`array_multipleEnumBudge` を `array_multipleEnumBadge` に改名。
 - `zod-form-mantine-lite/src/utils/index.ts` から `BadgeSelect` を export する。
 
@@ -100,12 +105,13 @@ type BadgeSelectProps = {
 
 ## 4. テスト
 
-- `zod-form-mantine-lite`：`BadgeSelect` の単体テスト（Vitest + Testing Library）
+- `BadgeSelect` の単体テスト（Vitest + Testing Library）。Testing Library が devDependencies にある
+  `zod-form-mantine` に置く（`src/components/badgeSelect.spec.tsx`）
   - 閉じている間はバッジが出て、入力欄の文字は空
   - フォーカスすると placeholder に選択済みのラベルが出て、打ち込むと絞り込まれる（「進行中進」にならない）
   - 選択肢を選ぶと `onChange` が値で呼ばれる／× で `null`
   - `disabled` の選択肢は選べない
-- `apps/form-demo` の e2e（`select-and-external-key.spec.ts` に追加）
+- `apps/form-demo` の e2e（spec は 1 つのデモページに 1 つなので、zf.enum のデモ用に `enum-select.spec.ts` を新設）
   - badge の enum：選択後にバッジが出る、フォーカスして検索して選び直せる、クリアできる
   - `multipleEnumBadge`：選択済みがバッジで出て、× で外せる
 - `pnpm check-types`・`pnpm build`・既存のテストが通ること。
