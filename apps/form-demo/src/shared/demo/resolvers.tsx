@@ -91,19 +91,11 @@ export const demoTopics = {
   users: createMockTopic(users),
   members: createMockTopic(members),
   prefectures: createMockTopic(prefectures),
-  // 5 秒ごとに一人ずつ外れる（購読の更新を見るため）
-  onDuty: createMockTopic(users.filter((_, i) => i !== 0)),
+  // 当番。デモの画面のボタンで届け直す（購読の更新を見るため）
+  onDuty: createMockTopic(users),
   ...topicsOf("cities", cities),
   ...topicsOf("towns", towns),
 };
-
-let onDutyTick = 0;
-setInterval(() => {
-  onDutyTick += 1;
-  demoTopics.onDuty.set(
-    users.filter((_, i) => i !== onDutyTick % users.length),
-  );
-}, 5000);
 
 export const demoExternalKeyResolvers: ExternalKeyResolvers = [
   createMockExternalKeyResolver({ delayMs: 400, topics: demoTopics }),

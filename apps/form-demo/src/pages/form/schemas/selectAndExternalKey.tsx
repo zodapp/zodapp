@@ -1,11 +1,21 @@
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
+import { Button, Group, Stack, Switch, Text } from "@mantine/core";
 import { IconListSearch } from "@tabler/icons-react";
+
+import { AutoForm } from "../../../components/AutoForm";
+import {
+  demoExternalKeyResolvers,
+  demoTopics,
+  demoValueActionResolver,
+  users,
+} from "../../../shared/demo/resolvers";
 
 export const formId = "selectAndExternalKey";
 export const title = "zf.externalKey";
 export const description =
-  "担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、選んだ値の詳細ページへのリンク";
+  "担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、一覧が届き直したときの扱い、選んだ値の詳細ページへのリンク";
 export const icon = IconListSearch;
 export const category = "Advanced";
 
@@ -100,10 +110,20 @@ export const schema = z
         "externalKey（取得に 3 秒かかる。読み込み中は選べず、送信も止まる）",
       externalKeyConfig: { type: "mock", topic: "users", delayMs: 3000 },
     }),
+    // ============================================================
+    // 同じ購読のまま選択肢が届き直す externalKey（フォームの上のボタンで topic を変える）
+    // key は変わらないので購読は張り直さない。届いた選択肢に値が無いときは unlisted に従う
+    // ============================================================
     onDuty: zf.string().register(zf.externalKey.registry, {
       label:
-        "externalKey（5 秒ごとに選択肢が届き直す。同じ key なので、選んだ人が選択肢から外れても値は消えず、検証で止まる）",
+        "当番（既定の clear。選んだ人が選択肢から外れると値が消え、戻っても値は戻らない）",
       externalKeyConfig: { type: "mock", topic: "onDuty" },
+    }),
+    onDutyKeep: zf.string().register(zf.externalKey.registry, {
+      label:
+        "当番（unlisted: keep。外れると値を残して「（不正な値）」とエラーを出し、戻れば元の表示に戻る）",
+      externalKeyConfig: { type: "mock", topic: "onDuty" },
+      unlisted: "keep",
     }),
     // ============================================================
     // 親の値で選択肢を変える externalKey（dynamic で包む）
@@ -125,8 +145,62 @@ export const defaultValues = {
   assigneeFree: "u-999",
   slowAssignee: "u-002",
   onDuty: "u-002",
+  onDutyKeep: "u-002",
   prefecture: "tokyo",
   city: "shinjuku",
 } as unknown as z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
+
+// 当番の選択肢を届け直す。同じ topic なので、両方の欄に同じ選択肢が届く
+const deliverOnDuty = (without?: string) =>
+  demoTopics.onDuty.set(users.filter((user) => user.value !== without));
+
+export const Component = () => {
+  const [rotating, setRotating] = useState(false);
+
+  // topic はページをまたいで残るので、離れるときに全員へ戻す
+  useEffect(() => () => deliverOnDuty(), []);
+
+  // 自動で届け直す：5 秒ごとに一人ずつ外す
+  useEffect(() => {
+    if (!rotating) return;
+    let tick = 0;
+    const timer = setInterval(() => {
+      deliverOnDuty(users[tick % users.length]?.value);
+      tick += 1;
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [rotating]);
+
+  return (
+    <Stack>
+      <Stack gap={4}>
+        <Text size="sm">
+          当番の選択肢を届け直す（2 つの「当番」の欄が同じ topic
+          を購読している）
+        </Text>
+        <Group>
+          <Button variant="default" onClick={() => deliverOnDuty()}>
+            全員を届け直す
+          </Button>
+          <Button variant="default" onClick={() => deliverOnDuty("u-002")}>
+            佐藤 花子を外して届け直す
+          </Button>
+        </Group>
+        <Switch
+          label="5 秒ごとに一人ずつ外して届け直す"
+          checked={rotating}
+          onChange={(event) => setRotating(event.currentTarget.checked)}
+        />
+      </Stack>
+      <AutoForm
+        schema={schema}
+        defaultValues={defaultValues}
+        externalKeyResolvers={demoExternalKeyResolvers}
+        valueActionResolver={demoValueActionResolver}
+        showPreview={true}
+      />
+    </Stack>
+  );
+};

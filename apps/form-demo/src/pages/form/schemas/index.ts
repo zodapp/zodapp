@@ -45,7 +45,7 @@ import formActionsCode from "./formActions.tsx?raw";
 import dynamicSchemaCode from "./dynamicSchema.ts?raw";
 import tableViewCode from "./tableView.tsx?raw";
 import dynamicAdvancedCode from "./dynamicAdvanced.tsx?raw";
-import selectAndExternalKeyCode from "./selectAndExternalKey.ts?raw";
+import selectAndExternalKeyCode from "./selectAndExternalKey.tsx?raw";
 import externalKeyFilterCode from "./externalKeyFilter.tsx?raw";
 import mediaPreviewCode from "./mediaPreview.tsx?raw";
 import customWidgetCode from "./customWidget.tsx?raw";
