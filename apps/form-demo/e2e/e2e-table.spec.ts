@@ -104,3 +104,11 @@ test("選択肢に無い値のセルは、生の値ではなく「（不正な�
   await expect(row(page, "t1")).toContainText("完了");
   await expect(row(page, "t1")).not.toContainText("（不正な値）");
 });
+
+test("z.iso.date の期限のセルは、- ではなく日付で出す", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await expect(row(page, "t1")).toContainText("2026-04-10");
+  await expect(row(page, "t2")).toContainText("2026-04-01");
+});
