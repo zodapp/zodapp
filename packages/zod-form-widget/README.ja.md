@@ -60,6 +60,14 @@ import { jaErrorMap } from "@zodapp/zod-form-widget/i18n/ja";
 z.config({ customError: jaErrorMap });
 ```
 
+## 送信が止まったとき（`AutoForm`）
+
+送信が止まると、ボタンの行の近くに理由を出します（`data-testid="form-submit-blocked"`）。当てはまるものをすべて出し、次に送信を押すまで出したままにします。送信が通れば消えます。
+
+- 読み込み中の欄がある：「読み込み中の欄があるため、送信できませんでした」
+- 取得できなかった欄がある：「取得できなかった欄があるため、送信できませんでした」
+- 入力の誤りがある：「入力に誤りがあるため、送信できませんでした」
+
 ## サブパス export
 
 - `@zodapp/zod-form-widget`：下のすべてと、`extendSchema` などの再 export
