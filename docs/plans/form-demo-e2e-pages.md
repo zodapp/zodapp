@@ -84,6 +84,21 @@ e2e は、これを読んで「取り直しは帳票の項目の 1 回だけ」�
 - e2e のページでは、遅延の分け方（すぐ届く・フレーム後・止めておく）を、ページが `set` を呼ぶ時機で作る
 - zod-form のモックの単体テストと README を合わせて直す
 
+## externalKey の取得の失敗を、dynamic の失敗につなぐ（zod-form・zod-form-react・zod-form-dynamodb）
+
+externalKey の resolver の `subscribe` は選択肢を受け取る関数しか持たず、失敗を知らせる道が無い。本物の resolver で通信に失敗すると、欄は読み込み中のまま止まるか、空の選択肢に見える。dynamic にはすでに失敗の道（error と「再試行」）があるので、そこへつなぐ。
+
+- resolver の形を `subscribe(callback, onError?)` にする。`onError` は省略できるので、今の resolver はそのまま動く
+- `onError` を呼ぶと、欄は dynamic の error になり「再試行」が出る。送信は止まる。値は prune も unlisted の clear もしない
+- 同じ購読のまま、あとで選択肢が届けば、再試行を押さなくても戻る（dynamic の今のふるまい）。再試行を押すと、購読をやめて最初からやり直す
+- モックの topic に `fail(error)` を足す。購読中の欄に失敗を届け、topic は失敗の状態を覚える。失敗の状態のあいだに購読した欄にも、その場で失敗を届ける。`set` で失敗の状態は消え、選択肢を届ける
+- DynamoDB の resolver（`zod-form-dynamodb`）は、store が `error` になったら `onError` を呼ぶ（今は無視して読み込み中のまま）
+- 単体テスト：モック（fail・失敗の状態での購読・set で戻る）、zod-form-react のつなぎ、zod-form-mantine の externalKey の欄（error と再試行）、DynamoDB の resolver
+- README の externalKey の resolver の節に `onError` を書く
+- この変更は、e2e のページとは別のコミットにし、同じ PR（#21）に載せる
+
+e2e：`e2e-dynamic` の都道府県 → 市区町村 → 町名で、topic を失敗させると「再試行」が出て送信が止まり、失敗をやめて再試行すると戻ることを確かめる。
+
 ## 最初に作るページ
 
 ### 1. `e2e-dynamic`：dynamic の読み込み・失敗・再試行・連鎖
@@ -138,10 +153,11 @@ e2e：
 ## 進め方
 
 1. モックの externalKey の変更（zod-form）と、それに合わせた公開のデモの直し
-2. 登録簿・詳細ページの引き方・見るための共通の部品（直接読むルートとログを含む、全ページ）・ポートの環境変数・all-pages の追加
-3. `e2e-dynamic` のページと e2e
-4. `e2e-time-input` のページと e2e
-5. `e2e-precision` のページと e2e
-6. ドキュメント
+2. externalKey の取得の失敗を dynamic の失敗につなぐ
+3. 登録簿・詳細ページの引き方・見るための共通の部品（直接読むルートとログを含む、全ページ）・ポートの環境変数・all-pages の追加
+4. `e2e-dynamic` のページと e2e
+5. `e2e-time-input` のページと e2e
+6. `e2e-precision` のページと e2e
+7. ドキュメント
 
 各段階で `pnpm check-types`・`pnpm --filter form-demo build`・form-demo の e2e を通してからコミットする。
