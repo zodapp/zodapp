@@ -1,5 +1,10 @@
 export { ReadonlyText } from "./text";
-export { renderSelectOption, type OptionDataType } from "./selectOption";
+export {
+  renderSelectOption,
+  renderBadge,
+  type OptionDataType,
+} from "./selectOption";
+export { BadgeSelect, type BadgeSelectProps } from "./badgeSelect";
 export { useEnumData, toEnumOptionValue, fromEnumOptionValue } from "./enum";
 export {
   renderComputedValue,
