@@ -3,17 +3,20 @@
  *
  * - externalKey: 下のデータを topic（createMockTopic）に入れ、createMockExternalKeyResolver で選択肢として届ける。
  *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする。
- *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う
+ *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う。
+ *   モックは待たずに届けるので、読み込み中を見せるためにデモの側で包んで遅らせる（withDemoDelay）
  * - valueAction: getActionParams が返す href をリンクにする
  */
 import { Anchor } from "@mantine/core";
 import {
   createMockExternalKeyResolver,
   createMockTopic,
+  type ExternalKeyResolverEntry,
   type ExternalKeyResolvers,
   type MockExternalKeyOption,
 } from "@zodapp/zod-form";
 import type { ValueActionResolver } from "@zodapp/zod-form-react/common";
+import type { WebExternalKeyConfig } from "../types/externalKeyConfig";
 
 export const users: MockExternalKeyOption[] = [
   { label: "山田 太郎", value: "u-001" },
@@ -97,8 +100,33 @@ export const demoTopics = {
   ...topicsOf("towns", towns),
 };
 
+/**
+ * resolver を包み、購読を始めるまで待たせる。人が読み込み中を見られるようにするためのもので、
+ * 待つ時間は config の `demoDelayMs`（無ければ defaultMs）。テストはこの時間に頼らない
+ */
+export const withDemoDelay = (
+  entry: ExternalKeyResolverEntry<"mock", WebExternalKeyConfig>,
+  defaultMs: number,
+): ExternalKeyResolverEntry<"mock", WebExternalKeyConfig> => ({
+  type: entry.type,
+  resolver: (config, resolverContext) => ({
+    subscribe: (callback) => {
+      let unsubscribe: (() => void) | undefined;
+      const timer = setTimeout(() => {
+        unsubscribe = entry
+          .resolver(config, resolverContext)
+          .subscribe(callback);
+      }, config.demoDelayMs ?? defaultMs);
+      return () => {
+        clearTimeout(timer);
+        unsubscribe?.();
+      };
+    },
+  }),
+});
+
 export const demoExternalKeyResolvers: ExternalKeyResolvers = [
-  createMockExternalKeyResolver({ delayMs: 400, topics: demoTopics }),
+  withDemoDelay(createMockExternalKeyResolver({ topics: demoTopics }), 400),
 ];
 
 /** 値を、getActionParams が返した href へのリンクで包む */

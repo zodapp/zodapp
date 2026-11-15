@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createMockExternalKeyResolver,
   createMockTopic,
@@ -20,7 +20,7 @@ describe("createMockTopic", () => {
 
   it("関数を渡すと今の値から次の値を作る", () => {
     const topic = createMockTopic([1, 2]);
-    topic.set((prev) => [...prev, 3]);
+    topic.set((prev) => [...(prev ?? []), 3]);
     expect(topic.get()).toEqual([1, 2, 3]);
   });
 
@@ -32,12 +32,18 @@ describe("createMockTopic", () => {
     topic.set("b");
     expect(listener).not.toHaveBeenCalled();
   });
+
+  it("初めの値を渡さないと、最初の set まで値が無い", () => {
+    const topic = createMockTopic<number>();
+    expect(topic.has()).toBe(false);
+    expect(topic.get()).toBeUndefined();
+    topic.set(1);
+    expect(topic.has()).toBe(true);
+    expect(topic.get()).toBe(1);
+  });
 });
 
 describe("createMockExternalKeyResolver", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
-
   const option = (value: string): MockExternalKeyOption => ({
     label: value,
     value,
@@ -45,102 +51,67 @@ describe("createMockExternalKeyResolver", () => {
 
   const setup = () => {
     const users = createMockTopic([option("u1")]);
+    const pending = createMockTopic<MockExternalKeyOption[]>();
     const entry = createMockExternalKeyResolver({
-      delayMs: 100,
-      topics: { users },
+      topics: { users, pending },
     });
-    return { users, entry };
+    return { users, pending, entry };
   };
 
-  it("delayMs 待ってから、topic の今の選択肢を届ける", () => {
+  it("topic に値があれば、購読したその場で今の選択肢を届ける", () => {
     const { entry } = setup();
     const callback = vi.fn();
     entry.resolver({ type: "mock", topic: "users" }, {}).subscribe(callback);
-    vi.advanceTimersByTime(99);
-    expect(callback).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
-    expect(callback).toHaveBeenCalledWith([option("u1")]);
-    vi.advanceTimersByTime(10_000);
     expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith([option("u1")]);
   });
 
-  it("知らない topic は空の選択肢を一度返す", () => {
+  it("topic にまだ値が無ければ何も届けず、最初の set で届ける", () => {
+    const { pending, entry } = setup();
+    const callback = vi.fn();
+    entry.resolver({ type: "mock", topic: "pending" }, {}).subscribe(callback);
+    expect(callback).not.toHaveBeenCalled();
+    pending.set([option("p1")]);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith([option("p1")]);
+  });
+
+  it("知らない topic は、購読したその場で空の選択肢を一度届ける", () => {
     const { entry } = setup();
     const callback = vi.fn();
     entry.resolver({ type: "mock", topic: "none" }, {}).subscribe(callback);
-    vi.advanceTimersByTime(100);
-    expect(callback).toHaveBeenCalledWith([]);
-    vi.advanceTimersByTime(10_000);
     expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith([]);
   });
 
   it("topic を set すると届け直す", () => {
     const { users, entry } = setup();
     const callback = vi.fn();
     entry.resolver({ type: "mock", topic: "users" }, {}).subscribe(callback);
-    vi.advanceTimersByTime(100);
-    users.set((prev) => [...prev, option("u2")]);
+    users.set((prev) => [...(prev ?? []), option("u2")]);
     expect(callback).toHaveBeenLastCalledWith([option("u1"), option("u2")]);
     expect(callback).toHaveBeenCalledTimes(2);
   });
 
-  it("解除すると届かなくなり、topic の購読も外れる", () => {
-    const { users, entry } = setup();
-    const unsubscribeTopic = vi.fn();
-    const subscribe = users.subscribe;
-    vi.spyOn(users, "subscribe").mockImplementation((listener) => {
-      const off = subscribe(listener);
-      return () => {
-        unsubscribeTopic();
-        off();
-      };
-    });
+  it("解除すると届かなくなる", () => {
+    const { users, pending, entry } = setup();
     const callback = vi.fn();
-    const unsubscribe = entry
-      .resolver({ type: "mock", topic: "users" }, {})
-      .subscribe(callback);
-    vi.advanceTimersByTime(100);
-    unsubscribe();
-    expect(unsubscribeTopic).toHaveBeenCalledTimes(1);
-    users.set([option("u2")]);
-    expect(callback).toHaveBeenCalledTimes(1);
-  });
-
-  it("届く前に解除すると、何も届かず topic も購読しない", () => {
-    const { users, entry } = setup();
-    const subscribe = vi.spyOn(users, "subscribe");
-    const callback = vi.fn();
-    const unsubscribe = entry
-      .resolver({ type: "mock", topic: "users" }, {})
-      .subscribe(callback);
-    vi.advanceTimersByTime(50);
-    unsubscribe();
-    vi.advanceTimersByTime(1000);
-    expect(callback).not.toHaveBeenCalled();
-    expect(subscribe).not.toHaveBeenCalled();
-  });
-
-  it("config の delayMs が既定より優先される", () => {
-    const { entry } = setup();
-    const callback = vi.fn();
+    entry.resolver({ type: "mock", topic: "users" }, {}).subscribe(callback)();
     entry
-      .resolver({ type: "mock", topic: "users", delayMs: 3000 }, {})
-      .subscribe(callback);
-    vi.advanceTimersByTime(2999);
-    expect(callback).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1);
+      .resolver({ type: "mock", topic: "pending" }, {})
+      .subscribe(callback)();
+    users.set([option("u2")]);
+    pending.set([option("p1")]);
     expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith([option("u1")]);
   });
 
   it("filter で絞り込み、contextId の resolverContext を受け取る。届けるのは label と value だけ", () => {
     const members = createMockTopic<MockExternalKeyOption[]>([
-      { label: "山田", value: "u1", team: "sales" },
-      { label: "佐藤", value: "u2", team: "dev" },
+      { label: "利用者 A", value: "u1", team: "sales" },
+      { label: "利用者 B", value: "u2", team: "dev" },
     ]);
-    const entry = createMockExternalKeyResolver({
-      delayMs: 0,
-      topics: { members },
-    });
+    const entry = createMockExternalKeyResolver({ topics: { members } });
     const filter = vi.fn(
       (option: MockExternalKeyOption, context: unknown) =>
         option.team === (context as { team: string }).team,
@@ -151,21 +122,22 @@ describe("createMockExternalKeyResolver", () => {
         team: { team: "dev" },
       } as never)
       .subscribe(callback);
-    vi.advanceTimersByTime(0);
     expect(filter).toHaveBeenCalledWith(
-      { label: "山田", value: "u1", team: "sales" },
+      { label: "利用者 A", value: "u1", team: "sales" },
       { team: "dev" },
     );
-    expect(callback).toHaveBeenLastCalledWith([{ label: "佐藤", value: "u2" }]);
+    expect(callback).toHaveBeenLastCalledWith([
+      { label: "利用者 B", value: "u2" },
+    ]);
 
     // topic が変わっても同じ filter で絞って届け直す
     members.set((prev) => [
-      ...prev,
-      { label: "鈴木", value: "u3", team: "dev" },
+      ...(prev ?? []),
+      { label: "利用者 C", value: "u3", team: "dev" },
     ]);
     expect(callback).toHaveBeenLastCalledWith([
-      { label: "佐藤", value: "u2" },
-      { label: "鈴木", value: "u3" },
+      { label: "利用者 B", value: "u2" },
+      { label: "利用者 C", value: "u3" },
     ]);
   });
 });
