@@ -85,10 +85,10 @@ export const schema = z
 
 // dynamic の欄は静的には値型を持たないため、unknown 経由でキャストする
 export const defaultValues = {
-  assignee: "u-taro",
+  assignee: "u-001",
   reviewTeam: "sales",
-  reviewer: "u-suzuki",
-  reviewerWithoutKey: "u-suzuki",
+  reviewer: "u-003",
+  reviewerWithoutKey: "u-003",
 } as unknown as z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;

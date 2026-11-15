@@ -16,17 +16,17 @@ import {
 import type { ValueActionResolver } from "@zodapp/zod-form-react/common";
 
 export const users: MockExternalKeyOption[] = [
-  { label: "山田 太郎", value: "u-taro" },
-  { label: "佐藤 花子", value: "u-sato" },
-  { label: "鈴木 一郎", value: "u-suzuki" },
+  { label: "山田 太郎", value: "u-001" },
+  { label: "佐藤 花子", value: "u-002" },
+  { label: "鈴木 一郎", value: "u-003" },
 ];
 
 /** 部署を持つメンバー。欄に届くのは label と value だけで、team は filter で使う */
 export const members: MockExternalKeyOption[] = [
-  { label: "山田 太郎（営業）", value: "u-taro", team: "sales" },
-  { label: "鈴木 一郎（営業）", value: "u-suzuki", team: "sales" },
-  { label: "佐藤 花子（開発）", value: "u-sato", team: "dev" },
-  { label: "田中 次郎（開発）", value: "u-tanaka", team: "dev" },
+  { label: "山田 太郎（営業）", value: "u-001", team: "sales" },
+  { label: "鈴木 一郎（営業）", value: "u-003", team: "sales" },
+  { label: "佐藤 花子（開発）", value: "u-002", team: "dev" },
+  { label: "田中 次郎（開発）", value: "u-004", team: "dev" },
 ];
 
 export const prefectures: MockExternalKeyOption[] = [

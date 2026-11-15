@@ -28,7 +28,7 @@ test("画面の部署で担当者の一覧が変わる。選んでいた人は�
     .poll(() => optionsOf(page, "担当者"))
     .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）"]);
   // context の変更は利用者の編集ではないので、値は消えない（一覧に無いのでラベルは出ない）
-  expect((await previewValue(page)).assignee).toBe("u-taro");
+  expect((await previewValue(page)).assignee).toBe("u-001");
   await expect(field(page, "担当者")).toHaveValue("");
 });
 
@@ -45,7 +45,7 @@ test("key ありの欄は部署を変えると取り直して値を消し、key 
     .poll(() => optionsOf(page, "レビュー担当（key あり"))
     .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）"]);
 
-  expect((await previewValue(page)).reviewerWithoutKey).toBe("u-suzuki");
+  expect((await previewValue(page)).reviewerWithoutKey).toBe("u-003");
   expect(await optionsOf(page, "レビュー担当（key なし")).toEqual([
     "山田 太郎（営業）",
     "鈴木 一郎（営業）",

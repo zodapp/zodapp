@@ -17,7 +17,7 @@ test("allowUnlisted の欄は、一覧に無い値もそのまま持つ", async 
   pageErrors: _,
 }) => {
   await expect(field(page, "externalKey（既定")).toHaveValue("山田 太郎");
-  expect((await previewValue(page)).assigneeFree).toBe("u-retired");
+  expect((await previewValue(page)).assigneeFree).toBe("u-999");
 });
 
 test("都道府県を変えると、新しい一覧に無い市区町村が消える", async ({
