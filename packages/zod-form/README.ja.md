@@ -82,10 +82,10 @@ const meta = getMeta(schema);
 
 ## 外部キー / ファイル（型と設定の土台）
 
-このパッケージは **設定型**を提供します。実際の解決（Firestore/Storage など）は別パッケージで提供します。
+このパッケージは **設定型**を提供します。実際の解決は別パッケージで提供します。
 
-- 外部キー: `@zodapp/zod-form-firebase`（Firestore resolver）
-- ファイル: `@zodapp/zod-form-firebase`（Firebase Storage resolver）
+- 外部キー: `@zodapp/zod-form-dynamodb`（DynamoDB の登録簿のクエリから選択肢を読む resolver）
+- ファイル: `@zodapp/zod-form-s3`（S3 に保存する resolver）
 
 ## externalKey の resolver
 
