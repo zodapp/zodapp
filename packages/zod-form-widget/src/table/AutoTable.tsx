@@ -18,6 +18,7 @@ import {
   IconSelector,
 } from "@tabler/icons-react";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
+import { isSortableColumn, sortValueOf } from "./sort-values";
 import {
   ZodFormContextProvider,
   Switch,
@@ -90,13 +91,7 @@ type AutoTableKeyField<TSchema extends z.ZodTypeAny> = Extract<
   string
 >;
 
-const SORTABLE_FIELD_TYPES = new Set([
-  "string",
-  "number",
-  "enum",
-  "date",
-  "boolean",
-]);
+
 
 type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   data: AutoTableItem<TSchema>[];
@@ -149,8 +144,6 @@ export type AutoTableProps<TSchema extends z.ZodTypeAny> =
   | AutoTablePropsWithSchema<TSchema>
   | AutoTablePropsWithController<TSchema>;
 
-const isSortableFieldType = (type: unknown) =>
-  typeof type === "string" && SORTABLE_FIELD_TYPES.has(type);
 
 const getNestedValue = (
   obj: TableRowData,
@@ -559,7 +552,11 @@ function buildFields(
         width,
         widthWeight,
         align,
-        isSortTarget: isSortableFieldType(meta.schemaType),
+        isSortTarget: isSortableColumn({
+          propertyName: entry.fieldPath,
+          schema: colDef.schema,
+          meta,
+        }),
         isAction: options?.isAction ?? false,
         label: colDef.label,
       },
@@ -622,6 +619,7 @@ type UseAutoTableModelProps<TItem extends TableRowData> = {
   storageColumns: ColumnEntry[] | null;
   isPreviewing: boolean;
   sortState: SortState | null;
+  resolverContext?: RegisteredResolverContext;
 };
 
 function useAutoTableModel<TItem extends TableRowData>({
@@ -633,6 +631,7 @@ function useAutoTableModel<TItem extends TableRowData>({
   storageColumns,
   isPreviewing,
   sortState,
+  resolverContext,
 }: UseAutoTableModelProps<TItem>) {
   const { fields, totalMinWidth, totalWidthWeight } = useMemo(() => {
     const mainFields = buildSchemaFields({
@@ -678,15 +677,15 @@ function useAutoTableModel<TItem extends TableRowData>({
       .map((item, index) => ({ item, index }))
       .sort((left, right) => {
         const comparison = compareSortValues(
-          getNestedValue(left.item, sortField.propertyName),
-          getNestedValue(right.item, sortField.propertyName),
+          sortValueOf(sortField, left.item, resolverContext),
+          sortValueOf(sortField, right.item, resolverContext),
           sortState.order,
         );
 
         return comparison !== 0 ? comparison : left.index - right.index;
       })
       .map(({ item }) => item);
-  }, [data, fields, sortState]);
+  }, [data, fields, sortState, resolverContext]);
 
   return { fields, sortedData, totalMinWidth, totalWidthWeight };
 }
@@ -1312,6 +1311,7 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
       storageColumns,
       isPreviewing,
       sortState,
+      resolverContext,
     });
 
   const {
