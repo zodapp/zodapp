@@ -271,6 +271,65 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(r.subscribeCount).toHaveBeenCalledTimes(1);
   });
 
+  describe("同じ購読のまま選択肢が届き直す", () => {
+    const everyone: Option[] = [
+      { label: "山田", value: "u1" },
+      { label: "佐藤", value: "u2" },
+    ];
+    const withoutU1: Option[] = [{ label: "佐藤", value: "u2" }];
+
+    it("既定（unlisted: clear）では、値が選択肢から外れると消え、選択肢が戻っても値は戻らない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("山田");
+
+      await r.publish("members", withoutU1);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+      );
+
+      await r.publish("members", everyone);
+      expect(t.getForm().getFieldValue("owner")).toBeUndefined();
+      expect(screen.queryByDisplayValue("山田")).toBeNull();
+      expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+    });
+
+    it("unlisted: keep なら、外れると「（不正な値）」とエラーを出し、選択肢が戻ると元の表示に戻ってエラーも消える", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner({ unlisted: "keep" }) }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("山田");
+
+      await r.publish("members", withoutU1);
+      await screen.findByDisplayValue("（不正な値）");
+      expect(
+        screen.getByText("選択肢に無い値です。選び直してください。"),
+      ).toBeTruthy();
+      expect(t.getForm().getFieldValue("owner")).toBe("u1");
+
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("山田");
+      await waitFor(() =>
+        expect(
+          screen.queryByText("選択肢に無い値です。選び直してください。"),
+        ).toBeNull(),
+      );
+      expect(t.getForm().getFieldValue("owner")).toBe("u1");
+      await t.submit();
+      expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
+      expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("dynamic で包んで親の値で config を変えると、利用者の編集なら新しい選択肢に無い値を消す", async () => {
     const r = makeResolvers();
     const member = z.string().register(
