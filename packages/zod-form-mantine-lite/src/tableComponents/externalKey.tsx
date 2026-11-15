@@ -1,4 +1,4 @@
-import { Text, Loader } from "@mantine/core";
+import { Button, Group, Text, Loader } from "@mantine/core";
 import { getMeta } from "@zodapp/zod-form";
 import { ZodFormProps } from "@zodapp/zod-form-react";
 import {
@@ -15,11 +15,33 @@ const ExternalKeyComponent = ({
   defaultValue,
 }: ZodFormProps<ExternalKeySchema>) => {
   const value = typeof defaultValue === "string" ? defaultValue : null;
-  const { options, isLoading } = useExternalKeyOptions(schema);
+  const { options, isLoading, retry } = useExternalKeyOptions(schema);
   const actionWrapper = useExternalKeyAction(schema, value, false);
 
   if (isLoading) {
     return <Loader size="xs" />;
+  }
+
+  // 取得に失敗したら、そのセルに再試行のボタンを出す
+  if (retry) {
+    return (
+      <Group gap={4} wrap="nowrap" data-dynamic-status="error">
+        <Text size="sm" c="dimmed">
+          取得できませんでした
+        </Text>
+        <Button
+          size="compact-xs"
+          variant="light"
+          onClick={(event) => {
+            // 行を押したときの動き（行を開くなど）を起こさない
+            event.stopPropagation();
+            retry();
+          }}
+        >
+          再試行
+        </Button>
+      </Group>
+    );
   }
 
   if (!value) {

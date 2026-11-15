@@ -17,3 +17,4 @@ export {
   isEnumValueListed,
   externalKeyDisplayLabel,
 } from "./unlisted";
+export { FetchErrorView } from "./fetchErrorView";

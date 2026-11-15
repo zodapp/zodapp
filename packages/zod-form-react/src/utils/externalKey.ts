@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import z from "zod";
 import {
   getMeta,
@@ -38,22 +38,41 @@ export type ExternalKeyOption = {
 /**
  * `useExternalKeyOptions()` の戻り値。
  *
- * options は購読（subscribe）結果が揃うまで `null` となります。
+ * - 読み込み中：options は購読（subscribe）結果が揃うまで `null`
+ * - 届いた：options に選択肢
+ * - 失敗した：resolver が onError を呼んだ。`error` と、購読をやめて最初からやり直す `retry` を持つ。
+ *   同じ購読のまま、あとで選択肢が届けば、再試行しなくても「届いた」に戻る（single-select の欄と同じ）
  */
 export type UseExternalKeyOptionsResult =
-  | { options: null; isLoading: true }
-  | { options: ExternalKeyOption[]; isLoading: false };
+  | { options: null; isLoading: true; error?: undefined; retry?: undefined }
+  | {
+      options: ExternalKeyOption[];
+      isLoading: false;
+      error?: undefined;
+      retry?: undefined;
+    }
+  | { options: null; isLoading: false; error: unknown; retry: () => void };
+
+type ExternalKeyOptionsState =
+  | { status: "loading" }
+  | { status: "ready"; options: ExternalKeyOption[] }
+  | { status: "error"; error: unknown };
 
 /**
  * ExternalKey用のオプションを取得するhook
- * schemaからexternalKeyConfigを取得し、resolverを通じてoptionsをsubscribeする
+ * schemaからexternalKeyConfigを取得し、resolverを通じてoptionsをsubscribeする。
+ * resolver が onError を呼んだら、error と retry を返す
  */
 export const useExternalKeyOptions = (
   schema: ExternalKeySchema,
 ): UseExternalKeyOptionsResult => {
   const meta = getMeta(schema, "externalKey");
 
-  const [options, setOptions] = useState<ExternalKeyOption[] | null>(null);
+  const [state, setState] = useState<ExternalKeyOptionsState>({
+    status: "loading",
+  });
+  // 再試行のたびに増やし、購読を張り直す
+  const [attempt, setAttempt] = useState(0);
 
   // ExternalKeyConfigからconfigを解決
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,25 +101,30 @@ export const useExternalKeyOptions = (
       : undefined;
   const { resolverContext } = useZodFormContext();
 
-  // subscribeしてoptionsを取得
+  // subscribeしてoptionsを取得。失敗は onError で受け取る
   useEffect(() => {
-    setOptions(null);
-    const unsubscribe = resolverResultRef.current.subscribe((newOptions) => {
-      // valueの重複を排除
-      const normalizedOptions = Object.values(
-        Object.fromEntries(newOptions.map((option) => [option.value, option])),
-      );
-      setOptions(normalizedOptions);
-    });
+    setState({ status: "loading" });
+    const unsubscribe = resolverResultRef.current.subscribe(
+      (newOptions) => {
+        setState({ status: "ready", options: dedupeOptions(newOptions) });
+      },
+      (error) => {
+        setState({ status: "error", error });
+      },
+    );
 
     return unsubscribe;
-  }, [configType, contextId, resolverContext, config]);
+  }, [configType, contextId, resolverContext, config, attempt]);
 
-  if (options === null) {
+  const retry = useCallback(() => setAttempt((count) => count + 1), []);
+
+  if (state.status === "error") {
+    return { options: null, isLoading: false, error: state.error, retry };
+  }
+  if (state.status === "loading") {
     return { options: null, isLoading: true };
   }
-
-  return { options, isLoading: false };
+  return { options: state.options, isLoading: false };
 };
 
 /**

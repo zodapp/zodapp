@@ -14,6 +14,7 @@ import {
   confirmableRightSectionProps,
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../utils/styles";
+import { FetchErrorView } from "../utils/fetchErrorView";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -29,7 +30,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;
 
-  const { options, isLoading } = useExternalKeyOptions(schema);
+  const { options, isLoading, retry } = useExternalKeyOptions(schema);
 
   const rawValue = (defaultValue as string | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
@@ -39,6 +40,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   const displayLabel = useMemo(() => {
     if (isLoading) return "Loading...";
     if (!value) return "";
+    if (!options) return String(value);
     const option = options.find((o) => o.value === value);
     return option?.label ?? String(value);
   }, [isLoading, options, value]);
@@ -58,6 +60,11 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         </ActionIcon>,
       )
     : null;
+
+  // 取得に失敗したら、再試行のボタンを出す（読み取り専用でも、選択肢が無いと表示名が出せないため）
+  if (retry) {
+    return <FetchErrorView label={label || undefined} retry={retry} />;
+  }
 
   if (readOnly) {
     return (

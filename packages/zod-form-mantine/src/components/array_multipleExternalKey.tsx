@@ -9,6 +9,7 @@ import { getMeta } from "@zodapp/zod-form";
 import { useExternalKeyOptions } from "@zodapp/zod-form-react/utils/externalKey";
 import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
+import { DynamicErrorView } from "./dynamic";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -35,7 +36,8 @@ const ArrayOfExternalKeyComponent = wrapComponent(
     const uiType = arrayMeta?.uiType;
 
     // 内側のスキーマからoptionsを取得
-    const { options, isLoading } = useExternalKeyOptions(externalKeySchema);
+    const { options, isLoading, retry } =
+      useExternalKeyOptions(externalKeySchema);
 
     const value = useMemo(
       () => (Array.isArray(field.value) ? field.value : []),
@@ -51,6 +53,7 @@ const ArrayOfExternalKeyComponent = wrapComponent(
 
     const displayLabels = useMemo(() => {
       if (isLoading) return "Loading...";
+      if (!options) return "取得できませんでした";
       return value
         .map((v) => {
           const option = options.find((o) => o.value === v);
@@ -69,6 +72,11 @@ const ArrayOfExternalKeyComponent = wrapComponent(
           <ReadonlyText>{displayLabels}</ReadonlyText>
         </InputWrapper>
       );
+    }
+
+    // 取得に失敗したら、single-select の欄と同じく再試行のボタンを出す
+    if (retry) {
+      return <DynamicErrorView label={label || undefined} retry={retry} />;
     }
 
     // loading中

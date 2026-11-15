@@ -129,6 +129,7 @@ export const schema = z.object({
 - **コンテキスト**
   - `useZodFormContext()`: `componentLibrary` / resolvers / timezone などにアクセス
   - `useExternalKeyResolver(config)`: `externalKeyResolvers` から該当 resolver を取得して実行
+  - `useExternalKeyOptions(schema)`（`@zodapp/zod-form-react/utils/externalKey`）: externalKey の選択肢を購読する。resolver が `onError` を呼ぶと `error` と `retry` を返す（複数選択の欄や zod-form-mantine-lite の欄は、これで「再試行」を出す）。同じ購読のまま選択肢が届けば戻り、`retry` は購読をやめて最初からやり直す
   - `useFileResolver(config)`: `fileResolvers` から該当 resolver を取得して実行
   - `useMediaResolvers()`: `mediaResolvers`（未指定なら `basicMediaResolvers`）を返す
 - **フォーム/フィールド**
