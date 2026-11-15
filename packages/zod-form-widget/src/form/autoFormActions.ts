@@ -96,7 +96,7 @@ export type NormalizeAutoFormActionComponentsOptions<T extends z.ZodTypeAny> =
 type MantineButtonComponent = (props: ButtonProps & {
   children?: ReactNode;
   onClick?: () => void | Promise<void>;
-  type?: 'button';
+  type?: 'button' | 'submit';
   loading?: boolean;
   disabled?: boolean;
 }) => ReactNode;
@@ -138,6 +138,7 @@ const createAutoFormButtonElement = <T extends z.ZodTypeAny>({
   action,
   resolverContext,
   onClick,
+  type = 'button',
 }: {
   action:
     | AutoFormSubmitActionHelperProps<T>
@@ -145,6 +146,11 @@ const createAutoFormButtonElement = <T extends z.ZodTypeAny>({
     | AutoFormResetActionHelperProps<T>;
   resolverContext: AutoFormActionResolverContext<T>;
   onClick: () => void | Promise<void>;
+  /**
+   * HTML の button の type。submit のアクションだけ 'submit' にして、
+   * AutoForm の form の中で Enter を押したときに押されるボタンにする。
+   */
+  type?: 'button' | 'submit';
 }) => {
   const hidden =
     action.hidden === undefined
@@ -172,7 +178,7 @@ const createAutoFormButtonElement = <T extends z.ZodTypeAny>({
       variant: action.variant,
       color: action.color,
       onClick,
-      type: 'button',
+      type,
       loading,
       disabled,
     },
@@ -193,6 +199,7 @@ export const createAutoFormSubmitAction = <T extends z.ZodTypeAny>(
     return createAutoFormButtonElement({
       action,
       resolverContext: { form, handleSubmit, isLoading, formState },
+      type: 'submit',
       onClick: async () => {
         const result = await handleSubmit();
         if (result !== undefined) {
