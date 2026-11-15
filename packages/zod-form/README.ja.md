@@ -62,6 +62,24 @@ const meta = getMeta(schema);
 // meta?.uiType === "password"
 ```
 
+## 日付・時刻の保存形式（`zf.date` / `zf.time`）
+
+`zf.date` の `z.iso.datetime()` / `z.iso.datetime({ local: true })` と、`zf.time` の `z.iso.time()` は、同じ決まりで文字列を書きます。
+
+- precision があるときは precision に合わせて書く（-1: 分まで、0: 秒まで、1 以上: 秒の小数をその桁数）。unit 省略時は precision から決める（-1 → minute、0 → second、1 以上 → millisecond）
+- unit を precision が持てるより細かくすると値に入らないので、定義の時点でエラーを投げる（例: precision -1 に unit `second`、precision 0 に unit `millisecond`）
+- precision が無い形式は zod がどの粒度でも受け付けるので、unit で書く形を決める（unit 省略時は second）
+
+| unit                   | `z.iso.datetime()`                             | `z.iso.datetime({ local: true })` | `z.iso.time()` |
+| ---------------------- | ---------------------------------------------- | --------------------------------- | -------------- |
+| hour / minute / second | `YYYY-MM-DDTHH:mm:ssZ`（minute なら秒は `00`） | `YYYY-MM-DDTHH:mm:ss`             | `HH:mm:ss`     |
+| millisecond            | `YYYY-MM-DDTHH:mm:ss.SSSZ`                     | `YYYY-MM-DDTHH:mm:ss.SSS`         | `HH:mm:ss.SSS` |
+
+（`hour` は `zf.time` のみ）
+
+- precision が無いフィールドの unit は後から変えないでください。保存済みの値と新しく書く値で形が混ざります
+- unit が保存されている値より粗いとき、編集すると unit より細かい部分は 0 になります（例: 秒を持つ値を unit `minute` で編集すると秒は `00`）。開いただけでは値を書き換えません
+
 ## 外部キー / ファイル（型と設定の土台）
 
 このパッケージは **設定型**を提供します。実際の解決（Firestore/Storage など）は別パッケージで提供します。
@@ -80,6 +98,21 @@ const fileResolvers = [createMockFileResolver()];
 ```
 
 `apps/form-demo/src/pages/form/detail.tsx` でも、フォームのデモページ用に `createMockFileResolver()` を使っています。
+
+## 選択肢に無い値（`unlisted`）
+
+`zf.enum` / `zf.externalKey` の `unlisted` で、値が選択肢に無いときの扱いを決めます。
+
+- `clear`（既定）: 値を消す
+- `keep`: 値を残し、欄に「（不正な値）」と出してエラーにする。選択肢が戻れば元の表示に戻る
+
+`clear` は、欄を表示した時点で消します。利用者が何も触らなくても、保存されていた値が選択肢に無ければ消え、そのまま保存すると消えた値で保存されます。選択肢を購読しているときは、編集中のフォームでも、誰かが選択肢からその値を外した時点で消えます。あとで選択肢が戻っても、消えた値は戻りません。値を失いたくないときは `keep` を使います。
+
+フォームを開いただけで値が変わるかどうかは、仕組みによって違います。
+
+- `z.preprocess`（`union` など）: 開いたときに値を整える
+- `unlisted: "clear"`: 開いたときに、選択肢に無い値を消す
+- 日付・時刻の精度: 開いただけでは書き換えない（利用者が編集したときだけ、欄の精度に合わせる）
 
 ## API（抜粋）
 

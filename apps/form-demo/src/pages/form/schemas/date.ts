@@ -90,15 +90,19 @@ export const schema = z
 
     // ============================================================
     // 3. z.iso.datetime() - ISO datetime with Z (TZ非依存)
+    // precision が無ければ unit の粒度で書く（minute / second は秒まで、millisecond はミリ秒まで）。
+    // precision があれば precision に合わせて書き、それより細かい unit はエラーになる。
+    // どちらも値を変えたときだけ書く（開いただけでは触らない）
     // ============================================================
     isoDatetimeDefault: z.iso.datetime().register(zf.date.registry, {
-      label: "z.iso.datetime() - デフォルト（second, timestamp）",
+      label:
+        'z.iso.datetime() - デフォルト（second, timestamp）。秒まで書く（"2026-11-14T02:30:15Z"）',
     }),
     isoDatetimeMinute: z.iso.datetime().register(zf.date.registry, {
-      label: "z.iso.datetime() - 分単位（minute）",
+      label:
+        'z.iso.datetime() - 分単位（minute）。秒は 00 で書く（"2026-11-14T02:30:00Z"）',
       unit: "minute",
     }),
-    // precision はデータの持ち方。値を変えたときだけ、その形式で書く（開いただけでは触らない）
     isoDatetimePrecisionMinute: z.iso
       .datetime({ precision: -1 })
       .register(zf.date.registry, {
@@ -113,16 +117,19 @@ export const schema = z
 
     // ============================================================
     // 4. z.iso.datetime({ local: true }) - ISO datetime local (TZ依存)
+    // 書き方の決まりは 3. と同じ（末尾に Z が付かないだけ）
     // ============================================================
     isoDatetimeLocalDefault: z.iso
       .datetime({ local: true })
       .register(zf.date.registry, {
-        label: "z.iso.datetime({ local: true }) - デフォルト（second, native）",
+        label:
+          'z.iso.datetime({ local: true }) - デフォルト（second, native）。秒まで書く（"2026-11-14T11:30:15"）',
       }),
     isoDatetimeLocalMinute: z.iso
       .datetime({ local: true })
       .register(zf.date.registry, {
-        label: "z.iso.datetime({ local: true }) - 分単位（minute）",
+        label:
+          'z.iso.datetime({ local: true }) - 分単位（minute）。秒は 00 で書く（"2026-11-14T11:30:00"）',
         unit: "minute",
       }),
     isoDatetimeLocalPrecisionMinute: z.iso
@@ -175,15 +182,15 @@ export const defaultValues: z.input<typeof schema> = {
   numberDay: nowEpoch,
   numberUtcEncode: nowEpoch,
 
-  // z.iso.datetime()
-  isoDatetimeDefault: now.toISOString(),
-  isoDatetimeMinute: now.toISOString(),
+  // z.iso.datetime()（各フィールドが書く形に合わせる）
+  isoDatetimeDefault: `${now.toISOString().slice(0, 19)}Z`,
+  isoDatetimeMinute: `${now.toISOString().slice(0, 16)}:00Z`,
   isoDatetimePrecisionMinute: `${now.toISOString().slice(0, 16)}Z`,
   isoDatetimePrecisionSecond: `${now.toISOString().slice(0, 19)}Z`,
 
   // z.iso.datetime({ local: true })
-  isoDatetimeLocalDefault: formatLocalDateTime(now),
-  isoDatetimeLocalMinute: formatLocalDateTime(now),
+  isoDatetimeLocalDefault: formatLocalDateTime(now).slice(0, 19),
+  isoDatetimeLocalMinute: `${formatLocalDateTime(now).slice(0, 16)}:00`,
   isoDatetimeLocalPrecisionMinute: formatLocalDateTime(now).slice(0, 16),
 
   // z.iso.date()

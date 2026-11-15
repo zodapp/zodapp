@@ -58,6 +58,8 @@ const zodExtendableObjectDefSchema = zodExtendableCommonDefSchema.extend({
 const dateMetaSchema = zodExtendableCommonDefSchema.extend({
   // 粒度（省略時はスキーマから自動推論）
   // - z.date(), z.number(), z.iso.datetime() → second
+  // - z.iso.datetime({ precision }) → -1: minute、0: second、1 以上: millisecond
+  //   （precision より細かい unit はエラー。precision が無ければ unit の粒度で書く）
   // - z.iso.date() → day
   // 注: millisecond は明示的に指定した場合のみ使用（readOnly 表示でミリ秒精度を維持）
   unit: z

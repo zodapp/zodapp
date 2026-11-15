@@ -1,4 +1,14 @@
-import { choose, expect, field, openDemo, previewValue, test } from "./helpers";
+import type { Page } from "@playwright/test";
+
+import {
+  choose,
+  expect,
+  field,
+  openDemo,
+  optionsOf,
+  previewValue,
+  test,
+} from "./helpers";
 
 // zf.externalKey：一覧から選ぶ
 test.beforeEach(async ({ page }) => {
@@ -30,4 +40,49 @@ test("都道府県を変えると、新しい一覧に無い市区町村が消�
     .poll(async () => (await previewValue(page)).city)
     .toBeUndefined();
   expect((await previewValue(page)).prefecture).toBe("osaka");
+});
+
+// 同じ購読のまま選択肢が届き直す：画面のボタンで当番の topic を変える
+const ON_DUTY = "当番（既定の clear";
+const ON_DUTY_KEEP = "当番（unlisted: keep";
+const UNLISTED_ERROR = "選択肢に無い値です。選び直してください。";
+
+const redeliver = async (page: Page, name: string) =>
+  page.getByRole("button", { name, exact: true }).click();
+
+test("既定（clear）の欄は、届き直した一覧から外れた値を消し、一覧が戻っても値は戻らない", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await expect(field(page, ON_DUTY)).toHaveValue("佐藤 花子");
+
+  await redeliver(page, "佐藤 花子を外して届け直す");
+  await expect
+    .poll(async () => (await previewValue(page)).onDuty)
+    .toBeUndefined();
+  await expect(field(page, ON_DUTY)).toHaveValue("");
+
+  await redeliver(page, "全員を届け直す");
+  await expect
+    .poll(() => optionsOf(page, ON_DUTY))
+    .toEqual(["山田 太郎", "佐藤 花子", "鈴木 一郎"]);
+  expect((await previewValue(page)).onDuty).toBeUndefined();
+  await expect(field(page, ON_DUTY)).toHaveValue("");
+});
+
+test("unlisted: keep の欄は、届き直した一覧から外れた値を残して不正な値として出し、一覧が戻れば戻る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("佐藤 花子");
+
+  await redeliver(page, "佐藤 花子を外して届け直す");
+  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("（不正な値）");
+  await expect(page.getByText(UNLISTED_ERROR)).toBeVisible();
+  expect((await previewValue(page)).onDutyKeep).toBe("u-002");
+
+  await redeliver(page, "全員を届け直す");
+  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("佐藤 花子");
+  await expect(page.getByText(UNLISTED_ERROR)).toBeHidden();
+  expect((await previewValue(page)).onDutyKeep).toBe("u-002");
 });
