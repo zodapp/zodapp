@@ -11,10 +11,17 @@ describe("pruneValueToSchema", () => {
     });
     expect(
       pruneValueToSchema(
-        { name: "ab", count: "3", level: "mid", stale: true },
+        { name: "ab", count: "3", level: 3, stale: true },
         schema,
       ),
     ).toEqual({ name: "ab" });
+  });
+
+  it("選択肢から外れただけの enum の値は残す（どうするかは enum の部品が unlisted で決める）", () => {
+    const schema = z.object({ level: z.enum(["low", "high"]) });
+    expect(pruneValueToSchema({ level: "mid" }, schema)).toEqual({
+      level: "mid",
+    });
   });
 
   it("入れ子の object も削る", () => {

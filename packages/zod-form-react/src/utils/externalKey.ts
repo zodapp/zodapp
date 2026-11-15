@@ -189,7 +189,11 @@ const buildOptionsSchema = (
   );
   return zf
     .enum(literals as unknown as [z.ZodLiteral<string>])
-    .register(zf.enum.registry, { ...display, valueAction });
+    .register(zf.enum.registry, {
+      ...display,
+      valueAction,
+      unlisted: meta.unlisted,
+    });
 };
 
 /**

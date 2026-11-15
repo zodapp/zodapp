@@ -261,6 +261,9 @@ export type DynamicMetaDef<TValue = any, TParent = any> = z.infer<
 > &
   FnMeta<"resolve", TValue, TParent, SchemaResolveResult>;
 
+/** 値が選択肢に無いときの扱い。clear：消す（既定）。keep：残して「（不正な値）」と出す */
+export type UnlistedPolicy = "keep" | "clear";
+
 export type ExternalKeyMetaDef = z.infer<
   typeof zodExtendableCommonDefSchema
 > & {
@@ -276,6 +279,11 @@ export type ExternalKeyMetaDef = z.infer<
    * 既定 false（enum で厳しく検証する）
    */
   allowUnlisted?: boolean;
+  /**
+   * 値が選択肢に無いときの扱い（選択肢の enum に渡す）。
+   * clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
+   */
+  unlisted?: UnlistedPolicy;
 };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
@@ -366,6 +374,9 @@ const hidden = extendCustom(
   schemaType<z.ZodType>(),
 );
 
+/** 値が選択肢に無いときの扱い（enum・externalKey の unlisted） */
+const unlistedSchema = z.enum(["keep", "clear"]).optional();
+
 // 外部キー用設定スキーマ
 const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
@@ -374,6 +385,8 @@ const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
   valueAction: valueActionSchema,
   // 選択肢に無い値も通す（string + 選択式にする）。既定 false（enum で厳しく検証する）
   allowUnlisted: z.boolean().optional(),
+  // 値が選択肢に無いときの扱い（enum の unlisted に渡す）。既定 clear
+  unlisted: unlistedSchema,
 }) as z.ZodType<ExternalKeyMetaDef>;
 
 const externalKey = extendCustom(
@@ -473,6 +486,13 @@ const zf = {
     zodExtendableCommonDefSchema.extend({
       /** 選んだ値に対する操作（リンクで開くなど） */
       valueAction: valueActionSchema,
+      /**
+       * 値が選択肢に無いとき（選択肢が変わって外れた、保存済みの値が選択肢から消えたなど）の扱い。
+       * 決めるのは enum の部品（描かれている欄だけに効く）。
+       * clear：消す（既定。開いたときの保存値も消す。下の dynamic へ連鎖する）。
+       * keep：値を残し、欄に「（不正な値）」と出してエラーにする（条件を戻せば値も戻る）
+       */
+      unlisted: unlistedSchema,
     }),
   ),
   object: extendObject(zodExtendableObjectDefSchema),

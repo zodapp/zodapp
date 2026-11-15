@@ -40,8 +40,15 @@ const valuePreprocessors: PreprocessorDef = {
   never: () => remove(),
   literal: (value, schema: any) =>
     schema.safeParse(value).success ? value : remove(),
+  // 選択肢と型が合わない値だけを消す。選択肢から外れただけの値をどうするかは、
+  // enum の部品が unlisted で決める（ここでは決めない）
   enum: (value, schema: any) =>
-    schema.safeParse(value).success ? value : remove(),
+    schema.safeParse(value).success ||
+    (schema.options as unknown[]).some(
+      (option) => typeof option === typeof value,
+    )
+      ? value
+      : remove(),
   object: (value, schema: any) => {
     if (!isPlainRecord(value)) return remove();
     const allowedKeys = new Set(Object.keys(schema.shape));
@@ -81,7 +88,8 @@ const valueProcessors: ProcessorDef = {
  * 結果が変わったときなど）に、前の schema の値を新しい schema へ移すのに使う。
  *
  * - schema に無い object のキーを消す
- * - 型の合わない基本型の値、合わない literal / enum の値を消す
+ * - 型の合わない基本型の値、合わない literal の値、選択肢と型が合わない enum の値を消す
+ *   （選択肢から外れただけの enum の値は残す。どうするかは enum の部品が unlisted で決める）
  * - union は値が通る腕に合わせる（どの腕も通らなければ消す）
  * - min / max などの制約違反は残す
  */

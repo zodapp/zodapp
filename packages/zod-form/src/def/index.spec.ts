@@ -33,6 +33,7 @@ type NumberMeta = CommonMeta & {
 type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
   valueAction?: RegisteredValueActionConfig;
+  unlisted?: "keep" | "clear";
   schemas?: Record<string, z.ZodLiteral<string>>;
 };
 
