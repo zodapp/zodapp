@@ -90,3 +90,17 @@ test("dynamic のセルは行の通貨で表示が変わる", async ({
   await expect(row(page, "t1")).toContainText("¥3,600");
   await expect(row(page, "t2")).toContainText("$49.99");
 });
+
+test("選択肢に無い値のセルは、生の値ではなく「（不正な値）」と出す", async ({
+  page,
+  pageErrors: _,
+}) => {
+  // t4 は状態（select）と担当（externalKey）に、選択肢に無い値を持つ
+  const cells = row(page, "t4").locator("td");
+  await expect(cells.filter({ hasText: "（不正な値）" })).toHaveCount(2);
+  await expect(row(page, "t4")).not.toContainText("archived");
+  await expect(row(page, "t4")).not.toContainText("u-999");
+  // 選択肢にある値は、これまでどおりラベルで出す
+  await expect(row(page, "t1")).toContainText("完了");
+  await expect(row(page, "t1")).not.toContainText("（不正な値）");
+});

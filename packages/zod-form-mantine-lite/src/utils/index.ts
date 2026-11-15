@@ -12,3 +12,8 @@ export {
   type NormalizedStringSuggestion,
 } from "./stringSuggestions";
 export { ValueActionIcon, WithValueAction } from "./valueAction";
+export {
+  UNLISTED_LABEL,
+  isEnumValueListed,
+  externalKeyDisplayLabel,
+} from "./unlisted";
