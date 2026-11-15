@@ -7,7 +7,11 @@ import { MantineProvider } from "@mantine/core";
 import type { AnyFormApi } from "@tanstack/react-form";
 import { z } from "zod";
 
-import { zf, defineDynamicMeta } from "@zodapp/zod-form";
+import {
+  zf,
+  defineDynamicMeta,
+  type ExternalKeyUnlistedOptions,
+} from "@zodapp/zod-form";
 import type { ExternalKeyResolvers } from "@zodapp/zod-form/externalKey/types";
 import {
   Switch,
@@ -182,9 +186,7 @@ const renderForm = (
   return { getForm, runtime, onSubmit, submit, edit };
 };
 
-const owner = (
-  options: { allowUnlisted?: boolean; unlisted?: "keep" | "clear" } = {},
-) =>
+const owner = (options: ExternalKeyUnlistedOptions = {}) =>
   zf.string().register(zf.externalKey.registry, {
     label: "担当者",
     externalKeyConfig: { type: "list", list: "members" },
