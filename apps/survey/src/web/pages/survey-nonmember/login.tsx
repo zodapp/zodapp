@@ -21,6 +21,7 @@ import { useAuthContext } from "../../shared/auth";
 import { workspacesRoute } from "../survey-top/workspaces.route";
 import { passwordResetRoute } from "./passwordReset.route";
 import { AutoForm } from "../../components/AutoForm";
+import { fullWidthSubmitAction } from "../../components/fullWidthSubmitAction";
 
 // ログイン/新規登録フォームも zf スキーマ + AutoForm で組める
 const signInSchema = z
@@ -173,9 +174,9 @@ const LoginPage = () => {
               <AutoForm
                 key="confirm"
                 schema={confirmSchema}
-                onSubmit={handleConfirm}
                 isLoading={isSubmitting}
-                submitLabel="確認してログイン"
+                actionsPosition="bottom"
+                actions={[fullWidthSubmitAction<typeof confirmSchema>("確認してログイン", handleConfirm)]}
               />
               <Button variant="subtle" onClick={() => setPending(null)}>
                 戻る
@@ -197,17 +198,17 @@ const LoginPage = () => {
             <AutoForm
               key="signIn"
               schema={signInSchema}
-              onSubmit={handleSignIn}
               isLoading={isSubmitting}
-              submitLabel="ログイン"
+              actionsPosition="bottom"
+              actions={[fullWidthSubmitAction<typeof signInSchema>("ログイン", handleSignIn)]}
             />
           ) : (
             <AutoForm
               key="signUp"
               schema={signUpSchema}
-              onSubmit={handleSignUp}
               isLoading={isSubmitting}
-              submitLabel="登録する"
+              actionsPosition="bottom"
+              actions={[fullWidthSubmitAction<typeof signUpSchema>("登録する", handleSignUp)]}
             />
           )}
 
