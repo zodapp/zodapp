@@ -5,6 +5,8 @@
  */
 export type WebResolverContextMap = {
   workspace: { workspaceId: string };
+  /** 外部キーの絞り込みのデモで使う、画面で選んだ部署 */
+  team: { team: "sales" | "dev" };
 };
 
 export type WebResolverContextId = keyof WebResolverContextMap;

@@ -2,7 +2,8 @@
  * フォームのデモで使う resolver（DB やルーターに依存しないモック）
  *
  * - externalKey: 下のデータを topic（createMockTopic）に入れ、createMockExternalKeyResolver で選択肢として届ける。
- *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする
+ *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする。
+ *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う
  * - valueAction: getActionParams が返す href をリンクにする
  */
 import { Anchor } from "@mantine/core";
@@ -18,6 +19,14 @@ export const users: MockExternalKeyOption[] = [
   { label: "山田 太郎", value: "u-taro" },
   { label: "佐藤 花子", value: "u-sato" },
   { label: "鈴木 一郎", value: "u-suzuki" },
+];
+
+/** 部署を持つメンバー。欄に届くのは label と value だけで、team は filter で使う */
+export const members: MockExternalKeyOption[] = [
+  { label: "山田 太郎（営業）", value: "u-taro", team: "sales" },
+  { label: "鈴木 一郎（営業）", value: "u-suzuki", team: "sales" },
+  { label: "佐藤 花子（開発）", value: "u-sato", team: "dev" },
+  { label: "田中 次郎（開発）", value: "u-tanaka", team: "dev" },
 ];
 
 export const prefectures: MockExternalKeyOption[] = [
@@ -80,6 +89,7 @@ const topicsOf = (
 
 export const demoTopics = {
   users: createMockTopic(users),
+  members: createMockTopic(members),
   prefectures: createMockTopic(prefectures),
   // 5 秒ごとに一人ずつ外れる（購読の更新を見るため）
   onDuty: createMockTopic(users.filter((_, i) => i !== 0)),

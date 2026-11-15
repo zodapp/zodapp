@@ -11,6 +11,7 @@ import * as dynamicSchema from "./dynamicSchema";
 import * as tableView from "./tableView";
 import * as dynamicAdvanced from "./dynamicAdvanced";
 import * as selectAndExternalKey from "./selectAndExternalKey";
+import * as externalKeyFilter from "./externalKeyFilter";
 import * as mediaPreview from "./mediaPreview";
 import * as customWidget from "./customWidget";
 import * as computed from "./computed";
@@ -45,6 +46,7 @@ import dynamicSchemaCode from "./dynamicSchema.ts?raw";
 import tableViewCode from "./tableView.tsx?raw";
 import dynamicAdvancedCode from "./dynamicAdvanced.tsx?raw";
 import selectAndExternalKeyCode from "./selectAndExternalKey.ts?raw";
+import externalKeyFilterCode from "./externalKeyFilter.tsx?raw";
 import mediaPreviewCode from "./mediaPreview.tsx?raw";
 import customWidgetCode from "./customWidget.tsx?raw";
 import computedCode from "./computed.ts?raw";
@@ -80,6 +82,7 @@ export const formSchemas = {
   [tableView.formId]: tableView,
   [dynamicAdvanced.formId]: dynamicAdvanced,
   [selectAndExternalKey.formId]: selectAndExternalKey,
+  [externalKeyFilter.formId]: externalKeyFilter,
   [mediaPreview.formId]: mediaPreview,
   [customWidget.formId]: customWidget,
   [date.formId]: date,
@@ -116,6 +119,7 @@ export const formCodes = {
   [tableView.formId]: tableViewCode,
   [dynamicAdvanced.formId]: dynamicAdvancedCode,
   [selectAndExternalKey.formId]: selectAndExternalKeyCode,
+  [externalKeyFilter.formId]: externalKeyFilterCode,
   [mediaPreview.formId]: mediaPreviewCode,
   [customWidget.formId]: customWidgetCode,
   [date.formId]: dateCode,
