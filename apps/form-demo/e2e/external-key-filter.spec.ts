@@ -68,7 +68,7 @@ test("unlisted: keep の欄は、一覧から外れた値を残し、不正な�
   expect((await previewValue(page)).assigneeKeep).toBe("u-001");
 });
 
-test("key ありの欄は部署を変えると取り直して値を消し、key なしの欄は取り直さない", async ({
+test("レビューする部署を変えると、レビュー担当の選択肢を取り直して、外れた値を消す", async ({
   page,
   pageErrors: _,
 }) => {
@@ -78,12 +78,6 @@ test("key ありの欄は部署を変えると取り直して値を消し、key 
     .poll(async () => (await previewValue(page)).reviewer)
     .toBeUndefined();
   await expect
-    .poll(() => optionsOf(page, "レビュー担当（key あり"))
+    .poll(() => optionsOf(page, "レビュー担当"))
     .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）"]);
-
-  expect((await previewValue(page)).reviewerWithoutKey).toBe("u-003");
-  expect(await optionsOf(page, "レビュー担当（key なし")).toEqual([
-    "山田 太郎（営業）",
-    "鈴木 一郎（営業）",
-  ]);
 });

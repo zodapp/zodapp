@@ -50,36 +50,34 @@ const assigneeKeep = zf.string().register(zf.externalKey.registry, {
 });
 
 // ============================================================
-// 2. dynamic で filter だけを差し替える
-//    関数は取り直しの key に入らないので、関数だけが違う config は同じ config とみなされる。
-//    違いを config の key に書くと、別の config として取り直し、選択肢から外れた値は消える
+// 2. dynamic で filter を差し替える
+//    関数は取り直しの key に入らない（描画のたびに作り直される関数で、毎回取り直さないため）。
+//    絞り方が変わるときは、その違いを config の key に書く。key が変わると取り直し、
+//    選択肢から外れた値は消える
 // ============================================================
 
-const reviewerSchema = (withKey: boolean) =>
-  z.string().register(
-    zf.dynamic.registry,
-    defineDynamicMeta<unknown, { reviewTeam?: Team }>({
-      dependsOnValue: false,
-      dependsOnParent: true,
-      resolve: ({ parent }) => {
-        const team = parent?.reviewTeam ?? "sales";
-        return {
-          key: team,
-          schema: zf.string().register(zf.externalKey.registry, {
-            label: withKey
-              ? "レビュー担当（key あり：部署を変えると取り直し、選択肢に無い値を消す）"
-              : "レビュー担当（key なし：部署を変えても同じ config とみなし、選択肢が変わらない）",
-            externalKeyConfig: {
-              type: "mock",
-              topic: "members",
-              filter: (option) => option.team === team,
-              ...(withKey ? { key: team } : {}),
-            },
-          }),
-        };
-      },
-    }),
-  );
+const reviewer = z.string().register(
+  zf.dynamic.registry,
+  defineDynamicMeta<unknown, { reviewTeam?: Team }>({
+    dependsOnValue: false,
+    dependsOnParent: true,
+    resolve: ({ parent }) => {
+      const team = parent?.reviewTeam ?? "sales";
+      return {
+        key: team,
+        schema: zf.string().register(zf.externalKey.registry, {
+          label: "レビュー担当（レビューする部署で絞る）",
+          externalKeyConfig: {
+            type: "mock",
+            topic: "members",
+            filter: (option) => option.team === team,
+            key: team,
+          },
+        }),
+      };
+    },
+  }),
+);
 
 export const schema = z
   .object({
@@ -91,8 +89,7 @@ export const schema = z
         zf.literal("dev").register(zf.literal.registry, { label: "開発" }),
       ])
       .register(zf.enum.registry, { label: "レビューする部署" }),
-    reviewer: reviewerSchema(true),
-    reviewerWithoutKey: reviewerSchema(false),
+    reviewer,
   })
   .register(zf.object.registry, {});
 
@@ -102,7 +99,6 @@ export const defaultValues = {
   assigneeKeep: "u-001",
   reviewTeam: "sales",
   reviewer: "u-003",
-  reviewerWithoutKey: "u-003",
 } as unknown as z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
