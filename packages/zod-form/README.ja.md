@@ -141,6 +141,12 @@ const fileResolvers = [createMockFileResolver()];
 - `unlisted: "clear"`: 開いたときに、選択肢に無い値を消す
 - 日付・時刻の精度: 開いただけでは書き換えない（利用者が編集したときだけ、欄の精度に合わせる）
 
+開いたときの書き換え（`clear`・`z.preprocess` の `union`）は仕様です。ただし、どちらも欄を「触った」「変えた」にはしないので、開いただけでは `isDirty` は `false` のままです。
+
+- `clear` で消えた欄の必須のエラーは、ほかの必須の欄と同じく、触るか送信するまで出ません
+- dynamic の取り直しで値を削る（prune）ときも同じです
+- 利用者が上の欄を変えて下の欄が消えたときは、上の欄の編集で `isDirty` が `true` になります
+
 ## API（抜粋）
 
 - `zf` / `getMeta`

@@ -5,6 +5,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useSchemaValueAction,
+  useRunAsUserEdit,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -46,17 +47,30 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
 
   // 選択肢に無い値（選択肢が変わって外れた、保存済みの値が選択肢から消えていたなど）の扱いは
   // unlisted で決める。この部品だけが決める（dynamic の prune は選択肢から外れただけの値を残す）
-  // - clear（既定）：消す。開いたときの保存値も消す。field.onChange は利用者の編集として書くので、
-  //   下の dynamic へ連鎖する
+  // - clear（既定）：消す。開いたときの保存値も消す。利用者の編集として書くので、下の dynamic へ連鎖する。
+  //   欄を「触った」「変えた」にはしない（dontUpdateMeta・dontValidate）。必須のエラーは、ほかの欄と同じく
+  //   触るか送信するまで出ず、開いただけで消しても isDirty は false のまま
   // - keep：空欄に見せると値が残っていることが分からないので、欄に「（不正な値）」と出し
   //   （ID などの生の値は見せない）、触っていなくてもエラーを出す。
   //   選べない選択肢として足すので、× で消せる（optional なら消せば保存できる）
   const isUnlisted =
     optionValue !== null && !data.some((d) => d.value === optionValue);
   const shouldClear = isUnlisted && unlisted !== "keep" && !readOnly;
+  const runAsUserEdit = useRunAsUserEdit();
   useEffect(() => {
-    if (shouldClear) field.onChange(fromEnumOptionValue(schema, null));
-  }, [shouldClear, field, schema]);
+    if (!shouldClear) return;
+    const form = field.api.form;
+    runAsUserEdit(() =>
+      form.setFieldValue(
+        field.api.name,
+        fromEnumOptionValue(schema, null) as never,
+        // 欄の検証（validateField）は欄を「触った」にするので使わない
+        { dontUpdateMeta: true, dontValidate: true },
+      ),
+    );
+    // 消したあとの値でエラーを出し直す。フォームの検証は欄を「触った」にしない
+    form.validateSync("change");
+  }, [shouldClear, field, schema, runAsUserEdit]);
   const showUnlisted = isUnlisted && !shouldClear;
   const selectData = useMemo(
     () =>

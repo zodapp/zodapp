@@ -444,6 +444,34 @@ describe("dynamic", () => {
     expect(t.getForm().getFieldValue("city")).toBe("shinjuku");
   });
 
+  it("利用者の編集で prune しても、削った欄を「触った」「変えた」にしない", async () => {
+    const detail = z.unknown().register(
+      zf.dynamic.registry,
+      defineDynamicMeta<unknown, { kind?: string }>({
+        dependsOnValue: false,
+        dependsOnParent: true,
+        resolve: ({ parent }) => ({
+          key: parent?.kind ?? "",
+          schema:
+            parent?.kind === "short"
+              ? z.object({ x: z.string() })
+              : z.object({ x: z.string(), y: z.string() }),
+        }),
+      }),
+    );
+    const root = z
+      .object({ kind: z.string(), detail })
+      .register(zf.object.registry, { properties: ["kind", "detail"] });
+    const t = renderForm(root, { kind: "long", detail: { x: "1", y: "2" } });
+    await screen.findByTestId("value-detail.y");
+    await t.edit("kind", "short");
+    await waitFor(() =>
+      expect(t.getForm().getFieldValue("detail")).toEqual({ x: "1" }),
+    );
+    expect(t.getForm().getFieldMeta("detail")?.isTouched).toBe(false);
+    expect(t.getForm().getFieldMeta("detail")?.isDirty).toBe(false);
+  });
+
   it("runAsUserEdit は Promise を返す関数を受け付けない", () => {
     const runtime = new FormRuntime();
     expect(() => runtime.runAsUserEdit(async () => {})).toThrow();

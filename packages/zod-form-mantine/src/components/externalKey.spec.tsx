@@ -291,6 +291,83 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(r.subscribeCount).toHaveBeenCalledTimes(1);
   });
 
+  describe("clear で消しても、欄を「触った」「変えた」にしない", () => {
+    // このテストでは日本語のエラーマップを入れないので、値が無いときは zod の既定の文言になる
+    const REQUIRED = /Invalid input/;
+
+    it("開いたときに選択肢に無い保存値を消しても、isDirty は false のまま、必須のエラーも出さない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "gone" },
+        r.resolvers,
+      );
+      await r.publish("members", [{ label: "利用者 A", value: "u1" }]);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+      );
+      expect(t.getForm().state.isDirty).toBe(false);
+      expect(t.getForm().getFieldMeta("owner")?.isTouched).toBe(false);
+      expect(screen.queryByText(REQUIRED)).toBeNull();
+
+      // 送信すると、ほかの必須の欄と同じくエラーが出る
+      await t.submit();
+      expect(t.onSubmit).not.toHaveBeenCalled();
+      expect(await screen.findByText(REQUIRED)).toBeTruthy();
+    });
+
+    it("同じ購読のまま選択肢から外れて消えても、触る前は必須のエラーを出さない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.publish("members", [{ label: "利用者 A", value: "u1" }]);
+      await screen.findByDisplayValue("利用者 A");
+      await r.publish("members", [{ label: "利用者 B", value: "u2" }]);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+      );
+      expect(t.getForm().state.isDirty).toBe(false);
+      expect(screen.queryByText(REQUIRED)).toBeNull();
+    });
+
+    it("利用者が上の欄を変えて下の欄が消えたときは、上の欄の編集で isDirty が true になる", async () => {
+      const r = makeResolvers();
+      const member = z.string().register(
+        zf.dynamic.registry,
+        defineDynamicMeta<unknown, { team?: string }>({
+          dependsOnValue: false,
+          dependsOnParent: true,
+          resolve: ({ parent }) => ({
+            key: parent?.team ?? "",
+            schema: zf.string().register(zf.externalKey.registry, {
+              label: "メンバー",
+              externalKeyConfig: { type: "list", list: parent?.team ?? "" },
+            }),
+          }),
+        }),
+      );
+      const t = renderForm(
+        z.object({ team: z.string(), member }),
+        { team: "a", member: "x" },
+        r.resolvers,
+      );
+      await r.publish("a", [{ label: "X", value: "x" }]);
+      await screen.findByDisplayValue("X");
+      expect(t.getForm().state.isDirty).toBe(false);
+
+      await t.edit("team", "b");
+      await r.publish("b", [{ label: "Y", value: "y" }]);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("member")).toBeUndefined(),
+      );
+      expect(t.getForm().state.isDirty).toBe(true);
+      expect(t.getForm().getFieldMeta("member")?.isTouched).toBe(false);
+    });
+  });
+
   describe("取得の失敗（resolver の onError）", () => {
     const everyone: Option[] = [
       { label: "利用者 A", value: "u1" },
