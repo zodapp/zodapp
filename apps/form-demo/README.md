@@ -17,3 +17,5 @@ pnpm --filter form-demo dev   # http://localhost:3000
 ```
 
 The demo is published to GitHub Pages (`https://<owner>.github.io/zodapp/`) by `.github/workflows/pages.yml` on every push to `main`. `pnpm --filter form-demo build:pages` builds with `VITE_BASE=/zodapp/` and copies `index.html` to `404.html` for deep links.
+
+E2E: `pnpm --filter form-demo e2e` (set `E2E_PORT` to change the port, default 3000). Pages used only by the E2E tests live in `src/pages/form/schemas/e2e/` (formId starts with `e2e-`); they are not listed in the menu but can be opened at `/form/detail?formId=e2e-…`. Every demo page shows an observation panel (values, field errors, isDirty, submissions, log) and exposes the same data on `window.__formDemo`. See `AGENT.md` for details.
