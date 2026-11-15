@@ -11,7 +11,7 @@
 
 | 項目 | 決定 |
 | --- | --- |
-| 公開する範囲 | `@zodapp/*` の22個。`@zodapp/zod-form-widget` と `@repo/*` は private のまま |
+| 公開する範囲 | `@zodapp/*` の22個。`@zodapp/zod-form-widget` と `@repo/*` は private のまま（zod-form-widget は、のちに `zod-form-widget-publish.md` で公開に変えた） |
 | バージョン | 全パッケージ同じバージョン（changesets の `fixed`）。最初の公開は `0.1.0`。この作業では `0.0.0` のまま |
 | src を exports している6個 | ほかと同じく dist だけを exports する（ワークスペースでも dist を使う） |
 | CSS Modules | `stringMultiline.module.css` をなくし、Mantine の `styles` prop に移す。公開するパッケージに CSS ファイルを持たない |

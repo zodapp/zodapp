@@ -1,8 +1,9 @@
 # `@zodapp/*` の公開
 
-公開する `@zodapp/*` の22個（`packages/` のうち private でないもの）を npm に出す手順です。
-22個は同じバージョンで出します（`.changeset/config.json` の `fixed`）。
-`@zodapp/zod-form-widget`、`@repo/*`、apps は公開しません。
+公開する `@zodapp/*` の23個（`packages/` のうち private でないもの）を npm に出す手順です。
+23個は同じバージョンで出します（`.changeset/config.json` の `fixed`）。
+`@repo/*` と apps は公開しません。
+`@zodapp/zod-form-widget` を使う利用者は、`@zodapp/zod-form-widget/styles.css`（または `@layer zodapp` 付きの `styles.layer.css`）を自分で import します。
 
 **いまの状態**：公開の準備だけが済んでいて、npm にはまだ1つも出していません。
 `.github/workflows/release.yml` は手動でしか動かないようにしてあります。
@@ -29,7 +30,7 @@
 ### 0. 前提をそろえる
 
 - [ ] 公開するリポジトリが決まっている。
-- [ ] 22個の `repository.url`、`homepage`、`bugs` を、公開するリポジトリに合わせる。
+- [ ] 23個の `repository.url`、`homepage`、`bugs` を、公開するリポジトリに合わせる。
       npm の trusted publishing は `repository.url` が GitHub のリポジトリと完全に一致していることを見ます。
       `node tools/set-repository.mjs <owner>/<repo>` でまとめて書き換えられます。
 - [ ] 英語の README（`README.md`）を各パッケージに置く（`files` に入っているので、置けば npm に入る）。
@@ -40,7 +41,7 @@
 ### 1. 最初のバージョンを決める（0.1.0）
 
 ```bash
-pnpm changeset            # 22個のどれか1つを選び、minor を選ぶ（fixed なので22個とも 0.1.0 になる）
+pnpm changeset            # 23個のどれか1つを選び、minor を選ぶ（fixed なので23個とも 0.1.0 になる）
 pnpm version-packages     # package.json と CHANGELOG.md を 0.1.0 にする
 ```
 
@@ -69,7 +70,7 @@ git push --follow-tags        # changeset publish が打った @zodapp/<name>@0.
 
 1. `.github/workflows/release.yml` の `on` に `push: branches: [main]` を足して、main にマージする。
    （以後、main への push で「Version Packages」の PR が作られる）
-2. 22個に trusted publisher を登録する。
+2. 23個に trusted publisher を登録する。
    ```bash
    tools/npm-trust-all.sh <owner>/<repo> --dry-run   # 実行するコマンドを確かめる
    tools/npm-trust-all.sh <owner>/<repo>             # 最初の 2FA で「5分間省く」を選ぶ
@@ -89,7 +90,7 @@ git push --follow-tags        # changeset publish が打った @zodapp/<name>@0.
   さらに挟むなら、GitHub の environment に承認者を付ける。changesets がそのまま使える。
 - **承認してから出す**（`--allow-stage-publish`）：CI は `npm stage publish` で出し、npm 上で 2FA を使って承認するまで公開されない。
   CI が乗っ取られても勝手に公開されないが、`changeset publish` は `npm stage publish` に対応していないので自前のスクリプトが要り、
-  リリースのたびに22個の承認が要る。
+  リリースのたびに23個の承認が要る。
 
 ### 公開するリポジトリが private の場合
 

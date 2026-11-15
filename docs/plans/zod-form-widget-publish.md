@@ -1,6 +1,6 @@
 # `@zodapp/zod-form-widget` を公開できるようにするプラン
 
-- ステータス: プラン（実装未着手）
+- ステータス: 実装済み（公開の準備まで）
 - 対象ブランチ: `claude/project-thread-3gbpgw`（このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/zod-form-widget`（影響を受ける利用側: `apps/form-demo`、`apps/survey`、`apps/taskmanager`）
 - 範囲: **公開の準備だけ**。npm への公開そのものは、ほかの22個と同じ手順（`docs/releasing.md`）で行う

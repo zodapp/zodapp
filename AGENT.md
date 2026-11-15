@@ -43,7 +43,7 @@ zodapp/
 │   ├── zod-form-react/           # React基盤（Dynamic / hooks / zfReact）
 │   ├── zod-form-mantine/         # Mantine UIコンポーネントライブラリ
 │   ├── zod-form-mantine-lite/    # TanStack Form に依存しない Mantine コンポーネント
-│   ├── zod-form-widget/          # AutoForm / AutoTable などのウィジェット（private）
+│   ├── zod-form-widget/          # AutoForm / AutoTable などのウィジェット
 │   ├── zod-form-dynamodb/        # 外部キーの Resolver（登録簿の名前付きクエリ）
 │   ├── zod-form-s3/              # ファイルの Resolver（S3 の署名付き URL、ブラウザ）
 │   ├── zod-form-s3-node/         # 署名付き URL を発行する Express の router（サーバー）

@@ -32,7 +32,8 @@ const FORBIDDEN = [
   /^docs\//,
   /^\.turbo\//,
   /^node_modules\//,
-  /\.css$/,
+  // CSS は dist にビルドしたもの（zod-form-widget の styles.css など）だけを許す
+  /^(?!dist\/).*\.css$/,
   /\.tsbuildinfo$/,
 ];
 const REQUIRED = ["package.json", "LICENSE"];

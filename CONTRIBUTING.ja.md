@@ -41,7 +41,7 @@ pnpm --filter @zodapp/zod-form test
 - 挙動が変わる場合はテストを追加/更新してください
 - 公開APIを変更した場合はドキュメントも更新してください
 - ローカルでCI相当が通ることを確認してください（`pnpm lint && pnpm check-types && pnpm test && pnpm build && pnpm check:pack`）
-- 公開する `@zodapp/*` を変えた場合は、`pnpm changeset` で changeset を足してください（22個は同じバージョンで出します）
+- 公開する `@zodapp/*` を変えた場合は、`pnpm changeset` で changeset を足してください（23個は同じバージョンで出します）
 
 ## セキュリティ報告
 
