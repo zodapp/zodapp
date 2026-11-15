@@ -15,4 +15,4 @@
 - 表（AutoTable）で行の値を `TableRowProvider` で渡し、表用の dynamic の部品を足す
 - 時刻だけを持つ `zf.time` を足す
 - 開発用のモックを足す。`createMockTopic` は値を持って変更を購読者に届けるだけのオブジェクト、`createMockExternalKeyResolver` は topic の選択肢を届け、topic が変わるたびに届け直す。config の `filter` で、resolverContext を使って選択肢を絞れる
-- `z.iso.datetime` の precision に合わせて書く。union を包む preprocess を描画で外す
+- `z.iso.datetime` の precision に合わせて書く。precision が無ければ `zf.time` と同じく unit の粒度で書く（minute / second は秒まで、millisecond はミリ秒まで）。unit が precision より細かいとエラーにする。union を包む preprocess を描画で外す

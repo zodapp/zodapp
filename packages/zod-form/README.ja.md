@@ -62,6 +62,24 @@ const meta = getMeta(schema);
 // meta?.uiType === "password"
 ```
 
+## 日付・時刻の保存形式（`zf.date` / `zf.time`）
+
+`zf.date` の `z.iso.datetime()` / `z.iso.datetime({ local: true })` と、`zf.time` の `z.iso.time()` は、同じ決まりで文字列を書きます。
+
+- precision があるときは precision に合わせて書く（-1: 分まで、0: 秒まで、1 以上: 秒の小数をその桁数）。unit 省略時は precision から決める（-1 → minute、0 → second、1 以上 → millisecond）
+- unit を precision が持てるより細かくすると値に入らないので、定義の時点でエラーを投げる（例: precision -1 に unit `second`、precision 0 に unit `millisecond`）
+- precision が無い形式は zod がどの粒度でも受け付けるので、unit で書く形を決める（unit 省略時は second）
+
+| unit                   | `z.iso.datetime()`                             | `z.iso.datetime({ local: true })` | `z.iso.time()` |
+| ---------------------- | ---------------------------------------------- | --------------------------------- | -------------- |
+| hour / minute / second | `YYYY-MM-DDTHH:mm:ssZ`（minute なら秒は `00`） | `YYYY-MM-DDTHH:mm:ss`             | `HH:mm:ss`     |
+| millisecond            | `YYYY-MM-DDTHH:mm:ss.SSSZ`                     | `YYYY-MM-DDTHH:mm:ss.SSS`         | `HH:mm:ss.SSS` |
+
+（`hour` は `zf.time` のみ）
+
+- precision が無いフィールドの unit は後から変えないでください。保存済みの値と新しく書く値で形が混ざります
+- unit が保存されている値より粗いとき、編集すると unit より細かい部分は 0 になります（例: 秒を持つ値を unit `minute` で編集すると秒は `00`）。開いただけでは値を書き換えません
+
 ## 外部キー / ファイル（型と設定の土台）
 
 このパッケージは **設定型**を提供します。実際の解決（Firestore/Storage など）は別パッケージで提供します。
