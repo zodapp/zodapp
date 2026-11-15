@@ -1,6 +1,15 @@
 import { z } from 'zod';
 
-const jaErrorMap: z.core.$ZodErrorMap = (issue) => {
+/**
+ * zod v4 のエラーメッセージを日本語にする errorMap。
+ * import しただけでは何も変わらない。利用者が z.config に渡す。
+ *
+ * @example
+ * import { z } from "zod";
+ * import { jaErrorMap } from "@zodapp/zod-form-widget/i18n/ja";
+ * z.config({ customError: jaErrorMap });
+ */
+export const jaErrorMap: z.core.$ZodErrorMap = (issue) => {
   let message: string;
   switch (issue.code) {
     case 'invalid_type':
@@ -95,8 +104,3 @@ const jaErrorMap: z.core.$ZodErrorMap = (issue) => {
   }
   return { message };
 };
-
-// v4では z.config を使用
-z.config({
-  customError: jaErrorMap
-});

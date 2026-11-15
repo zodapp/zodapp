@@ -1,34 +1,124 @@
 {
   "name": "@zodapp/zod-form-widget",
   "version": "0.0.0",
-  "private": true,
+  "private": false,
   "description": "Reusable UI widgets for zod-form (AutoTable, AutoForm, TabularModal, etc.)",
   "author": "zodapp",
   "license": "MIT",
-  "sideEffects": [
-    "*.css",
-    "./src/i18n/zod-errormap.ja.ts"
-  ],
-  "exports": {
-    ".": "./src/index.ts",
-    "./table": "./src/table/index.ts",
-    "./tabular": "./src/tabular/index.ts",
-    "./form": "./src/form/index.ts",
-    "./feedback": "./src/feedback/index.ts",
-    "./i18n/ja": "./src/i18n/zod-errormap.ja.ts"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/zod-form-widget"
   },
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/zod-form-widget#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": [
+    "zod",
+    "form",
+    "table",
+    "mantine",
+    "react",
+    "ui"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./table": {
+      "import": {
+        "types": "./dist/table/index.d.mts",
+        "default": "./dist/table/index.mjs"
+      },
+      "require": {
+        "types": "./dist/table/index.d.ts",
+        "default": "./dist/table/index.cjs"
+      }
+    },
+    "./tabular": {
+      "import": {
+        "types": "./dist/tabular/index.d.mts",
+        "default": "./dist/tabular/index.mjs"
+      },
+      "require": {
+        "types": "./dist/tabular/index.d.ts",
+        "default": "./dist/tabular/index.cjs"
+      }
+    },
+    "./form": {
+      "import": {
+        "types": "./dist/form/index.d.mts",
+        "default": "./dist/form/index.mjs"
+      },
+      "require": {
+        "types": "./dist/form/index.d.ts",
+        "default": "./dist/form/index.cjs"
+      }
+    },
+    "./feedback": {
+      "import": {
+        "types": "./dist/feedback/index.d.mts",
+        "default": "./dist/feedback/index.mjs"
+      },
+      "require": {
+        "types": "./dist/feedback/index.d.ts",
+        "default": "./dist/feedback/index.cjs"
+      }
+    },
+    "./i18n/ja": {
+      "import": {
+        "types": "./dist/i18n/ja.d.mts",
+        "default": "./dist/i18n/ja.mjs"
+      },
+      "require": {
+        "types": "./dist/i18n/ja.d.ts",
+        "default": "./dist/i18n/ja.cjs"
+      }
+    },
+    "./styles.css": "./dist/styles.css",
+    "./styles.layer.css": "./dist/styles.layer.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
   "scripts": {
     "lint": "eslint .",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
     "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "clean": "rimraf dist .turbo node_modules"
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@mantine/dropzone": "^9.6.3",
     "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-virtual": "^3.14.26",
     "@zodapp/zod-form": "workspace:*",
@@ -40,12 +130,16 @@
   },
   "peerDependencies": {
     "@mantine/core": "^8.2.7 || ^9.0.0",
+    "@mantine/dates": "^8.2.7 || ^9.0.0",
+    "@mantine/dropzone": "^8.2.7 || ^9.0.0",
     "@mantine/hooks": "^8.2.7 || ^9.0.0",
     "@tanstack/react-form": "^1.33.1",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@mantine/dates": "^9.6.3",
+    "@mantine/dropzone": "^9.6.3",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/lodash": "^4.17.20",
@@ -56,6 +150,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "rimraf": "^6.1.2",
+    "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"
   },

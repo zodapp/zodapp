@@ -7,6 +7,6 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@zodapp/zod-form-widget"],
+  "ignore": [],
   "privatePackages": { "version": false, "tag": false }
 }

@@ -32,7 +32,8 @@ const FORBIDDEN = [
   /^docs\//,
   /^\.turbo\//,
   /^node_modules\//,
-  /\.css$/,
+  // CSS は dist にビルドしたもの（zod-form-widget の styles.css など）だけを許す
+  /^(?!dist\/).*\.css$/,
   /\.tsbuildinfo$/,
 ];
 const REQUIRED = ["package.json", "LICENSE"];
@@ -186,9 +187,16 @@ for (const { dir, pj } of packages) {
 if (versions.size > 1)
   errors.push(`version がそろっていない: ${[...versions].join(", ")}`);
 
+const cssEntrypointArgs = (pj) => {
+  const css = Object.keys(pj.exports ?? {})
+    .filter((key) => key.endsWith(".css"))
+    .map((key) => key.replace(/^\.\//, ""));
+  return css.length ? ["--exclude-entrypoints", ...css] : [];
+};
+
 // 7. publint と attw
 if (runLint) {
-  for (const { name, dir, tarball } of packed) {
+  for (const { name, dir, tarball, pj } of packed) {
     try {
       run(
         "pnpm",
@@ -202,7 +210,17 @@ if (runLint) {
       // node10 は subpath の exports を解決できないので見ない
       run(
         "pnpm",
-        ["exec", "attw", tarball, "--profile", "node16", "--format", "ascii"],
+        [
+          "exec",
+          "attw",
+          tarball,
+          "--profile",
+          "node16",
+          "--format",
+          "ascii",
+          // CSS の入口（styles.css など）には型も JS もないので、attw では見ない
+          ...cssEntrypointArgs(pj),
+        ],
         { cwd: repoRoot },
       );
     } catch (e) {
