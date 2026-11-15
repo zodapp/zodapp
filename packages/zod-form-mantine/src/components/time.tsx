@@ -30,8 +30,12 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => {
 });
 
 /** 打ち込んだ文字が読めない、または時刻として正しくないときの文言 */
-const MILLISECOND_FORMAT_ERROR =
-  "HH:mm:ss.SSS の形で、正しい時刻を入力してください";
+const millisecondFormatError = (format: string) =>
+  `${format} の形で、正しい時刻を入力してください`;
+
+/** 秒の小数の欄の書式。データが持てる桁数（3 桁まで）だけ S を並べる */
+const millisecondFormat = (fractionDigits: number | undefined) =>
+  `HH:mm:ss.${"S".repeat(Math.min(fractionDigits ?? 3, 3))}`;
 
 /**
  * 部品が自分で書いた値の戻り（エコー）と、外から変わった値（リセットなど）を見分ける。
@@ -53,11 +57,12 @@ const useExternalChangeVersion = (value: unknown) => {
 };
 
 /**
- * HH:mm:ss.SSS を打ち込む欄。打っている途中では値に書かず、blur と Enter で確定する。
+ * HH:mm:ss.SSS（precision 1・2 なら HH:mm:ss.S・HH:mm:ss.SS）を打ち込む欄。打っている途中では値に書かず、blur と Enter で確定する。
  * 確定した文字が読めなければ、文字を残したまま形式のエラーを出す（値の書き方は呼び出し側が決める）。
  * 外から値が変わったときは、呼び出し側が key を変えて作り直す
  */
 const MillisecondInput = ({
+  format,
   initialDraft,
   initialInvalid,
   onCommit,
@@ -66,6 +71,8 @@ const MillisecondInput = ({
   error,
   ...props
 }: {
+  /** 書式（placeholder とエラーの文言に使う） */
+  format: string;
   initialDraft: string;
   initialInvalid: boolean;
   /** 確定した文字を値に書き、整えた表示を返す。読めなければ null を返す */
@@ -81,9 +88,9 @@ const MillisecondInput = ({
   return (
     <TextInput
       {...props}
-      placeholder="HH:mm:ss.SSS"
+      placeholder={format}
       value={draft}
-      error={invalid ? MILLISECOND_FORMAT_ERROR : error}
+      error={invalid ? millisecondFormatError(format) : error}
       onChange={(event) => setDraft(event.currentTarget.value)}
       onKeyDown={(event) => {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) commit();
@@ -211,6 +218,7 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
           {...commonProps}
           key={version}
           ref={ref}
+          format={millisecondFormat(converter.fractionDigits)}
           // 読めない値（確定した読めない文字など）は、そのまま見せて形式のエラーを出す
           initialDraft={
             pickerValue ?? (typeof field.value === "string" ? field.value : "")

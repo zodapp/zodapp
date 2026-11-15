@@ -101,10 +101,11 @@ describe("zf.time", () => {
       }),
     });
     const form = renderForm(schemaMs, { start: "09:30" });
+    // precision 2 の欄は、小数 2 桁で見せる
     const input = (await screen.findByPlaceholderText(
-      "HH:mm:ss.SSS",
+      "HH:mm:ss.SS",
     )) as HTMLInputElement;
-    expect(input.value).toBe("09:30:00.000");
+    expect(input.value).toBe("09:30:00.00");
     expect(form.values().start).toBe("09:30");
 
     fireEvent.change(input, { target: { value: "09:30:15.25" } });
@@ -112,8 +113,35 @@ describe("zf.time", () => {
     expect(form.values().start).toBe("09:30");
     fireEvent.blur(input);
     expect(form.values().start).toBe("09:30:15.25");
-    expect(input.value).toBe("09:30:15.250");
+    expect(input.value).toBe("09:30:15.25");
   });
+
+  it.each([
+    [1, "09:30:15.2", "HH:mm:ss.S"],
+    [2, "09:30:15.25", "HH:mm:ss.SS"],
+  ])(
+    "precision %i の欄は、フォーカスして外すだけでは値もエラーも変わらない",
+    async (precision, stored, format) => {
+      const user = userEvent.setup();
+      const schema = z.object({
+        start: z.iso.time({ precision }).register(zf.time.registry, {
+          label: "開始",
+        }),
+      });
+      const form = renderForm(schema, { start: stored });
+      const input = (await screen.findByPlaceholderText(
+        format,
+      )) as HTMLInputElement;
+      expect(input.value).toBe(stored);
+      await user.click(input);
+      await user.tab();
+      expect(form.values().start).toBe(stored);
+      expect(input.value).toBe(stored);
+      expect(
+        screen.queryByText(`${format} の形で、正しい時刻を入力してください`),
+      ).toBeNull();
+    },
+  );
 
   describe("ミリ秒の欄を 1 文字ずつ打つ", () => {
     const schemaMs = z.object({

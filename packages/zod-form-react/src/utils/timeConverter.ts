@@ -202,7 +202,17 @@ export function createTimeConverter(
 
   const toPickerValue = (value: unknown): string | null => {
     const ms = valueToMs(value);
-    return ms === null ? null : formatByUnit(ms, unit);
+    if (ms === null) return null;
+    // 秒の小数が 3 桁より少ないデータは、その桁数で見せる（欄が受け付ける桁数と同じにする）
+    if (
+      unit === "millisecond" &&
+      precision !== undefined &&
+      precision >= 1 &&
+      precision < 3
+    ) {
+      return formatByPrecision(ms, precision);
+    }
+    return formatByUnit(ms, unit);
   };
 
   const fromPickerValue = (pickerValue: string | null): unknown => {

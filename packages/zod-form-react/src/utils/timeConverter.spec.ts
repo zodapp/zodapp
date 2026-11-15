@@ -25,6 +25,14 @@ describe("createTimeConverter: string", () => {
     const value = c2.fromPickerValue("09:30:15.123");
     expect(value).toBe("09:30:15.12");
     expect(s2.safeParse(value).success).toBe(true);
+    // 表示も小数 2 桁（欄が受け付ける桁数と同じ）
+    expect(c2.toPickerValue("09:30:15.12")).toBe("09:30:15.12");
+    expect(c2.toPickerValue("09:30")).toBe("09:30:00.00");
+    const c1 = createTimeConverter({ schema: z.iso.time({ precision: 1 }) });
+    expect(c1.toPickerValue("09:30:15.2")).toBe("09:30:15.2");
+    // 3 桁以上は 3 桁で見せる
+    const c3 = createTimeConverter({ schema: z.iso.time({ precision: 3 }) });
+    expect(c3.toPickerValue("09:30:15.2")).toBe("09:30:15.200");
   });
 
   it("precision なしは unit が second（既定）なら HH:mm:ss、millisecond なら HH:mm:ss.SSS で書く", () => {
