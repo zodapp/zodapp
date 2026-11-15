@@ -132,6 +132,9 @@ const getObjectDefaultValue = (schema: z.ZodTypeAny): unknown => {
   }
 };
 
+// Mantine の Input（size="sm"）の高さ
+const inputHeight = "calc(2.25rem * var(--mantine-scale))";
+
 const actionIconStyle: React.CSSProperties = {
   position: "absolute",
   left: 0,
@@ -186,72 +189,60 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
       labelElement="div" // disable auto biding of label to input
       style={inputWrapperStyle}
     >
-      <div
-        style={{
-          marginTop: readOnly ? 0 : 15,
-          minHeight: 20,
-          marginBottom: 15,
-        }}
-      >
-        {isSet ? (
+      {isSet ? (
+        <div
+          style={{
+            position: "relative",
+            paddingLeft: 25,
+          }}
+        >
           <div
             style={{
-              position: "relative",
-              paddingLeft: 25,
-              marginTop: 5,
-              marginBottom: 5,
+              border: "1px solid var(--mantine-color-gray-3)",
+              borderRadius: 4,
+              paddingLeft: 12,
+              paddingRight: 12,
+              paddingTop: 4,
+              paddingBottom: 4,
             }}
           >
-            <div
-              style={{
-                border: "1px solid var(--mantine-color-gray-3)",
-                borderRadius: 4,
-                paddingLeft: 12,
-                paddingRight: 12,
-                paddingTop: 4,
-                paddingBottom: 4,
-              }}
-            >
-              <ObjectBodyImplement
-                {...props}
-                required={undefined}
-                label={false}
-              />
-            </div>
-            {!readOnly && (
-              <ActionIcon
-                size={20}
-                variant="light"
-                color="#63687C"
-                style={actionIconStyle}
-                aria-label="削除"
-                onClick={handleRemove}
-              >
-                <IconCircleMinus />
-              </ActionIcon>
-            )}
+            <ObjectBodyImplement
+              {...props}
+              required={undefined}
+              label={false}
+            />
           </div>
-        ) : (
-          !readOnly && (
-            <div style={{ position: "relative" }}>
-              <ActionIcon
-                size={20}
-                variant="light"
-                color="#63687C"
-                style={{
-                  ...actionIconStyle,
-                  top: "calc(50% - 3px)",
-                  zIndex: 1,
-                }}
-                aria-label="追加"
-                onClick={handleAdd}
-              >
-                <IconCirclePlus />
-              </ActionIcon>
-            </div>
-          )
-        )}
-      </div>
+          {!readOnly && (
+            <ActionIcon
+              size={20}
+              variant="light"
+              color="#63687C"
+              style={actionIconStyle}
+              aria-label="削除"
+              onClick={handleRemove}
+            >
+              <IconCircleMinus />
+            </ActionIcon>
+          )}
+        </div>
+      ) : (
+        !readOnly && (
+          // 未設定のときは、＋だけの行を入力欄と同じ高さにする。
+          // 横並び（下揃え）で隣の入力欄と＋の高さがそろう
+          <div style={{ position: "relative", height: inputHeight }}>
+            <ActionIcon
+              size={20}
+              variant="light"
+              color="#63687C"
+              style={{ ...actionIconStyle, zIndex: 1 }}
+              aria-label="追加"
+              onClick={handleAdd}
+            >
+              <IconCirclePlus />
+            </ActionIcon>
+          </div>
+        )
+      )}
     </InputWrapper>
   );
 }
