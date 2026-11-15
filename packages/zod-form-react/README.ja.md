@@ -136,12 +136,22 @@ export const schema = z.object({
   - `useZodField(...)`, `useFormValues(...)`: フィールド/値参照のヘルパー
   - `useArray(fieldApi, fieldPath, discriminator?)`: 配列フィールドの insert/remove/append/move を扱うラッパー
 - **実行時の schema / 編集の出どころ**
-  - `useRunAsUserEdit()`: 渡した関数の中の値の変更を「利用者の編集」として記録する（dynamic の prune の判断に使う）
+  - `useRunAsUserEdit()`: 渡した関数の中の値の変更を「利用者の編集」として記録する（下の「編集の出どころで変わること」を参照）
   - `useDynamicSchema(meta, fieldPath)`: dynamic の resolve を呼び、結果をフォームの登録先に登録する
   - `TableRowProvider` / `useTableRow()`: 表の行の値を渡す（表用の部品はここから `parent` を受け取る）
 - **遅延ロード/検証**
   - `useLazyFactory()`: Dynamic の lazy ロード戦略（デフォルトは `React.lazy`）
   - `useValidatePrecedingFields({ name, ref })`: フォーカス時に「前のフィールド」をまとめて検証（Providerが必要）
+
+### 編集の出どころで変わること（`useRunAsUserEdit`）
+
+値の変更は、利用者の編集か、外から（アプリのコードの書き込み・`reset` など）かを記録します。部品からの入力は利用者の編集です。アプリのコードから利用者の編集として書くときは `useRunAsUserEdit()` で包みます。
+
+出どころで変わるのは、dynamic が取り直した schema に**型が合わない値の prune** だけです。
+
+- 利用者の編集で dynamic の key が変わったときは、値を新しい schema に合わせて削る（新しい schema に無い項目を消す）
+- 外からの変更なら値に触らず、合わない値は検証のエラーとして残す
+- 選択肢に無い値の `unlisted: "clear"` は、出どころに関係なく消す（消すのは利用者の編集として書くので、下の dynamic へ連鎖する）
 
 Provider コンポーネント:
 

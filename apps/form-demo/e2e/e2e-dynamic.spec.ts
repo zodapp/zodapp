@@ -234,3 +234,40 @@ for (const mode of ["すぐ届く", "1 フレーム後", "2 フレーム後"] as
     await expect(fieldError(page, "町名")).toHaveCount(0);
   });
 }
+
+test("外から書き込んで帳票の種類が変わっても、帳票の項目の値は削らない", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "すぐ届く");
+  await page
+    .getByRole("button", { name: "外から書き込む（帳票の種類を切り替える）" })
+    .click();
+  await expect(field(page, "宛名")).toBeVisible();
+  // 合わない値は残り、検証のエラーになる
+  await expect
+    .poll(async () => (await previewValue(page)).templateFields)
+    .toEqual({ dueDate: "2026-12-31", amount: 10000 });
+});
+
+test("利用者の編集として書き込んで帳票の種類が変わると、新しい項目に合わせて値を削る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "すぐ届く");
+  await page
+    .getByRole("button", {
+      name: "利用者の編集として書き込む（帳票の種類を切り替える）",
+    })
+    .click();
+  await expect(field(page, "宛名")).toBeVisible();
+  await expect
+    .poll(async () => {
+      const value = (await previewValue(page)).templateFields as Record<
+        string,
+        unknown
+      >;
+      return [value.dueDate, value.amount];
+    })
+    .toEqual([undefined, undefined]);
+});
