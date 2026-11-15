@@ -276,7 +276,9 @@ describe("dynamic", () => {
     expect(t.onSubmit).not.toHaveBeenCalled();
   });
 
-  it("親を変えると、取得中は読み込み中で送信できず、届いたら合わない値が消える", async () => {
+  // 選択肢から外れた値を消すかどうかは enum の部品が unlisted で決める。dynamic は残す
+  // （このテストの enum の部品は値を出すだけなので、値は残る）
+  it("親を変えると、取得中は読み込み中で送信できず、届いても選択肢から外れた値は dynamic では消さない", async () => {
     const t = renderForm(makeRowSchema(), { pref: "tokyo", city: "shinjuku" });
     await ctl.flush("tokyo");
     await screen.findByTestId("value-city");
@@ -288,9 +290,10 @@ describe("dynamic", () => {
     expect(t.onSubmit).not.toHaveBeenCalled();
 
     await ctl.flush("osaka");
-    await waitFor(() =>
-      expect(t.getForm().getFieldValue("city")).toBeUndefined(),
-    );
+    await screen.findByTestId("value-city");
+    expect(t.getForm().getFieldValue("city")).toBe("shinjuku");
+    await t.submit();
+    expect(t.onSubmit).not.toHaveBeenCalled();
     await t.edit("city", "kita");
     await t.submit();
     expect(t.onSubmit).toHaveBeenCalledWith({ pref: "osaka", city: "kita" });
@@ -317,7 +320,7 @@ describe("dynamic", () => {
     await ctl.flush("kyoto");
     await ctl.flush("osaka"); // 遅れて届く
     await screen.findByTestId("value-city");
-    expect(t.getForm().getFieldValue("city")).toBeUndefined();
+    expect(t.getForm().getFieldValue("city")).toBe("shinjuku");
     await t.edit("city", "sakyo");
     await t.submit();
     expect(t.onSubmit).toHaveBeenCalledWith({ pref: "kyoto", city: "sakyo" });
@@ -462,7 +465,7 @@ describe("dynamic", () => {
         })
         .register(zf.object.registry, { properties: ["pref", "memo", "city"] });
 
-    it("兄弟の欄を変えても取り直さず、key が変わったときだけ取り直して prune する", async () => {
+    it("兄弟の欄を変えても取り直さず、key が変わったときだけ取り直す", async () => {
       const load = vi.fn((pref: string) => ctl.fetcher(pref));
       const t = renderForm(makeLoadRow(load), {
         pref: "tokyo",
@@ -481,9 +484,7 @@ describe("dynamic", () => {
       expect(load.mock.calls.length).toBeGreaterThan(calls);
       expect(statusOf()).toContain("pending");
       await ctl.flush("osaka");
-      await waitFor(() =>
-        expect(t.getForm().getFieldValue("city")).toBeUndefined(),
-      );
+      await waitFor(() => expect(statusOf()).not.toContain("pending"));
     });
 
     it("失敗のあとの再試行は、key が同じでも load を呼び直す", async () => {

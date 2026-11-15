@@ -162,7 +162,9 @@ const renderForm = (
   return { getForm, runtime, onSubmit, submit, edit };
 };
 
-const owner = (options: { allowUnlisted?: boolean } = {}) =>
+const owner = (
+  options: { allowUnlisted?: boolean; unlisted?: "keep" | "clear" } = {},
+) =>
   zf.string().register(zf.externalKey.registry, {
     label: "担当者",
     externalKeyConfig: { type: "list", list: "members" },
@@ -198,11 +200,26 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
   });
 
-  it("既定は enum なので、選択肢に無い保存値は残したまま送信を止める", async () => {
+  it("既定（unlisted: clear）では、選択肢に無い保存値を消す", async () => {
     const r = makeResolvers();
     const t = renderForm(z.object({ owner: owner() }), { owner: "gone" }, r.resolvers);
     await r.publish("members", [{ label: "山田", value: "u1" }]);
+    await waitFor(() => expect(t.getForm().getFieldValue("owner")).toBeUndefined());
+  });
+
+  it("unlisted: keep なら、選択肢に無い保存値を残し、「（不正な値）」と出して送信を止める", async () => {
+    const r = makeResolvers();
+    const t = renderForm(
+      z.object({ owner: owner({ unlisted: "keep" }) }),
+      { owner: "gone" },
+      r.resolvers,
+    );
+    await r.publish("members", [{ label: "山田", value: "u1" }]);
     await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("resolved"));
+    await screen.findByDisplayValue("（不正な値）");
+    expect(
+      screen.getByText("選択肢に無い値です。選び直してください。"),
+    ).toBeTruthy();
     await t.submit();
     expect(t.onSubmit).not.toHaveBeenCalled();
     expect(t.getForm().getFieldValue("owner")).toBe("gone");
@@ -221,9 +238,13 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "gone" });
   });
 
-  it("選択肢だけが更新されても購読を張り直さず、値を消さない", async () => {
+  it("選択肢だけが更新されても購読を張り直さない。unlisted: keep なら値を消さない", async () => {
     const r = makeResolvers();
-    const t = renderForm(z.object({ owner: owner() }), { owner: "u1" }, r.resolvers);
+    const t = renderForm(
+      z.object({ owner: owner({ unlisted: "keep" }) }),
+      { owner: "u1" },
+      r.resolvers,
+    );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
     await screen.findByDisplayValue("山田");
     await r.publish("members", [{ label: "佐藤", value: "u2" }]);
