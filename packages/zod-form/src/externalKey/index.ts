@@ -14,5 +14,9 @@ export type {
   RegisteredExternalKeyConfig,
 } from "./types";
 
-export type { MockExternalKeyConfig, MockExternalKeyOption } from "./mock";
-export { createMockExternalKeyResolver } from "./mock";
+export type {
+  MockExternalKeyConfig,
+  MockExternalKeyOption,
+  MockTopic,
+} from "./mock";
+export { createMockExternalKeyResolver, createMockTopic } from "./mock";

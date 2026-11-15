@@ -4,68 +4,85 @@ import type { BaseExternalKeyConfig, ExternalKeyResolverEntry } from "./types";
 export type MockExternalKeyOption = { label: string; value: string };
 
 /**
+ * 値を一つ持ち、変更を購読者に届けるだけのオブジェクト（pub/sub）。
+ * モックの resolver の出どころとして使う。データの作り方や更新の仕方は使う側が決める
+ */
+export type MockTopic<T> = {
+  /** 今の値 */
+  get: () => T;
+  /** 値を変え、購読者全員に届ける。関数を渡すと今の値から作る */
+  set: (next: T | ((prev: T) => T)) => void;
+  /** 値が変わるたびに listener を呼ぶ。戻り値で購読をやめる */
+  subscribe: (listener: (value: T) => void) => () => void;
+};
+
+export const createMockTopic = <T>(initial: T): MockTopic<T> => {
+  let value = initial;
+  const listeners = new Set<(value: T) => void>();
+  return {
+    get: () => value,
+    set: (next) => {
+      value =
+        typeof next === "function" ? (next as (prev: T) => T)(value) : next;
+      for (const listener of [...listeners]) listener(value);
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+};
+
+/**
  * モックの externalKey の config。
  *
- * - `source`: 選択肢の出どころの名前（`createMockExternalKeyResolver` の `sources` のキー）
- * - `params`: 出どころに渡す値（親の値で選択肢を変えるときなど）
- * - `delayMs`: 選択肢を返すまでの待ち時間。読み込み中の表示を見るため
- * - `updateIntervalMs`: 指定すると、この間隔で選択肢を届け直す（購読の更新を見るため）。
- *   出どころの関数は 2 つ目の引数に、何回目に届けるか（0 始まり）を受け取る
+ * - `topic`: 選択肢の出どころ（`createMockExternalKeyResolver` の `topics` のキー）。
+ *   親の値で選択肢を変えるときは、`cities/${prefecture}` のように名前に値を入れる
+ * - `delayMs`: 最初の選択肢を返すまでの待ち時間。読み込み中の表示を見るため
  */
 export type MockExternalKeyConfig<TType extends string = "mock"> =
   BaseExternalKeyConfig<TType> & {
-    source: string;
-    params?: Record<string, string | number | boolean | null | undefined>;
+    topic: string;
     delayMs?: number;
-    updateIntervalMs?: number;
   };
 
 /**
  * ローカル開発用のモック externalKey resolver。
- * `sources` に書いた関数から選択肢を作り、`delayMs` だけ待ってから返す。
+ * `delayMs` だけ待ってから topic の今の選択肢を返し、そのあとは topic が変わるたびに届け直す。
+ * 無い topic は空の選択肢を一度返す。
  *
  * @example
- * createMockExternalKeyResolver({
- *   sources: {
- *     users: () => [{ label: "山田", value: "u1" }],
- *     cities: (params) => CITIES[String(params.prefecture)] ?? [],
- *   },
- * })
+ * const users = createMockTopic([{ label: "山田", value: "u1" }]);
+ * createMockExternalKeyResolver({ topics: { users } });
+ * // あとで users.set(...) すると、購読中の欄に新しい選択肢が届く
  */
 export const createMockExternalKeyResolver = <TType extends string = "mock">({
   type = "mock" as TType,
-  sources,
+  topics,
   delayMs: defaultDelayMs = 300,
 }: {
   type?: TType;
-  sources: Record<
-    string,
-    (
-      params: NonNullable<MockExternalKeyConfig["params"]>,
-      tick: number,
-    ) => MockExternalKeyOption[]
-  >;
+  topics: Record<string, MockTopic<MockExternalKeyOption[]>>;
   delayMs?: number;
 }): ExternalKeyResolverEntry<TType, MockExternalKeyConfig<TType>> => ({
   type,
   resolver: (config) => ({
     subscribe: (callback) => {
-      const source = sources[config.source];
-      let tick = 0;
-      const send = () => {
-        callback(source ? source(config.params ?? {}, tick) : []);
-        tick += 1;
-      };
-      let interval: ReturnType<typeof setInterval> | undefined;
+      const topic = topics[config.topic];
+      let unsubscribeTopic: (() => void) | undefined;
       const timer = setTimeout(() => {
-        send();
-        if (config.updateIntervalMs) {
-          interval = setInterval(send, config.updateIntervalMs);
+        if (!topic) {
+          callback([]);
+          return;
         }
+        callback(topic.get());
+        unsubscribeTopic = topic.subscribe(callback);
       }, config.delayMs ?? defaultDelayMs);
       return () => {
         clearTimeout(timer);
-        if (interval) clearInterval(interval);
+        unsubscribeTopic?.();
       };
     },
   }),
