@@ -16,7 +16,6 @@ export const searchFilterSchema = zf
           .register(zf.string.registry, { label: "プロジェクト名" })
           .optional(),
       })
-      .register(zf.object.registry, { uiType: "flatten" })
       .optional(),
     status: zf
       .enum(projectStatusLiterals)
