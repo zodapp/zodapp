@@ -82,8 +82,18 @@ const ArrayView = (props: ZodFormInternalProps<any>) => {
   );
 };
 
+// 読み込みを止めておける部品（React.lazy と同じく、読み込むまで suspend する）
+let releaseLazyNumber: (() => void) | undefined;
+const LazyNumberView = React.lazy(
+  () =>
+    new Promise<{ default: typeof ValueView }>((resolve) => {
+      releaseLazyNumber = () => resolve({ default: ValueView });
+    }),
+);
+
 const componentLibrary = {
   optional: () => ({ component: OptionalComponent }),
+  number: () => ({ component: LazyNumberView }),
   object: () => ({ component: ObjectComponent }),
   string: () => ({ component: ValueView }),
   enum: () => ({ component: ValueView }),
@@ -606,5 +616,28 @@ describe("dynamic", () => {
       ]);
       expect(t.runtime.get("rows[1].city")).toBeUndefined();
     });
+  });
+
+  it("決まった schema の部品を読み込むあいだは、この欄だけを読み込み中にし、ほかの欄は出したままにする", async () => {
+    const x = z.unknown().register(
+      zf.dynamic.registry,
+      defineDynamicMeta({
+        dependsOnValue: false,
+        resolve: () => ({ key: "number", schema: z.number() }),
+      }),
+    );
+    const root = z
+      .object({ name: z.string(), x })
+      .register(zf.object.registry, { properties: ["name", "x"] });
+    renderForm(root, { name: "a", x: 1 });
+    await waitFor(() => expect(releaseLazyNumber).toBeDefined());
+    expect(screen.getByTestId("value-name")).toHaveProperty(
+      "textContent",
+      "string:a",
+    );
+    expect(screen.getByText("読み込み中")).toBeTruthy();
+    await act(async () => releaseLazyNumber!());
+    expect((await screen.findByTestId("value-x")).textContent).toBe("number:1");
+    expect(screen.queryByText("読み込み中")).toBeNull();
   });
 });

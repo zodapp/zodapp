@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Loader, Select } from "@mantine/core";
 import {
   Switch,
@@ -31,20 +31,22 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   const depth = useDynamicDepth(fieldPath);
   const state = useDynamicSchema(dynamicMeta, fieldPath, { required });
 
+  const loadingView = (status?: "loading" | "pending") => (
+    <Select
+      value={null}
+      data={[]}
+      label={label || undefined}
+      required={required !== false}
+      disabled={true}
+      rightSection={<Loader size="xs" />}
+      placeholder="読み込み中"
+      style={inputWrapperStyle}
+      data-dynamic-status={status}
+    />
+  );
+
   if (state.status === "loading" || state.status === "pending") {
-    return (
-      <Select
-        value={null}
-        data={[]}
-        label={label || undefined}
-        required={required !== false}
-        disabled={true}
-        rightSection={<Loader size="xs" />}
-        placeholder="読み込み中"
-        style={inputWrapperStyle}
-        data-dynamic-status={state.status}
-      />
-    );
+    return loadingView(state.status);
   }
 
   if (state.status === "error") {
@@ -56,10 +58,13 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
     );
   }
 
+  // 子の部品を読み込むあいだは、この欄だけを読み込み中にする
   return (
-    <DynamicDepthProvider path={fieldPath} depth={depth}>
-      <Switch {...props} schema={state.schema} />
-    </DynamicDepthProvider>
+    <Suspense fallback={loadingView()}>
+      <DynamicDepthProvider path={fieldPath} depth={depth}>
+        <Switch {...props} schema={state.schema} />
+      </DynamicDepthProvider>
+    </Suspense>
   );
 });
 
