@@ -1,12 +1,14 @@
 /**
  * フォームのデモで使う resolver（DB やルーターに依存しないモック）
  *
- * - externalKey: createMockExternalKeyResolver で、下の固定データから選択肢を返す
+ * - externalKey: 下のデータを topic（createMockTopic）に入れ、createMockExternalKeyResolver で選択肢として届ける。
+ *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする
  * - valueAction: getActionParams が返す href をリンクにする
  */
 import { Anchor } from "@mantine/core";
 import {
   createMockExternalKeyResolver,
+  createMockTopic,
   type ExternalKeyResolvers,
   type MockExternalKeyOption,
 } from "@zodapp/zod-form";
@@ -65,19 +67,36 @@ export const towns: Record<string, MockExternalKeyOption[]> = {
   hakodate: [{ label: "元町", value: "motomachi" }],
 };
 
+const topicsOf = (
+  prefix: string,
+  data: Record<string, MockExternalKeyOption[]>,
+) =>
+  Object.fromEntries(
+    Object.entries(data).map(([name, options]) => [
+      `${prefix}/${name}`,
+      createMockTopic(options),
+    ]),
+  );
+
+export const demoTopics = {
+  users: createMockTopic(users),
+  prefectures: createMockTopic(prefectures),
+  // 5 秒ごとに一人ずつ外れる（購読の更新を見るため）
+  onDuty: createMockTopic(users.filter((_, i) => i !== 0)),
+  ...topicsOf("cities", cities),
+  ...topicsOf("towns", towns),
+};
+
+let onDutyTick = 0;
+setInterval(() => {
+  onDutyTick += 1;
+  demoTopics.onDuty.set(
+    users.filter((_, i) => i !== onDutyTick % users.length),
+  );
+}, 5000);
+
 export const demoExternalKeyResolvers: ExternalKeyResolvers = [
-  createMockExternalKeyResolver({
-    delayMs: 400,
-    sources: {
-      users: () => users,
-      // 届けるたびに一人ずつ外れる（購読の更新を見るため）
-      onDuty: (_params, tick) =>
-        users.filter((_, i) => i !== tick % users.length),
-      prefectures: () => prefectures,
-      cities: ({ prefecture }) => cities[String(prefecture)] ?? [],
-      towns: ({ city }) => towns[String(city)] ?? [],
-    },
-  }),
+  createMockExternalKeyResolver({ delayMs: 400, topics: demoTopics }),
 ];
 
 /** 値を、getActionParams が返した href へのリンクで包む */

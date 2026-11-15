@@ -37,8 +37,7 @@ const citySchema = z.string().register(
         label: "市区町村",
         externalKeyConfig: {
           type: "mock",
-          source: "cities",
-          params: { prefecture: parent?.prefecture },
+          topic: `cities/${parent?.prefecture ?? ""}`,
         },
       }),
     }),
@@ -88,34 +87,30 @@ export const schema = z
     // ============================================================
     assignee: zf.string().register(zf.externalKey.registry, {
       label: "externalKey（既定：選択肢に無い値は誤り）+ valueAction",
-      externalKeyConfig: { type: "mock", source: "users" },
+      externalKeyConfig: { type: "mock", topic: "users" },
       valueAction: openUser,
     }),
     assigneeFree: zf.string().register(zf.externalKey.registry, {
       label: "externalKey + allowUnlisted（選択肢に無い値も通す）",
-      externalKeyConfig: { type: "mock", source: "users" },
+      externalKeyConfig: { type: "mock", topic: "users" },
       allowUnlisted: true,
     }),
     slowAssignee: zf.string().register(zf.externalKey.registry, {
       label:
         "externalKey（取得に 3 秒かかる。読み込み中は選べず、送信も止まる）",
-      externalKeyConfig: { type: "mock", source: "users", delayMs: 3000 },
+      externalKeyConfig: { type: "mock", topic: "users", delayMs: 3000 },
     }),
     onDuty: zf.string().register(zf.externalKey.registry, {
       label:
         "externalKey（5 秒ごとに選択肢が届き直す。同じ key なので、選んだ人が選択肢から外れても値は消えず、検証で止まる）",
-      externalKeyConfig: {
-        type: "mock",
-        source: "onDuty",
-        updateIntervalMs: 5000,
-      },
+      externalKeyConfig: { type: "mock", topic: "onDuty" },
     }),
     // ============================================================
     // 親の値で選択肢を変える externalKey（dynamic で包む）
     // ============================================================
     prefecture: zf.string().register(zf.externalKey.registry, {
       label: "都道府県",
-      externalKeyConfig: { type: "mock", source: "prefectures" },
+      externalKeyConfig: { type: "mock", topic: "prefectures" },
     }),
     city: citySchema,
   })

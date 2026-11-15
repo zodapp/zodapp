@@ -75,7 +75,7 @@ export const schema = z
       }),
     assignee: zf.string().register(zf.externalKey.registry, {
       label: "担当（externalKey）",
-      externalKeyConfig: { type: "mock", source: "users" },
+      externalKeyConfig: { type: "mock", topic: "users" },
     }),
     start: z.number().register(zf.time.registry, {
       label: "開始（time）",

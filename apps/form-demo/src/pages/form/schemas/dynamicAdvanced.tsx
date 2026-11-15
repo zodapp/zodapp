@@ -134,8 +134,7 @@ const citySchema = z.string().register(
         label: "市区町村",
         externalKeyConfig: {
           type: "mock",
-          source: "cities",
-          params: { prefecture: parent?.prefecture },
+          topic: `cities/${parent?.prefecture ?? ""}`,
         },
       }),
     }),
@@ -153,8 +152,7 @@ const townSchema = z.string().register(
         label: "町名",
         externalKeyConfig: {
           type: "mock",
-          source: "towns",
-          params: { city: parent?.city },
+          topic: `towns/${parent?.city ?? ""}`,
         },
       }),
     }),
@@ -177,7 +175,7 @@ export const schema = z
     quantity: quantitySchema,
     prefecture: zf.string().register(zf.externalKey.registry, {
       label: "都道府県",
-      externalKeyConfig: { type: "mock", source: "prefectures" },
+      externalKeyConfig: { type: "mock", topic: "prefectures" },
     }),
     city: citySchema,
     town: townSchema,
