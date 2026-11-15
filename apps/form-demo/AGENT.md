@@ -58,6 +58,12 @@ e2e で確かめたいことは、メニューに出ない e2e 用のデモペ�
 - e2e は、値・エラー・回数・ログを `page.evaluate` で読む（`e2e/helpers.ts` の `formDemo`・`previewValue`・`logOf`）。変わるのを待つときは `expect.poll` を使う。プレビューの文字を JSON として読まない
 - 利用者が見るもの（欄の表示・選択肢・エラーの文言・読み込み中や再試行の表示）は、画面で確かめる
 
+部品を置かない（または一部だけの）ページと、その理由。e2e では、これらのページの値やエラーは画面で確かめる。
+
+- `reactiveBasicInput`・`reactiveEnumSelect`・`reactiveNestedObject`・`reactiveReadOnly`・`reactiveRecord`：`ReactiveAutoForm` で描く。`ReactiveAutoForm` には `actionComponents` が無いので、部品も `window.__formDemo` も無い（今のプレビューだけ。`ReactiveAutoForm` に `actionComponents` は足さないと決めた）
+- `tableView`：フォームではなく表（`AutoTable`）だけなので、部品も `window.__formDemo` も無い
+- `formActions`：部品は置くが `submit: false`（このページは actions のボタンが主題なので、部品の「送信」を出さない）。`window.__formDemo` はある
+
 ログ（`log`）の 1 件は `{ type, at, … }`（`at` はページを開いてからの ms）。
 
 - `value`：値の変更。`changes` に、変わった欄ごとの `path`・`before`・`after`
