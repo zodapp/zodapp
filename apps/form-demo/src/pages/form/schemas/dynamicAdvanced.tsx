@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { zf, defineDynamicMeta, type ResolvedSchema } from "@zodapp/zod-form";
+import { zf, defineDynamicMeta } from "@zodapp/zod-form";
 import { useRunAsUserEdit } from "@zodapp/zod-form-react/common";
 import type { AutoFormActionComponent } from "@zodapp/zod-form-widget/form";
 import { Button, Group, Stack, Switch, Text } from "@mantine/core";
@@ -15,18 +15,17 @@ import {
 export const formId = "dynamicAdvanced";
 export const title = "動的スキーマの応用";
 export const description =
-  "非同期の resolve（読み込み中・失敗と再試行）、購読で届き続ける schema、親の値で決まる dynamic の連鎖と prune、利用者の編集と外からの変更の違い";
+  "非同期の resolve（{ key, load }、読み込み中・失敗と再試行）、購読で届き続ける schema、親の値で決まる dynamic の連鎖と prune、利用者の編集と外からの変更の違い";
 export const icon = IconBolt;
 export const category = "Advanced";
 
 // ============================================================
-// 1. 非同期の resolve：Promise を返す。取り直し中は読み込み中で、送信も止まる
+// 1. 非同期の resolve：{ key, load } を返す。取り直し中は読み込み中で、送信も止まる
 //
-//    dependsOnParent の resolve は、兄弟の欄に入力するたびに呼び直される。
-//    そこで重い取得を直接書くと入力のたびに取り直すので、二段にする。
-//    - 外側：親の帳票の種類から、同期で内側の schema を選ぶ（key は帳票の種類）
-//    - 内側：自分の値にも親にも依存しない非同期の resolve。帳票の種類ごとに一つ作って使い回す
-//    重い処理の共有は resolve を書く側の責任（外側が同じ schema を返せば、内側は呼び直されない）
+//    key は取得の単位。同じ key のあいだは load を呼び直さないので、
+//    dependsOnParent で兄弟の欄に入力しても取り直さない（帳票の種類が変わったときだけ取り直す）。
+//    load が使う値（ここでは帳票の種類）は key に入れる。
+//    load は { schema, key } を返せる。取得のあとで決まる同一性（リビジョンなど）はそこで返す
 // ============================================================
 
 // 画面のスイッチで切り替える。オンのあいだは取得が失敗する
@@ -65,27 +64,6 @@ const templateFields: Record<Template, () => z.ZodTypeAny> = {
       }),
 };
 
-/** 帳票の種類ごとの、項目を取りに行く dynamic（作るのは種類ごとに一度だけ） */
-const fetchedFieldsSchemas = new Map<Template, z.ZodTypeAny>();
-const fetchedFieldsSchema = (template: Template) => {
-  let schema = fetchedFieldsSchemas.get(template);
-  if (!schema) {
-    schema = z.unknown().register(
-      zf.dynamic.registry,
-      defineDynamicMeta({
-        dependsOnValue: false,
-        resolve: async (): Promise<ResolvedSchema> => {
-          await wait(1000);
-          if (failure.on) throw new Error("取得に失敗しました（デモ）");
-          return { key: template, schema: templateFields[template]() };
-        },
-      }),
-    );
-    fetchedFieldsSchemas.set(template, schema);
-  }
-  return schema;
-};
-
 const templateFieldsSchema = z.unknown().register(
   zf.dynamic.registry,
   defineDynamicMeta<unknown, { template?: Template }>({
@@ -93,7 +71,15 @@ const templateFieldsSchema = z.unknown().register(
     dependsOnParent: true,
     resolve: ({ parent }) => {
       const template = parent?.template ?? "invoice";
-      return { key: template, schema: fetchedFieldsSchema(template) };
+      return {
+        key: template,
+        load: async () => {
+          await wait(1000);
+          if (failure.on) throw new Error("取得に失敗しました（デモ）");
+          // 取得した定義のリビジョンを key に含める（リビジョンが変われば別の schema とみなす）
+          return { key: `${template}@1`, schema: templateFields[template]() };
+        },
+      };
     },
   }),
 );

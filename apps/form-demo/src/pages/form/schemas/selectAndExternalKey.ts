@@ -5,7 +5,7 @@ import { IconListSearch } from "@tabler/icons-react";
 export const formId = "selectAndExternalKey";
 export const title = "選択式と外部キー";
 export const description =
-  "string の選択式、値ごとの操作（valueAction）、外部キー（externalKey）と allowUnlisted、親の値で選択肢を変える外部キー";
+  "string の選択式、値ごとの操作（valueAction）、外部キー（externalKey）と allowUnlisted、選択肢が届き直す外部キー、親の値で選択肢を変える外部キー";
 export const icon = IconListSearch;
 export const category = "Advanced";
 
@@ -101,6 +101,15 @@ export const schema = z
         "externalKey（取得に 3 秒かかる。読み込み中は選べず、送信も止まる）",
       externalKeyConfig: { type: "mock", source: "users", delayMs: 3000 },
     }),
+    onDuty: zf.string().register(zf.externalKey.registry, {
+      label:
+        "externalKey（5 秒ごとに選択肢が届き直す。同じ key なので、選んだ人が選択肢から外れても値は消えず、検証で止まる）",
+      externalKeyConfig: {
+        type: "mock",
+        source: "onDuty",
+        updateIntervalMs: 5000,
+      },
+    }),
     // ============================================================
     // 親の値で選択肢を変える externalKey（dynamic で包む）
     // ============================================================
@@ -120,6 +129,7 @@ export const defaultValues = {
   assignee: "u-taro",
   assigneeFree: "u-retired",
   slowAssignee: "u-sato",
+  onDuty: "u-sato",
   prefecture: "tokyo",
   city: "shinjuku",
 } as unknown as z.input<typeof schema>;

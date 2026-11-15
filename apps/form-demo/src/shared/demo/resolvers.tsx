@@ -70,6 +70,9 @@ export const demoExternalKeyResolvers: ExternalKeyResolvers = [
     delayMs: 400,
     sources: {
       users: () => users,
+      // 届けるたびに一人ずつ外れる（購読の更新を見るため）
+      onDuty: (_params, tick) =>
+        users.filter((_, i) => i !== tick % users.length),
       prefectures: () => prefectures,
       cities: ({ prefecture }) => cities[String(prefecture)] ?? [],
       towns: ({ city }) => towns[String(city)] ?? [],
