@@ -80,9 +80,18 @@ export type SupportedDateSchema =
  *   -1 → minute、0 → second、1 以上 → millisecond）
  * - z.iso.date(): DateOnlyUnit のみ（デフォルト: day）
  *
- * z.iso.datetime の保存形式は precision に合わせる（-1 なら `YYYY-MM-DDTHH:mm`）。
- * precision が無ければミリ秒まで書く。unit は UI の粒度だけを決めるので、
- * 「データは秒まで持てる形式で、UI は分まで」は precision なし + unit: "minute" で書ける。
+ * z.iso.datetime の保存形式（zf.time と同じ決まり）:
+ * - precision あり: precision に合わせる（-1 なら `YYYY-MM-DDTHH:mm`、0 なら `YYYY-MM-DDTHH:mm:ss`、
+ *   1 以上なら秒の小数をその桁数）。unit を precision が持てるより細かくすると値に入らないので、
+ *   定義の誤りとしてエラーを投げる（-1 に second / millisecond、0 に millisecond）。
+ * - precision なし: zod はどの粒度の形式も受け付けるので、unit で形を決める
+ *   （minute / second は `YYYY-MM-DDTHH:mm:ss`、millisecond は `YYYY-MM-DDTHH:mm:ss.SSS`。
+ *   z.iso.datetime() は末尾に `Z` を付ける）。このため precision なしのフィールドの unit を
+ *   後から変えると、保存済みの値と形が混ざるので変えないこと。
+ *
+ * unit が保存値より粗いとき、編集すると unit より細かい部分は 0 になる
+ * （例: precision なし + unit: "minute" は秒を 00 にして書く）。
+ * 値を書くのは利用者が編集したときだけで、開いただけでは書き換えない。
  *
  * 注: millisecond は明示的に指定した場合のみ使用（readOnly 表示でミリ秒精度を維持）
  *
@@ -182,6 +191,12 @@ const TIME_ONLY_UNITS: readonly TimeOnlyUnit[] = [
   "millisecond",
 ];
 
+const TIME_UNIT_RANK: Record<TimeOnlyUnit, number> = {
+  minute: 0,
+  second: 1,
+  millisecond: 2,
+};
+
 function isDateOnlyUnit(unit: DateUnit): unit is DateOnlyUnit {
   return (DATE_ONLY_UNITS as readonly string[]).includes(unit);
 }
@@ -201,12 +216,22 @@ function validateParams(
   schemaType: SchemaType,
   unit: DateUnit,
   encoding: DateEncoding,
+  precision: number | undefined,
 ): void {
   // Unit 制約
   if (schemaType === "isoDatetime" || schemaType === "isoDatetimeLocal") {
     if (!isTimeOnlyUnit(unit)) {
       throw new Error(
         `z.iso.datetime() requires TimeOnlyUnit ("minute" | "second" | "millisecond"), but got "${unit}"`,
+      );
+    }
+    // unit が precision の持てる粒度より細かいと値に入らないので、定義の誤りとする
+    if (
+      precision !== undefined &&
+      TIME_UNIT_RANK[unit] > TIME_UNIT_RANK[precisionToUnit(precision)]
+    ) {
+      throw new Error(
+        `zf.date: unit "${unit}" is finer than the stored value (precision ${precision})`,
       );
     }
   }
@@ -272,7 +297,7 @@ export function createDateConverter(
   const encoding = params.encoding ?? inferDefaultEncoding(schema);
 
   // 実行時バリデーション（registry の型制約が緩いため必要）
-  validateParams(schemaType, unit, encoding);
+  validateParams(schemaType, unit, encoding, precision);
 
   // timestamp encoding では timezone が必須だが、未指定時はシステムデフォルトにフォールバック
   const tz =
@@ -320,6 +345,9 @@ export function createDateConverter(
   // --------------------------------------------------------
   // formatValue: dayjs → 保存形式（schema の型に応じて）
   // --------------------------------------------------------
+  // z.iso.datetime で書く桁数。precision が無ければ unit で決める
+  // （minute / second は秒まで、millisecond はミリ秒まで）
+  const writePrecision = precision ?? (unit === "millisecond" ? 3 : 0);
   const formatValue = (d: dayjs.Dayjs): unknown => {
     switch (schemaType) {
       case "date":
@@ -327,13 +355,17 @@ export function createDateConverter(
       case "number":
         return d.valueOf();
       case "isoDatetime":
-        // precision 未指定: "YYYY-MM-DDTHH:mm:ss.SSSZ"
-        return precision === undefined
-          ? d.toISOString()
-          : `${formatIsoDatetimeBody(d.utc(), precision)}Z`;
+        // UI の粒度より細かい部分は 0 にする
+        return `${formatIsoDatetimeBody(
+          d.startOf(unit as TimeOnlyUnit).utc(),
+          writePrecision,
+        )}Z`;
       case "isoDatetimeLocal":
-        // オフセットなし。precision 未指定: "YYYY-MM-DDTHH:mm:ss.SSS"
-        return formatIsoDatetimeBody(d, precision ?? 3);
+        // オフセットなし。UI の粒度より細かい部分は 0 にする
+        return formatIsoDatetimeBody(
+          d.startOf(unit as TimeOnlyUnit),
+          writePrecision,
+        );
       case "isoDate":
         return d.format("YYYY-MM-DD");
     }
@@ -426,11 +458,7 @@ function inferDefaultUnit(schema: SupportedDateSchema): DateUnit {
   }
   // z.iso.datetime({ precision }) は精度から決める（-1: 分、0: 秒、1 以上: ミリ秒）
   const precision = getIsoDatetimePrecision(schema);
-  if (precision !== undefined) {
-    if (precision < 0) return "minute";
-    if (precision === 0) return "second";
-    return "millisecond";
-  }
+  if (precision !== undefined) return precisionToUnit(precision);
   // ZodDate, ZodNumber, ZodISODateTime はデフォルト second
   return "second";
 }
@@ -453,6 +481,13 @@ function getIsoDatetimePrecision(
   const precision = (schema._zod.def as { precision?: number | null })
     .precision;
   return typeof precision === "number" ? precision : undefined;
+}
+
+/** precision から、文字列が持てる一番細かい粒度を返す */
+function precisionToUnit(precision: number): TimeOnlyUnit {
+  if (precision < 0) return "minute";
+  if (precision === 0) return "second";
+  return "millisecond";
 }
 
 /**
