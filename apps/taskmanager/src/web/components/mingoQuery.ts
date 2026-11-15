@@ -6,16 +6,28 @@ const escapeRegex = (str: string): string => {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" &&
+  value !== null &&
+  Object.getPrototypeOf(value) === Object.prototype;
+
 /**
- * 再帰的に undefined を削除する
+ * mingo に渡す前に、クエリから「条件になっていないもの」を再帰的に取り除く。
+ *
+ * - undefined の値を削除する
+ * - 削除した結果が空になった plain object（`{ name: {} }` の `{}`）も削除する。
+ *   mingo は `{ name: {} }` を「name が空 object と等しい」と解釈し、何もヒットしなくなるため
+ * - Date / Set / Map はそのまま残す。配列は要素を掃除するが、空になっても残す
+ *
+ * 全体が空になったときは undefined を返す（条件なし）。
  */
-export const cleanQuery = <T>(obj: T): T => {
+export const cleanQuery = <T>(obj: T): T | undefined => {
   if (typeof obj !== "object" || obj === null) return obj;
   if (Array.isArray(obj)) {
     return obj.map(cleanQuery).filter((v) => v !== undefined) as T;
   }
 
-  if (obj instanceof Date || obj instanceof Set || obj instanceof Map) {
+  if (!isPlainObject(obj)) {
     return obj;
   }
 
@@ -26,7 +38,7 @@ export const cleanQuery = <T>(obj: T): T => {
       result[key] = cleaned;
     }
   }
-  return result as T;
+  return Object.keys(result).length > 0 ? (result as T) : undefined;
 };
 
 /**
