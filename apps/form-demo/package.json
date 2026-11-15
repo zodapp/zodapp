@@ -18,7 +18,8 @@
     "lint": "eslint .",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@mantine/code-highlight": "^9.6.3",
@@ -33,9 +34,9 @@
     "@zodapp/react-storage": "workspace:*",
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
-    "@zodapp/zod-form-widget": "workspace:*",
     "@zodapp/zod-form-mantine": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",
+    "@zodapp/zod-form-widget": "workspace:*",
     "@zodapp/zod-searchparams": "workspace:*",
     "@zodapp/zod-tabular": "workspace:*",
     "react": "^19.3.1",
@@ -44,6 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.19.7",
