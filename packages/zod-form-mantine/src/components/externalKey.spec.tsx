@@ -85,6 +85,27 @@ const makeResolvers = () => {
         },
       }),
     },
+    {
+      // 関数で絞り込む resolver（config の違いが関数だけになる例）
+      type: "picked",
+      resolver: (config: {
+        type: string;
+        list: string;
+        pick: (option: Option) => boolean;
+      }) => ({
+        subscribe: (callback: (options: Option[]) => void) => {
+          subscribeCount(config.list);
+          const filtered = (options: Option[]) =>
+            callback(options.filter(config.pick));
+          const set = listeners.get(config.list) ?? new Set();
+          set.add(filtered);
+          listeners.set(config.list, set);
+          const options = latest.get(config.list);
+          if (options) filtered(options);
+          return () => set.delete(filtered);
+        },
+      }),
+    },
   ];
   const publish = async (list: string, options: Option[]) => {
     latest.set(list, options);
@@ -237,5 +258,65 @@ describe("externalKey（dynamic + ラッパー）", () => {
     await waitFor(() =>
       expect(t.getForm().getFieldValue("member")).toBeUndefined(),
     );
+  });
+
+  describe("config の key", () => {
+    const options: Option[] = [
+      { label: "X", value: "x" },
+      { label: "Y", value: "y" },
+    ];
+    // 親の値で絞り込みの関数だけを差し替える
+    const memberSchema = (withKey: boolean) =>
+      z.string().register(
+        zf.dynamic.registry,
+        defineDynamicMeta<unknown, { team?: string }>({
+          dependsOnValue: false,
+          dependsOnParent: true,
+          resolve: ({ parent }) => {
+            const team = parent?.team ?? "";
+            return {
+              key: team,
+              schema: zf.string().register(zf.externalKey.registry, {
+                label: "メンバー",
+                externalKeyConfig: {
+                  type: "picked",
+                  list: "all",
+                  pick: (option: Option) => option.value === team,
+                  ...(withKey ? { key: team } : {}),
+                },
+              }),
+            };
+          },
+        }),
+      );
+
+    it("関数だけが違う config は、key を書けば別の config として取り直し、選択肢に無い値を消す", async () => {
+      const r = makeResolvers();
+      await r.publish("all", options);
+      const schema = z.object({ team: z.string(), member: memberSchema(true) });
+      const t = renderForm(schema, { team: "x", member: "x" }, r.resolvers);
+      await screen.findByDisplayValue("X");
+
+      await t.edit("team", "y");
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("member")).toBeUndefined(),
+      );
+      expect(r.subscribeCount).toHaveBeenCalledTimes(2);
+    });
+
+    it("key を書かないと、関数だけが違う config は同じ config とみなして取り直さない", async () => {
+      const r = makeResolvers();
+      await r.publish("all", options);
+      const schema = z.object({ team: z.string(), member: memberSchema(false) });
+      const t = renderForm(schema, { team: "x", member: "x" }, r.resolvers);
+      await screen.findByDisplayValue("X");
+
+      await t.edit("team", "y");
+      await waitFor(() =>
+        expect(t.runtime.get("member")?.status).toBe("resolved"),
+      );
+      expect(t.getForm().getFieldValue("member")).toBe("x");
+      expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+    });
   });
 });

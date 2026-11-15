@@ -33,6 +33,14 @@ export type ExternalKeyResolverResult = {
  */
 export type BaseExternalKeyConfig<TType extends ResolverId = ResolverId> = {
   type: TType;
+  /**
+   * config の同一性。選択肢を取り直すかどうかを決める key に使う。
+   *
+   * 省略すると config を文字列にしたものを使う。文字列にすると関数は消えるので、
+   * dynamic で関数（filter など）だけが違う config に差し替えるときは、違いを `key` で表す。
+   * resolverContext の値は、書いても書かなくても自動で key に入る。
+   */
+  key?: string;
 };
 
 /**

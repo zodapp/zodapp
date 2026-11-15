@@ -231,8 +231,9 @@ export const createExternalKeyDynamicMeta = ({
     "contextId" in config
       ? (config as unknown as { contextId?: string }).contextId
       : undefined;
+  // config に key があればそれを config の同一性とし、なければ config を文字列にして使う
   const key = stableStringify({
-    config,
+    config: config.key !== undefined ? { key: config.key } : { config },
     context: getResolverContextSlice(resolverContext, contextId),
     allowUnlisted: meta.allowUnlisted === true,
   });

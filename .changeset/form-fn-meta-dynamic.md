@@ -11,7 +11,7 @@
 - dynamic の resolve は `{ schema, key }`（同期）、`{ key, load }`（一度だけ届く）、`{ key, subscribe }`（何度でも届く）を返す。取得の key が同じあいだは取り直さない。key が利用者の編集で変わったときだけ値を新しい schema に合わせる。取り直し中は送信を止め、失敗は再試行できる
 - 値の変更の出どころを記録する `useRunAsUserEdit` を足す
 - string に `uiType: "select"` と `valueAction` を、enum に `valueAction` を足す。`externalKeyActionConfig` / `externalKeyActionResolver` は `valueAction` / `valueActionResolver` に改名
-- externalKey を dynamic + ラッパーで作る。externalKey と file の config はただのデータにし、関数の形はなくす。externalKey に `allowUnlisted` を足す
+- externalKey を dynamic + ラッパーで作る。externalKey と file の config はただのデータにし、関数の形はなくす。externalKey に `allowUnlisted` と、config の同一性を書く `key`（省略可）を足す
 - 表（AutoTable）で行の値を `TableRowProvider` で渡し、表用の dynamic の部品を足す
 - 時刻だけを持つ `zf.time` を足す
 - 開発用のモックを足す。`createMockTopic` は値を持って変更を購読者に届けるだけのオブジェクト、`createMockExternalKeyResolver` は topic の選択肢を届け、topic が変わるたびに届け直す
