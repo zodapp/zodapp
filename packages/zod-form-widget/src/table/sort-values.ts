@@ -58,19 +58,38 @@ export const isSortableColumn = (column: SortColumn): boolean => {
   );
 };
 
-/** 値で比べられる計算結果だけを使う（それ以外は最後に並べる） */
-const toComparable = (value: unknown): unknown =>
-  typeof value === "string" ||
-  typeof value === "number" ||
-  typeof value === "boolean" ||
-  value instanceof Date
-    ? value
-    : null;
+/** React の要素（$$typeof を持つ）か */
+const isReactElement = (value: object): boolean => "$$typeof" in value;
+
+/**
+ * 値で比べられる計算結果だけを使う（それ以外は最後に並べる）。
+ * オブジェクト（link・badge など）は、画面に出る文字（label）で比べる
+ */
+const toComparable = (value: unknown): unknown => {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value instanceof Date
+  ) {
+    return value;
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    !isReactElement(value) &&
+    "label" in value &&
+    typeof value.label === "string"
+  ) {
+    return value.label;
+  }
+  return null;
+};
 
 /**
  * 行の、並べ替えに使う値。null や undefined は最後に並べる。
  * - enum：選択肢を定義した順（何番目か）。選択肢に無い値は最後
- * - computed：計算した値
+ * - computed：計算した値。link・badge などのオブジェクトは表示名（label）
  * - ほか：値そのもの
  */
 export const sortValueOf = (
