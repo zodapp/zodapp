@@ -179,7 +179,8 @@ Provider コンポーネント:
 
 - `@zodapp/zod-form`: React 非依存の `zf`
 - `@zodapp/zod-form-mantine`: Mantine UI 実装（`componentLibrary` 同梱）
-- `@zodapp/zod-form-firebase`: Firestore / Storage resolver
+- `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
+- `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
 
 ## ライセンス
 

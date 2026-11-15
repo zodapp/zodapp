@@ -177,7 +177,8 @@ const fileResolvers = [createMockFileResolver()];
 
 - `@zodapp/zod-form-react`: React 依存の `Dynamic` / hooks / `zfReact`
 - `@zodapp/zod-form-mantine`: Mantine UI の componentLibrary 実装
-- `@zodapp/zod-form-firebase`: Firestore / Storage resolver
+- `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
+- `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
 
 ## ライセンス
 
