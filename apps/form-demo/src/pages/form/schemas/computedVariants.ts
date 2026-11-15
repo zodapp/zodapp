@@ -4,9 +4,9 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconSparkles } from "@tabler/icons-react";
 
 export const formId = "computedVariants";
-export const title = "computed と ComputedValue";
+export const title = "zf.computed（表示の形）";
 export const description =
-  "computed で自分の値を変換する形と親全体から算出する形、ComputedValue の各表示型（badge / link / icon / title）";
+  "計算結果を、バッジ・リンク・アイコン・見出しとして表示する";
 export const icon = IconSparkles;
 export const category = "Advanced";
 

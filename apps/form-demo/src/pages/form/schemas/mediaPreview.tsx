@@ -12,7 +12,7 @@ import { IconPhotoVideo } from "@tabler/icons-react";
 import { AutoForm } from "../../../components/AutoForm";
 
 export const formId = "mediaPreview";
-export const title = "メディアプレビュー（mediaResolvers）";
+export const title = "zf.file（プレビューの種類）";
 export const description =
   "アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示）";
 export const icon = IconPhotoVideo;

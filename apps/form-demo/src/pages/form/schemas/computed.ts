@@ -4,8 +4,9 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconCalculator } from "@tabler/icons-react";
 
 export const formId = "computed";
-export const title = "Computed";
-export const description = "他のフィールドの値から計算結果を表示するサンプル";
+export const title = "zf.computed";
+export const description =
+  "他の項目の値から計算した結果を表示する";
 export const icon = IconCalculator;
 export const category = "Advanced";
 

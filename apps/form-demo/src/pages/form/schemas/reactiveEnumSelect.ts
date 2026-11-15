@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconListCheck } from "@tabler/icons-react";
 
 export const formId = "reactiveEnumSelect";
-export const title = "Enum (Reactive)";
+export const title = "zf.enum (Reactive)";
 export const description =
   "reactiveComponentLibrary によるEnum選択。array（複数選択）は非対応のため除外。";
 export const icon = IconListCheck;

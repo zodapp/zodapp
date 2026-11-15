@@ -4,8 +4,9 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconListCheck } from "@tabler/icons-react";
 
 export const formId = "enumSelect";
-export const title = "Enum";
-export const description = "Enum型とLiteral型による選択肢の実装";
+export const title = "zf.enum";
+export const description =
+  "決まった選択肢から、ラベル付きで選ぶ";
 export const icon = IconListCheck;
 export const category = "Basic";
 

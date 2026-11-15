@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconUpload } from "@tabler/icons-react";
 
 export const formId = "file";
-export const title = "ファイル";
+export const title = "zf.file";
 export const description =
-  "ファイルアップロード・プレビュー機能のサンプル。fileResolverを切り替えることで、複数のクラウドストレージに対応できる。このサンプルではmockFileResolverを利用してdataURLとして保存。";
+  "ファイルを添付してプレビューする。保存先は差し替えられる";
 export const icon = IconUpload;
 export const category = "Basic";
 

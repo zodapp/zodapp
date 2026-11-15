@@ -3,9 +3,9 @@ import { zf, asRegistrySchemaResolver } from "@zodapp/zod-form";
 import { IconBolt } from "@tabler/icons-react";
 
 export const formId = "dynamicSchema";
-export const title = "動的スキーマ（zf.dynamic）";
+export const title = "zf.dynamic";
 export const description =
-  "フィールドの現在値からスキーマを実行時に解決する。通知方法の選択に応じて設定項目が切り替わる";
+  "入力内容でスキーマを切り替える（通知方法ごとの設定項目）";
 export const icon = IconBolt;
 export const category = "Advanced";
 

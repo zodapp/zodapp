@@ -4,8 +4,9 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconBrackets } from "@tabler/icons-react";
 
 export const formId = "arrayFields";
-export const title = "Array";
-export const description = "配列型による動的なフィールド追加・削除";
+export const title = "zf.array";
+export const description =
+  "行を追加・削除しながら入力する";
 export const icon = IconBrackets;
 export const category = "Basic";
 

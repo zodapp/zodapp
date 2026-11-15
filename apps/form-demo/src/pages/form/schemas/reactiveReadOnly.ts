@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "reactiveReadOnly";
-export const title = "readOnly (Reactive)";
+export const title = "閲覧専用の表示 (Reactive)";
 export const description =
   "reactiveComponentLibrary によるreadOnlyモード。非対応型（bigint, tuple, array, discriminatedUnion）は除外。";
 export const icon = IconForms;

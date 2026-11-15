@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "readOnly";
-export const title = "readOnly";
+export const title = "閲覧専用の表示";
 export const description = "readOnlyモード";
 export const icon = IconForms;
 export const category = "Standard";

@@ -3,7 +3,7 @@ import { zf } from "@zodapp/zod-form";
 import { IconCalendar } from "@tabler/icons-react";
 
 export const formId = "date";
-export const title = "日付";
+export const title = "zf.date";
 export const description =
   "日付・時刻の入力（様々なZod型、粒度、エンコーディング）";
 export const icon = IconCalendar;

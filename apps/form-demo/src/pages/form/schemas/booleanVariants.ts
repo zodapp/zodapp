@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconToggleLeft } from "@tabler/icons-react";
 
 export const formId = "booleanVariants";
-export const title = "真偽値のUIバリアント";
+export const title = "zf.boolean";
 export const description =
-  "同じ boolean を uiType（switch / checkbox / select）と trueLabel / falseLabel で描き分ける";
+  "スイッチ・チェックボックス・選択肢での入力と、「はい」「いいえ」の文言";
 export const icon = IconToggleLeft;
 export const category = "Basic";
 

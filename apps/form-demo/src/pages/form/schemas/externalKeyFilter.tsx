@@ -12,9 +12,9 @@ import {
 import type { WebResolverContextMap } from "../../../shared/types/resolverContext";
 
 export const formId = "externalKeyFilter";
-export const title = "外部キーの絞り込みと key";
+export const title = "zf.externalKey（絞り込み）";
 export const description =
-  "externalKey の config の filter（resolverContext を受け取る）と、関数だけが違う config に差し替えるときの key";
+  "ログイン中の部署などで一覧を絞る。条件を切り替えたときに一覧を取り直す";
 export const icon = IconFilter;
 export const category = "Advanced";
 

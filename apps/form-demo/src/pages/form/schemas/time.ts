@@ -3,9 +3,9 @@ import { zf } from "@zodapp/zod-form";
 import { IconClock } from "@tabler/icons-react";
 
 export const formId = "time";
-export const title = "時刻";
+export const title = "zf.time";
 export const description =
-  "時刻だけの入力（文字列と 0 時からの数値、データの持ち方と UI 上の精度）";
+  "時刻だけの入力。文字列でも、0 時からの数値でも持てる";
 export const icon = IconClock;
 export const category = "Basic";
 

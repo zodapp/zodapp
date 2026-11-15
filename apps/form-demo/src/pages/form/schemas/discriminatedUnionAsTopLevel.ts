@@ -3,7 +3,7 @@ import { zf } from "@zodapp/zod-form";
 import { IconGitBranch } from "@tabler/icons-react";
 
 export const formId = "discriminatedUnionAsTopLevel";
-export const title = "Discriminated Union (Top-level)";
+export const title = "z.discriminatedUnion（トップレベル）";
 export const description =
   "discriminated keyを使ったUnionをトップレベルスキーマとして直接使用する例";
 export const icon = IconGitBranch;

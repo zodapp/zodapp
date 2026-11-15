@@ -3,9 +3,9 @@ import { zf, defineDynamicMeta } from "@zodapp/zod-form";
 import { IconListSearch } from "@tabler/icons-react";
 
 export const formId = "selectAndExternalKey";
-export const title = "選択式と外部キー";
+export const title = "zf.externalKey";
 export const description =
-  "string の選択式、値ごとの操作（valueAction）、外部キー（externalKey）と allowUnlisted、選択肢が届き直す外部キー、親の値で選択肢を変える外部キー";
+  "担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、選んだ値の詳細ページへのリンク";
 export const icon = IconListSearch;
 export const category = "Advanced";
 

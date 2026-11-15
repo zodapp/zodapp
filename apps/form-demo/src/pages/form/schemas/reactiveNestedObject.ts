@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconSitemap } from "@tabler/icons-react";
 
 export const formId = "reactiveNestedObject";
-export const title = "ネストしたスキーマ (Reactive)";
+export const title = "zf.object (Reactive)";
 export const description =
   "reactiveComponentLibrary によるネストオブジェクト。フィールド単位の確認UIあり。";
 export const icon = IconSitemap;

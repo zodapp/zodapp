@@ -3,7 +3,7 @@ import { zf } from "@zodapp/zod-form";
 import { IconBraces } from "@tabler/icons-react";
 
 export const formId = "reactiveRecord";
-export const title = "Record (Reactive)";
+export const title = "zf.record (Reactive)";
 export const description =
   "z.record(z.string(), ...) によるキー・バリュー形式のフォーム。キー名がラベルになります。";
 export const icon = IconBraces;

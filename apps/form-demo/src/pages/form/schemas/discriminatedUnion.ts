@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconGitBranch } from "@tabler/icons-react";
 
 export const formId = "discriminatedUnion";
-export const title = "Discriminated Union";
+export const title = "z.discriminatedUnion";
 export const description = "discriminated keyを使った安定したUnion";
 export const icon = IconGitBranch;
 export const category = "Standard";

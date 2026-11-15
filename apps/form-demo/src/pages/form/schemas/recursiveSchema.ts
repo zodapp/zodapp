@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconRefresh } from "@tabler/icons-react";
 
 export const formId = "recursiveSchema";
-export const title = "再帰的スキーマ";
+export const title = "z.lazy";
 export const description = "z.lazyを使った再帰的なデータ構造";
 export const icon = IconRefresh;
 export const category = "Advanced";

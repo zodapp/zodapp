@@ -4,7 +4,7 @@ import { zfReact } from "@zodapp/zod-form-react";
 import { IconShieldCheck } from "@tabler/icons-react";
 
 export const formId = "refineValidation";
-export const title = "カスタムバリデーション";
+export const title = "z.refine";
 export const description =
   "refineを使ったパスワード一致などのカスタムバリデーション";
 export const icon = IconShieldCheck;

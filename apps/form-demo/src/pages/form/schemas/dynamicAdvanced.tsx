@@ -13,9 +13,9 @@ import {
 } from "../../../shared/demo/resolvers";
 
 export const formId = "dynamicAdvanced";
-export const title = "動的スキーマの応用";
+export const title = "zf.dynamic（読み込み・購読・連動）";
 export const description =
-  "非同期の resolve（{ key, load }、読み込み中・失敗と再試行）、購読で届き続ける schema、親の値で決まる dynamic の連鎖と prune、利用者の編集と外からの変更の違い";
+  "スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、都道府県→市区町村→町名の連動";
 export const icon = IconBolt;
 export const category = "Advanced";
 
