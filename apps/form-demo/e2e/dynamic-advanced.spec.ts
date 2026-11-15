@@ -31,25 +31,12 @@ test("読み込みに失敗すると再試行のボタンが出て、再試行�
   await expect(field(page, "宛名")).toBeVisible();
 });
 
-test("アプリのコードからの変更では、下の欄を消さない", async ({
+test("都道府県を変えると、選択肢に無くなった下の欄を順に消す", async ({
   page,
   pageErrors: _,
 }) => {
   await expect(field(page, "市区町村")).toHaveValue("新宿区");
-  await page.getByRole("button", { name: /外から/ }).click();
-  await expect
-    .poll(async () => (await previewValue(page)).prefecture)
-    .toBe("osaka");
-  expect((await previewValue(page)).city).toBe("shinjuku");
-  expect((await previewValue(page)).town).toBe("nishi-shinjuku");
-});
-
-test("利用者の編集では、選択肢に無くなった下の欄を順に消す", async ({
-  page,
-  pageErrors: _,
-}) => {
-  await expect(field(page, "市区町村")).toHaveValue("新宿区");
-  await page.getByRole("button", { name: /利用者の編集として/ }).click();
+  await choose(page, "都道府県", "大阪府");
   await expect
     .poll(async () => (await previewValue(page)).city)
     .toBeUndefined();

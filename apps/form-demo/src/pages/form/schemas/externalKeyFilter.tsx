@@ -23,8 +23,7 @@ type Team = WebResolverContextMap["team"]["team"];
 // ============================================================
 // 1. context で絞る filter
 //    filter は contextId の resolverContext を受け取る。context の値は取り直しの key に入るので、
-//    画面の部署を変えると選択肢を取り直す。context の変更は利用者の編集ではないので、
-//    選択肢から外れた値は消えずに検証で止まる
+//    画面の部署を変えると選択肢を取り直す。選択肢から外れた値は消える（unlisted の既定 clear）
 // ============================================================
 
 const assignee = zf.string().register(zf.externalKey.registry, {
@@ -37,10 +36,23 @@ const assignee = zf.string().register(zf.externalKey.registry, {
   },
 });
 
+// 特殊なオプション unlisted: "keep"：外れた値を消さずに残し、欄に「（不正な値）」と出してエラーにする。
+// 部署を戻せば値も戻る。条件の切り替えで、選んでいた値を失いたくないときに使う
+const assigneeKeep = zf.string().register(zf.externalKey.registry, {
+  label: "担当者（unlisted: keep。外れた値を残し、不正な値として出す）",
+  externalKeyConfig: {
+    type: "mock",
+    topic: "members",
+    contextId: "team",
+    filter: (option, context) => option.team === context?.team,
+  },
+  unlisted: "keep",
+});
+
 // ============================================================
 // 2. dynamic で filter だけを差し替える
 //    関数は取り直しの key に入らないので、関数だけが違う config は同じ config とみなされる。
-//    違いを config の key に書くと、別の config として取り直し、利用者の編集なら値を prune する
+//    違いを config の key に書くと、別の config として取り直し、選択肢から外れた値は消える
 // ============================================================
 
 const reviewerSchema = (withKey: boolean) =>
@@ -72,6 +84,7 @@ const reviewerSchema = (withKey: boolean) =>
 export const schema = z
   .object({
     assignee,
+    assigneeKeep,
     reviewTeam: zf
       .enum([
         zf.literal("sales").register(zf.literal.registry, { label: "営業" }),
@@ -86,6 +99,7 @@ export const schema = z
 // dynamic の欄は静的には値型を持たないため、unknown 経由でキャストする
 export const defaultValues = {
   assignee: "u-001",
+  assigneeKeep: "u-001",
   reviewTeam: "sales",
   reviewer: "u-003",
   reviewerWithoutKey: "u-003",

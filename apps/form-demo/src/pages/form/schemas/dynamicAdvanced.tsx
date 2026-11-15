@@ -1,9 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
-import { useRunAsUserEdit } from "@zodapp/zod-form-react/common";
-import type { AutoFormActionComponent } from "@zodapp/zod-form-widget/form";
-import { Button, Group, Stack, Switch, Text } from "@mantine/core";
+import { Stack, Switch, Text } from "@mantine/core";
 import { IconBolt } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
@@ -120,7 +118,7 @@ const quantitySchema = z.number().register(
 
 // ============================================================
 // 3. 親の値で決まる dynamic の連鎖：都道府県 → 市区町村 → 町名
-//    利用者が上の欄を変えると key が変わり、選択肢に無くなった下の欄が順に消える
+//    上の欄を変えると key が変わって選択肢を取り直し、選択肢に無くなった下の欄が順に消える
 // ============================================================
 
 const citySchema = z.string().register(
@@ -194,40 +192,9 @@ export const defaultValues = {
 
 export type SchemaType = z.infer<typeof schema>;
 
-// ============================================================
-// 4. 利用者の編集と外からの変更：アプリのコードの書き込みは既定で「外から」で、prune しない。
-//    useRunAsUserEdit で包むと「利用者の編集」になり、下の欄が prune される
-// ============================================================
-
-const setOsaka: AutoFormActionComponent<typeof schema> = ({ form }) => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- AutoForm が部品として描画する
-  const runAsUserEdit = useRunAsUserEdit();
-  return (
-    <Group gap="xs">
-      <Button
-        variant="default"
-        size="xs"
-        onClick={() => form.setFieldValue("prefecture", "osaka")}
-      >
-        外から「大阪府」を入れる（prune しない）
-      </Button>
-      <Button
-        variant="light"
-        size="xs"
-        onClick={() =>
-          runAsUserEdit(() => form.setFieldValue("prefecture", "osaka"))
-        }
-      >
-        利用者の編集として「大阪府」を入れる（prune する）
-      </Button>
-    </Group>
-  );
-};
-
 export const Component = () => {
   const [failing, setFailing] = useState(false);
   const [submitted, setSubmitted] = useState<SchemaType>();
-  const actionComponents = useMemo(() => [setOsaka], []);
 
   return (
     <Stack>
@@ -245,7 +212,6 @@ export const Component = () => {
         defaultValues={defaultValues}
         externalKeyResolvers={demoExternalKeyResolvers}
         valueActionResolver={demoValueActionResolver}
-        actionComponents={actionComponents}
         actions={[
           {
             type: "submit",

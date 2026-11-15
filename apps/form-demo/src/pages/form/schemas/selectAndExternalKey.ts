@@ -24,7 +24,7 @@ const openUser = {
 /**
  * 市区町村：親の都道府県で config が変わる外部キー。
  * config はただのデータなので、親の値で変えるときは dynamic で包んで externalKey の schema を返す。
- * 利用者が都道府県を変えると key が変わり、新しい選択肢に無い市区町村は消える（prune）。
+ * 都道府県を変えると key が変わって選択肢を取り直し、新しい選択肢に無い市区町村は消える（unlisted の既定 clear）。
  */
 const citySchema = z.string().register(
   zf.dynamic.registry,
