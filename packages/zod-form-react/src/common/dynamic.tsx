@@ -11,7 +11,9 @@ import {
   adaptValueToSchema,
   type DynamicMetaDef,
   type FnInput,
+  type DeliveredSchema,
   type ResolvedSchema,
+  type SchemaLoad,
   type SchemaResolveResult,
   type SchemaSubscription,
 } from "@zodapp/zod-form";
@@ -72,6 +74,50 @@ const isSubscription = (value: unknown): value is SchemaSubscription =>
   value !== null &&
   typeof (value as { subscribe?: unknown }).subscribe === "function";
 
+const isLoad = (value: unknown): value is SchemaLoad =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as { load?: unknown }).load === "function";
+
+type AsyncSource = SchemaLoad | SchemaSubscription;
+
+const isAsyncSource = (value: unknown): value is AsyncSource =>
+  isLoad(value) || isSubscription(value);
+
+/**
+ * 一度だけの取得と購読を、同じ形で始める。届いた schema の key が無ければ取得の key を使う。
+ * 返す関数で止める（止めたあとに届いた結果は捨てる）。
+ */
+const startAsync = (
+  source: AsyncSource,
+  deliver: (resolved: ResolvedSchema) => void,
+  fail: (error: unknown) => void,
+): (() => void) => {
+  let active = true;
+  const onDelivered = (delivered: DeliveredSchema | undefined) => {
+    if (!active || !delivered) return; // 決まらないあいだは pending のまま
+    deliver({ schema: delivered.schema, key: delivered.key ?? source.key });
+  };
+  const onFail = (error: unknown) => {
+    if (active) fail(error);
+  };
+  try {
+    if (isSubscription(source)) {
+      const unsubscribe = source.subscribe(onDelivered, onFail);
+      return () => {
+        active = false;
+        unsubscribe();
+      };
+    }
+    source.load().then(onDelivered, onFail);
+  } catch (error) {
+    onFail(error);
+  }
+  return () => {
+    active = false;
+  };
+};
+
 const isEqualValue = (a: unknown, b: unknown): boolean => {
   if (Object.is(a, b)) return true;
   if (a instanceof Date && b instanceof Date) {
@@ -119,9 +165,9 @@ type AsyncState =
   | { status: "error"; error: unknown; resolved?: ResolvedSchema };
 
 /**
- * resolve を描画中に呼ぶ。React は描画を捨てたりやり直したりするので、
- * 返った Promise が使われずに捨てられることがある。その失敗が未処理の例外にならないよう、
- * 何もしない catch を付けておく（使うときは effect の側で then を付ける）。
+ * resolve を描画中に呼ぶ。非同期の取得は { key, load } / { key, subscribe } で返し、
+ * load / subscribe は effect の中で呼ぶ（描画中には取りに行かない）。
+ * Promise をそのまま返したら誤りにする（key が無いと、呼ばれるたびに取り直すしかないため）。
  */
 const callResolve = (
   meta: DynamicMetaDef | undefined,
@@ -131,7 +177,12 @@ const callResolve = (
     const result = meta
       ? (meta.resolve as (input: FnInput) => SchemaResolveResult)(input)
       : undefined;
-    if (result instanceof Promise) result.catch(() => {});
+    if (result instanceof Promise) {
+      result.catch(() => {});
+      throw new Error(
+        "zf.dynamic: resolve が Promise を返しました。非同期に決まるときは { key, load } を返してください",
+      );
+    }
     return { kind: "value", result };
   } catch (error) {
     return { kind: "thrown", error };
@@ -142,10 +193,11 @@ const callResolve = (
  * dynamic の resolve を呼び、決まった schema をフォームの登録先に置く hook。
  *
  * - 同期で返る resolve は描画中に計算する（読み込み中を出さない）。副作用を持たないこと
- * - Promise と購読は、取り直しを始めたら pending、失敗したら error にする
+ * - { key, load } と { key, subscribe } は、key が変わったら取り直しを始めて pending にし、
+ *   失敗したら error にする。key が同じあいだは取り直さない（再試行のときだけ取り直す）
  * - key が前回適用したものと違い、かつ取り直しの出どころが利用者の編集なら、
  *   値を新しい schema に合わせて削る。それ以外は値に触らない
- * - 古い結果は捨てる。key が同じ購読は張り直さない
+ * - 古い結果は捨てる
  */
 export const useDynamicSchema = (
   meta: DynamicMetaDef | undefined,
@@ -279,12 +331,18 @@ export const useDynamicSchema = (
     }
 
     const result = outcome.result;
-    if (
-      isSubscription(result) &&
-      result.key !== undefined &&
-      result.key === subscriptionKeyRef.current
-    ) {
-      return; // 同じ key の購読は張り直さない
+    if (!isAsyncSource(result)) {
+      // 決まらないあいだは pending のまま
+      stopAsync();
+      runtime.set(fieldPath, depth, { status: "pending" });
+      setAsyncState((state) => ({
+        status: "pending",
+        resolved: state.resolved,
+      }));
+      return;
+    }
+    if (result.key === subscriptionKeyRef.current) {
+      return; // 同じ key のあいだは取り直さない
     }
 
     stopAsync();
@@ -293,9 +351,8 @@ export const useDynamicSchema = (
     runtime.set(fieldPath, depth, { status: "pending" });
     setAsyncState((state) => ({ status: "pending", resolved: state.resolved }));
 
-    const deliver = (resolved: ResolvedSchema | undefined) => {
+    const deliver = (resolved: ResolvedSchema) => {
       if (!isCurrent()) return; // 古い結果は捨てる
-      if (!resolved) return; // 決まらないあいだは pending のまま
       apply(resolved, cause);
       setAsyncState({ status: "resolved", resolved });
     };
@@ -309,17 +366,8 @@ export const useDynamicSchema = (
       }));
     };
 
-    if (isSubscription(result)) {
-      subscriptionKeyRef.current = result.key;
-      try {
-        unsubscribeRef.current = result.subscribe(deliver, fail);
-      } catch (error) {
-        fail(error);
-      }
-    } else if (result instanceof Promise) {
-      result.then(deliver, fail);
-    }
-    // result が undefined のときは、決まるまで pending のまま
+    subscriptionKeyRef.current = result.key;
+    unsubscribeRef.current = startAsync(result, deliver, fail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outcome, fieldPath, depth, optional]);
 
@@ -353,7 +401,7 @@ export const useDynamicSchema = (
 
 /**
  * フォームの外（表など読み取り専用の場所）で dynamic の resolve を呼び、schema を得る hook。
- * 登録・検証・prune はしない。同期・Promise・購読のどれにも対応する。
+ * 登録・検証・prune はしない。同期・一度だけの取得・購読のどれにも対応する。
  */
 export const useResolvedSchema = (
   meta: DynamicMetaDef | undefined,
@@ -386,19 +434,14 @@ export const useResolvedSchema = (
   useEffect(() => {
     if (outcome.kind === "thrown" || syncResolved) return;
     const result = outcome.result;
-    if (
-      isSubscription(result) &&
-      result.key !== undefined &&
-      result.key === subscriptionKeyRef.current
-    ) {
-      return;
-    }
+    if (!isAsyncSource(result)) return; // 決まらないあいだは pending のまま
+    if (result.key === subscriptionKeyRef.current) return; // 同じ key は取り直さない
     requestRef.current += 1;
     unsubscribeRef.current?.();
     unsubscribeRef.current = undefined;
     const request = requestRef.current;
-    const deliver = (resolved: ResolvedSchema | undefined) => {
-      if (request !== requestRef.current || !resolved) return;
+    const deliver = (resolved: ResolvedSchema) => {
+      if (request !== requestRef.current) return;
       setAsyncState({ status: "resolved", resolved });
     };
     const fail = (error: unknown) => {
@@ -410,17 +453,8 @@ export const useResolvedSchema = (
       }));
     };
     setAsyncState((state) => ({ status: "pending", resolved: state.resolved }));
-    if (isSubscription(result)) {
-      subscriptionKeyRef.current = result.key;
-      try {
-        unsubscribeRef.current = result.subscribe(deliver, fail);
-      } catch (error) {
-        fail(error);
-      }
-    } else if (result instanceof Promise) {
-      subscriptionKeyRef.current = undefined;
-      result.then(deliver, fail);
-    }
+    subscriptionKeyRef.current = result.key;
+    unsubscribeRef.current = startAsync(result, deliver, fail);
   }, [outcome, syncResolved]);
 
   const retry = () => {

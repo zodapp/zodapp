@@ -6,7 +6,7 @@ import {
   zf,
   type DynamicMetaDef,
   type ExternalKeyMetaDef,
-  type ResolvedSchema,
+  type DeliveredSchema,
 } from "@zodapp/zod-form";
 import { stableStringify } from "@zodapp/caching-utilities";
 import {
@@ -253,12 +253,11 @@ export const createExternalKeyDynamicMeta = ({
       }
       return {
         key,
-        subscribe: (emit: (resolved: ResolvedSchema) => void) =>
+        subscribe: (emit: (delivered: DeliveredSchema) => void) =>
           entry
             .resolver(config, resolverContext ?? {})
             .subscribe((options) =>
               emit({
-                key,
                 schema: buildOptionsSchema(
                   meta,
                   dedupeOptions(options),

@@ -206,21 +206,43 @@ export type ResolvedSchema = {
 };
 
 /**
- * 何度でも schema を届ける購読。key があれば、同じ key のあいだは購読を張り直さない。
- * 取得に失敗したら fail を呼ぶ。
+ * 非同期に届く schema。key は省略でき、省略したら取得の key（{@link SchemaLoad} / {@link SchemaSubscription} の key）を使う。
+ * 取得のあとでないと schema の同一性が決まらないとき（リビジョンなど）は、ここで key を返す。
+ */
+export type DeliveredSchema = {
+  schema: z.ZodTypeAny;
+  key?: string;
+};
+
+/**
+ * 一度だけ schema を届ける取得。
+ *
+ * - `key` は取得の単位。同じ key のあいだは load を呼び直さない（再試行のときだけ呼び直す）
+ * - load は呼ばれた時点の入力を閉じ込める。load が使う値は key に入れること
+ */
+export type SchemaLoad = {
+  key: string;
+  load: () => Promise<DeliveredSchema | undefined>;
+};
+
+/**
+ * 何度でも schema を届ける購読。
+ *
+ * - `key` は購読の単位。同じ key のあいだは購読を張り直さない
+ * - 取得に失敗したら fail を呼ぶ
  */
 export type SchemaSubscription = {
-  key?: string;
+  key: string;
   subscribe: (
-    emit: (resolved: ResolvedSchema) => void,
+    emit: (delivered: DeliveredSchema) => void,
     fail: (error: unknown) => void,
   ) => () => void;
 };
 
-/** resolve の戻り値。同期・Promise・購読のどれでもよい */
+/** resolve の戻り値。同期（{@link ResolvedSchema}）・一度だけの取得・購読のどれでもよい */
 export type SchemaResolveResult =
   | ResolvedSchema
-  | Promise<ResolvedSchema | undefined>
+  | SchemaLoad
   | SchemaSubscription
   | undefined;
 

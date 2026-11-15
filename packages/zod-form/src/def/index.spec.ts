@@ -230,23 +230,37 @@ describe("zod-form def/index", () => {
     });
   });
 
-  it("getMeta accepts async dynamic schema resolver", async () => {
+  it("getMeta accepts a { key, load } dynamic schema resolver", async () => {
     const fallback = z.object({ type: z.literal("fallback") });
     const dynamic = z.object({
       type: z.literal("dynamic"),
     });
     const schema = fallback.register(zf.dynamic.registry, {
-      resolve: asRegistrySchemaResolver(async ({ value }) => ({
-        schema: dynamic,
+      resolve: asRegistrySchemaResolver(({ value }) => ({
         key: String(value),
+        load: async () => ({ schema: dynamic }),
       })),
     });
 
     const meta = getMeta(schema, "dynamic");
+    const result = meta?.resolve({
+      value: "a",
+      parent: undefined,
+      context: undefined,
+    } as never) as { key: string; load: () => Promise<unknown> };
 
-    await expect(
-      meta?.resolve({ value: "a", parent: undefined, context: undefined } as never),
-    ).resolves.toEqual({ schema: dynamic, key: "a" });
+    expect(result.key).toBe("a");
+    await expect(result.load()).resolves.toEqual({ schema: dynamic });
+  });
+
+  it("resolve は Promise を直接返せない（型で止まる）", () => {
+    z.object({}).register(zf.dynamic.registry, {
+      // @ts-expect-error 非同期に決まるときは { key, load } を返す
+      resolve: asRegistrySchemaResolver(async () => ({
+        schema: z.object({}),
+        key: "a",
+      })),
+    });
   });
 
   it("dynamic の resolve は dependsOnParent: true のときだけ parent を型に入れる", () => {

@@ -7,11 +7,7 @@ import { MantineProvider } from "@mantine/core";
 import type { AnyFormApi } from "@tanstack/react-form";
 import { z } from "zod";
 
-import {
-  zf,
-  defineDynamicMeta,
-  type ResolvedSchema,
-} from "@zodapp/zod-form";
+import { zf, defineDynamicMeta, type ResolvedSchema } from "@zodapp/zod-form";
 import {
   Switch,
   FormProvider,
@@ -438,6 +434,128 @@ describe("dynamic", () => {
   it("runAsUserEdit は Promise を返す関数を受け付けない", () => {
     const runtime = new FormRuntime();
     expect(() => runtime.runAsUserEdit(async () => {})).toThrow();
+  });
+
+  describe("{ key, load }", () => {
+    /** 市区町村：key は都道府県。load は同じ key のあいだ呼び直されない */
+    const makeLoadRow = (load: (pref: string) => Promise<string[]>) =>
+      z
+        .object({
+          pref: z.string(),
+          memo: z.string().optional(),
+          city: z.string().register(
+            zf.dynamic.registry,
+            defineDynamicMeta<unknown, { pref?: string }>({
+              dependsOnValue: false,
+              dependsOnParent: true,
+              resolve: ({ parent }) => {
+                const pref = parent?.pref ?? "";
+                return {
+                  key: pref,
+                  load: async () => ({
+                    schema: z.enum((await load(pref)) as [string, ...string[]]),
+                  }),
+                };
+              },
+            }),
+          ),
+        })
+        .register(zf.object.registry, { properties: ["pref", "memo", "city"] });
+
+    it("兄弟の欄を変えても取り直さず、key が変わったときだけ取り直して prune する", async () => {
+      const load = vi.fn((pref: string) => ctl.fetcher(pref));
+      const t = renderForm(makeLoadRow(load), {
+        pref: "tokyo",
+        memo: "",
+        city: "shinjuku",
+      });
+      await ctl.flush("tokyo");
+      await screen.findByTestId("value-city");
+      const calls = load.mock.calls.length;
+
+      await t.edit("memo", "あいう");
+      expect(load.mock.calls.length).toBe(calls);
+      expect(statusOf()).not.toContain("pending");
+
+      await t.edit("pref", "osaka");
+      expect(load.mock.calls.length).toBeGreaterThan(calls);
+      expect(statusOf()).toContain("pending");
+      await ctl.flush("osaka");
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("city")).toBeUndefined(),
+      );
+    });
+
+    it("失敗のあとの再試行は、key が同じでも load を呼び直す", async () => {
+      const load = vi.fn((pref: string) => ctl.fetcher(pref));
+      const t = renderForm(makeLoadRow(load), {
+        pref: "tokyo",
+        memo: "",
+        city: "shinjuku",
+      });
+      await ctl.fail("tokyo");
+      expect(statusOf()).toContain("error");
+      const calls = load.mock.calls.length;
+      await act(async () => {
+        screen.getByRole("button", { name: "再試行" }).click();
+      });
+      expect(load.mock.calls.length).toBeGreaterThan(calls);
+      await ctl.flush("tokyo");
+      await screen.findByTestId("value-city");
+      expect(t.runtime.get("city")?.status).toBe("resolved");
+    });
+
+    it("load が返した key を schema の同一性に使う（取得の key が変わっても、同じ key なら prune しない）", async () => {
+      const row = z
+        .object({
+          pref: z.string(),
+          city: z.string().register(
+            zf.dynamic.registry,
+            defineDynamicMeta<unknown, { pref?: string }>({
+              dependsOnValue: false,
+              dependsOnParent: true,
+              resolve: ({ parent }) => {
+                const pref = parent?.pref ?? "";
+                return {
+                  key: pref,
+                  load: async () => ({
+                    // 取得は都道府県ごとだが、schema は同じものとして扱う
+                    key: "shared",
+                    schema: z.enum(
+                      (await ctl.fetcher(pref)) as [string, ...string[]],
+                    ),
+                  }),
+                };
+              },
+            }),
+          ),
+        })
+        .register(zf.object.registry, { properties: ["pref", "city"] });
+      const t = renderForm(row, { pref: "tokyo", city: "shinjuku" });
+      await ctl.flush("tokyo");
+      await screen.findByTestId("value-city");
+      await t.edit("pref", "osaka");
+      await ctl.flush("osaka");
+      await screen.findByTestId("value-city");
+      // key が同じなので値には触らず、検証エラーとして残す
+      expect(t.getForm().getFieldValue("city")).toBe("shinjuku");
+      await t.submit();
+      expect(t.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("resolve が Promise を直接返したら error にする", async () => {
+      const x = z.string().register(
+        zf.dynamic.registry,
+        defineDynamicMeta({
+          resolve: (async () => ({ key: "k", schema: z.string() })) as never,
+        }),
+      );
+      const root = z
+        .object({ x })
+        .register(zf.object.registry, { properties: ["x"] });
+      renderForm(root, { x: "a" });
+      await waitFor(() => expect(statusOf()).toContain("error"));
+    });
   });
 
   describe("配列", () => {
