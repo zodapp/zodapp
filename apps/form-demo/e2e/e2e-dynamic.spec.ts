@@ -194,7 +194,7 @@ test("その種類で初めて使う部品が出ても、ほかの dynamic の�
 });
 
 for (const mode of ["すぐ届く", "1 フレーム後", "2 フレーム後"] as const) {
-  test(`${mode}：都道府県を変えると市区町村・町名が順に消え、選び直した値は残る。都道府県を消すと市区町村は理由を出して無効になる`, async ({
+  test(`${mode}：都道府県を変えると市区町村・町名が順に消え、選び直した値は残る。都道府県を消すと市区町村は理由を出して無効になり、理由をエラーとして出す`, async ({
     page,
     pageErrors: _,
   }) => {
@@ -229,11 +229,58 @@ for (const mode of ["すぐ届く", "1 フレーム後", "2 フレーム後"] as
       "placeholder",
       "先に都道府県を選んでください",
     );
-    // 市区町村・町名には必須のエラーを出さない
-    await expect(fieldError(page, "市区町村")).toHaveCount(0);
-    await expect(fieldError(page, "町名")).toHaveCount(0);
+    // 市区町村・町名は選んだ（触った）あとなので、必須のエラーの代わりに理由の文言をエラーとして出す
+    await expect(fieldError(page, "市区町村")).toHaveText(
+      "先に都道府県を選んでください",
+    );
+    await expect(fieldError(page, "町名")).toHaveText(
+      "先に市区町村を選んでください",
+    );
   });
 }
+
+test("都道府県を消すと、必須の市区町村・町名は、理由の文言を欄のエラーにする（送信すると出て、送信は止まる）", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "すぐ届く");
+  await clearSelect(page, "都道府県");
+  await expect
+    .poll(async () => {
+      const values = await previewValue(page);
+      return [values.prefecture, values.city, values.town];
+    })
+    .toEqual([undefined, undefined, undefined]);
+  await expect(field(page, "市区町村")).toBeDisabled();
+  // フォームのエラーは、必須のエラーではなく理由の文言
+  await expect
+    .poll(async () => {
+      const { fields } = (await formDemo(page)).errors;
+      return [fields.city, fields.town];
+    })
+    .toEqual([
+      ["先に都道府県を選んでください"],
+      ["先に市区町村を選んでください"],
+    ]);
+  // 触る前・送信する前は、ほかの必須の欄と同じく画面には出さない
+  await expect(fieldError(page, "市区町村")).toHaveCount(0);
+
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  expect((await formDemo(page)).submitted.count).toBe(0);
+  await expect(fieldError(page, "市区町村")).toHaveText(
+    "先に都道府県を選んでください",
+  );
+  await expect(fieldError(page, "町名")).toHaveText(
+    "先に市区町村を選んでください",
+  );
+  await expect(page.getByTestId("form-submit-blocked")).toContainText(
+    "入力に誤りがあるため、送信できませんでした",
+  );
+  const { fields } = (await formDemo(page)).errors;
+  expect(fields.city).toEqual(["先に都道府県を選んでください"]);
+  expect(fields.town).toEqual(["先に市区町村を選んでください"]);
+});
 
 test("外から書き込んで帳票の種類が変わっても、帳票の項目の値は削らない", async ({
   page,

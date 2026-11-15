@@ -260,23 +260,46 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "gone" });
   });
 
-  it("選択肢が0件なら欄を無効にして emptyMessage を出し、必須エラーは出さない", async () => {
+  const emptyOwner = () =>
+    zf.string().register(zf.externalKey.registry, {
+      label: "担当者",
+      externalKeyConfig: { type: "list", list: "members" },
+      emptyMessage: "先にチームを選んでください",
+    });
+
+  it("必須の欄で選択肢が0件なら、欄を無効にし、emptyMessage を欄のエラーにする（送信すると出る）", async () => {
     const r = makeResolvers();
-    renderForm(
-      z.object({
-        owner: zf.string().register(zf.externalKey.registry, {
-          label: "担当者",
-          externalKeyConfig: { type: "list", list: "members" },
-          emptyMessage: "先にチームを選んでください",
-        }),
-      }),
+    const t = renderForm(z.object({ owner: emptyOwner() }), {}, r.resolvers);
+    await r.publish("members", []);
+    const input = await screen.findByPlaceholderText("先にチームを選んでください");
+    expect((input as HTMLInputElement).disabled).toBe(true);
+    // 触る前・送信する前は、ほかの必須の欄と同じく出さない
+    expect(screen.queryByText("先にチームを選んでください")).toBeNull();
+
+    await t.submit();
+    expect(t.onSubmit).not.toHaveBeenCalled();
+    // フォームのエラーは、必須のエラーではなく emptyMessage
+    const errors = t.getForm().getAllErrors().fields.owner?.errors ?? [];
+    expect(
+      errors.map((error: any) => error?.message ?? String(error)),
+    ).toContain("先にチームを選んでください");
+    expect(await screen.findByText("先にチームを選んでください")).toBeTruthy();
+    expect(screen.queryByText(/Invalid input|必ず入力してください/)).toBeNull();
+  });
+
+  it("optional の欄で選択肢が0件なら、無効にして emptyMessage を出すだけで、エラーにしない", async () => {
+    const r = makeResolvers();
+    const t = renderForm(
+      z.object({ owner: emptyOwner().optional() }),
       {},
       r.resolvers,
     );
     await r.publish("members", []);
     const input = await screen.findByPlaceholderText("先にチームを選んでください");
     expect((input as HTMLInputElement).disabled).toBe(true);
-    expect(screen.queryByText("必ず入力してください。")).toBeNull();
+    await t.submit();
+    expect(t.onSubmit).toHaveBeenCalledWith({});
+    expect(screen.queryByText("先にチームを選んでください")).toBeNull();
   });
 
   it("選択肢だけが更新されても購読を張り直さない。unlisted: keep なら値を消さない", async () => {

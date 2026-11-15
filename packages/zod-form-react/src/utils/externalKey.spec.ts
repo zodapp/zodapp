@@ -74,3 +74,72 @@ describe("createExternalKeyDynamicMeta", () => {
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("選択肢が 0 件のときの emptyMessage", () => {
+  const schemaOf = (
+    meta: Record<string, unknown>,
+    options: { label: string; value: string }[],
+  ) => {
+    let deliver:
+      | ((options: { label: string; value: string }[]) => void)
+      | undefined;
+    const resolvers: ExternalKeyResolvers = [
+      {
+        type: "fake",
+        resolver: () => ({
+          subscribe: (callback) => {
+            deliver = callback;
+            return () => {};
+          },
+        }),
+      },
+    ];
+    const dynamicMeta = createExternalKeyDynamicMeta({
+      meta: {
+        externalKeyConfig: { type: "fake" },
+        ...meta,
+      } as unknown as ExternalKeyMetaDef,
+      resolvers,
+      resolverContext: {},
+    });
+    const subscription = (
+      dynamicMeta.resolve as unknown as () => Subscription
+    )();
+    const emit = vi.fn();
+    subscription.subscribe(emit, vi.fn());
+    deliver?.(options);
+    return (emit.mock.calls[0]![0] as DeliveredSchema).schema;
+  };
+
+  it("0 件で emptyMessage があれば、空の値のエラーはその文言になる", () => {
+    const schema = schemaOf(
+      { emptyMessage: "先に都道府県を選んでください" },
+      [],
+    );
+    const result = schema.safeParse(undefined);
+    expect(result.success).toBe(false);
+    expect(result.error!.issues[0]!.message).toBe(
+      "先に都道府県を選んでください",
+    );
+  });
+
+  it("0 件で emptyMessage があっても、optional で包めば空の値は通る", () => {
+    const schema = schemaOf(
+      { emptyMessage: "先に都道府県を選んでください" },
+      [],
+    );
+    expect(schema.optional().safeParse(undefined).success).toBe(true);
+  });
+
+  it("選択肢があるときや emptyMessage が無いときは、エラーの文言を変えない", () => {
+    const withOptions = schemaOf(
+      { emptyMessage: "先に都道府県を選んでください" },
+      [{ label: "A", value: "a" }],
+    );
+    expect(withOptions.safeParse(undefined).error!.issues[0]!.message).not.toBe(
+      "先に都道府県を選んでください",
+    );
+    const withoutMessage = schemaOf({}, []);
+    expect(withoutMessage.safeParse(undefined).success).toBe(false);
+  });
+});

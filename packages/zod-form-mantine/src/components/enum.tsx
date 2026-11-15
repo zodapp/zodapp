@@ -115,7 +115,10 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   }
 
   // 選択肢が0件（上の欄が未選択など）なら、選べないことを示す。理由は meta の emptyMessage で書ける。
-  // ここでは直せないので、必須エラーは出さない（値は unlisted に従う。既定 clear なら消える）
+  // - emptyMessage があり、必須の欄なら、その文言を欄のエラーとして出す（schema のエラーも同じ文言。
+  //   ほかの欄と同じく、触るか送信するまでは出さない）
+  // - それ以外（optional の欄、emptyMessage の無い欄）は、必須エラーを出さない
+  // 値は unlisted に従う（既定 clear なら消える）
   if (data.length === 0) {
     return (
       <Select
@@ -124,6 +127,11 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         data={[]}
         label={label || undefined}
         placeholder={emptyMessage ?? "選択肢がありません"}
+        error={
+          emptyMessage !== undefined && required !== false
+            ? error?.message
+            : undefined
+        }
         required={required !== false}
         disabled={true}
         style={inputWrapperStyle}

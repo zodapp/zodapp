@@ -276,7 +276,11 @@ export type ExternalKeyMetaDef = z.infer<
   externalKeyConfig: RegisteredExternalKeyConfig;
   /** 選んだ値に対する操作（リンクで開くなど） */
   valueAction?: RegisteredValueActionConfig;
-  /** 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」） */
+  /**
+   * 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」）。
+   * 必須の欄では、0件のあいだこの文言を欄のエラーにする（「必ず入力してください」の代わり。送信は止まる）。
+   * optional の欄は、無効にして文言を出すだけでエラーにしない
+   */
   emptyMessage?: string;
 } & ExternalKeyUnlistedOptions;
 
@@ -505,7 +509,9 @@ const zf = {
       unlisted: unlistedSchema,
       /**
        * 選択肢が0件のときに出す文言（既定「選択肢がありません」）。
-       * 0件のあいだは欄を無効にし、必須エラーは出さない（ここでは直せないため）
+       * 0件のあいだは欄を無効にする。必須の欄では、schema のエラー（必須のエラー）をこの欄に出す。
+       * externalKey の選択肢から作る enum は、0件のときこの文言を schema のエラーにするので、
+       * 「必ず入力してください」の代わりにこの文言が出る（送信は止まる）。optional の欄はエラーにしない
        */
       emptyMessage: z.string().optional(),
     }),

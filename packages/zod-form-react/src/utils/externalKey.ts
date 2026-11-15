@@ -211,8 +211,14 @@ const buildOptionsSchema = (
       label: option.label,
     }),
   );
+  // 選択肢が 0 件で emptyMessage があるとき（上の欄が未選択など）は、その文言をこの欄のエラーにする。
+  // 必須の欄では「必ず入力してください」の代わりにこの文言が出る（optional の欄は空で通るので、エラーにならない）
+  const params =
+    options.length === 0 && meta.emptyMessage
+      ? { error: meta.emptyMessage }
+      : undefined;
   return zf
-    .enum(literals as unknown as [z.ZodLiteral<string>])
+    .enum(literals as unknown as [z.ZodLiteral<string>], params)
     .register(zf.enum.registry, {
       ...display,
       valueAction,
