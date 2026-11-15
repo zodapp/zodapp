@@ -6,6 +6,7 @@ import {
   Burger,
   Group,
   NavLink,
+  ScrollArea,
   Tooltip,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery, useLocalStorage } from "@mantine/hooks";
@@ -252,9 +253,12 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
 
       {hasNavbar && (
         <AppShell.Navbar p="xs">
-          {renderBackLink()}
-          {navItems.map(renderNavItem)}
-          {extraNavContent?.({ closeMobile })}
+          {/* Navbar は画面の高さに固定されるので、中身が多いときはこの中でスクロールする */}
+          <AppShell.Section grow component={ScrollArea}>
+            {renderBackLink()}
+            {navItems.map(renderNavItem)}
+            {extraNavContent?.({ closeMobile })}
+          </AppShell.Section>
         </AppShell.Navbar>
       )}
 
