@@ -1,6 +1,6 @@
 # optional な object の縦位置と、空の検索条件の扱いを直すプラン
 
-- ステータス: プラン（未実装）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-ua9i58`（このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/zod-form-mantine`（`components/object.tsx`）
 - 対象アプリ: `apps/taskmanager`、`apps/survey`（`web/components/mingoQuery.ts`）
