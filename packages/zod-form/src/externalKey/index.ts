@@ -6,6 +6,7 @@ export type {
   ResolverId,
   Unsubscriber,
   ExternalKeyOptionsHandler,
+  ExternalKeyErrorHandler,
   ExternalKeyResolverResult,
   BaseExternalKeyConfig,
   ExternalKeyResolverEntry,

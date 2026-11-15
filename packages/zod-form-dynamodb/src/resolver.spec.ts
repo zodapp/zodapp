@@ -18,7 +18,10 @@ const createFakeLiveStore = () => {
     isFetchingMore: false,
   };
   const listeners = new Set<() => void>();
-  const store: ListStore<Item> & { set(items: Item[]): void } = {
+  const store: ListStore<Item> & {
+    set(items: Item[]): void;
+    fail(error: Error): void;
+  } = {
     getState: () => state,
     subscribe: (fn) => {
       listeners.add(fn);
@@ -28,7 +31,11 @@ const createFakeLiveStore = () => {
     reload: () => {},
     close: vi.fn(),
     set: (items) => {
-      state = { ...state, status: "ready", items };
+      state = { ...state, status: "ready", items, error: undefined };
+      for (const fn of listeners) fn();
+    },
+    fail: (error) => {
+      state = { ...state, status: "error", error };
       for (const fn of listeners) fn();
     },
   };
@@ -145,6 +152,37 @@ describe("createDynamoExternalKeyResolver", () => {
       ]),
     );
     expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("store が error になったら onError を呼び、あとで ready になれば選択肢を送る", () => {
+    const store = createFakeLiveStore();
+    const api = {
+      members: { byWorkspace: Object.assign(async () => ({ items: [] }), { live: () => store }) },
+    };
+    const callback = vi.fn();
+    const onError = vi.fn();
+    createDynamoExternalKeyResolver(api)
+      .resolver(baseConfig, resolverContext)
+      .subscribe(callback, onError);
+    const error = new Error("denied");
+    store.fail(error);
+    expect(onError).toHaveBeenCalledWith(error);
+    expect(callback).not.toHaveBeenCalled();
+
+    store.set(members);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("onError を渡さなければ、error のあいだは何も送らない", () => {
+    const store = createFakeLiveStore();
+    const api = {
+      members: { byWorkspace: Object.assign(async () => ({ items: [] }), { live: () => store }) },
+    };
+    const callback = vi.fn();
+    createDynamoExternalKeyResolver(api).resolver(baseConfig, resolverContext).subscribe(callback);
+    expect(() => store.fail(new Error("denied"))).not.toThrow();
+    expect(callback).not.toHaveBeenCalled();
   });
 
   it("resolverContext に contextId の値がなければエラー", () => {

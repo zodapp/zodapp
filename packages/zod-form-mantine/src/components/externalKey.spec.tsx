@@ -68,20 +68,30 @@ type Option = { label: string; value: string };
 /** 選択肢をテストから流せる resolver */
 const makeResolvers = () => {
   const listeners = new Map<string, Set<(options: Option[]) => void>>();
+  const errorListeners = new Map<string, Set<(error: unknown) => void>>();
   const latest = new Map<string, Option[]>();
   const subscribeCount = vi.fn();
   const resolvers: ExternalKeyResolvers = [
     {
       type: "list",
       resolver: (config: { type: string; list: string }) => ({
-        subscribe: (callback: (options: Option[]) => void) => {
+        subscribe: (
+          callback: (options: Option[]) => void,
+          onError?: (error: unknown) => void,
+        ) => {
           subscribeCount(config.list);
           const set = listeners.get(config.list) ?? new Set();
           set.add(callback);
           listeners.set(config.list, set);
+          const errors = errorListeners.get(config.list) ?? new Set();
+          if (onError) errors.add(onError);
+          errorListeners.set(config.list, errors);
           const options = latest.get(config.list);
           if (options) callback(options);
-          return () => set.delete(callback);
+          return () => {
+            set.delete(callback);
+            if (onError) errors.delete(onError);
+          };
         },
       }),
     },
@@ -113,7 +123,17 @@ const makeResolvers = () => {
       listeners.get(list)?.forEach((callback) => callback(options));
     });
   };
-  return { resolvers, publish, subscribeCount };
+  /** 購読中の欄に、取得の失敗を届ける */
+  const fail = async (list: string, error: unknown) => {
+    await act(async () => {
+      errorListeners.get(list)?.forEach((onError) => onError(error));
+    });
+  };
+  /** 購読中の欄には届けず、次に購読した欄にその場で届く選択肢を用意する */
+  const prepare = (list: string, options: Option[]) => {
+    latest.set(list, options);
+  };
+  return { resolvers, publish, prepare, fail, subscribeCount };
 };
 
 const renderForm = (
@@ -269,6 +289,74 @@ describe("externalKey（dynamic + ラッパー）", () => {
     await r.publish("members", [{ label: "佐藤", value: "u2" }]);
     expect(t.getForm().getFieldValue("owner")).toBe("u1");
     expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+  });
+
+  describe("取得の失敗（resolver の onError）", () => {
+    const everyone: Option[] = [
+      { label: "利用者 A", value: "u1" },
+      { label: "利用者 B", value: "u2" },
+    ];
+
+    it("onError で error になり、再試行が出て送信が止まる。値は消さない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("利用者 A");
+
+      await r.fail("members", new Error("取得に失敗しました"));
+      await waitFor(() =>
+        expect(t.runtime.get("owner")?.status).toBe("error"),
+      );
+      expect(
+        document.querySelector('[data-dynamic-status="error"]'),
+      ).toBeTruthy();
+      expect(screen.getByRole("button", { name: "再試行" })).toBeTruthy();
+      await t.submit();
+      expect(t.onSubmit).not.toHaveBeenCalled();
+      expect(t.getForm().getFieldValue("owner")).toBe("u1");
+    });
+
+    it("同じ購読のまま選択肢が届けば、再試行を押さなくても戻る", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.fail("members", new Error("取得に失敗しました"));
+      await waitFor(() =>
+        expect(t.runtime.get("owner")?.status).toBe("error"),
+      );
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("利用者 A");
+      expect(t.runtime.get("owner")?.status).toBe("resolved");
+      await t.submit();
+      expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
+      expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+    });
+
+    it("再試行を押すと、購読をやめて最初からやり直す", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.fail("members", new Error("取得に失敗しました"));
+      await screen.findByRole("button", { name: "再試行" });
+      // 失敗のあいだに選択肢を用意しておくと、やり直した購読にその場で届く
+      r.prepare("members", everyone);
+      await act(async () => {
+        screen.getByRole("button", { name: "再試行" }).click();
+      });
+      await screen.findByDisplayValue("利用者 A");
+      expect(r.subscribeCount).toHaveBeenCalledTimes(2);
+      expect(t.getForm().getFieldValue("owner")).toBe("u1");
+    });
   });
 
   describe("同じ購読のまま選択肢が届き直す", () => {

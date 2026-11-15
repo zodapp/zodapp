@@ -87,6 +87,33 @@ const meta = getMeta(schema);
 - 外部キー: `@zodapp/zod-form-firebase`（Firestore resolver）
 - ファイル: `@zodapp/zod-form-firebase`（Firebase Storage resolver）
 
+## externalKey の resolver
+
+resolver は `subscribe(callback, onError?)` を持つ値を返します。
+
+```ts
+const resolvers = [
+  {
+    type: "api",
+    resolver: (config) => ({
+      subscribe: (callback, onError) => {
+        const off = watchOptions(config, {
+          next: (options) => callback(options), // { label, value }[]
+          error: (error) => onError?.(error),
+        });
+        return off;
+      },
+    }),
+  },
+];
+```
+
+- `callback` で選択肢を届けます。何度呼んでもよく、呼ぶたびに欄の選択肢が変わります
+- 取得に失敗したら `onError` を呼びます。欄は dynamic の error になり「再試行」が出て、送信は止まります。値は消しません（prune も unlisted の clear もしない）
+- 同じ購読のまま、あとで `callback` で選択肢が届けば、再試行を押さなくても戻ります。再試行を押すと、購読をやめて最初からやり直します
+- `onError` は省略できます。使わない resolver はそのまま動きます
+- モックの topic は `fail(error)` で失敗を届けます。失敗の状態は次の `set` まで続き、そのあいだに購読した欄にもその場で失敗を届けます
+
 ## 開発・テスト用: `createMockFileResolver`
 
 アップロード先が未確定な段階や、UI 開発時の動作確認向けに、**実アップロードを行わない** file resolver を提供しています。

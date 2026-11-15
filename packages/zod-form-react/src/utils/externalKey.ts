@@ -202,7 +202,9 @@ const buildOptionsSchema = (
  */
 const findReferenceAction = (
   config: BaseExternalKeyConfig,
-  referenceActionMap: ReadonlyMap<object, RegisteredValueActionConfig> | undefined,
+  referenceActionMap:
+    | ReadonlyMap<object, RegisteredValueActionConfig>
+    | undefined,
 ): RegisteredValueActionConfig | undefined => {
   if (!referenceActionMap || !("reference" in config)) return undefined;
   return referenceActionMap.get(
@@ -246,7 +248,9 @@ export const createExternalKeyDynamicMeta = ({
   return {
     dependsOnValue: false, // 選んだ値では resolve し直さない
     resolve: () => {
-      const entry = resolvers?.find((candidate) => candidate.type === config.type);
+      const entry = resolvers?.find(
+        (candidate) => candidate.type === config.type,
+      );
       if (!resolvers) {
         throw new Error(
           "externalKeyResolvers is not configured in ZodFormContextProvider",
@@ -259,10 +263,13 @@ export const createExternalKeyDynamicMeta = ({
       }
       return {
         key,
-        subscribe: (emit: (delivered: DeliveredSchema) => void) =>
-          entry
-            .resolver(config, resolverContext ?? {})
-            .subscribe((options) =>
+        // 取得の失敗は dynamic の失敗にする（欄は error になり、再試行が出る）
+        subscribe: (
+          emit: (delivered: DeliveredSchema) => void,
+          fail: (error: unknown) => void,
+        ) =>
+          entry.resolver(config, resolverContext ?? {}).subscribe(
+            (options) =>
               emit({
                 schema: buildOptionsSchema(
                   meta,
@@ -270,7 +277,8 @@ export const createExternalKeyDynamicMeta = ({
                   valueAction,
                 ),
               }),
-            ),
+            fail,
+          ),
       };
     },
   } as DynamicMetaDef;
@@ -289,8 +297,11 @@ export const useExternalKeyDynamicMeta = (
       "externalKeyConfig is not defined in schema. Use zf.externalKey.registry to register the config.",
     );
   }
-  const { externalKeyResolvers, resolverContext, collectionReferenceActionMap } =
-    useZodFormContext();
+  const {
+    externalKeyResolvers,
+    resolverContext,
+    collectionReferenceActionMap,
+  } = useZodFormContext();
   return useMemo(
     () =>
       createExternalKeyDynamicMeta({

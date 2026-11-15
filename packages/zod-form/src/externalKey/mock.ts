@@ -21,10 +21,28 @@ export type MockTopic<T> = {
   get: () => T | undefined;
   /** 値があるか */
   has: () => boolean;
-  /** 値を変え、購読者全員に届ける。関数を渡すと今の値から作る */
+  /** 値を変え、購読者全員に届ける。関数を渡すと今の値から作る。失敗の状態は消える */
   set: (next: T | ((prev: T | undefined) => T)) => void;
-  /** 値が変わるたびに listener を呼ぶ。今の値は届けない。戻り値で購読をやめる */
-  subscribe: (listener: (value: T) => void) => () => void;
+  /**
+   * 購読者全員に失敗を届け、失敗の状態を覚える。値はそのまま残る。
+   * 失敗の状態は、次の `set` まで続く
+   */
+  fail: (error: unknown) => void;
+  /** 失敗の状態か。失敗の状態なら、その error を持つ */
+  failure: () => { error: unknown } | undefined;
+  /**
+   * 値が変わるたびに listener を、失敗したら onError を呼ぶ。
+   * 今の値や今の失敗は届けない。戻り値で購読をやめる
+   */
+  subscribe: (
+    listener: (value: T) => void,
+    onError?: (error: unknown) => void,
+  ) => () => void;
+};
+
+type TopicSubscriber<T> = {
+  listener: (value: T) => void;
+  onError?: (error: unknown) => void;
 };
 
 export function createMockTopic<T>(): MockTopic<T>;
@@ -32,7 +50,8 @@ export function createMockTopic<T>(initial: T): MockTopic<T>;
 export function createMockTopic<T>(...args: [] | [T]): MockTopic<T> {
   let hasValue = args.length > 0;
   let value = args[0];
-  const listeners = new Set<(value: T) => void>();
+  let failure: { error: unknown } | undefined;
+  const subscribers = new Set<TopicSubscriber<T>>();
   return {
     get: () => value,
     has: () => hasValue,
@@ -43,12 +62,19 @@ export function createMockTopic<T>(...args: [] | [T]): MockTopic<T> {
           : next;
       value = nextValue;
       hasValue = true;
-      for (const listener of [...listeners]) listener(nextValue);
+      failure = undefined;
+      for (const subscriber of [...subscribers]) subscriber.listener(nextValue);
     },
-    subscribe: (listener) => {
-      listeners.add(listener);
+    fail: (error) => {
+      failure = { error };
+      for (const subscriber of [...subscribers]) subscriber.onError?.(error);
+    },
+    failure: () => failure,
+    subscribe: (listener, onError) => {
+      const subscriber = { listener, onError };
+      subscribers.add(subscriber);
       return () => {
-        listeners.delete(listener);
+        subscribers.delete(subscriber);
       };
     },
   };
@@ -79,6 +105,7 @@ export type MockExternalKeyConfig<
  * - topic に値があれば、購読したその場で今の選択肢を届ける
  * - topic にまだ値が無ければ何も届けない（欄は読み込み中のまま）。最初の `set` で届ける
  * - そのあとは topic が変わるたびに届け直す
+ * - topic の `fail` で onError を呼ぶ。失敗の状態の topic を購読すると、その場で onError を呼ぶ
  * - 無い topic は、購読したその場で空の選択肢を一度届ける
  *
  * @example
@@ -101,7 +128,7 @@ export const createMockExternalKeyResolver = <
 > => ({
   type,
   resolver: (config, resolverContext) => ({
-    subscribe: (callback) => {
+    subscribe: (callback, onError) => {
       const topic = topics[config.topic];
       if (!topic) {
         callback([]);
@@ -119,8 +146,10 @@ export const createMockExternalKeyResolver = <
             : options
           ).map(({ label, value }) => ({ label, value })),
         );
-      const unsubscribe = topic.subscribe(deliver);
-      if (topic.has()) deliver(topic.get() ?? []);
+      const unsubscribe = topic.subscribe(deliver, onError);
+      const failure = topic.failure();
+      if (failure) onError?.(failure.error);
+      else if (topic.has()) deliver(topic.get() ?? []);
       return unsubscribe;
     },
   }),

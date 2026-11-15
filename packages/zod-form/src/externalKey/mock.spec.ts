@@ -106,6 +106,47 @@ describe("createMockExternalKeyResolver", () => {
     expect(callback).toHaveBeenCalledWith([option("u1")]);
   });
 
+  it("fail で購読中の欄に失敗を届け、set で失敗の状態が消えて選択肢を届ける", () => {
+    const { users, entry } = setup();
+    const callback = vi.fn();
+    const onError = vi.fn();
+    entry
+      .resolver({ type: "mock", topic: "users" }, {})
+      .subscribe(callback, onError);
+    const error = new Error("失敗");
+    users.fail(error);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(error);
+    expect(users.failure()).toEqual({ error });
+
+    users.set([option("u2")]);
+    expect(users.failure()).toBeUndefined();
+    expect(callback).toHaveBeenLastCalledWith([option("u2")]);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("失敗の状態のあいだに購読すると、選択肢ではなく失敗をその場で届ける", () => {
+    const { users, pending, entry } = setup();
+    const error = new Error("失敗");
+    users.fail(error);
+    pending.fail(error);
+    for (const topic of ["users", "pending"]) {
+      const callback = vi.fn();
+      const onError = vi.fn();
+      entry.resolver({ type: "mock", topic }, {}).subscribe(callback, onError);
+      expect(onError).toHaveBeenCalledWith(error);
+      expect(callback).not.toHaveBeenCalled();
+    }
+  });
+
+  it("onError を渡さない購読は、失敗しても何も届かない", () => {
+    const { users, entry } = setup();
+    const callback = vi.fn();
+    entry.resolver({ type: "mock", topic: "users" }, {}).subscribe(callback);
+    expect(() => users.fail(new Error("失敗"))).not.toThrow();
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
   it("filter で絞り込み、contextId の resolverContext を受け取る。届けるのは label と value だけ", () => {
     const members = createMockTopic<MockExternalKeyOption[]>([
       { label: "利用者 A", value: "u1", team: "sales" },

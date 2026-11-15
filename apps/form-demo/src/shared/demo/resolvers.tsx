@@ -110,12 +110,12 @@ export const withDemoDelay = (
 ): ExternalKeyResolverEntry<"mock", WebExternalKeyConfig> => ({
   type: entry.type,
   resolver: (config, resolverContext) => ({
-    subscribe: (callback) => {
+    subscribe: (callback, onError) => {
       let unsubscribe: (() => void) | undefined;
       const timer = setTimeout(() => {
         unsubscribe = entry
           .resolver(config, resolverContext)
-          .subscribe(callback);
+          .subscribe(callback, onError);
       }, config.demoDelayMs ?? defaultMs);
       return () => {
         clearTimeout(timer);
