@@ -96,8 +96,8 @@ export const schema = z
     hobbies: zf
       .array(zf.enum(hobbyLiterals))
       .register(zf.array.registry, {
-        label: "趣味(uiType: multipleEnumBudge)",
-        uiType: "multipleEnumBudge",
+        label: "趣味(uiType: multipleEnumBadge)",
+        uiType: "multipleEnumBadge",
       })
       .optional(),
     hobbiesRequired: zf

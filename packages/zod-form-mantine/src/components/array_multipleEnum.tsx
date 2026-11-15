@@ -1,5 +1,11 @@
 import React, { useCallback, useMemo } from "react";
-import { InputWrapper, MultiSelect } from "@mantine/core";
+import {
+  CloseButton,
+  Group,
+  InputWrapper,
+  MultiSelect,
+  type MultiSelectProps,
+} from "@mantine/core";
 import {
   ZodFormInternalProps,
   wrapComponent,
@@ -7,6 +13,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
+  renderBadge,
   renderSelectOption,
   useEnumData,
   toEnumOptionValue,
@@ -70,14 +77,53 @@ const ArrayOfEnumComponent = wrapComponent(
 
     const data = useEnumData(enumSchema);
 
+    const isBadge = uiType === "multipleEnumBadge";
+
     const displayLabels = useMemo(() => {
+      // badge は選択肢の色でバッジを並べる（選択肢に無い値は文字のまま）
+      if (isBadge) {
+        return (
+          <Group gap={4}>
+            {value.map((v) => {
+              const option = data.find((d) => d.value === v);
+              return (
+                <React.Fragment key={v}>
+                  {option ? renderBadge(option) : v}
+                </React.Fragment>
+              );
+            })}
+          </Group>
+        );
+      }
       return value
         .map((v) => {
           const option = data.find((d) => d.value === v);
           return option?.label ?? String(v);
         })
         .join(", ");
-    }, [data, value]);
+    }, [data, value, isBadge]);
+
+    // 選択済みのピルも選択肢の色のバッジにする（× で外せる）
+    const renderPill = useCallback<NonNullable<MultiSelectProps["renderPill"]>>(
+      ({ option, onRemove, disabled }) => {
+        const found = data.find((d) => d.value === String(option.value));
+        return renderBadge(found ?? option, {
+          style: { textTransform: "none" },
+          rightSection:
+            !disabled && onRemove ? (
+              <CloseButton
+                size="xs"
+                variant="transparent"
+                c="inherit"
+                aria-label={`${option.label}を外す`}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={onRemove}
+              />
+            ) : undefined,
+        });
+      },
+      [data],
+    );
 
     if (readOnly || field.disabled) {
       return (
@@ -96,9 +142,8 @@ const ArrayOfEnumComponent = wrapComponent(
         ref={ref}
         value={value}
         data={data}
-        renderOption={
-          uiType === "multipleEnumBudge" ? renderSelectOption : undefined
-        }
+        renderOption={isBadge ? renderSelectOption : undefined}
+        renderPill={isBadge ? renderPill : undefined}
         onChange={onChange}
         onBlur={field.onBlur}
         onFocus={onFocus}
