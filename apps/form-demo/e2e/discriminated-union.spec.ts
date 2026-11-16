@@ -8,12 +8,14 @@ import {
   test,
 } from "./helpers";
 
-// e2e：union の腕の切り替え（/form/detail?formId=e2e-union）
-const TITLE = "e2e：union の腕の切り替え";
+// z.discriminatedUnion：窓口（種類どうしで共通の項目を持つ union）の腕の切り替え
+const TITLE = "z.discriminatedUnion";
 
 test.beforeEach(async ({ page }) => {
-  await openDemo(page, "e2e-union", TITLE);
+  await openDemo(page, "discriminatedUnion", TITLE);
   await expect(field(page, "住所")).toHaveValue("中央区 1-1");
+  // 上の連絡先の欄（メール）が出そろって、窓口の欄の位置が決まるまで待つ
+  await expect(page.getByLabel(/^メール/)).toHaveCount(2);
 });
 
 const desk = async (page: import("@playwright/test").Page) =>

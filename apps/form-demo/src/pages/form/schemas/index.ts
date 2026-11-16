@@ -54,7 +54,7 @@ import dateCode from "./date.ts?raw";
 import timeCode from "./time.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
 import unionCode from "./union.ts?raw";
-import discriminatedUnionCode from "./discriminatedUnion.ts?raw";
+import discriminatedUnionCode from "./discriminatedUnion.tsx?raw";
 import discriminatedUnionAsTopLevelCode from "./discriminatedUnionAsTopLevel.ts?raw";
 import arrayFieldsCode from "./arrayFields.ts?raw";
 import nestedObjectCode from "./nestedObject.ts?raw";

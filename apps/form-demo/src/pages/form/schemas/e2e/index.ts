@@ -8,20 +8,17 @@
 import * as e2eDynamic from "./e2eDynamic";
 import * as e2eExternalKey from "./e2eExternalKey";
 import * as e2eOpenRewrite from "./e2eOpenRewrite";
-import * as e2eUnion from "./e2eUnion";
 import * as e2eTable from "./e2eTable";
 
 import e2eDynamicCode from "./e2eDynamic.tsx?raw";
 import e2eExternalKeyCode from "./e2eExternalKey.tsx?raw";
 import e2eOpenRewriteCode from "./e2eOpenRewrite.tsx?raw";
-import e2eUnionCode from "./e2eUnion.tsx?raw";
 import e2eTableCode from "./e2eTable.tsx?raw";
 
 export const e2eSchemas = {
   [e2eDynamic.formId]: e2eDynamic,
   [e2eExternalKey.formId]: e2eExternalKey,
   [e2eOpenRewrite.formId]: e2eOpenRewrite,
-  [e2eUnion.formId]: e2eUnion,
   [e2eTable.formId]: e2eTable,
 } as const;
 
@@ -29,7 +26,6 @@ export const e2eCodes: Record<keyof typeof e2eSchemas, string> = {
   [e2eDynamic.formId]: e2eDynamicCode,
   [e2eExternalKey.formId]: e2eExternalKeyCode,
   [e2eOpenRewrite.formId]: e2eOpenRewriteCode,
-  [e2eUnion.formId]: e2eUnionCode,
   [e2eTable.formId]: e2eTableCode,
 };
 
