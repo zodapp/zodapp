@@ -27,6 +27,7 @@ import {
 import { ExternalKeyComponent as ReactiveExternalKeyComponent } from "@zodapp/zod-form-mantine-lite/reactiveComponents";
 import { ExternalKeyComponent as TableExternalKeyComponent } from "@zodapp/zod-form-mantine-lite/tableComponents";
 import { component as MultipleExternalKeyComponent } from "./array_multipleExternalKey";
+import { component as ArrayOfEnumComponent } from "./array_multipleEnum";
 
 const setupDomMocks = () => {
   if (!window.matchMedia) {
@@ -98,6 +99,11 @@ const member = zf.string().register(zf.externalKey.registry, {
   externalKeyConfig: { type: "list" },
 });
 
+// 複数選択の externalKey は、選択肢が届いたら複数選択の enum の部品で描く
+const componentLibrary = {
+  array_multipleEnum: () => ({ component: ArrayOfEnumComponent }),
+};
+
 const Providers = ({
   resolvers,
   children,
@@ -107,7 +113,7 @@ const Providers = ({
 }) => (
   <MantineProvider>
     <ZodFormContextProvider
-      componentLibrary={{}}
+      componentLibrary={componentLibrary as any}
       externalKeyResolvers={resolvers}
     >
       {children}
@@ -210,6 +216,7 @@ describe("useExternalKeyOptions を使う部品の失敗の表示", () => {
     const r = makeResolver();
     const schema = z.array(member).register(zf.array.registry, {
       label: "担当者たち",
+      uiType: "multipleExternalKey",
     });
     const runtime = new FormRuntime();
     const Form = () => {
