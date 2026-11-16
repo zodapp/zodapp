@@ -19,24 +19,32 @@ type SamePathValue = {
 
 const SamePathContext = createContext<SamePathValue | null>(null);
 
-/** 同じ path の連なりに schema を積む。最後に積んだものと同じなら積まない */
+/**
+ * 同じ path の連なりに schema を積む。最後に積んだものと同じなら積まない。
+ * `schemas` を渡したら、外から内の順にまとめて積む（Switch が剥がした包みと中身）
+ */
 export const SamePathProvider = ({
   path,
   schema,
+  schemas,
   children,
 }: {
   path: string;
-  schema: z.ZodTypeAny;
+  schema?: z.ZodTypeAny;
+  schemas?: readonly z.ZodTypeAny[];
   children: React.ReactNode;
 }) => {
   const outer = useContext(SamePathContext);
   const value = useMemo<SamePathValue>(() => {
-    const chain = outer && outer.path === path ? outer.chain : [];
-    if (chain[chain.length - 1] === schema) {
-      return outer as SamePathValue;
+    const base = outer && outer.path === path ? outer.chain : [];
+    let chain = base;
+    for (const next of schemas ?? (schema ? [schema] : [])) {
+      if (chain[chain.length - 1] !== next) chain = [...chain, next];
     }
-    return { path, chain: [...chain, schema] };
-  }, [outer, path, schema]);
+    return chain === base && outer && outer.path === path
+      ? outer
+      : { path, chain };
+  }, [outer, path, schema, schemas]);
   return (
     <SamePathContext.Provider value={value}>
       {children}
@@ -150,4 +158,61 @@ export const rewrapWithChain = (
     schema = withChecks(schema, checksOf(outer));
   }
   return schema;
+};
+
+/** Switch が剥がす包み（同じ path のまま中身を描くだけの schema） */
+const PEELABLE = new Set([
+  "optional",
+  "nullable",
+  "default",
+  "prefault",
+  "lazy",
+]);
+
+export type PeeledSchema = {
+  /** 剥がした包み（外から内の順） */
+  wrappers: readonly z.ZodTypeAny[];
+  /** 包みの中身。部品はこれで選ぶ */
+  inner: z.ZodTypeAny;
+  /** 包みと中身（外から内の順）。連なりにまとめて積む */
+  schemas: readonly z.ZodTypeAny[];
+  /** nullable・default の中にあるか（初期値が無いとき null を渡す。今の部品と同じ） */
+  nullDefault: boolean;
+};
+
+const peelCache = new WeakMap<z.ZodTypeAny, PeeledSchema>();
+
+/**
+ * 案D：schema の外側の同じ path の包み（optional・nullable・default・prefault・lazy）を剥がす。
+ * 結果は schema ごとに WeakMap にキャッシュする（schema は不変）。
+ * 包みに meta が付いていれば（hidden など、部品を meta で選ぶとき）、そこで止める。
+ */
+export const peelSamePath = (
+  schema: z.ZodTypeAny,
+  hasMeta: (schema: z.ZodTypeAny) => boolean,
+): PeeledSchema => {
+  const cached = peelCache.get(schema);
+  if (cached) return cached;
+  const wrappers: z.ZodTypeAny[] = [];
+  let inner = schema;
+  let nullDefault = false;
+  for (let guard = 0; guard < 64; guard += 1) {
+    const type = typeOf(inner);
+    if (!PEELABLE.has(type) || hasMeta(inner)) break;
+    wrappers.push(inner);
+    const def = (inner as unknown as { def: Record<string, unknown> }).def;
+    if (type === "nullable" || type === "default") nullDefault = true;
+    inner =
+      type === "lazy"
+        ? (def.getter as () => z.ZodTypeAny)()
+        : (def.innerType as z.ZodTypeAny);
+  }
+  const peeled = {
+    wrappers,
+    inner,
+    schemas: [...wrappers, inner],
+    nullDefault,
+  };
+  peelCache.set(schema, peeled);
+  return peeled;
 };

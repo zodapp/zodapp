@@ -234,4 +234,39 @@ describe("同じ path の外側の包み（dynamic）", () => {
     expect(input).toBeTruthy();
     expect(input.required).toBe(true);
   });
+
+  it("案D：optional・nullable の部品が componentLibrary に無くても、Switch が包みを剥がして描く", async () => {
+    const {
+      optional: _o,
+      nullable: _n,
+      default: _d,
+      ...rest
+    } = componentLibrary as Record<string, unknown>;
+    void _o;
+    void _n;
+    void _d;
+    const schema = object({
+      x: z.string().optional(),
+      y: z.string().nullable(),
+      z: z.string(),
+    });
+    const runtime = new FormRuntime();
+    const Form = () => {
+      const f = useZodForm({
+        defaultValues: { x: undefined, y: null, z: "" } as any,
+      });
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider componentLibrary={rest as any}>
+            <FormProvider form={f as any} runtime={runtime}>
+              <Switch fieldPath="" schema={schema} />
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+    render(<Form />);
+    const inputs = Array.from(document.querySelectorAll("input"));
+    expect(inputs.map((input) => input.required)).toEqual([false, false, true]);
+  });
 });

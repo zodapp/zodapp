@@ -52,6 +52,8 @@ export {
   useEmptiness,
   emptinessOf,
   rewrapWithChain,
+  peelSamePath,
+  type PeeledSchema,
 } from "./samePath";
 export {
   useFnInput,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { emptinessOf, rewrapWithChain } from "./samePath";
+import { emptinessOf, peelSamePath, rewrapWithChain } from "./samePath";
 
 const messages = (schema: z.ZodTypeAny, value: unknown) =>
   schema.safeParse(value).error?.issues.map((issue) => issue.message) ?? [];
@@ -72,5 +72,48 @@ describe("rewrapWithChain", () => {
     const wrapped = rewrapWithChain(resolved, [outer, inner]);
     expect(messages(wrapped, "a")).toEqual(["外"]);
     expect(messages(wrapped, "b")).toEqual(["内"]);
+  });
+});
+
+describe("peelSamePath（案D）", () => {
+  const noMeta = () => false;
+
+  it("optional・nullable・default・lazy を剥がし、中身と包みを返す", () => {
+    const inner = z.string();
+    const schema = z.lazy(() => inner.nullable().default(null)).optional();
+    const peeled = peelSamePath(schema, noMeta);
+    expect(peeled.inner).toBe(inner);
+    expect(peeled.wrappers.map((s) => s.def.type)).toEqual([
+      "optional",
+      "lazy",
+      "default",
+      "nullable",
+    ]);
+    expect(peeled.schemas[peeled.schemas.length - 1]).toBe(inner);
+    expect(peeled.nullDefault).toBe(true);
+    expect(emptinessOf(peeled.schemas)).toEqual({
+      optional: true,
+      nullable: true,
+    });
+  });
+
+  it("同じ schema ならキャッシュを返す", () => {
+    const schema = z.string().optional();
+    expect(peelSamePath(schema, noMeta)).toBe(peelSamePath(schema, noMeta));
+  });
+
+  it("包みに meta があれば、そこで止める", () => {
+    const wrapped = z.string().optional();
+    const schema = wrapped.nullable();
+    const peeled = peelSamePath(schema, (s) => s === wrapped);
+    expect(peeled.inner).toBe(wrapped);
+    expect(peeled.wrappers).toEqual([schema]);
+  });
+
+  it("包みでなければ何もしない", () => {
+    const schema = z.object({ a: z.string() });
+    const peeled = peelSamePath(schema, noMeta);
+    expect(peeled.inner).toBe(schema);
+    expect(peeled.wrappers).toEqual([]);
   });
 });
