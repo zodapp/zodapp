@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import z from "zod";
 import {
   getMeta,
@@ -38,22 +38,41 @@ export type ExternalKeyOption = {
 /**
  * `useExternalKeyOptions()` の戻り値。
  *
- * options は購読（subscribe）結果が揃うまで `null` となります。
+ * - 読み込み中：options は購読（subscribe）結果が揃うまで `null`
+ * - 届いた：options に選択肢
+ * - 失敗した：resolver が onError を呼んだ。`error` と、購読をやめて最初からやり直す `retry` を持つ。
+ *   同じ購読のまま、あとで選択肢が届けば、再試行しなくても「届いた」に戻る（single-select の欄と同じ）
  */
 export type UseExternalKeyOptionsResult =
-  | { options: null; isLoading: true }
-  | { options: ExternalKeyOption[]; isLoading: false };
+  | { options: null; isLoading: true; error?: undefined; retry?: undefined }
+  | {
+      options: ExternalKeyOption[];
+      isLoading: false;
+      error?: undefined;
+      retry?: undefined;
+    }
+  | { options: null; isLoading: false; error: unknown; retry: () => void };
+
+type ExternalKeyOptionsState =
+  | { status: "loading" }
+  | { status: "ready"; options: ExternalKeyOption[] }
+  | { status: "error"; error: unknown };
 
 /**
  * ExternalKey用のオプションを取得するhook
- * schemaからexternalKeyConfigを取得し、resolverを通じてoptionsをsubscribeする
+ * schemaからexternalKeyConfigを取得し、resolverを通じてoptionsをsubscribeする。
+ * resolver が onError を呼んだら、error と retry を返す
  */
 export const useExternalKeyOptions = (
   schema: ExternalKeySchema,
 ): UseExternalKeyOptionsResult => {
   const meta = getMeta(schema, "externalKey");
 
-  const [options, setOptions] = useState<ExternalKeyOption[] | null>(null);
+  const [state, setState] = useState<ExternalKeyOptionsState>({
+    status: "loading",
+  });
+  // 再試行のたびに増やし、購読を張り直す
+  const [attempt, setAttempt] = useState(0);
 
   // ExternalKeyConfigからconfigを解決
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,25 +101,30 @@ export const useExternalKeyOptions = (
       : undefined;
   const { resolverContext } = useZodFormContext();
 
-  // subscribeしてoptionsを取得
+  // subscribeしてoptionsを取得。失敗は onError で受け取る
   useEffect(() => {
-    setOptions(null);
-    const unsubscribe = resolverResultRef.current.subscribe((newOptions) => {
-      // valueの重複を排除
-      const normalizedOptions = Object.values(
-        Object.fromEntries(newOptions.map((option) => [option.value, option])),
-      );
-      setOptions(normalizedOptions);
-    });
+    setState({ status: "loading" });
+    const unsubscribe = resolverResultRef.current.subscribe(
+      (newOptions) => {
+        setState({ status: "ready", options: dedupeOptions(newOptions) });
+      },
+      (error) => {
+        setState({ status: "error", error });
+      },
+    );
 
     return unsubscribe;
-  }, [configType, contextId, resolverContext, config]);
+  }, [configType, contextId, resolverContext, config, attempt]);
 
-  if (options === null) {
+  const retry = useCallback(() => setAttempt((count) => count + 1), []);
+
+  if (state.status === "error") {
+    return { options: null, isLoading: false, error: state.error, retry };
+  }
+  if (state.status === "loading") {
     return { options: null, isLoading: true };
   }
-
-  return { options, isLoading: false };
+  return { options: state.options, isLoading: false };
 };
 
 /**
@@ -187,8 +211,14 @@ const buildOptionsSchema = (
       label: option.label,
     }),
   );
+  // 選択肢が 0 件で emptyMessage があるとき（上の欄が未選択など）は、その文言をこの欄のエラーにする。
+  // 必須の欄では「必ず入力してください」の代わりにこの文言が出る（optional の欄は空で通るので、エラーにならない）
+  const params =
+    options.length === 0 && meta.emptyMessage
+      ? { error: meta.emptyMessage }
+      : undefined;
   return zf
-    .enum(literals as unknown as [z.ZodLiteral<string>])
+    .enum(literals as unknown as [z.ZodLiteral<string>], params)
     .register(zf.enum.registry, {
       ...display,
       valueAction,
@@ -202,7 +232,9 @@ const buildOptionsSchema = (
  */
 const findReferenceAction = (
   config: BaseExternalKeyConfig,
-  referenceActionMap: ReadonlyMap<object, RegisteredValueActionConfig> | undefined,
+  referenceActionMap:
+    | ReadonlyMap<object, RegisteredValueActionConfig>
+    | undefined,
 ): RegisteredValueActionConfig | undefined => {
   if (!referenceActionMap || !("reference" in config)) return undefined;
   return referenceActionMap.get(
@@ -210,24 +242,26 @@ const findReferenceAction = (
   );
 };
 
-/**
- * externalKey の meta から、dynamic の meta を作る。
- *
- * resolve は config から resolver を引き、選択肢を購読して schema を届ける。
- * key は config（関数を除く）と、config が使う resolverContext から作るので、
- * 同じ key のあいだは購読を張り直さず、選択肢の更新は描画だけを変える。
- */
-export const createExternalKeyDynamicMeta = ({
-  meta,
-  resolvers,
-  resolverContext,
-  referenceActionMap,
-}: {
+type ExternalKeyDynamicMetaParams = {
   meta: ExternalKeyMetaDef;
   resolvers: ExternalKeyResolvers | undefined;
   resolverContext: RegisteredResolverContext | undefined;
   referenceActionMap?: ReadonlyMap<object, RegisteredValueActionConfig>;
-}): DynamicMetaDef => {
+};
+
+/**
+ * 選択肢を購読し、選択肢から作った schema を届ける dynamic の meta を作る。
+ * wrap で、選択肢の schema を包んで届ける（複数選択なら配列にする）
+ */
+const createOptionsDynamicMeta = (
+  {
+    meta,
+    resolvers,
+    resolverContext,
+    referenceActionMap,
+  }: ExternalKeyDynamicMetaParams,
+  wrap: (optionsSchema: z.ZodTypeAny) => z.ZodTypeAny,
+): DynamicMetaDef => {
   const config = meta.externalKeyConfig as BaseExternalKeyConfig;
   const valueAction =
     (meta.valueAction as RegisteredValueActionConfig | undefined) ??
@@ -246,7 +280,9 @@ export const createExternalKeyDynamicMeta = ({
   return {
     dependsOnValue: false, // 選んだ値では resolve し直さない
     resolve: () => {
-      const entry = resolvers?.find((candidate) => candidate.type === config.type);
+      const entry = resolvers?.find(
+        (candidate) => candidate.type === config.type,
+      );
       if (!resolvers) {
         throw new Error(
           "externalKeyResolvers is not configured in ZodFormContextProvider",
@@ -259,21 +295,44 @@ export const createExternalKeyDynamicMeta = ({
       }
       return {
         key,
-        subscribe: (emit: (delivered: DeliveredSchema) => void) =>
-          entry
-            .resolver(config, resolverContext ?? {})
-            .subscribe((options) =>
+        // 取得の失敗は dynamic の失敗にする（欄は error になり、再試行が出る）
+        subscribe: (
+          emit: (delivered: DeliveredSchema) => void,
+          fail: (error: unknown) => void,
+        ) =>
+          entry.resolver(config, resolverContext ?? {}).subscribe(
+            (options) =>
               emit({
-                schema: buildOptionsSchema(
-                  meta,
-                  dedupeOptions(options),
-                  valueAction,
+                schema: wrap(
+                  buildOptionsSchema(meta, dedupeOptions(options), valueAction),
                 ),
               }),
-            ),
+            fail,
+          ),
       };
     },
   } as DynamicMetaDef;
+};
+
+/**
+ * externalKey の meta から、dynamic の meta を作る。
+ *
+ * resolve は config から resolver を引き、選択肢を購読して schema を届ける。
+ * key は config（関数を除く）と、config が使う resolverContext から作るので、
+ * 同じ key のあいだは購読を張り直さず、選択肢の更新は描画だけを変える。
+ */
+export const createExternalKeyDynamicMeta = (
+  params: ExternalKeyDynamicMetaParams,
+): DynamicMetaDef => createOptionsDynamicMeta(params, (schema) => schema);
+
+const requireExternalKeyMeta = (schema: z.ZodTypeAny): ExternalKeyMetaDef => {
+  const meta = getMeta(schema, "externalKey") as ExternalKeyMetaDef | undefined;
+  if (!meta?.externalKeyConfig) {
+    throw new Error(
+      "externalKeyConfig is not defined in schema. Use zf.externalKey.registry to register the config.",
+    );
+  }
+  return meta;
 };
 
 /**
@@ -283,14 +342,12 @@ export const createExternalKeyDynamicMeta = ({
 export const useExternalKeyDynamicMeta = (
   schema: ExternalKeySchema,
 ): DynamicMetaDef => {
-  const meta = getMeta(schema, "externalKey") as ExternalKeyMetaDef | undefined;
-  if (!meta?.externalKeyConfig) {
-    throw new Error(
-      "externalKeyConfig is not defined in schema. Use zf.externalKey.registry to register the config.",
-    );
-  }
-  const { externalKeyResolvers, resolverContext, collectionReferenceActionMap } =
-    useZodFormContext();
+  const meta = requireExternalKeyMeta(schema);
+  const {
+    externalKeyResolvers,
+    resolverContext,
+    collectionReferenceActionMap,
+  } = useZodFormContext();
   return useMemo(
     () =>
       createExternalKeyDynamicMeta({
@@ -300,5 +357,74 @@ export const useExternalKeyDynamicMeta = (
         referenceActionMap: collectionReferenceActionMap,
       }),
     [meta, externalKeyResolvers, resolverContext, collectionReferenceActionMap],
+  );
+};
+
+/** 複数選択の externalKey の schema（`z.array(zf.externalKey ...)`） */
+export type ArrayOfExternalKeySchema = z.ZodArray<ExternalKeySchema>;
+
+/**
+ * 複数選択の externalKey の schema の要素を、選択肢から作った schema に差し替える。
+ * 配列の制約（min / max / length）と meta（label・width など）は元の schema から引き継ぎ、
+ * uiType だけを、選択肢の schema を描く複数選択の部品（multipleEnum）にする。
+ * optional / nullable などの外側の包みは、呼ぶ側（Switch と dynamic の required）が扱う
+ */
+export const wrapOptionsSchemaInArray = (
+  arraySchema: ArrayOfExternalKeySchema,
+  optionsSchema: z.ZodTypeAny,
+): z.ZodArray<z.ZodTypeAny> => {
+  const def = arraySchema._zod.def;
+  // def には制約（checks）と meta が入っているので、要素だけを差し替えて作り直す
+  const next = arraySchema.clone({
+    ...def,
+    element: optionsSchema,
+  } as unknown as typeof def) as unknown as z.ZodArray<z.ZodTypeAny>;
+  return next.register(zf.array.registry, { uiType: "multipleEnum" });
+};
+
+/**
+ * 複数選択の externalKey の schema から、dynamic の meta を作る。
+ * 選択肢の購読は単一選択と同じで、届ける schema を、元の配列の制約と meta を引き継いだ配列にする。
+ * 選択肢の扱い（allowUnlisted・unlisted・emptyMessage）は要素の externalKey の meta で決める
+ */
+export const createArrayExternalKeyDynamicMeta = ({
+  schema,
+  ...params
+}: Omit<ExternalKeyDynamicMetaParams, "meta"> & {
+  schema: ArrayOfExternalKeySchema;
+}): DynamicMetaDef =>
+  createOptionsDynamicMeta(
+    { ...params, meta: requireExternalKeyMeta(schema.element) },
+    (optionsSchema) => wrapOptionsSchemaInArray(schema, optionsSchema),
+  );
+
+/**
+ * 複数選択の externalKey の schema から、dynamic の meta を作る hook。
+ * resolver の一覧はライブラリの context（externalKeyResolvers）から取る。
+ */
+export const useArrayExternalKeyDynamicMeta = (
+  schema: ArrayOfExternalKeySchema,
+): DynamicMetaDef => {
+  // externalKeyConfig が無ければ、描く前に誤りにする
+  requireExternalKeyMeta(schema.element);
+  const {
+    externalKeyResolvers,
+    resolverContext,
+    collectionReferenceActionMap,
+  } = useZodFormContext();
+  return useMemo(
+    () =>
+      createArrayExternalKeyDynamicMeta({
+        schema,
+        resolvers: externalKeyResolvers,
+        resolverContext,
+        referenceActionMap: collectionReferenceActionMap,
+      }),
+    [
+      schema,
+      externalKeyResolvers,
+      resolverContext,
+      collectionReferenceActionMap,
+    ],
   );
 };

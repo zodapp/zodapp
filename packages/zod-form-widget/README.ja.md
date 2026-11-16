@@ -60,6 +60,24 @@ import { jaErrorMap } from "@zodapp/zod-form-widget/i18n/ja";
 z.config({ customError: jaErrorMap });
 ```
 
+## 送信が止まったとき（`AutoForm`）
+
+送信が止まると、ボタンの行の近くに理由を出します（`data-testid="form-submit-blocked"`）。当てはまるものをすべて出し、次に送信を押すまで出したままにします。送信が通れば消えます。
+
+- 読み込み中の欄がある：「読み込み中の欄があるため、送信できませんでした」
+- 取得できなかった欄がある：「取得できなかった欄があるため、送信できませんでした」
+- 入力の誤りがある：「入力に誤りがあるため、送信できませんでした」
+
+## 表の並べ替え（`AutoTable`）
+
+見出しを押すと、列の種類ごとに次の基準で並べます。
+
+- 数・日付・文字・真偽：値で並べる（suggestions 付きの文字も、表示名ではなく値の文字で並べる）
+- externalKey：保存している値（ID）で並べる。表示名（ラベル）では並べない
+- enum：選択肢を定義した順。選択肢に無い値は最後
+- computed：計算した値で並べる（文字・数・真偽・日付のとき。link・badge などのオブジェクトは、画面に出る文字（label）で並べる。それ以外は最後）
+- dynamic：並べ替えない（行ごとに意味が変わるため）
+
 ## サブパス export
 
 - `@zodapp/zod-form-widget`：下のすべてと、`extendSchema` などの再 export

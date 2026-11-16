@@ -16,6 +16,7 @@ import {
   ConfirmableInputActions,
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../utils/styles";
+import { UNLISTED_LABEL, withUnlistedOption } from "../utils/unlisted";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -45,13 +46,20 @@ const EnumComponent = React.memo(function EnumComponent({
   // 数値の選択肢も扱えるよう、Select とは文字列でやりとりする (0 も値として残す)
   const optionValue = toEnumOptionValue(value);
 
+  // 選択肢に無い値は、zod-form-mantine の欄や表のセルと同じく「（不正な値）」と出す（生の値は見せない）。
+  // 編集できる欄では、選べない選択肢として足す（足さないと Select は空欄に見せる）
+  const selectData = useMemo(
+    () => withUnlistedOption(data, optionValue, UNLISTED_LABEL),
+    [data, optionValue],
+  );
+
   const isBadge = uiType === "badge";
   const displayLabel = useMemo(() => {
     if (optionValue === null) return "";
     const option = data.find((d) => d.value === optionValue);
-    // badge は選択肢の色でバッジにする（選択肢に無い値は文字のまま）
-    if (isBadge && option) return renderBadge(option);
-    return option?.label ?? optionValue;
+    if (!option) return UNLISTED_LABEL;
+    // badge は選択肢の色でバッジにする（選択肢に無い値は「（不正な値）」の文字のまま）
+    return isBadge ? renderBadge(option) : option.label;
   }, [data, optionValue, isBadge]);
 
   if (readOnly) {
@@ -71,7 +79,7 @@ const EnumComponent = React.memo(function EnumComponent({
     return (
       <BadgeSelect
         value={optionValue}
-        data={data}
+        data={selectData}
         onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
         onBlur={() => void onBlur()}
         label={label || undefined}
@@ -93,7 +101,7 @@ const EnumComponent = React.memo(function EnumComponent({
   return (
     <Select
       value={optionValue}
-      data={data}
+      data={selectData}
       onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
       onBlur={() => void onBlur()}
       label={label || undefined}

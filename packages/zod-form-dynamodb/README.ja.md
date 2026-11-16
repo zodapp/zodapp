@@ -41,6 +41,7 @@ const externalKeyResolvers = [createDynamoExternalKeyResolver(api)]; // api は 
 
 - クエリに `live` があればリアルタイムで購読し、一覧が変われば選択肢も変わります
 - `live` がなければ、ページをたどって全体を 1 回だけ読みます
+- store が `error` になったら `onError` を呼びます。欄は error になり「再試行」が出ます
 - 表示は `labelFormatter`、`labelField`、`valueField` の順に使います。読んだ一覧から作るので、Get で個別には引きません
 - `filter` は `params` と同じ resolverContext を受け取ります。context で変わる条件はここで読めば、config を差し替えずに済みます。context の値が変わると選択肢を取り直します
 - config の関数（`filter` や `labelFormatter`）を `zf.dynamic` で差し替えるときは、config に `key` を書いて違いを表します。関数は、取り直すかどうかを決める key に入らないためです

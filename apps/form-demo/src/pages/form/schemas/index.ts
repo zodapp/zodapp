@@ -19,6 +19,7 @@ import * as date from "./date";
 import * as time from "./time";
 import * as enumSelect from "./enumSelect";
 import * as union from "./union";
+import * as unionArms from "./unionArms";
 import * as discriminatedUnion from "./discriminatedUnion";
 import * as discriminatedUnionAsTopLevel from "./discriminatedUnionAsTopLevel";
 import * as arrayFields from "./arrayFields";
@@ -54,7 +55,8 @@ import dateCode from "./date.ts?raw";
 import timeCode from "./time.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
 import unionCode from "./union.ts?raw";
-import discriminatedUnionCode from "./discriminatedUnion.ts?raw";
+import unionArmsCode from "./unionArms.tsx?raw";
+import discriminatedUnionCode from "./discriminatedUnion.tsx?raw";
 import discriminatedUnionAsTopLevelCode from "./discriminatedUnionAsTopLevel.ts?raw";
 import arrayFieldsCode from "./arrayFields.ts?raw";
 import nestedObjectCode from "./nestedObject.ts?raw";
@@ -80,6 +82,7 @@ export const formSchemas = {
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
   [union.formId]: union,
+  [unionArms.formId]: unionArms,
   [discriminatedUnion.formId]: discriminatedUnion,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
   [recursiveData.formId]: recursiveData,
@@ -117,6 +120,7 @@ export const formCodes = {
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
   [union.formId]: unionCode,
+  [unionArms.formId]: unionArmsCode,
   [discriminatedUnion.formId]: discriminatedUnionCode,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevelCode,
   [recursiveData.formId]: recursiveDataCode,

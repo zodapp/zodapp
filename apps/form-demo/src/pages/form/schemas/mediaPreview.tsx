@@ -10,6 +10,7 @@ import { Code, ScrollArea } from "@mantine/core";
 import { IconPhotoVideo } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "mediaPreview";
 export const title = "zf.file（プレビューの種類）";
@@ -90,6 +91,9 @@ const mediaResolvers: MediaResolvers = [
   ...defaultMediaResolvers,
 ];
 
+// 見るための部品（値・エラー・送信・ログ）
+const harness = [createE2eHarness({ formId })];
+
 export const Component = () => {
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
   return (
@@ -98,7 +102,7 @@ export const Component = () => {
       defaultValues={defaultValues}
       fileResolvers={fileResolvers}
       mediaResolvers={mediaResolvers}
-      showPreview={false}
+      actionComponents={harness}
     />
   );
 };

@@ -277,18 +277,26 @@ export type ExternalKeyMetaDef = z.infer<
   /** 選んだ値に対する操作（リンクで開くなど） */
   valueAction?: RegisteredValueActionConfig;
   /**
-   * 選択肢に無い値も通す（string + 選択式にする）。
-   * 既定 false（enum で厳しく検証する）
+   * 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」）。
+   * 必須の欄では、0件のあいだこの文言を欄のエラーにする（「必ず入力してください」の代わり。送信は止まる）。
+   * optional の欄は、無効にして文言を出すだけでエラーにしない
    */
-  allowUnlisted?: boolean;
-  /**
-   * 値が選択肢に無いときの扱い（選択肢の enum に渡す）。
-   * clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
-   */
-  unlisted?: UnlistedPolicy;
-  /** 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」） */
   emptyMessage?: string;
-};
+} & ExternalKeyUnlistedOptions;
+
+/**
+ * externalKey の、選択肢に無い値の扱い。
+ *
+ * - `allowUnlisted`：選択肢に無い値も正しい値として通す（string + 選択式にする）。既定 false（enum で厳しく検証する）
+ * - `unlisted`：選択肢に無い値を誤りとするときの扱い（選択肢の enum に渡す）。
+ *   clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
+ *
+ * `allowUnlisted: true` のときは選択肢に無い値も正しい値なので、`unlisted` は効かない。
+ * 両方を同時に書けないよう、型で止める
+ */
+export type ExternalKeyUnlistedOptions =
+  | { allowUnlisted?: false; unlisted?: UnlistedPolicy }
+  | { allowUnlisted: true; unlisted?: never };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
   /**
@@ -501,7 +509,9 @@ const zf = {
       unlisted: unlistedSchema,
       /**
        * 選択肢が0件のときに出す文言（既定「選択肢がありません」）。
-       * 0件のあいだは欄を無効にし、必須エラーは出さない（ここでは直せないため）
+       * 0件のあいだは欄を無効にする。必須の欄では、schema のエラー（必須のエラー）をこの欄に出す。
+       * externalKey の選択肢から作る enum は、0件のときこの文言を schema のエラーにするので、
+       * 「必ず入力してください」の代わりにこの文言が出る（送信は止まる）。optional の欄はエラーにしない
        */
       emptyMessage: z.string().optional(),
     }),

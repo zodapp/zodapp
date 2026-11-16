@@ -152,7 +152,11 @@ const writeValue = (form: AnyFormApi, fieldPath: string, value: unknown) => {
     form.baseStore.setState((state: any) => ({ ...state, values: value }));
     return;
   }
-  form.setFieldValue(fieldPath, value as never, { dontValidate: true });
+  // prune は利用者が触った欄ではないので、「触った」「変えた」にしない
+  form.setFieldValue(fieldPath, value as never, {
+    dontValidate: true,
+    dontUpdateMeta: true,
+  });
 };
 
 type ResolveOutcome =

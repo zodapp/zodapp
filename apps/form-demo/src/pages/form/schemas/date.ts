@@ -5,7 +5,7 @@ import { IconCalendar } from "@tabler/icons-react";
 export const formId = "date";
 export const title = "zf.date";
 export const description =
-  "日付・時刻の入力（様々なZod型、粒度、エンコーディング）";
+  "日付・時刻の入力（様々なZod型、粒度、エンコーディング）。開いただけでは値を書き換えず、編集すると precision・unit で決まる形で書く。unit が保存値より粗い欄は、編集すると細かい部分が 0 になる";
 export const icon = IconCalendar;
 export const category = "Basic";
 
@@ -153,6 +153,63 @@ export const schema = z
       label: "z.iso.date() - 年単位（year）",
       unit: "year",
     }),
+
+    // ============================================================
+    // 6. precision・unit で書かれる形（初期値は固定の日時で、unit より細かい部分まで持つ）
+    // precision なしの欄は unit で書く形が決まる。unit が保存値より粗いと、編集したときに細かい部分が 0 になる
+    // ============================================================
+    utcMinute: z.iso.datetime().register(zf.date.registry, {
+      label: "Z・unit minute（編集すると秒は 00、ミリ秒は落ちる）",
+      unit: "minute",
+    }),
+    utcSecond: z.iso.datetime().register(zf.date.registry, {
+      label: "Z・unit second（編集するとミリ秒は落ちる）",
+      unit: "second",
+    }),
+    utcMillisecond: z.iso.datetime().register(zf.date.registry, {
+      label: "Z・unit millisecond（ミリ秒まで書く）",
+      unit: "millisecond",
+    }),
+    utcPrecisionMinute: z.iso
+      .datetime({ precision: -1 })
+      .register(zf.date.registry, { label: "Z・precision -1（分まで書く）" }),
+    utcPrecisionSecond: z.iso
+      .datetime({ precision: 0 })
+      .register(zf.date.registry, { label: "Z・precision 0（秒まで書く）" }),
+    utcPrecisionMillisecond: z.iso
+      .datetime({ precision: 3 })
+      .register(zf.date.registry, {
+        label: "Z・precision 3（ミリ秒まで書く）",
+      }),
+    localMinute: z.iso.datetime({ local: true }).register(zf.date.registry, {
+      label: "local・unit minute（編集すると秒は 00、ミリ秒は落ちる）",
+      unit: "minute",
+    }),
+    localSecond: z.iso.datetime({ local: true }).register(zf.date.registry, {
+      label: "local・unit second（編集するとミリ秒は落ちる）",
+      unit: "second",
+    }),
+    localMillisecond: z.iso
+      .datetime({ local: true })
+      .register(zf.date.registry, {
+        label: "local・unit millisecond（ミリ秒まで書く）",
+        unit: "millisecond",
+      }),
+    localPrecisionMinute: z.iso
+      .datetime({ local: true, precision: -1 })
+      .register(zf.date.registry, {
+        label: "local・precision -1（分まで書く）",
+      }),
+    localPrecisionSecond: z.iso
+      .datetime({ local: true, precision: 0 })
+      .register(zf.date.registry, {
+        label: "local・precision 0（秒まで書く）",
+      }),
+    localPrecisionMillisecond: z.iso
+      .datetime({ local: true, precision: 3 })
+      .register(zf.date.registry, {
+        label: "local・precision 3（ミリ秒まで書く）",
+      }),
   })
   .register(zf.object.registry, {});
 
@@ -197,6 +254,20 @@ export const defaultValues: z.input<typeof schema> = {
   isoDateDefault: formatIsoDate(now),
   isoDateMonth: formatIsoDate(now),
   isoDateYear: formatIsoDate(now),
+
+  // precision・unit で書かれる形（固定の日時。開いた時刻にしない）
+  utcMinute: "2026-03-14T09:26:53.589Z",
+  utcSecond: "2026-03-14T09:26:53.589Z",
+  utcMillisecond: "2026-03-14T09:26:53.589Z",
+  utcPrecisionMinute: "2026-03-14T09:26Z",
+  utcPrecisionSecond: "2026-03-14T09:26:53Z",
+  utcPrecisionMillisecond: "2026-03-14T09:26:53.589Z",
+  localMinute: "2026-03-14T09:26:53.589",
+  localSecond: "2026-03-14T09:26:53.589",
+  localMillisecond: "2026-03-14T09:26:53.589",
+  localPrecisionMinute: "2026-03-14T09:26",
+  localPrecisionSecond: "2026-03-14T09:26:53",
+  localPrecisionMillisecond: "2026-03-14T09:26:53.589",
 };
 
 export type SchemaType = z.infer<typeof schema>;

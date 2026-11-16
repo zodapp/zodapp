@@ -19,13 +19,25 @@ export type ExternalKeyOptionsHandler = (
 ) => void;
 
 /**
+ * 選択肢の取得に失敗したことを受け取るコールバック。
+ * 呼ぶと欄は dynamic の error になり、「再試行」が出る（送信は止まる）。
+ * 同じ購読のまま、あとで選択肢が届けば戻る
+ */
+export type ExternalKeyErrorHandler = (error: unknown) => void;
+
+/**
  * Resolver実行結果
  * subscriptionCacheに委譲するため、以下の振る舞いは自動的に得られる:
  * - 初回subscribe時の即時emit（キャッシュがあれば）
  * - subscription共有とretention管理
+ *
+ * 取得に失敗したら onError を呼ぶ。onError を使わない resolver はそのまま動く
  */
 export type ExternalKeyResolverResult = {
-  subscribe: (callback: ExternalKeyOptionsHandler) => Unsubscriber;
+  subscribe: (
+    callback: ExternalKeyOptionsHandler,
+    onError?: ExternalKeyErrorHandler,
+  ) => Unsubscriber;
 };
 
 /**
