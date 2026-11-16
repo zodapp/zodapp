@@ -19,6 +19,10 @@ import {
 // 手順はページの説明と同じ。待ち時間ではなく、画面の状態と window.__formDemo を待つ
 const TITLE = "e2e：選択肢の届き方";
 const UNLISTED_ERROR = "選択肢に無い値です。選び直してください。";
+const MULTI_UNLISTED_ERROR =
+  "選択肢に無い値があります。消すか、選び直してください。";
+const WATCHERS = "見守る人（複数選択。部署で絞る。clear）";
+const WATCHERS_KEEP = "見守る人（複数選択。部署で絞る。keep）";
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page, "e2e-external-key", TITLE);
@@ -27,6 +31,7 @@ test.beforeEach(async ({ page }) => {
     "鈴木 一郎（営業）",
   );
   await expect(dynamicStatuses(page)).toHaveCount(0);
+  await expect(pills(page, WATCHERS)).toHaveText(["鈴木 一郎（営業）"]);
 });
 
 const chooseTeam = async (page: Page, label: "営業" | "開発") => {
@@ -43,18 +48,35 @@ const assignees = async (page: Page) => {
   return [values.assignee, values.assigneeKeep];
 };
 
+/** 複数選択の 2 つの欄の値 */
+const watchers = async (page: Page) => {
+  const values = await previewValue(page);
+  return [values.watchers, values.watchersKeep];
+};
+
+/** 複数選択の欄（入力の外側の枠） */
+const multiField = (page: Page, label: string) =>
+  field(page, label).locator(
+    "xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]",
+  );
+
+/** 複数選択の欄に並ぶ、選んだ値の表示 */
+const pills = (page: Page, label: string) =>
+  multiField(page, label).locator(".mantine-Pill-label");
+
 test("選択肢を止めておいたまま部署を変え、そのあと届けると、clear の欄は消え、keep の欄は残ってエラーが出る", async ({
   page,
   pageErrors: _,
 }) => {
   await setDelayMode(page, "止めておく");
   await chooseTeam(page, "開発");
-  // 部署は取り直しの key に入るので、2 つの欄が取り直しを待つ
-  await expect(pendingFetch(page, "externalKey: members")).toHaveCount(2);
+  // 部署は取り直しの key に入るので、単一選択と複数選択の 4 つの欄が取り直しを待つ
+  await expect(pendingFetch(page, "externalKey: members")).toHaveCount(4);
   // 届くまでは値に触らない
   expect(await assignees(page)).toEqual(["u-003", "u-003"]);
+  expect(await watchers(page)).toEqual([["u-003"], ["u-003"]]);
 
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 4; i++) {
     await pendingFetch(page, "externalKey: members")
       .first()
       .getByRole("button", { name: "届ける" })
@@ -75,7 +97,7 @@ test("選択肢を止めておいたまま送信すると止まり、読み込�
 }) => {
   await setDelayMode(page, "止めておく");
   await chooseTeam(page, "開発");
-  await expect(pendingFetch(page, "externalKey: members")).toHaveCount(2);
+  await expect(pendingFetch(page, "externalKey: members")).toHaveCount(4);
 
   await submit(page);
   await waitSubmitSettled(page, 1);
@@ -124,8 +146,8 @@ test("取得に失敗すると「再試行」が出て送信が止まり、取�
   // 同じ購読のまま、届け直しが失敗する
   await page.getByRole("button", { name: "選択肢を戻す" }).click();
   const retry = page.getByRole("button", { name: "再試行" });
-  // 担当者の 2 つの欄とレビュー担当
-  await expect(retry).toHaveCount(3);
+  // 担当者の 2 つの欄、複数選択の 2 つの欄とレビュー担当
+  await expect(retry).toHaveCount(5);
 
   await submit(page);
   await waitSubmitSettled(page, 1);
@@ -135,6 +157,13 @@ test("取得に失敗すると「再試行」が出て送信が止まり、取�
   );
   // 失敗しても値は消さない
   expect(await assignees(page)).toEqual(["u-003", "u-003"]);
+  expect(await watchers(page)).toEqual([["u-003"], ["u-003"]]);
+  // 複数選択の欄も、取得できなかったことと「再試行」を出す
+  await expect(
+    page
+      .locator('[data-dynamic-status="error"]')
+      .filter({ hasText: `${WATCHERS}を取得できませんでした` }),
+  ).toBeVisible();
 
   await failure.uncheck({ force: true });
   while ((await retry.count()) > 0) {
@@ -148,6 +177,79 @@ test("取得に失敗すると「再試行」が出て送信が止まり、取�
   await waitSubmitSettled(page, 2);
   expect((await formDemo(page)).submitted.count).toBe(1);
   await expect(page.getByTestId("form-submit-blocked")).toHaveCount(0);
+});
+
+test("複数選択：選択肢を止めておいたまま部署を変えると読み込み中になり、届けると clear の欄は消え、keep の欄は「（不正な値）」とエラーが出る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "止めておく");
+  await chooseTeam(page, "開発");
+  await expect(pendingFetch(page, "externalKey: members")).toHaveCount(4);
+  // 取り直しのあいだは、複数選択の欄も読み込み中（選べない）
+  await expect(page.locator('[data-dynamic-status="pending"]')).toHaveCount(4);
+  expect(await watchers(page)).toEqual([["u-003"], ["u-003"]]);
+
+  for (let i = 0; i < 4; i++) {
+    await pendingFetch(page, "externalKey: members")
+      .first()
+      .getByRole("button", { name: "届ける" })
+      .click();
+  }
+  await expect.poll(() => watchers(page)).toEqual([undefined, ["u-003"]]);
+  await expect(pills(page, WATCHERS)).toHaveCount(0);
+  await expect(pills(page, WATCHERS_KEEP)).toHaveText(["（不正な値）"]);
+  await expect(fieldError(page, WATCHERS_KEEP)).toHaveText(
+    MULTI_UNLISTED_ERROR,
+  );
+  // clear の欄は、触る前は必須のエラーを出さない
+  await expect(fieldError(page, WATCHERS)).toHaveCount(0);
+
+  // 部署を戻すと、keep の欄は元の表示に戻り、clear の欄は戻らない
+  await setDelayMode(page, "すぐ届く");
+  await chooseTeam(page, "営業");
+  await expect(pills(page, WATCHERS_KEEP)).toHaveText(["鈴木 一郎（営業）"]);
+  await expect(fieldError(page, WATCHERS_KEEP)).toHaveCount(0);
+  expect(await watchers(page)).toEqual([undefined, ["u-003"]]);
+});
+
+test("複数選択：同じ購読のまま選択肢が 0 件になると、clear の欄は消え、keep の欄は残って送信が止まる。戻すと keep の欄は元に戻る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "すぐ届く");
+  await page.getByRole("button", { name: "選択肢を 0 件にする" }).click();
+  await expect.poll(() => watchers(page)).toEqual([undefined, ["u-003"]]);
+  await expect(pills(page, WATCHERS_KEEP)).toHaveText(["（不正な値）"]);
+  await expect(fieldError(page, WATCHERS_KEEP)).toHaveText(
+    MULTI_UNLISTED_ERROR,
+  );
+
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  expect((await formDemo(page)).submitted.count).toBe(0);
+
+  await page.getByRole("button", { name: "選択肢を戻す" }).click();
+  await expect(pills(page, WATCHERS_KEEP)).toHaveText(["鈴木 一郎（営業）"]);
+  await expect(fieldError(page, WATCHERS_KEEP)).toHaveCount(0);
+  // clear の欄は、選択肢が戻っても値は戻らない
+  expect((await watchers(page))[0]).toBeUndefined();
+});
+
+test("複数選択：keep の欄の「（不正な値）」は × で消せる", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await setDelayMode(page, "すぐ届く");
+  await chooseTeam(page, "開発");
+  await expect(pills(page, WATCHERS_KEEP)).toHaveText(["（不正な値）"]);
+  await multiField(page, WATCHERS_KEEP)
+    .locator(".mantine-Pill-root")
+    .filter({ hasText: "（不正な値）" })
+    .locator(".mantine-Pill-remove")
+    .click();
+  await expect.poll(async () => (await watchers(page))[1]).toBeUndefined();
+  await expect(pills(page, WATCHERS_KEEP)).toHaveCount(0);
 });
 
 test("無い topic の欄は、取得できなかったことと「再試行」を出し、送信を止める", async ({

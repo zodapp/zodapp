@@ -24,7 +24,7 @@ import {
 export const formId = "e2e-external-key";
 export const title = "e2e：選択肢の届き方";
 export const description =
-  "画面の部署で絞る担当者（clear と keep）、config の key で取り直すレビュー担当、無い topic の欄（「無い topic の欄を出す」で出す）、上限が変わる数量の欄。遅延の分け方を選び、止めておく分け方では「届ける」「失敗させる」で進める。「選択肢を 0 件にする」「選択肢を戻す」で、同じ購読のまま選択肢を届け直す";
+  "画面の部署で絞る担当者（clear と keep）と、その複数選択の欄、config の key で取り直すレビュー担当、無い topic の欄（「無い topic の欄を出す」で出す）、上限が変わる数量の欄。遅延の分け方を選び、止めておく分け方では「届ける」「失敗させる」で進める。「選択肢を 0 件にする」「選択肢を戻す」で、同じ購読のまま選択肢を届け直す";
 export const icon = IconTestPipe;
 export const category = "e2e";
 
@@ -79,6 +79,29 @@ const assigneeKeep = zf.string().register(zf.externalKey.registry, {
     filter: (option, context) => option.team === context?.team,
   },
   unlisted: "keep",
+});
+
+// 複数選択の欄。単一選択と同じく、画面の部署で絞る
+const watcherKey = (unlisted?: "keep") =>
+  zf.string().register(zf.externalKey.registry, {
+    label: "見守る人",
+    externalKeyConfig: {
+      type: "mock",
+      topic: "members",
+      contextId: "team",
+      filter: (option, context) => option.team === context?.team,
+    },
+    unlisted,
+  });
+
+const watchers = zf.array(watcherKey()).register(zf.array.registry, {
+  label: "見守る人（複数選択。部署で絞る。clear）",
+  uiType: "multipleExternalKey",
+});
+
+const watchersKeep = zf.array(watcherKey("keep")).register(zf.array.registry, {
+  label: "見守る人（複数選択。部署で絞る。keep）",
+  uiType: "multipleExternalKey",
 });
 
 // config の key で取り直す（filter の関数だけが違うので、違いを key に書く）
@@ -136,6 +159,8 @@ export const schema = z
   .object({
     assignee,
     assigneeKeep,
+    watchers,
+    watchersKeep,
     reviewTeam: zf
       .enum([
         zf.literal("sales").register(zf.literal.registry, { label: "営業" }),
@@ -159,6 +184,8 @@ export const schema = z
 export const defaultValues = {
   assignee: "u-003",
   assigneeKeep: "u-003",
+  watchers: ["u-003"],
+  watchersKeep: ["u-003"],
   reviewTeam: "sales",
   reviewer: "u-003",
   quantity: 5,
