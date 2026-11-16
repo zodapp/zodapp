@@ -7,14 +7,15 @@ import z from "zod";
  * - `fieldPath`: TanStack React Form 等のフィールドパス
  * - `schema`: 対象フィールドの Zod スキーマ
  * - `defaultValue`: 初期値（任意）
- * - `required` / `readOnly`: UI 表示/制御のヒント（任意）
+ * - `optional`: 外側の optional などの中にあるとき true（任意）。書かないときは必須として扱う
+ * - `readOnly`: UI 制御のヒント（任意）
  * - `label`: 表示ラベル（任意。通常は schema meta から取得する想定）
  */
 export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
   schema: TSchema;
   defaultValue?: z.infer<TSchema>;
-  required?: boolean;
+  optional?: boolean;
   readOnly?: boolean;
   /**
    * Label to display above the input.

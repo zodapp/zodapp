@@ -16,7 +16,7 @@ const StringPasswordComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    required,
+    optional,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
@@ -58,7 +58,7 @@ const StringPasswordComponent = wrapComponent(
         onFocus={onFocus}
         label={label || undefined}
         error={error?.message}
-        required={required !== false}
+        required={!optional}
         disabled={readOnly || field.disabled}
         style={inputWrapperStyle}
       />

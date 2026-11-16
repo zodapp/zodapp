@@ -125,7 +125,7 @@ function SortableItem({
 const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   fieldPath,
   schema,
-  required,
+  optional,
   readOnly,
   label: labelFromParent,
   field,
@@ -189,7 +189,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       defaultValue: defaultValue?.[index],
       // 配列自体のoptional性は要素へ伝播させない。
       // 要素のoptional性はitemSchema（ZodOptional）だけで決まる。
-      required: undefined,
+      optional: undefined,
       readOnly,
       label: false as const,
     };
@@ -326,7 +326,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={required !== false}
+      required={!optional}
       error={arrayError?.message}
       labelElement="div"
       style={inputWrapperStyle}

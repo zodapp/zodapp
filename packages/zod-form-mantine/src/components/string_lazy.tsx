@@ -22,7 +22,7 @@ const StringLazyComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    required,
+    optional,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
@@ -85,7 +85,7 @@ const StringLazyComponent = wrapComponent(
         onFocus={onFocus}
         label={label || undefined}
         error={error?.message}
-        required={required !== false}
+        required={!optional}
         disabled={disabled}
         style={inputWrapperStyle}
       />

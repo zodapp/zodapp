@@ -48,7 +48,7 @@ const RecordEntriesComponent = wrapComponent(
     fieldPath,
     schema,
     defaultValue,
-    required,
+    optional,
     readOnly,
     label: labelFromParent,
     error,
@@ -172,7 +172,7 @@ const RecordEntriesComponent = wrapComponent(
                   fieldPath={joinFieldPath(fieldPath, row.key)}
                   schema={valueSchema}
                   defaultValue={value[row.key]}
-                  required={undefined}
+                  optional={undefined}
                   readOnly={readOnly}
                   label="値"
                 />
@@ -212,7 +212,7 @@ const RecordEntriesComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={required !== false}
+        required={!optional}
         error={error?.message}
         labelElement="div"
         style={inputWrapperStyle}

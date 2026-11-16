@@ -24,7 +24,7 @@ type EnumSchema = ReturnType<typeof zf.enum>;
 const EnumComponent = wrapComponent(function EnumComponentImplement({
   schema,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   field,
   error,
@@ -93,7 +93,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   );
   // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
   const errorMessage = showUnlisted
-    ? required === false
+    ? optional === true
       ? "選択肢に無い値です。選び直すか、消してください。"
       : "選択肢に無い値です。選び直してください。"
     : error?.message;
@@ -139,11 +139,11 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         label={label || undefined}
         placeholder={emptyMessage ?? "選択肢がありません"}
         error={
-          emptyMessage !== undefined && required !== false
+          emptyMessage !== undefined && !optional
             ? error?.message
             : undefined
         }
-        required={required !== false}
+        required={!optional}
         disabled={true}
         style={inputWrapperStyle}
       />
@@ -163,7 +163,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
           onFocus={onFocus}
           label={label || undefined}
           error={errorMessage}
-          required={required !== false}
+          required={!optional}
           disabled={readOnly || field.disabled}
           style={inputWrapperStyle}
         />
@@ -183,7 +183,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         label={label || undefined}
         searchable={true}
         error={errorMessage}
-        required={required !== false}
+        required={!optional}
         disabled={readOnly || field.disabled}
         allowDeselect={true}
         clearable={true}

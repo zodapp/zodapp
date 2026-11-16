@@ -9,7 +9,7 @@ const NullableComponent = (props: ZodFormProps<NullableSchema>) => {
     <Switch
       {...props}
       schema={props.schema.def.innerType}
-      required={false}
+      optional={true}
       defaultValue={props.defaultValue ?? null}
     />
   );

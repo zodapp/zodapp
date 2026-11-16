@@ -13,7 +13,7 @@ type BooleanSchema = ReturnType<typeof zf.boolean>;
 const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   schema,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   field,
   error,
@@ -33,7 +33,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
     onBlur: field.onBlur,
     onChange: onChange,
     onFocus: onFocus,
-    required: required !== false,
+    required: !optional,
     disabled: readOnly || field.disabled,
   };
 
@@ -53,7 +53,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={required !== false}
+      required={!optional}
       error={error?.message}
       style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
@@ -63,7 +63,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
           size="md"
           ref={ref}
           {...commonSwitchProps}
-          required={required !== false}
+          required={!optional}
         />
       </div>
     </InputWrapper>

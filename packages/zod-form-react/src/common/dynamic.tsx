@@ -208,13 +208,13 @@ export const useDynamicSchema = (
   fieldPath: string,
   options: {
     /**
-     * false なら（optional の中にあるなら）、登録する schema を optional にする。
+     * true なら（optional の中にあるなら）、登録する schema を optional にする。
      * 値が無いときに、決まった schema の「必須」で止めないため
      */
-    required?: boolean;
+    optional?: boolean;
   } = {},
 ): DynamicSchemaState => {
-  const optional = options.required === false;
+  const optional = options.optional === true;
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);

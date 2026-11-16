@@ -28,7 +28,7 @@ const EnumComponent = React.memo(function EnumComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  optional,
   readOnly: readOnlyProp,
 }: ZodFormProps<EnumSchema>) {
   const meta = getMeta(schema);
@@ -83,7 +83,7 @@ const EnumComponent = React.memo(function EnumComponent({
         onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
         onBlur={() => void onBlur()}
         label={label || undefined}
-        required={required !== false}
+        required={!optional}
         style={inputWrapperStyle}
         actions={
           hasPendingChange ? (
@@ -106,7 +106,7 @@ const EnumComponent = React.memo(function EnumComponent({
       onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
-      required={required !== false}
+      required={!optional}
       allowDeselect
       clearable
       style={inputWrapperStyle}

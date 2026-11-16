@@ -30,7 +30,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   error,
 }: ZodFormInternalProps<DateSchema>) {
@@ -101,7 +101,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
     onFocus,
     label: label || undefined,
     error: error?.message,
-    required: required !== false,
+    required: !optional,
     disabled: readOnly || field.disabled,
     clearable: true,
     style: inputWrapperStyle,

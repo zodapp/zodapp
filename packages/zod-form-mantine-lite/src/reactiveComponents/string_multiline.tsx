@@ -17,7 +17,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  optional,
   readOnly: readOnlyProp,
 }: ZodFormProps<StringSchema>) {
   const meta = getMeta(schema);
@@ -55,7 +55,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
-      required={required !== false}
+      required={!optional}
       autosize
       minRows={3}
       style={inputWrapperStyle}

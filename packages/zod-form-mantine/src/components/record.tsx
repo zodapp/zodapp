@@ -42,7 +42,7 @@ const RecordComponent = wrapComponent(
           fieldPath={joinFieldPath(fieldPath, key)}
           schema={valueSchema}
           defaultValue={value?.[key]}
-          required={undefined}
+          optional={undefined}
           readOnly={readOnly}
           label={key}
         />

@@ -60,7 +60,6 @@ function TestForm({
           <Switch
             fieldPath="slots"
             schema={recordSchema}
-            required
             readOnly={readOnly}
           />
           {onCapture && (

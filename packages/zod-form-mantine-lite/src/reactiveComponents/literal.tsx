@@ -10,7 +10,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = React.memo(function LiteralComp
   schema,
   defaultValue,
   label: labelFromParent,
-  required,
+  optional,
 }: ZodFormProps<LiteralSchema>) {
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
@@ -18,7 +18,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = React.memo(function LiteralComp
   return (
     <Input.Wrapper
       label={label ?? undefined}
-      required={required !== false}
+      required={!optional}
       style={inputWrapperStyle}
     >
       <Text size="sm" c="dimmed">

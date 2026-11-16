@@ -25,7 +25,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   error,
 }: ZodFormInternalProps<NumberSchema>) {
@@ -71,7 +71,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={required !== false}
+      required={!optional}
       disabled={readOnly || field.disabled}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}

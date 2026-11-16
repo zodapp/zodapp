@@ -74,7 +74,7 @@ function ObjectBodyImplement({
                 ? defaultValue[property.propertyName]
                 : undefined
             }
-            required={undefined}
+            optional={undefined}
             readOnly={readOnly}
           />
         </div>
@@ -146,7 +146,7 @@ const actionIconStyle: React.CSSProperties = {
 };
 
 /**
- * optional（required === false）な object 用の 0..1 UI。
+ * optional（optional === true）な object 用の 0..1 UI。
  * array().max(1) と同じ操作感で、追加（+）で getDefaultValue から生成し、
  * 削除（-）で値を undefined に戻す。
  */
@@ -208,7 +208,7 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
           >
             <ObjectBodyImplement
               {...props}
-              required={undefined}
+              optional={undefined}
               label={false}
             />
           </div>
@@ -249,7 +249,7 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
 
 const ObjectComponent = wrapComponent(
   function ObjectComponentImplement(props: ZodFormInternalProps<ObjectSchema>) {
-    if (props.required === false && props.fieldPath !== "") {
+    if (props.optional === true && props.fieldPath !== "") {
       return <OptionalObjectImplement {...props} />;
     }
     return <ObjectBodyImplement {...props} />;

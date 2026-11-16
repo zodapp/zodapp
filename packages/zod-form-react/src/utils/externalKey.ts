@@ -367,7 +367,7 @@ export type ArrayOfExternalKeySchema = z.ZodArray<ExternalKeySchema>;
  * 複数選択の externalKey の schema の要素を、選択肢から作った schema に差し替える。
  * 配列の制約（min / max / length）と meta（label・width など）は元の schema から引き継ぎ、
  * uiType だけを、選択肢の schema を描く複数選択の部品（multipleEnum）にする。
- * optional / nullable などの外側の包みは、呼ぶ側（Switch と dynamic の required）が扱う
+ * optional / nullable などの外側の包みは、呼ぶ側（Switch と dynamic の optional）が扱う
  */
 export const wrapOptionsSchemaInArray = (
   arraySchema: ArrayOfExternalKeySchema,

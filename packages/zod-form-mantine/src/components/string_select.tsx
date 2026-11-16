@@ -26,7 +26,7 @@ const StringSelectComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    required,
+    optional,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
@@ -88,7 +88,7 @@ const StringSelectComponent = wrapComponent(
           label={label || undefined}
           searchable={true}
           error={error?.message}
-          required={required !== false}
+          required={!optional}
           allowDeselect={true}
           clearable={true}
           style={inputWrapperStyle}

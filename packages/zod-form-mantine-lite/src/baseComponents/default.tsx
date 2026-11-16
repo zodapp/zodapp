@@ -9,7 +9,7 @@ const DefaultComponent = (props: ZodFormProps<DefaultSchema>) => {
     <Switch
       {...props}
       schema={props.schema.def.innerType}
-      required={false}
+      optional={true}
       defaultValue={props.defaultValue ?? null}
     />
   );

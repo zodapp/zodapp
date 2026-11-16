@@ -226,7 +226,7 @@ const UnionNestedValueProvider = React.memo(function UnionNestedValueProvider({
 const UnionBody = React.memo(function UnionBody({
   fieldPath,
   schema,
-  required,
+  optional,
   readOnly,
   label,
   selectorLabel,
@@ -239,7 +239,7 @@ const UnionBody = React.memo(function UnionBody({
 }: {
   fieldPath: string;
   schema: UnionSchema;
-  required: boolean | undefined;
+  optional: boolean | undefined;
   readOnly: boolean | undefined;
   label: string | false | undefined;
   selectorLabel: string | undefined;
@@ -535,7 +535,7 @@ const UnionBody = React.memo(function UnionBody({
 
       if (
         id &&
-        required === false &&
+        optional === true &&
         compiledOptions.hasDiscriminator &&
         id === selectedProfile?.value
       ) {
@@ -591,7 +591,7 @@ const UnionBody = React.memo(function UnionBody({
       compiledOptions,
       formValue,
       accessor,
-      required,
+      optional,
       selectedProfile,
       runAsUserEdit,
     ],
@@ -620,10 +620,10 @@ const UnionBody = React.memo(function UnionBody({
             onFocus={onFocus}
             label={selectorLabel ?? "タイプ"}
             error={undefined}
-            required={required !== false}
+            required={!optional}
             disabled={selectorIsReadOnly}
-            allowDeselect={required === false}
-            clearable={required === false}
+            allowDeselect={optional === true}
+            clearable={optional === true}
           />
         ))}
       {selectedProfile?.schema && (
@@ -634,7 +634,7 @@ const UnionBody = React.memo(function UnionBody({
                 fieldPath={fieldPath}
                 schema={selectedProfile.schema}
                 defaultValue={dynamicDefaultValue}
-                required={undefined}
+                optional={undefined}
                 readOnly={readOnly}
                 label={false}
               />
@@ -645,7 +645,7 @@ const UnionBody = React.memo(function UnionBody({
               fieldPath={fieldPath}
               schema={selectedProfile.schema}
               defaultValue={dynamicDefaultValue}
-              required={undefined}
+              optional={undefined}
               readOnly={readOnly}
               label={false}
             />
@@ -675,7 +675,7 @@ const UnionBody = React.memo(function UnionBody({
 const UnionComponent = wrapComponent(function UnionComponentImplement({
   fieldPath,
   schema,
-  required,
+  optional,
   readOnly,
   label: labelFromParent,
   field,
@@ -694,7 +694,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   const commonProps = {
     fieldPath,
     schema,
-    required,
+    optional,
     readOnly,
     label,
     selectorLabel,

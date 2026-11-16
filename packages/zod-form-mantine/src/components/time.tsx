@@ -108,7 +108,7 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   error,
 }: ZodFormInternalProps<SupportedTimeSchema>) {
@@ -196,7 +196,7 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
     onFocus,
     label: label || undefined,
     error: error?.message,
-    required: required !== false,
+    required: !optional,
     style: inputWrapperStyle,
   };
 

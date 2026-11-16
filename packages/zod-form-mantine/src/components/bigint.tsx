@@ -20,7 +20,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   error,
 }: ZodFormInternalProps<BigIntSchema>) {
@@ -101,7 +101,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={required !== false}
+      required={!optional}
       disabled={readOnly || field.disabled}
       inputMode="numeric"
       pattern="-?\\d*"

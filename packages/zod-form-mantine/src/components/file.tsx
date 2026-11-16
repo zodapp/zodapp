@@ -42,7 +42,7 @@ const formatFileSize = (bytes: number): string => {
 const FileComponent = wrapComponent(function FileComponentImplement({
   schema,
   label: labelFromParent,
-  required: _required,
+  optional: _optional,
   readOnly,
   field,
   error,

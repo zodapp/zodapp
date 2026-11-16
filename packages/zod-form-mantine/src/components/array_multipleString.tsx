@@ -15,7 +15,7 @@ const ArrayOfStringComponent = wrapComponent(
   function ArrayOfStringComponentImplement({
     schema,
     label: labelFromParent,
-    required,
+    optional,
     readOnly,
     field,
     error,
@@ -89,7 +89,7 @@ const ArrayOfStringComponent = wrapComponent(
         label={label || undefined}
         placeholder="入力してEnterで追加"
         error={error?.message}
-        required={required !== false}
+        required={!optional}
         disabled={readOnly || field.disabled}
         clearable={true}
         splitChars={[",", " ", "|"]}

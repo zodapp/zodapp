@@ -16,7 +16,7 @@ const NumberComponent = React.memo(function NumberComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  optional,
   readOnly: readOnlyProp,
 }: ZodFormProps<NumberSchema>) {
   const meta = getMeta(schema);
@@ -62,7 +62,7 @@ const NumberComponent = React.memo(function NumberComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
-      required={required !== false}
+      required={!optional}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}
       style={inputWrapperStyle}

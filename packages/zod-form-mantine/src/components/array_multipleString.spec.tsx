@@ -81,7 +81,6 @@ describe("ArrayOfStringComponent", () => {
               <ArrayOfStringComponent
                 fieldPath="tags"
                 schema={formSchema.shape.tags}
-                required
                 readOnly={false}
               />
             </FormProvider>

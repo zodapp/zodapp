@@ -15,7 +15,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  optional,
   readOnly: readOnlyProp,
 }: ZodFormProps<BooleanSchema>) {
   const meta = getMeta(schema);
@@ -35,7 +35,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
       onBlur={() => void onBlur()}
       disabled={readOnly}
       size="md"
-      required={required !== false}
+      required={!optional}
     />
   );
 
@@ -50,7 +50,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
             disabled={readOnly}
             label={label || undefined}
             labelPosition="left"
-            required={required !== false}
+            required={!optional}
           />
           {hasPendingChange && (
             <ConfirmableInputActions
@@ -66,7 +66,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
   return (
     <InputWrapper
       label={label || undefined}
-      required={required !== false}
+      required={!optional}
       style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
     >

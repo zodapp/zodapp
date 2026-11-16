@@ -22,7 +22,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  optional,
   readOnly,
   error,
 }: ZodFormInternalProps<StringSchema>) {
@@ -75,7 +75,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={required !== false}
+      required={!optional}
       disabled={readOnly || field.disabled}
       style={inputWrapperStyle}
     />
@@ -88,7 +88,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={required !== false}
+      required={!optional}
       disabled={readOnly || field.disabled}
       style={inputWrapperStyle}
     />

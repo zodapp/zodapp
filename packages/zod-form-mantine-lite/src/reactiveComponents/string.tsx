@@ -17,7 +17,7 @@ const StringComponent = React.memo(function StringComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  optional,
   readOnly: readOnlyProp,
 }: ZodFormProps<StringSchema>) {
   const meta = getMeta(schema);
@@ -55,7 +55,7 @@ const StringComponent = React.memo(function StringComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
-      required={required !== false}
+      required={!optional}
       style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
     />

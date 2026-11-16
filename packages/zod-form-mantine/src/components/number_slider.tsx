@@ -15,7 +15,7 @@ const NumberSliderComponent = wrapComponent(
   function NumberSliderComponentImplement({
     schema,
     label: labelFromParent,
-    required,
+    optional,
     readOnly,
     field,
     error,
@@ -45,7 +45,7 @@ const NumberSliderComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={required !== false}
+        required={!optional}
         error={error?.message}
         style={{ ...inputWrapperStyle, marginBottom: 10 }}
         labelElement="div"
