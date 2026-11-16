@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
@@ -21,7 +22,10 @@ import {
 } from "@zodapp/zod-form-react/common";
 
 import { HiddenComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
+import { component as BooleanComponent } from "./boolean";
+import { component as EnumComponent } from "./enum";
 import { component as LiteralComponent } from "./literal";
+import { component as NumberComponent } from "./number";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
 import { component as UnionComponent } from "./union";
@@ -1246,5 +1250,318 @@ describe("UnionComponent union without discriminator", () => {
     expect(selectorValue()).toBe("");
     expect(screen.queryByRole("textbox", { name: "電話番号" })).toBeNull();
     expect(screen.queryByRole("textbox", { name: "住所" })).toBeNull();
+  });
+});
+
+describe("UnionComponent union of primitive arms", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupDomMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  // form-demo の zf.union（いろいろな腕）のページと同じ形
+  const schema = z
+    .object({
+      // 文字列・数値・オブジェクト
+      value: zf
+        .union([
+          zf
+            .string()
+            .min(3, "3文字以上で入力してください")
+            .register(zf.string.registry, { label: "文字列" }),
+          zf
+            .number()
+            .multipleOf(5, "5の倍数で入力してください")
+            .register(zf.number.registry, { label: "数値" }),
+          zf
+            .object({
+              text: zf.string().register(zf.string.registry, { label: "本文" }),
+            })
+            .register(zf.object.registry, { label: "オブジェクト" }),
+        ])
+        .register(zf.union.registry, {
+          label: "値",
+          selectorLabel: "値の種類",
+        }),
+      // どちらの腕にも通る値（"S"・"M"・"L"）がある
+      size: zf
+        .union([
+          zf
+            .enum([
+              zf.literal("S").register(zf.literal.registry, { label: "S" }),
+              zf.literal("M").register(zf.literal.registry, { label: "M" }),
+              zf.literal("L").register(zf.literal.registry, { label: "L" }),
+            ])
+            .register(zf.enum.registry, { label: "選ぶ" }),
+          zf.string().register(zf.string.registry, { label: "自由に書く" }),
+        ])
+        .register(zf.union.registry, {
+          label: "サイズ",
+          selectorLabel: "サイズの決め方",
+        }),
+      // 真偽値・literal
+      answer: zf
+        .union([
+          zf.boolean().register(zf.boolean.registry, { label: "はい・いいえ" }),
+          zf
+            .literal("unknown")
+            .register(zf.literal.registry, { label: "わからない" }),
+        ])
+        .register(zf.union.registry, {
+          label: "回答",
+          selectorLabel: "回答のしかた",
+        }),
+    })
+    .register(zf.object.registry, {
+      properties: ["value", "size", "answer"],
+    });
+
+  type Values = { value: unknown; size: unknown; answer: unknown };
+  const initialValues: Values = { value: "123", size: "M", answer: true };
+
+  const renderPrimitiveUnion = (
+    options: {
+      defaultValues?: Partial<Values>;
+      onSubmit?: (value: unknown) => void;
+      formRef?: { current: AnyFormApi | undefined };
+    } = {},
+  ) => {
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          ...initialValues,
+          ...options.defaultValues,
+        } as z.input<typeof schema>,
+        onSubmit: ({ value }) => options.onSubmit?.(value),
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+      if (options.formRef) {
+        options.formRef.current = form as unknown as AnyFormApi;
+      }
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              boolean: () => ({ component: BooleanComponent }),
+              enum: () => ({ component: EnumComponent }),
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              number: () => ({ component: NumberComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+    return render(<FormUnderTest />);
+  };
+
+  /** union の枠（Fieldset の legend が union のラベル） */
+  const group = (label: string) => screen.getByRole("group", { name: label });
+
+  /** 腕を選ぶ欄（枠の中の最初の Select） */
+  const selectorOf = (label: string) =>
+    group(label).querySelector(
+      "input.mantine-Select-input",
+    ) as HTMLInputElement;
+
+  /** 腕の欄（プリミティブの腕はラベルなしで描かれるので、枠の中の最後の入力欄） */
+  const armInputOf = (label: string) => {
+    const inputs = group(label).querySelectorAll<HTMLInputElement>(
+      "input:not([type=hidden])",
+    );
+    return inputs[inputs.length - 1]!;
+  };
+
+  const selectArm = async (label: string, optionLabel: string) => {
+    const selector = selectorOf(label);
+    fireEvent.click(selector);
+    fireEvent.focus(selector);
+    fireEvent.keyDown(selector, { key: "ArrowDown" });
+    fireEvent.click(
+      await screen.findByRole("option", { name: optionLabel, hidden: true }),
+    );
+    await waitFor(() => expect(selectorOf(label).value).toBe(optionLabel));
+  };
+
+  it("switches string → number → object → string → number and writes the value in the arm's type", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPrimitiveUnion({ formRef });
+    const value = () => formRef.current?.state.values.value;
+
+    await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+    expect(armInputOf("値").value).toBe("123");
+
+    await selectArm("値", "数値");
+    // "123" は数値の腕に通らないので、数値の腕の既定の値（空）になる
+    expect(value()).toBeUndefined();
+    expect(armInputOf("値").value).toBe("");
+    fireEvent.change(armInputOf("値"), { target: { value: "15" } });
+    await waitFor(() => expect(value()).toBe(15));
+
+    await selectArm("値", "オブジェクト");
+    const text = within(group("値")).getByRole("textbox", { name: "本文" });
+    fireEvent.change(text, { target: { value: "本文です" } });
+    await waitFor(() => expect(value()).toEqual({ text: "本文です" }));
+
+    await selectArm("値", "文字列");
+    expect(
+      within(group("値")).queryByRole("textbox", { name: "本文" }),
+    ).toBeNull();
+    fireEvent.change(armInputOf("値"), { target: { value: "456" } });
+    await waitFor(() => expect(value()).toBe("456"));
+
+    await selectArm("値", "数値");
+    fireEvent.change(armInputOf("値"), { target: { value: "20" } });
+    await waitFor(() => expect(value()).toBe(20));
+    expect(selectorOf("値").value).toBe("数値");
+  });
+
+  it("keeps a number-like string in the string arm while typing", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPrimitiveUnion({ formRef });
+
+    await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+    fireEvent.change(armInputOf("値"), { target: { value: "4242" } });
+
+    await waitFor(() => {
+      expect(formRef.current?.state.values.value).toBe("4242");
+    });
+    expect(selectorOf("値").value).toBe("文字列");
+  });
+
+  it("opens a value that fits both arms in the first arm, and keeps the chosen arm for such values", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPrimitiveUnion({ formRef });
+
+    // "M" は「選ぶ」にも「自由に書く」にも通る。先の腕で開く
+    await waitFor(() => expect(selectorOf("サイズ").value).toBe("選ぶ"));
+
+    await selectArm("サイズ", "自由に書く");
+    // "M" は自由に書くにも通るので、値はそのまま
+    expect(formRef.current?.state.values.size).toBe("M");
+    expect(armInputOf("サイズ").value).toBe("M");
+
+    // "S" も両方の腕に通るが、選んだ腕のまま
+    fireEvent.change(armInputOf("サイズ"), { target: { value: "S" } });
+    await waitFor(() => {
+      expect(formRef.current?.state.values.size).toBe("S");
+    });
+    expect(selectorOf("サイズ").value).toBe("自由に書く");
+  });
+
+  it("switches between boolean and literal arms", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPrimitiveUnion({ formRef });
+
+    await waitFor(() => expect(selectorOf("回答").value).toBe("はい・いいえ"));
+    expect(
+      (within(group("回答")).getByRole("switch") as HTMLInputElement).checked,
+    ).toBe(true);
+
+    await selectArm("回答", "わからない");
+    expect(formRef.current?.state.values.answer).toBe("unknown");
+    expect(within(group("回答")).getByText("unknown")).toBeTruthy();
+
+    await selectArm("回答", "はい・いいえ");
+    fireEvent.click(within(group("回答")).getByRole("switch"));
+    await waitFor(() => {
+      expect(formRef.current?.state.values.answer).toBe(true);
+    });
+    expect(selectorOf("回答").value).toBe("はい・いいえ");
+  });
+
+  it("follows primitive values written from outside", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPrimitiveUnion({ formRef });
+    await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+
+    formRef.current?.setFieldValue("value", 10);
+    await waitFor(() => {
+      expect(selectorOf("値").value).toBe("数値");
+      expect(armInputOf("値").value).toBe("10");
+    });
+
+    formRef.current?.setFieldValue("value", { text: "外から" });
+    await waitFor(() => {
+      expect(selectorOf("値").value).toBe("オブジェクト");
+      expect(screen.getByDisplayValue("外から")).toBeTruthy();
+    });
+
+    formRef.current?.setFieldValue("value", "外からの文字列");
+    await waitFor(() => {
+      expect(selectorOf("値").value).toBe("文字列");
+      expect(armInputOf("値").value).toBe("外からの文字列");
+    });
+  });
+
+  it("shows the number arm's error on submit", async () => {
+    const onSubmit = vi.fn();
+    renderPrimitiveUnion({ onSubmit });
+    await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+
+    await selectArm("値", "数値");
+    fireEvent.change(armInputOf("値"), { target: { value: "7" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(
+        within(group("値")).getByText("5の倍数で入力してください"),
+      ).toBeTruthy();
+    });
+    expect(selectorOf("値").value).toBe("数値");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows the string arm's error on submit", async () => {
+    const onSubmit = vi.fn();
+    renderPrimitiveUnion({ onSubmit });
+    await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+
+    fireEvent.change(armInputOf("値"), { target: { value: "ab" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(
+        within(group("値")).getByText("3文字以上で入力してください"),
+      ).toBeTruthy();
+    });
+    // 選んだ腕に通らなくなっても、腕は保たれる
+    expect(selectorOf("値").value).toBe("文字列");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("leaves the selector empty when a primitive initial value fits no arm", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    // "ab" は文字列の腕（3文字以上）にも、ほかの腕にも通らず、literal の欄も無い
+    renderPrimitiveUnion({ formRef, defaultValues: { value: "ab" } });
+
+    await waitFor(() => expect(selectorOf("サイズ").value).toBe("選ぶ"));
+    expect(selectorOf("値").value).toBe("");
+    expect(
+      group("値").querySelectorAll("input:not([type=hidden])"),
+    ).toHaveLength(1);
+    // 開いただけでは値を書き換えない
+    expect(formRef.current?.state.values.value).toBe("ab");
   });
 });
