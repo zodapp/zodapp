@@ -242,24 +242,26 @@ const findReferenceAction = (
   );
 };
 
-/**
- * externalKey の meta から、dynamic の meta を作る。
- *
- * resolve は config から resolver を引き、選択肢を購読して schema を届ける。
- * key は config（関数を除く）と、config が使う resolverContext から作るので、
- * 同じ key のあいだは購読を張り直さず、選択肢の更新は描画だけを変える。
- */
-export const createExternalKeyDynamicMeta = ({
-  meta,
-  resolvers,
-  resolverContext,
-  referenceActionMap,
-}: {
+type ExternalKeyDynamicMetaParams = {
   meta: ExternalKeyMetaDef;
   resolvers: ExternalKeyResolvers | undefined;
   resolverContext: RegisteredResolverContext | undefined;
   referenceActionMap?: ReadonlyMap<object, RegisteredValueActionConfig>;
-}): DynamicMetaDef => {
+};
+
+/**
+ * 選択肢を購読し、選択肢から作った schema を届ける dynamic の meta を作る。
+ * wrap で、選択肢の schema を包んで届ける（複数選択なら配列にする）
+ */
+const createOptionsDynamicMeta = (
+  {
+    meta,
+    resolvers,
+    resolverContext,
+    referenceActionMap,
+  }: ExternalKeyDynamicMetaParams,
+  wrap: (optionsSchema: z.ZodTypeAny) => z.ZodTypeAny,
+): DynamicMetaDef => {
   const config = meta.externalKeyConfig as BaseExternalKeyConfig;
   const valueAction =
     (meta.valueAction as RegisteredValueActionConfig | undefined) ??
@@ -301,10 +303,8 @@ export const createExternalKeyDynamicMeta = ({
           entry.resolver(config, resolverContext ?? {}).subscribe(
             (options) =>
               emit({
-                schema: buildOptionsSchema(
-                  meta,
-                  dedupeOptions(options),
-                  valueAction,
+                schema: wrap(
+                  buildOptionsSchema(meta, dedupeOptions(options), valueAction),
                 ),
               }),
             fail,
@@ -315,18 +315,34 @@ export const createExternalKeyDynamicMeta = ({
 };
 
 /**
- * externalKey の schema から、dynamic の meta を作る hook。
- * resolver の一覧はライブラリの context（externalKeyResolvers）から取る。
+ * externalKey の meta から、dynamic の meta を作る。
+ *
+ * resolve は config から resolver を引き、選択肢を購読して schema を届ける。
+ * key は config（関数を除く）と、config が使う resolverContext から作るので、
+ * 同じ key のあいだは購読を張り直さず、選択肢の更新は描画だけを変える。
  */
-export const useExternalKeyDynamicMeta = (
-  schema: ExternalKeySchema,
-): DynamicMetaDef => {
+export const createExternalKeyDynamicMeta = (
+  params: ExternalKeyDynamicMetaParams,
+): DynamicMetaDef => createOptionsDynamicMeta(params, (schema) => schema);
+
+const requireExternalKeyMeta = (schema: z.ZodTypeAny): ExternalKeyMetaDef => {
   const meta = getMeta(schema, "externalKey") as ExternalKeyMetaDef | undefined;
   if (!meta?.externalKeyConfig) {
     throw new Error(
       "externalKeyConfig is not defined in schema. Use zf.externalKey.registry to register the config.",
     );
   }
+  return meta;
+};
+
+/**
+ * externalKey の schema から、dynamic の meta を作る hook。
+ * resolver の一覧はライブラリの context（externalKeyResolvers）から取る。
+ */
+export const useExternalKeyDynamicMeta = (
+  schema: ExternalKeySchema,
+): DynamicMetaDef => {
+  const meta = requireExternalKeyMeta(schema);
   const {
     externalKeyResolvers,
     resolverContext,
@@ -341,5 +357,74 @@ export const useExternalKeyDynamicMeta = (
         referenceActionMap: collectionReferenceActionMap,
       }),
     [meta, externalKeyResolvers, resolverContext, collectionReferenceActionMap],
+  );
+};
+
+/** 複数選択の externalKey の schema（`z.array(zf.externalKey ...)`） */
+export type ArrayOfExternalKeySchema = z.ZodArray<ExternalKeySchema>;
+
+/**
+ * 複数選択の externalKey の schema の要素を、選択肢から作った schema に差し替える。
+ * 配列の制約（min / max / length）と meta（label・width など）は元の schema から引き継ぎ、
+ * uiType だけを、選択肢の schema を描く複数選択の部品（multipleEnum）にする。
+ * optional / nullable などの外側の包みは、呼ぶ側（Switch と dynamic の required）が扱う
+ */
+export const wrapOptionsSchemaInArray = (
+  arraySchema: ArrayOfExternalKeySchema,
+  optionsSchema: z.ZodTypeAny,
+): z.ZodArray<z.ZodTypeAny> => {
+  const def = arraySchema._zod.def;
+  // def には制約（checks）と meta が入っているので、要素だけを差し替えて作り直す
+  const next = arraySchema.clone({
+    ...def,
+    element: optionsSchema,
+  } as unknown as typeof def) as unknown as z.ZodArray<z.ZodTypeAny>;
+  return next.register(zf.array.registry, { uiType: "multipleEnum" });
+};
+
+/**
+ * 複数選択の externalKey の schema から、dynamic の meta を作る。
+ * 選択肢の購読は単一選択と同じで、届ける schema を、元の配列の制約と meta を引き継いだ配列にする。
+ * 選択肢の扱い（allowUnlisted・unlisted・emptyMessage）は要素の externalKey の meta で決める
+ */
+export const createArrayExternalKeyDynamicMeta = ({
+  schema,
+  ...params
+}: Omit<ExternalKeyDynamicMetaParams, "meta"> & {
+  schema: ArrayOfExternalKeySchema;
+}): DynamicMetaDef =>
+  createOptionsDynamicMeta(
+    { ...params, meta: requireExternalKeyMeta(schema.element) },
+    (optionsSchema) => wrapOptionsSchemaInArray(schema, optionsSchema),
+  );
+
+/**
+ * 複数選択の externalKey の schema から、dynamic の meta を作る hook。
+ * resolver の一覧はライブラリの context（externalKeyResolvers）から取る。
+ */
+export const useArrayExternalKeyDynamicMeta = (
+  schema: ArrayOfExternalKeySchema,
+): DynamicMetaDef => {
+  // externalKeyConfig が無ければ、描く前に誤りにする
+  requireExternalKeyMeta(schema.element);
+  const {
+    externalKeyResolvers,
+    resolverContext,
+    collectionReferenceActionMap,
+  } = useZodFormContext();
+  return useMemo(
+    () =>
+      createArrayExternalKeyDynamicMeta({
+        schema,
+        resolvers: externalKeyResolvers,
+        resolverContext,
+        referenceActionMap: collectionReferenceActionMap,
+      }),
+    [
+      schema,
+      externalKeyResolvers,
+      resolverContext,
+      collectionReferenceActionMap,
+    ],
   );
 };

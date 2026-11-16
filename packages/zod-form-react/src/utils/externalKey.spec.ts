@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import type { DeliveredSchema, ExternalKeyMetaDef } from "@zodapp/zod-form";
+import { z } from "zod";
+import {
+  getMeta,
+  zf,
+  type DeliveredSchema,
+  type ExternalKeyMetaDef,
+} from "@zodapp/zod-form";
 import type { ExternalKeyResolvers } from "@zodapp/zod-form/externalKey/types";
-import { createExternalKeyDynamicMeta } from "./externalKey";
+import {
+  createArrayExternalKeyDynamicMeta,
+  createExternalKeyDynamicMeta,
+} from "./externalKey";
 
 type Subscription = {
   key: string;
@@ -141,5 +150,134 @@ describe("選択肢が 0 件のときの emptyMessage", () => {
     );
     const withoutMessage = schemaOf({}, []);
     expect(withoutMessage.safeParse(undefined).success).toBe(false);
+  });
+});
+
+describe("createArrayExternalKeyDynamicMeta（複数選択）", () => {
+  const element = (meta: Record<string, unknown> = {}) =>
+    zf.string().register(zf.externalKey.registry, {
+      label: "メンバー",
+      externalKeyConfig: { type: "fake" },
+      ...meta,
+    } as never);
+
+  const deliveredOf = (
+    schema: z.ZodArray<z.ZodString>,
+    options: { label: string; value: string }[],
+  ) => {
+    let deliver:
+      | ((options: { label: string; value: string }[]) => void)
+      | undefined;
+    const resolvers: ExternalKeyResolvers = [
+      {
+        type: "fake",
+        resolver: () => ({
+          subscribe: (callback) => {
+            deliver = callback;
+            return () => {};
+          },
+        }),
+      },
+    ];
+    const dynamicMeta = createArrayExternalKeyDynamicMeta({
+      schema,
+      resolvers,
+      resolverContext: {},
+    });
+    const subscription = (
+      dynamicMeta.resolve as unknown as () => Subscription
+    )();
+    const emit = vi.fn();
+    const fail = vi.fn();
+    subscription.subscribe(emit, fail);
+    deliver?.(options);
+    return {
+      schema: (emit.mock.calls[0]?.[0] as DeliveredSchema | undefined)
+        ?.schema as z.ZodTypeAny,
+      fail,
+    };
+  };
+
+  const options = [
+    { label: "A", value: "a" },
+    { label: "B", value: "b" },
+  ];
+
+  it("選択肢の enum を配列で包み、選択肢に無い要素を誤りにする", () => {
+    const schema = zf
+      .array(element())
+      .register(zf.array.registry, { uiType: "multipleExternalKey" });
+    const delivered = deliveredOf(schema, options).schema;
+    expect(delivered.type).toBe("array");
+    expect(delivered.safeParse(["a", "b"]).success).toBe(true);
+    expect(delivered.safeParse(["a", "x"]).success).toBe(false);
+    expect(delivered.safeParse(undefined).success).toBe(false);
+    const elementSchema = (delivered as z.ZodArray<z.ZodTypeAny>).element;
+    expect(elementSchema.type).toBe("enum");
+  });
+
+  it("元の配列の meta（label など）を引き継ぎ、uiType を複数選択の enum の部品にする", () => {
+    const schema = zf
+      .array(element({ unlisted: "keep" }))
+      .register(zf.array.registry, {
+        label: "メンバーたち",
+        uiType: "multipleExternalKey",
+        width: 150,
+      });
+    const delivered = deliveredOf(schema, options).schema;
+    expect(getMeta(delivered)).toMatchObject({
+      label: "メンバーたち",
+      uiType: "multipleEnum",
+      width: 150,
+      typeName: "array",
+    });
+    // 選択肢の扱いは要素の meta から引き継ぐ
+    const elementSchema = (delivered as z.ZodArray<z.ZodTypeAny>).element;
+    expect(getMeta(elementSchema)).toMatchObject({ unlisted: "keep" });
+    // 元の schema の meta は変えない
+    expect(getMeta(schema)).toMatchObject({ uiType: "multipleExternalKey" });
+  });
+
+  it("元の配列の min / max / length を引き継ぐ", () => {
+    const ranged = zf
+      .array(element())
+      .min(1)
+      .max(2)
+      .register(zf.array.registry, { uiType: "multipleExternalKey" });
+    const rangedSchema = deliveredOf(ranged, options).schema;
+    expect(rangedSchema.safeParse([]).success).toBe(false);
+    expect(rangedSchema.safeParse(["a"]).success).toBe(true);
+    expect(rangedSchema.safeParse(["a", "b", "a"]).success).toBe(false);
+
+    const fixed = zf
+      .array(element())
+      .length(2)
+      .register(zf.array.registry, { uiType: "multipleExternalKey" });
+    const fixedSchema = deliveredOf(fixed, options).schema;
+    expect(fixedSchema.safeParse(["a"]).success).toBe(false);
+    expect(fixedSchema.safeParse(["a", "b"]).success).toBe(true);
+  });
+
+  it("allowUnlisted なら、選択肢に無い要素も通す（string の配列で、選択肢は suggestions）", () => {
+    const schema = zf
+      .array(element({ allowUnlisted: true }))
+      .register(zf.array.registry, { uiType: "multipleExternalKey" });
+    const delivered = deliveredOf(schema, options).schema;
+    expect(delivered.safeParse(["a", "x"]).success).toBe(true);
+    const elementSchema = (delivered as z.ZodArray<z.ZodTypeAny>).element;
+    expect(getMeta(elementSchema)).toMatchObject({
+      uiType: "select",
+      suggestions: options,
+    });
+  });
+
+  it("要素に externalKeyConfig が無ければ誤りにする", () => {
+    expect(() =>
+      createArrayExternalKeyDynamicMeta({
+        schema: z.array(z.string()),
+        resolvers: [],
+        resolverContext: {},
+      }),
+    ).toThrow(/externalKeyConfig/);
   });
 });
