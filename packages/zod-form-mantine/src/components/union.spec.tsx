@@ -1629,6 +1629,188 @@ describe("UnionComponent union of primitive arms", () => {
   });
 });
 
+describe("UnionComponent optional・nullable・required union without discriminator", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupDomMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const textOrNumber = (label: string) =>
+    zf
+      .union([
+        zf.string().register(zf.string.registry, { label: "文字" }),
+        zf.number().register(zf.number.registry, { label: "数" }),
+      ])
+      .register(zf.union.registry, {
+        label,
+        selectorLabel: `${label}の種類`,
+      });
+
+  // form-demo の zf.union（いろいろな腕）のページの メモ・備考・必須の値 と同じ形
+  const schema = z
+    .object({
+      memo: textOrNumber("メモ").optional(),
+      note: textOrNumber("備考").nullable(),
+      required: textOrNumber("必須"),
+    })
+    .register(zf.object.registry, { properties: ["memo", "note", "required"] });
+
+  type Values = { memo?: unknown; note: unknown; required?: unknown };
+
+  const renderForm = (
+    options: {
+      defaultValues?: Partial<Values>;
+      onSubmit?: (value: unknown) => void;
+      formRef?: { current: AnyFormApi | undefined };
+    } = {},
+  ) => {
+    const runtime = new FormRuntime();
+    const validator = runtime.wrapValidator<z.input<typeof schema>>(schema);
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: {
+          memo: undefined,
+          note: null,
+          required: undefined,
+          ...options.defaultValues,
+        } as z.input<typeof schema>,
+        onSubmit: ({ value }) => options.onSubmit?.(value),
+        validators: {
+          onChange: validator,
+          onBlur: validator,
+          onSubmit: validator,
+        },
+      });
+      if (options.formRef) {
+        options.formRef.current = form as unknown as AnyFormApi;
+      }
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              nullable: () => ({ component: NullableComponent }),
+              number: () => ({ component: NumberComponent }),
+              object: () => ({ component: ObjectComponent }),
+              optional: () => ({ component: OptionalComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form} runtime={runtime}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+    return render(<FormUnderTest />);
+  };
+
+  const group = (label: string) => screen.getByRole("group", { name: label });
+  const selectorOf = (label: string) =>
+    group(label).querySelector(
+      "input.mantine-Select-input",
+    ) as HTMLInputElement;
+  /** 腕の欄（腕を選ぶ欄のほかの入力欄） */
+  const armInputsOf = (label: string) =>
+    Array.from(
+      group(label).querySelectorAll<HTMLInputElement>(
+        "input:not([type=hidden]):not(.mantine-Select-input)",
+      ),
+    );
+  /** 腕を選ぶ欄の × */
+  const clearButtonOf = (label: string) => {
+    const wrapper = selectorOf(label).closest(".mantine-InputWrapper-root");
+    return wrapper?.querySelector("button") as HTMLButtonElement | null;
+  };
+  const selectArm = async (label: string, optionLabel: string) => {
+    const selector = selectorOf(label);
+    fireEvent.click(selector);
+    fireEvent.focus(selector);
+    fireEvent.keyDown(selector, { key: "ArrowDown" });
+    // 腕を選ぶ欄が複数あるので、この欄の選択肢の一覧から選ぶ
+    const listbox = await waitFor(() => {
+      const id = selector.getAttribute("aria-controls");
+      const element = id ? document.getElementById(id) : null;
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    fireEvent.click(
+      within(listbox).getByRole("option", { name: optionLabel, hidden: true }),
+    );
+    await waitFor(() => expect(selectorOf(label).value).toBe(optionLabel));
+  };
+  const values = (formRef: { current: AnyFormApi | undefined }) =>
+    formRef.current?.state.values as Values;
+
+  describe("required union", () => {
+    /** 腕を選ぶ欄の下のエラー */
+    const selectorErrorOf = (label: string) =>
+      selectorOf(label)
+        .closest(".mantine-InputWrapper-root")
+        ?.querySelector(".mantine-InputWrapper-error")?.textContent ?? null;
+
+    it("shows 選択してください on the selector when submitted with no arm selected", async () => {
+      const onSubmit = vi.fn();
+      renderForm({ onSubmit });
+      await waitFor(() => expect(selectorOf("必須").value).toBe(""));
+      // 開いただけではエラーを出さない
+      expect(selectorErrorOf("必須")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+      await waitFor(() =>
+        expect(selectorErrorOf("必須")).toBe("選択してください"),
+      );
+      expect(onSubmit).not.toHaveBeenCalled();
+      // optional・nullable の union は、空のままでもエラーを出さない
+      expect(selectorErrorOf("メモ")).toBeNull();
+      expect(selectorErrorOf("備考")).toBeNull();
+    });
+
+    it("shows 選択してください when the value fits no arm and no arm can be guessed", async () => {
+      renderForm({ defaultValues: { required: true } });
+      await waitFor(() => expect(selectorOf("必須").value).toBe(""));
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() =>
+        expect(selectorErrorOf("必須")).toBe("選択してください"),
+      );
+    });
+
+    it("moves the error from the selector to the arm once an arm is selected", async () => {
+      renderForm({});
+      await waitFor(() => expect(selectorOf("必須").value).toBe(""));
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() =>
+        expect(selectorErrorOf("必須")).toBe("選択してください"),
+      );
+
+      await selectArm("必須", "数");
+      await waitFor(() => expect(selectorErrorOf("必須")).toBeNull());
+
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(
+          within(group("必須")).getByText(
+            "Invalid input: expected number, received undefined",
+          ),
+        ).toBeTruthy();
+      });
+      expect(selectorErrorOf("必須")).toBeNull();
+    });
+  });
+});
+
 describe("UnionComponent arm errors written to the union's own field", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});

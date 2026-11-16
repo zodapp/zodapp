@@ -266,6 +266,9 @@ const replaceWrittenIssues = (
 
 const EMPTY_ERRORS: readonly unknown[] = [];
 
+/** 腕が未選択で検証に落ちているときに、腕を選ぶ欄に出す文言 */
+const UNSELECTED_MESSAGE = "選択してください";
+
 type schemaProfile = {
   schema: z.ZodTypeAny | undefined;
   label: string;
@@ -704,6 +707,17 @@ const UnionBody = React.memo(function UnionBody({
     [form, writer],
   );
 
+  /**
+   * 腕が未選択で検証に落ちているとき（必須の union が空のとき、値がどの腕にも合わず
+   * 推定できないとき）は、腕を選ぶ欄に「選択してください」を出す。
+   * どちらも、この union が読む invalid_union があり、腕が選ばれていない状態になる。
+   * 出す時機は fieldErrors と同じ（触ったか送信したか）
+   */
+  const selectorError =
+    !compiledOptions.hasDiscriminator && !selectedProfile && unionError
+      ? UNSELECTED_MESSAGE
+      : undefined;
+
   const runAsUserEdit = useRunAsUserEdit();
   const handleSelect = useCallback(
     (id: string | null) => {
@@ -818,7 +832,7 @@ const UnionBody = React.memo(function UnionBody({
             onBlur={field.onBlur}
             onFocus={onFocus}
             label={selectorLabel ?? "タイプ"}
-            error={undefined}
+            error={selectorError}
             required={!(optional || nullable)}
             disabled={selectorIsReadOnly}
             allowDeselect={Boolean(optional || nullable)}
