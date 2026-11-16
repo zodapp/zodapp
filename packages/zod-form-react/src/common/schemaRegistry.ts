@@ -33,6 +33,8 @@ type Issue = {
   message: string;
   path: PropertyKey[];
   code?: string;
+  /** zod の issue のほかの欄（invalid_union の errors など）は、そのまま残す */
+  [key: string]: unknown;
 };
 
 const isThenable = (value: unknown): value is PromiseLike<unknown> =>
@@ -229,7 +231,9 @@ export class FormRuntime {
           ...normalizeIssuePath(issue.path),
         ];
         if (isCovered(sourceSegments, path)) continue;
-        issues.push({ message: issue.message, path, code: issue.code });
+        // 一番外の path だけを付け直し、ほかの欄は残す。invalid_union の errors
+        // （腕ごとの issue。path はその union の値からの相対）は書き換えない
+        issues.push({ ...issue, path });
       }
     };
 
@@ -257,7 +261,10 @@ export class FormRuntime {
         }
         continue;
       }
-      collect(segments, entry.schema.safeParse(getValueAt(value, segments)) as any);
+      collect(
+        segments,
+        entry.schema.safeParse(getValueAt(value, segments)) as any,
+      );
     }
     return issues;
   }
