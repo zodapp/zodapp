@@ -6,6 +6,7 @@ import {
   useDynamicDepth,
   useDynamicSchema,
   type ZodFormProps,
+  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { useExternalKeyDynamicMeta } from "@zodapp/zod-form-react/utils/externalKey";
@@ -24,13 +25,8 @@ type ExternalKeySchema = z.ZodString;
 const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   props: ZodFormProps<ExternalKeySchema>,
 ) {
-  const {
-    fieldPath,
-    schema,
-    optional,
-    nullable,
-    label: labelFromParent,
-  } = props;
+  const { fieldPath, schema, label: labelFromParent } = props;
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema, "externalKey");
   const label = labelFromParent ?? meta?.label;
   const dynamicMeta = useExternalKeyDynamicMeta(schema);

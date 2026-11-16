@@ -4,7 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  emptyValueOf,
+  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -17,22 +17,20 @@ type StringSchema = z.ZodString;
 
 const StringPasswordComponent = wrapComponent(
   function StringPasswordComponentImplement({
+    fieldPath,
     schema,
     field,
     label: labelFromParent,
-    optional,
-    nullable,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
+    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const value = typeof field.value === "string" ? field.value : "";
 
     const maskedValue = useMemo(() => "●".repeat(value.length), [value.length]);
-
-    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
         field.onChange(event.currentTarget.value || emptyValue);

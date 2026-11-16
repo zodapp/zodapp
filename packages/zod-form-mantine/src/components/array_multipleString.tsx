@@ -4,7 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  emptyValueOf,
+  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -14,14 +14,14 @@ type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
 
 const ArrayOfStringComponent = wrapComponent(
   function ArrayOfStringComponentImplement({
+    fieldPath,
     schema,
     label: labelFromParent,
-    optional,
-    nullable,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<ArrayOfStringSchema>) {
+    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
     // arrayスキーマ自体のメタからlabelを取得
@@ -38,8 +38,6 @@ const ArrayOfStringComponent = wrapComponent(
           : [],
       [field.value],
     );
-
-    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string[]) => {
         field.onChange(next.length === 0 ? emptyValue : next);

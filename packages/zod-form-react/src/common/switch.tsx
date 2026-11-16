@@ -10,7 +10,7 @@ import {
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
 import { useFormApi } from "./form";
-import { SamePathProvider, useEmptiness } from "./samePath";
+import { SamePathProvider } from "./samePath";
 
 const memoizeGetLazyComponentMap = new WeakMap<
   DynamicZodFormDef,
@@ -138,17 +138,10 @@ const PreprocessSwitch = (props: ZodFormProps) => {
   );
 };
 
-const SchemaSwitch = (rawProps: ZodFormProps) => {
+const SchemaSwitch = (props: ZodFormProps) => {
   const lazyFactory = useLazyFactory();
 
-  const { schema } = rawProps;
-  // optional・nullable は props で受け渡さず、同じ path の連なりから求める
-  const emptiness = useEmptiness(rawProps.fieldPath);
-  const props: ZodFormProps = {
-    ...rawProps,
-    optional: emptiness.optional ? true : undefined,
-    nullable: emptiness.nullable ? true : undefined,
-  };
+  const { schema } = props;
   const { componentLibrary, notFoundComponent: NotFoundComponent } =
     useZodFormContext();
   const meta = getMeta(schema);

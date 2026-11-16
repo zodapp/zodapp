@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { InputWrapper, Select } from "@mantine/core";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { useEmptiness, type ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import { renderBadge } from "../utils/selectOption";
@@ -28,10 +28,9 @@ const EnumComponent = React.memo(function EnumComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  optional,
-  nullable,
   readOnly: readOnlyProp,
 }: ZodFormProps<EnumSchema>) {
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const uiType = meta?.uiType;

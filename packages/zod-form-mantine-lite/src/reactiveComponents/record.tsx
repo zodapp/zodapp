@@ -34,8 +34,6 @@ const RecordComponent = React.memo(function RecordComponent({
         fieldPath={joinFieldPath(fieldPath, key)}
         schema={valueSchema}
         defaultValue={defaultValue?.[key]}
-        optional={undefined}
-        nullable={undefined}
         readOnly={readOnly}
         label={key}
       />

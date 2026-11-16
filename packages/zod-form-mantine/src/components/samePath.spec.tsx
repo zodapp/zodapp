@@ -25,6 +25,7 @@ import { baseComponents } from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
 import { component as DynamicComponent } from "./dynamic";
+import { component as TupleComponent } from "./tuple";
 
 const setupDomMocks = () => {
   if (!window.matchMedia) {
@@ -57,6 +58,7 @@ const componentLibrary = {
   object: () => ({ component: ObjectComponent }),
   string: () => ({ component: StringComponent }),
   dynamic: () => ({ component: DynamicComponent }),
+  tuple: () => ({ component: TupleComponent }),
 };
 
 /** 同期で z.string().min(1) に決まる dynamic。base は静的な検証で使う schema */
@@ -220,4 +222,16 @@ describe("同じ path の外側の包み（dynamic）", () => {
       expect(onSubmit).not.toHaveBeenCalled();
     },
   );
+
+  it("optional な tuple の要素は、optional にならない（外の包みは path が変わると切れる）", async () => {
+    const schema = object({
+      t: z
+        .tuple([zf.string().register(zf.string.registry, { label: "要素" })])
+        .optional(),
+    });
+    renderForm(schema, { t: ["a"] });
+    const input = document.querySelector("input") as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input.required).toBe(true);
+  });
 });

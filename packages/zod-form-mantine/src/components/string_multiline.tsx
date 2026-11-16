@@ -4,7 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  emptyValueOf,
+  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -20,14 +20,14 @@ type StringSchema = z.ZodString;
 
 const StringMultilineComponent = wrapComponent(
   function StringMultilineComponentImplement({
+    fieldPath,
     schema,
     field,
     label: labelFromParent,
-    optional,
-    nullable,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
+    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const {
       label: labelFromMeta,
@@ -38,8 +38,6 @@ const StringMultilineComponent = wrapComponent(
     const suggestionData = normalizeStringSuggestions(suggestions);
 
     const value = typeof field.value === "string" ? field.value : "";
-
-    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         field.onChange(event.target.value || emptyValue);

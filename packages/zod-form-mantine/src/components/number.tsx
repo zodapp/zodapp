@@ -4,7 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  emptyValueOf,
+  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
 import {
@@ -27,22 +27,20 @@ const toNumberValue = (value: unknown): number | undefined => {
 };
 
 const NumberComponent = wrapComponent(function NumberComponentImplement({
+  fieldPath,
   schema,
   field,
   label: labelFromParent,
-  optional,
-  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<NumberSchema>) {
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta, formatter } = getMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const rawValue = field.value as unknown;
 
   const value = toNumberValue(rawValue);
-
-  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (value: string | number | null | undefined) => {
       if (value === "" || value === null || value === undefined) {

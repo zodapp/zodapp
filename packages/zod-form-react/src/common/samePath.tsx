@@ -83,10 +83,21 @@ export const emptinessOf = (
   return { optional, nullable };
 };
 
-/** fieldPath の欄が空を受け付けるか（{@link emptinessOf}） */
+/**
+ * fieldPath の欄が空を受け付けるか（{@link emptinessOf}）と、欄を空にするときに書く値。
+ * optional なら undefined、nullable だけなら null、どちらでもない（必須の）欄は undefined
+ * （「必須」のエラーにする）。
+ */
 export const useEmptiness = (fieldPath: string) => {
   const chain = useSamePathChain(fieldPath);
-  return useMemo(() => emptinessOf(chain), [chain]);
+  return useMemo(() => {
+    const { optional, nullable } = emptinessOf(chain);
+    return {
+      optional,
+      nullable,
+      emptyValue: optional ? undefined : nullable ? null : undefined,
+    };
+  }, [chain]);
 };
 
 type Check = z.core.$ZodCheck<unknown>;

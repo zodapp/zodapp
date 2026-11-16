@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { ActionIcon, Group, InputWrapper, Loader, Select } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { useEmptiness, type ZodFormProps } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
   useExternalKeyAction,
@@ -24,10 +24,9 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  optional,
-  nullable,
   readOnly: readOnlyProp,
 }: ZodFormProps<ExternalKeySchema>) {
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema, "externalKey");
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;

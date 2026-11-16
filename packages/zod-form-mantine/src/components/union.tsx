@@ -22,7 +22,7 @@ import {
   useFormValues,
   useRunAsUserEdit,
   isPendingIssue,
-  emptyValueOf,
+  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -398,6 +398,8 @@ const UnionBody = React.memo(function UnionBody({
   accessor: ValueAccessor;
 }) {
   const { loadingComponent: LoadingComponent } = useZodFormContext();
+  // 欄を空にするときに書く値（optional なら undefined、nullable だけなら null）
+  const emptyValue = optional ? undefined : nullable ? null : undefined;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 
   const compiledOptions: {
@@ -786,7 +788,6 @@ const UnionBody = React.memo(function UnionBody({
         : undefined;
 
   const runAsUserEdit = useRunAsUserEdit();
-  const emptyValue = emptyValueOf({ optional, nullable });
   const handleSelect = useCallback(
     (id: string | null) => {
       const setValueWithoutValidation = (nextValue: unknown) => {
@@ -977,14 +978,13 @@ const UnionBody = React.memo(function UnionBody({
 const UnionComponent = wrapComponent(function UnionComponentImplement({
   fieldPath,
   schema,
-  optional,
-  nullable,
   readOnly,
   label: labelFromParent,
   field,
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
   isTouched,
 }: ZodFormInternalProps<UnionSchema>) {
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const {
     label: labelFromMeta,
     selectorLabel,
