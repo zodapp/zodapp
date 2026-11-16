@@ -28,14 +28,13 @@ const toNumberValue = (value: unknown): number | undefined => {
 
 const NumberComponent = wrapComponent(function NumberComponentImplement({
   fieldPath,
-  samePath,
   schema,
   field,
   label: labelFromParent,
   readOnly,
   error,
 }: ZodFormInternalProps<NumberSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta, formatter } = getMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;

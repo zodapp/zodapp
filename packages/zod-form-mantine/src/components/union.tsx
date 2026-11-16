@@ -15,6 +15,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   Switch,
+  SamePathReset,
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
@@ -930,7 +931,7 @@ const UnionBody = React.memo(function UnionBody({
       {selectedProfile?.schema && (
         // 腕は同じ path だが、空は腕を選ぶ欄が受け持つので、外の包みを伝えない
         <div style={{ marginTop: 1, minHeight: 20, marginBottom: 15 }}>
-          <>
+          <SamePathReset>
             <Suspense
               fallback={
                 <LoadingComponent
@@ -951,7 +952,7 @@ const UnionBody = React.memo(function UnionBody({
                 label={false}
               />
             </Suspense>
-          </>
+          </SamePathReset>
         </div>
       )}
     </UnionRelayContext.Provider>
@@ -976,7 +977,6 @@ const UnionBody = React.memo(function UnionBody({
  */
 const UnionComponent = wrapComponent(function UnionComponentImplement({
   fieldPath,
-  samePath,
   schema,
   readOnly,
   label: labelFromParent,
@@ -984,7 +984,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
   isTouched,
 }: ZodFormInternalProps<UnionSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const {
     label: labelFromMeta,
     selectorLabel,

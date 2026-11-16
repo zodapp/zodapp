@@ -18,14 +18,13 @@ type NumberSchema = ReturnType<typeof zf.number>;
 const NumberSliderComponent = wrapComponent(
   function NumberSliderComponentImplement({
     fieldPath,
-    samePath,
     schema,
     label: labelFromParent,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<NumberSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath, samePath);
+    const { optional, nullable } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;

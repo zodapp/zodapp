@@ -13,12 +13,11 @@ type BooleanSchema = ReturnType<typeof zf.boolean>;
 const BooleanComponent = React.memo(function BooleanComponent({
   schema,
   fieldPath,
-  samePath,
   defaultValue,
   label: labelFromParent,
   readOnly: readOnlyProp,
 }: ZodFormProps<BooleanSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const uiType = meta?.uiType;
   const labelFromMeta = meta?.label;

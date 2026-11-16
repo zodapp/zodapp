@@ -18,17 +18,13 @@ type StringSchema = z.ZodString;
 const StringPasswordComponent = wrapComponent(
   function StringPasswordComponentImplement({
     fieldPath,
-    samePath,
     schema,
     field,
     label: labelFromParent,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(
-      fieldPath,
-      samePath,
-    );
+    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;

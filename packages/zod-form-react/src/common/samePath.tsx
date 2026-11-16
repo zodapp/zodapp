@@ -51,29 +51,12 @@ export const SamePathReset = ({ children }: { children: React.ReactNode }) => (
 
 const EMPTY_CHAIN: readonly z.ZodTypeAny[] = [];
 
-export type SamePathProp = { path: string; chain: readonly z.ZodTypeAny[] };
-
-/** fieldPath の同じ path の連なり（外から内の順。自分を含む）。案B：props から読む */
+/** fieldPath の同じ path の連なり（外から内の順。自分を含む） */
 export const useSamePathChain = (
   fieldPath: string,
-  samePath?: SamePathProp,
-): readonly z.ZodTypeAny[] =>
-  samePath && samePath.path === fieldPath ? samePath.chain : EMPTY_CHAIN;
-
-/** Switch が部品に渡す連なり */
-export const useNextSamePath = (
-  fieldPath: string,
-  schema: z.ZodTypeAny,
-  samePath?: SamePathProp,
-): SamePathProp => {
-  const chain = useSamePathChain(fieldPath, samePath);
-  return useMemo(
-    () =>
-      chain[chain.length - 1] === schema
-        ? { path: fieldPath, chain }
-        : { path: fieldPath, chain: [...chain, schema] },
-    [fieldPath, schema, chain],
-  );
+): readonly z.ZodTypeAny[] => {
+  const ctx = useContext(SamePathContext);
+  return ctx && ctx.path === fieldPath ? ctx.chain : EMPTY_CHAIN;
 };
 
 const typeOf = (schema: z.ZodTypeAny): string =>
@@ -105,8 +88,8 @@ export const emptinessOf = (
  * optional なら undefined、nullable だけなら null、どちらでもない（必須の）欄は undefined
  * （「必須」のエラーにする）。
  */
-export const useEmptiness = (fieldPath: string, samePath?: SamePathProp) => {
-  const chain = useSamePathChain(fieldPath, samePath);
+export const useEmptiness = (fieldPath: string) => {
+  const chain = useSamePathChain(fieldPath);
   return useMemo(() => {
     const { optional, nullable } = emptinessOf(chain);
     return {

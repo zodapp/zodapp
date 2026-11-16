@@ -49,14 +49,13 @@ const NO_ENUM_OPTIONS = zf.enum(
 const ArrayOfEnumComponent = wrapComponent(
   function ArrayOfEnumComponentImplement({
     fieldPath,
-    samePath,
     schema,
     label: labelFromParent,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<ArrayOfEnumSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath, samePath);
+    const { optional, nullable } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
     const elementSchema = schema.element as z.ZodTypeAny;

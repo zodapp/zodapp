@@ -25,17 +25,13 @@ type StringSchema = z.ZodString;
 const StringLazyComponent = wrapComponent(
   function StringLazyComponentImplement({
     fieldPath,
-    samePath,
     schema,
     field,
     label: labelFromParent,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(
-      fieldPath,
-      samePath,
-    );
+    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;

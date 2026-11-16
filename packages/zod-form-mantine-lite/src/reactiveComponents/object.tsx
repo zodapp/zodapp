@@ -18,13 +18,12 @@ const joinFieldPath = (fieldPath: string, propertyName: string) => {
 
 const ObjectComponent = React.memo(function ObjectComponent({
   fieldPath,
-  samePath,
   schema,
   defaultValue,
   readOnly: readOnlyProp,
   label: labelFromParent,
 }: ZodFormProps<ObjectSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);

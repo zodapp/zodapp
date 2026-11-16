@@ -21,11 +21,7 @@ import type { AnyFormApi } from "@tanstack/react-form";
 import { useFormApi, useFormRuntime } from "./form";
 import { useFnInput } from "./fnInput";
 import type { EditCause } from "./schemaRegistry";
-import {
-  rewrapWithChain,
-  useSamePathChain,
-  type SamePathProp,
-} from "./samePath";
+import { rewrapWithChain, useSamePathChain } from "./samePath";
 
 /**
  * dynamic の状態。
@@ -211,11 +207,10 @@ const callResolve = (
 export const useDynamicSchema = (
   meta: DynamicMetaDef | undefined,
   fieldPath: string,
-  samePath?: SamePathProp,
 ): DynamicSchemaState => {
   // 同じ path の外側の schema（optional・nullable・default・refine など）。
   // 登録する schema をこれで包み直し、path で切り出して検証しても外側の包みが効くようにする
-  const chain = useSamePathChain(fieldPath, samePath);
+  const chain = useSamePathChain(fieldPath);
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);

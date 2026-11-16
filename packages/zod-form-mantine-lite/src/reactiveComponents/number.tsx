@@ -14,12 +14,11 @@ type NumberSchema = ReturnType<typeof zf.number>;
 const NumberComponent = React.memo(function NumberComponent({
   schema,
   fieldPath,
-  samePath,
   defaultValue,
   label: labelFromParent,
   readOnly: readOnlyProp,
 }: ZodFormProps<NumberSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;

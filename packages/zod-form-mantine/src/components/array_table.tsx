@@ -347,7 +347,6 @@ const getDistributedColumnWidth = (
 const ArrayTableComponent = wrapComponent(
   function ArrayTableComponentImplement({
     fieldPath,
-    samePath,
     schema,
     readOnly,
     label: labelFromParent,
@@ -355,7 +354,7 @@ const ArrayTableComponent = wrapComponent(
     error,
     defaultValue,
   }: ZodFormInternalProps<ArraySchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath, samePath);
+    const { optional, nullable } = useEmptiness(fieldPath);
     const { loadingComponent: LoadingComponent } = useZodFormContext();
     const [activeId, setActiveId] = useState<string | null>(null);
     const tableContainerRef = useRef<HTMLDivElement | null>(null);

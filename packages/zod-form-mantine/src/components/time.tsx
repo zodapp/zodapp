@@ -107,14 +107,13 @@ const MillisecondInput = ({
 
 const TimeComponent = wrapComponent(function TimeComponentImplement({
   fieldPath,
-  samePath,
   schema,
   field,
   label: labelFromParent,
   readOnly,
   error,
 }: ZodFormInternalProps<SupportedTimeSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const meta = getMeta(schema) as
     | { label?: string; unit?: TimeUnit; encoding?: TimeEncoding }

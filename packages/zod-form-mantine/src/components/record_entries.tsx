@@ -47,7 +47,6 @@ const getValueDefault = (schema: z.ZodTypeAny): unknown => {
 const RecordEntriesComponent = wrapComponent(
   function RecordEntriesComponentImplement({
     fieldPath,
-    samePath,
     schema,
     defaultValue,
     readOnly,
@@ -55,7 +54,7 @@ const RecordEntriesComponent = wrapComponent(
     error,
     field,
   }: ZodFormInternalProps<RecordSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath, samePath);
+    const { optional, nullable } = useEmptiness(fieldPath);
     const meta = getMeta(schema);
     const valueSchema = schema.def.valueType;
     const keySchema = schema.def.keyType;

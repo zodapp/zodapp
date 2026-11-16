@@ -26,12 +26,11 @@ const CONFIRM_ACTIONS_WIDTH = 64;
 const EnumComponent = React.memo(function EnumComponent({
   schema,
   fieldPath,
-  samePath,
   defaultValue,
   label: labelFromParent,
   readOnly: readOnlyProp,
 }: ZodFormProps<EnumSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath, samePath);
+  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const uiType = meta?.uiType;

@@ -13,14 +13,13 @@ type BooleanSchema = ReturnType<typeof zf.boolean>;
 const BooleanCheckboxComponent = wrapComponent(
   function BooleanCheckboxComponentImplement({
     fieldPath,
-    samePath,
     schema,
     label: labelFromParent,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath, samePath);
+    const { optional, nullable } = useEmptiness(fieldPath);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);
