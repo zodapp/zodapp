@@ -142,3 +142,136 @@ form-demo の union と同じ形の schema（文字列の腕 + literal `type` �
 3. **nullable の union で、腕を選ぶと値が null でなく undefined になり、null に戻せない。** 腕の既定の値が undefined のため。nullable の union が undefined になると検証に通らず、送信が止まる（エラーの文言は空で見えない）
 4. **必須の union を未選択のまま送信しても、エラーが見えない。** セレクトは `error={undefined}` で、選んだ腕もないのでエラーを振り分けられない
 5. **AutoForm を使わず useZodForm に zod の schema を直接渡すと、プリミティブの腕が空のまま送信すると無限に描き直して落ちる**（Maximum update depth exceeded）。腕のエラーの path が `[]` なので、振り分け先が union 自身の欄（`value`）になり、union の error が変わる → 振り分けをやめて消す → 元に戻る、を繰り返す
+
+## 8. 不具合の直し方（7.1 の 1〜5 と、あとで見つかった 2 件）
+
+- ステータス: プラン（未実装）
+- 対象ブランチ: `claude/union-arm-errors-v2`（main から作る。このプランと同じブランチに実装を積む）
+- 対象パッケージ: `@zodapp/zod-form-react`・`@zodapp/zod-form-mantine`・`@zodapp/zod-form-mantine-lite`（利用側: `apps/form-demo`）
+- 判断の経緯: Claude Docs「zf.union の不具合の直し方の判断事項」（A〜I）。実験の実装はブランチ `claude/union-arm-errors`（context で腕のエラーを渡す案）と `claude/union-arm-errors-e`（この章の案）にあり、使えるテストだけを参考にする
+
+### 8.1 決めたこと
+
+| # | 決めたこと |
+| --- | --- |
+| A | 腕のエラーは、同じ欄に `invalid_union` を残したまま `errorMap.onDynamic` に足す。誰が書いたかの目印は、union の中だけの context で、すぐ外の union の path と ref を渡して見分ける（リレー） |
+| B | 腕が未選択で検証に落ちているときは、union のセレクトに「選択してください」と出す。値が空でも、値がどの腕にも合わず推定できなくても同じ。`invalid_union` を通して出す |
+| C | `ZodFormProps` に `nullable?: boolean` を足し、`NullableComponent` が渡す |
+| D | nullable の union で、腕を選んだ直後や × の後の空の値は null |
+| E | discriminatedUnion も、必須で未選択ならセレクトに B と同じ文言を出す |
+| F | `FormRuntime.validate` は zod の issue をまるごと残し、一番外の issue の path にだけ前置きを付ける。`invalid_union.errors` の中の path は書き換えない |
+| G | 腕を切り替えた直後に、最初の送信が何もしない件を直す |
+| H | object の腕の中の union に `invalid_union` が届かない件を直す |
+| I | `ZodFormProps` の `required` を `optional` に裏返す。先に置き換えをコミットし、その上に `nullable` を足す。空にするときの値は `optional ? undefined : nullable ? null : undefined` |
+
+### 8.2 `required` を `optional` に裏返す（I）
+
+- `ZodFormProps`（`zod-form-react/src/utils/type.ts`）の `required?: boolean` を `optional?: boolean` にする。書かないときは必須
+- 部品の `required !== false` を `!optional` に、`required={false}` を `optional={true}` に置き換える（zod-form-mantine-lite・zod-form-mantine・zod-form-widget など、ライブラリの中で約 55 か所）
+- `OptionalComponent`・`NullableComponent`・`DefaultComponent`（mantine-lite の `baseComponents`）は `optional={true}` を渡す。C のあとは `NullableComponent` だけ `nullable={true}` に変える（8.3）
+- `required` を受け取る hook（`useDynamicSchema(meta, fieldPath, { required })` など）も `optional` にそろえる
+- Mantine の部品に渡す `required`（ラベルの＊を出す Mantine の props）はそのまま。値は `!(optional || nullable)`
+- 利用者が作った部品には壊れる変更なので、CHANGELOG と changeset に「破壊的変更」と書く
+- この段階では挙動を変えない（置き換えだけ）。既存のテストがそのまま通ることを確かめる
+
+### 8.3 `nullable` を足す（C・D）
+
+- `ZodFormProps` に `nullable?: boolean` を足す
+- `NullableComponent` は `nullable={true}` を渡す（`optional` は渡さない）。`.optional().nullable()` のように重なると、両方が届く
+- 空にするときの値を決める小さな関数を zod-form-react に置く（例：`emptyValueOf({ optional, nullable })` → `optional ? undefined : nullable ? null : undefined`）。公開するかは実装時に決めず、まず内部で使う
+- union は、腕を選んだ直後（腕の既定の値が undefined のとき）と × のときに、この関数の値を書く
+- string・number などの部品で、消したときに null を書くようにするかは、この章では扱わない（今は undefined を書く）
+
+### 8.4 `FormRuntime.validate` で issue をまるごと残す（F）
+
+- `zod-form-react/src/common/schemaRegistry.ts` の `collect` で、issue を `{ message, path, code }` に作り直すのをやめ、`{ ...issue, path: [前置き, ...issue.path] }` にする
+- `invalid_union.errors` の中は書き換えない。中の path はその union の値からの相対なので、union が自分の欄から絶対の path に直す
+- dynamic の「読み込み中」「取得できませんでした」の issue は今のまま
+
+### 8.5 腕のエラーを同じ欄に足す（A）
+
+`packages/zod-form-mantine/src/components/union.tsx`
+
+1. union は、欄のエラーの配列全体を見る（`useStore(field.api.store, s => s.meta.errors)`）。最初の 1 つだけを見るのをやめる
+2. 部品ごとの ref（`useState(() => ({}))`）を持つ
+3. 中だけで使う context（export しない）に、すぐ外の union の `{ path, token }` を 1 組だけ載せる。union は受け取った組を読み、自分の `{ path, token }` に置き換えて子に渡す
+4. 入力の `invalid_union` の選び方
+   - 受け取った path が自分の path と同じ（同じ欄に外の union がいる）：その token が付いた（`writtenBy`）ものだけを取る
+   - それ以外：目印の無い最初のものを取る
+5. 選んだ腕の issue のうち path が `[]` のもの（primitive の腕・腕が union のとき）は、`writtenBy: 自分の token` を付けて、同じ欄の `errorMap.onDynamic` に足す。書くときは今の meta を読み、自分の分だけを入れ替える（ほかの union の分は残す）。同じ内容なら書かない
+6. path が `[]` でない issue（object の腕の子の欄）は、今の `redistributeIssues` と同じく子の欄に配る。ただし `errors` ごと置き換えるのをやめ、`errorMap.onDynamic` に書く。H のため、issue はまるごと（`code`・`errors` を落とさずに）渡す
+7. 片付け：腕が変わったとき、`invalid_union` が消えたとき、外れたときに、自分の token が付いたものだけを消す
+8. 書き込みは `form` と欄の名前を通す（`field.api` は errorMap が変わるたびに作り直されるので、effect の依存に入れるとループする）
+
+zod-form-react
+
+- `wrapComponent`（`src/common/wrapper.tsx`）は、読み込み中の issue と `invalid_union` を飛ばした最初のエラーを見せる
+- 配列の欄（`getArrayFieldError`）も同じく `invalid_union` を飛ばす
+- `invalid_union` かを見分ける関数は内部に置き、export しない
+
+`onDynamic` を使う理由：onChange・onBlur・onSubmit は AutoForm の検証が上書きし、`wrapComponent` が値の変更で onBlur を消す。onMount は値を書くたびに TanStack が消す。onDynamic は今の設定（`defaultValidationLogic`）では TanStack が読みも書きもしない。`revalidateLogic` や欄ごとの validators を使うとぶつかる恐れがあるので、README に書く。
+
+### 8.6 腕が未選択のときの表示（B・E）
+
+- union は、自分の `invalid_union` があり、かつ腕が未選択なら、セレクトに「選択してください」を出す。出す時機はほかの欄と同じ（触ったか送信したか）
+- discriminator のない union と discriminatedUnion の両方に効かせる
+- 文言は union の部品が持つ（`jaErrorMap` は変えない）
+
+### 8.7 × と nullable（不具合 2・3）
+
+- `handleSelect(null)`：`optional` か `nullable` のとき、覚えた腕を消し、8.3 の空の値を書く
+- nullable の union で腕を選んだとき、腕の既定の値が undefined なら null を書く（8.3）
+
+### 8.8 最初の送信が何もしない件（G）
+
+- 腕を切り替えると `handleSelect` が欄の onChange・onBlur のエラーを消すため、form 全体の onBlur のエラーだけが残り、`canSubmit` が false になって、TanStack が検証せずに送信をやめる
+- 実装の最初に、この流れを単体テストで再現してから直し方を決める。候補は、切り替えのあとに form の検証を走らせ直す（`form.validate("change")`）か、form 全体のエラーも合わせて消す。どちらにするかは、再現したテストで挙動を確かめて選び、プランに追記する
+
+### 8.9 テスト
+
+単体テスト（`union.spec.tsx` ほか）。schema を `useZodForm` に直接渡す場合と、`FormRuntime` を通す場合（AutoForm と同じ）の両方で走らせる。
+
+- `FormRuntime.validate` が `invalid_union.errors` を残し、一番外の path にだけ前置きを付ける（`schemaRegistry.spec.ts`）
+- 空の数値の腕で送信すると、数値の欄にエラーが出て枠が赤くなる。ループしない（落ち着いたあと store が更新されない）。直すとエラーが消える
+- 触る前・送信前は腕のエラーが出ない
+- 同じ欄に union を 2 段・3 段重ねて、内側の腕のエラーが正しい欄に 1 つだけ出る。外の腕のエラーが一度も書かれない
+- discriminatedUnion の子の欄にある union が、目印の無い issue を取ってエラーを出す
+- object の腕の子の欄にある union にエラーが届く（H）
+- dynamic の読み込み中の issue と並んでも、union が `invalid_union` を見落とさない
+- optional の union で × を押すと空になり送信できる。nullable の union は腕を選んでも × でも null。両方のときは undefined
+- 必須の union（discriminator なし・discriminatedUnion）を未選択で送信すると、セレクトに「選択してください」
+- 腕を 2 回切り替えた直後の最初の送信で、検証が走る（G）
+- `required` → `optional` の置き換えのあとも既存のテストが通る
+
+form-demo の e2e（`union-arms.spec.ts`）。7 章で入れていなかったケースを足す。
+
+- × でメモを空に戻す。備考（nullable）は null のまま、× で null に戻る
+- 必須の union を未選択で送信すると「選択してください」
+- 数値の腕を空で送信すると「必ず入力してください。」
+- どの腕にも合わない保存値の欄に「選択してください」
+- 7 章の表の 5・8 の △ を ○ にする
+
+### 8.10 ドキュメント
+
+- CHANGELOG（日英）と changeset：`required` → `optional` は破壊的変更として書く。`nullable` の追加、union の不具合の修正、`wrapComponent` が `invalid_union` を見せなくなったこと
+- zod-form-react の README：`ZodFormProps` の `optional`・`nullable`、union の腕のエラーが `errorMap.onDynamic` に入ること
+- このプランの 7.1 と 7 章の表を、直したものに合わせて更新する
+
+### 8.11 実装の順序（コミットの粒度）
+
+1. `required` → `optional` の置き換え（8.2）。挙動は変えない
+2. `nullable` を足す（8.3）
+3. `FormRuntime.validate` で issue をまるごと残す（8.4）。単体テストを先に足す
+4. 腕のエラーを同じ欄に足す（8.5）。不具合 1・5 と H のテストを先に足す
+5. 腕が未選択のときの表示（8.6）
+6. × と nullable（8.7）
+7. 最初の送信が何もしない件（8.8）。再現テストを先に足し、直し方をプランに追記してから直す
+8. form-demo の e2e を足す（8.9）
+9. CHANGELOG・changeset・README・このプランの更新（8.10）
+
+各段階で `pnpm check-types` と対象パッケージの単体テストを通す。最後に `pnpm --filter form-demo build` と form-demo の e2e を通す。
+
+### 8.12 この章で扱わないこと
+
+- string・number などの部品で、消したときに null を書くこと
+- `onDynamic` 以外の置き場所への移しかえ（TanStack に専用の仕組みができたら見直す）
