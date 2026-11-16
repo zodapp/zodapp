@@ -75,6 +75,25 @@ union の腕は同じ path だが、空は腕を選ぶ欄が受け持つので�
   - hook が props を引数に取るので、呼ぶ側すべてが `samePath` を取り出して渡す（案C より差分が増える：44 ファイル）
   - path の違う子へ `{...props}` で広げても、path が違えば使わないので漏れはしない（この点は context と同じ）
 
+### 案D：Switch で包みを剥がし、WeakMap にキャッシュする（コミット `61c308c`。案C の上）
+
+スレッドでの提案を受けて試した。同じ path の包みは、dynamic を越えない限り、Switch が受け取った schema の中に
+静的にすべて入っている。
+
+- Switch が schema の外側の optional・nullable・default・prefault・lazy を剥がし（`peelSamePath`）、中身の部品を直接描く。
+  optional などの部品は経由しない
+- 剥がした包みと中身は、まとめて同じ path の連なりに積む。実行時に同じ path をまたぐのは dynamic・externalKey・preprocess
+  だけで、その先の Switch が連なりを続ける
+- 結果は schema ごとに WeakMap にキャッシュする（schema は不変）
+- 包みに meta が付いていれば、そこで止める（hidden など、meta で部品を選ぶとき）。`.optional()`・`.nullable()` の包みには
+  中身の meta は伝わらない（`getMeta(s.optional())` は undefined）ので、ふつうは止まらない
+- nullable・default の中なら、初期値が無いとき null を渡す（今の NullableComponent・DefaultComponent と同じ）。
+  defaultValue の付け替えが、部品から Switch の一か所に移る
+- 結果：単体テストすべて、e2e 106 件すべて通過。componentLibrary に optional・nullable・default が無くても描けることをテストした
+- 案A の連なりの重複を避ける処理（`SamePathProvider` が同じ schema を二度積まない）は、optional などの部品を直に描くとき
+  （テスト）のためだけに残る
+- 注意：optional・nullable・default・lazy の部品を componentLibrary で差し替えても、Switch が剥がすので使われなくなる（破壊的変更）
+
 ### value・parent の受け渡し
 
 実験 1 では渡さなかった。同じ path の部品は、どれも path で store を読めば同じ value・parent が得られるため。
@@ -84,19 +103,24 @@ path で読めない場所（実験 2 の中のフォームの根、表の行）
 
 ## 4. 判定
 
-**条件付きで採用**。案A＋案C を採る。
+**条件付きで採用**。案A＋案C＋案D を採る（連なりは context で運び、Switch で包みを剥がす）。
 
 - 採る理由
   - dynamic・externalKey の外側の `.refine()` が効く（今は黙って捨てられている不具合）
   - `optional`・`nullable` の props と、それを消して回る `optional={undefined}` が無くなり、tuple のような漏れが構造的に起きない
   - `useDynamicSchema` の包み直しが、optional・nullable の 2 つの特別扱いから、連なりの一般的な包み直しになる
+  - 案D で、包みの解釈（空の扱い・defaultValue の付け替え）が Switch の一か所にまとまり、キャッシュされる
 - 条件
   1. **破壊的変更**として出す（`ZodFormProps` の `optional`・`nullable` の削除、`useDynamicSchema` の第 3 引数の削除）。
      段階を踏むなら、先に案A だけ（props は Switch が連なりから入れる。呼ぶ側の指定は無視）を出す
   2. 包み直しが使う zod の面：`def.type`・`def.checks`・`def.defaultValue` と `.check()`。どれも zod 4 の公開された `def` と API だが、
      `def.checks` の中身（検査の object）をほかの schema に移すのは、zod の文書にある使い方ではない。zod の更新で
      `rewrapWithChain` の単体テスト（`zod-form-react/src/common/samePath.spec.ts`）が落ちないかを見る
-  3. 土台の型そのもの（`zf.string()` の文字列であること）は付け直さない。検査だけを付け直す。`.min()` のような型ごとの検査は、
+  3. dynamic の欄に直接付いた検査（`.refine()`・`.min()`）は、zod 4 では包みを作らず、同じ型の複製の `def.checks` に入る。
+     zf の meta は zod-propagating-registry（zod-form 独自のしくみ）で複製に引き継がれるので、DynamicComponent が受け取る
+     schema にその検査は入っている。連なりが本当に要るのは、包みの側に付いた検査（`.optional().refine()`）と空の扱い。
+     refine を諦めるなら、連なりの代わりに「undefined を受け付けるか」「null を受け付けるか」の真偽値だけで足り、zod の内部にも頼らない
+  4. 土台の型そのもの（`zf.string()` の文字列であること）は付け直さない。検査だけを付け直す。`.min()` のような型ごとの検査は、
      resolve が返した schema の値にもそのままかかる（例：enum の値に文字数の検査）。意図に合うが、型の違う schema を返す dynamic では注意
 
 ## 5. 見たところ・残ったこと
