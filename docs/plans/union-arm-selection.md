@@ -278,7 +278,7 @@ form-demo の e2e（`union-arms.spec.ts`）。7 章で入れていなかった�
 
 ### 8.12 この章で扱わないこと
 
-- string・number などの部品で、消したときに null を書くこと
+- string・number などの部品で、消したときに null を書くこと（あとで扱った。8.14）
 - `onDynamic` 以外の置き場所への移しかえ（TanStack に専用の仕組みができたら見直す）
 
 ### 8.13 実装で分かったこと（判断事項 J〜L）
@@ -292,7 +292,19 @@ form-demo の e2e（`union-arms.spec.ts`）。7 章で入れていなかった�
 3. **L：G の直し方は、フォーム全体のエラーを消す。** 8.8 のとおり、ほかの欄のフォーム全体のエラーも次の検証まで消える。表示は欄ごとのエラーから、送信の可否も欄ごとのエラーで決まるので影響しない。決定：今のまま
 4. **プランからずらしたところ**
    - `invalid_union` かを見分ける関数は zod-form-react の中に置き（export しない）、zf.union は同じ判定を自分で持つ。パッケージをまたいで使うには export が要るため
-   - 空の値を決める関数（8.3）は zod-form-react ではなく、使うところ（zf.union）に置いた。今は union だけが使うため
+   - 空の値を決める関数（8.3）は、はじめ使うところ（zf.union）に置いた。今は union だけが使うため（8.14 で zod-form-react に移した）
    - discriminatedUnion の × と、選んだ腕をもう一度選んだときも、8.3 の空の値を書く（今までは undefined）
 5. **あわせて直したこと**：invalid_union でない欄のエラーを子の欄に振り分けるとき、フォームの値からの path をそのまま union の値からの path として使っていたため、入れ子の union では `value.value` のような無い欄に書いていた（main からある）。union の欄の path を外してから振り分け、union の欄より下を指さないものは振り分けない
-6. **別の課題**：単体テストでは、union に関係ないふつうの欄でも「空にして離れる → 離れずに直す → 送信」で、1 回目の送信が検証されずに止まった（フォーム全体の onBlur が残り、`canSubmit` が false のまま）。ブラウザでは送信ボタンを押すと先に欄を離れるので起きない。Enter で送信するときに起きるかは確かめていない
+6. **別の課題**：単体テストでは、union に関係ないふつうの欄でも「空にして離れる → 離れずに直す → 送信」で、1 回目の送信が検証されずに止まった（フォーム全体の onBlur が残り、`canSubmit` が false のまま）。ブラウザでは送信ボタンを押すと先に欄を離れるので起きない。Enter で送信するときに起きるかは確かめていない（8.14 で確かめた。起きない）
+
+### 8.14 あとで直したこと（残った課題の 3・4）と、Enter での送信
+
+1. **discriminator のない保存値の discriminatedUnion。** zod は `invalid_union` を `[union の欄, discriminator]` に出す。その欄は描かれないので、エラーがどこにも出ずに送信だけが止まっていた。union がその path のエラーも読み、腕が未選択なら腕を選ぶ欄に「選択してください」を出す（8.13 の J で拾わないとしたもの）
+2. **nullable だけの欄を空にしたら null を書く。** これまで、どの部品も空にすると undefined を書き、nullable だけの欄は「必須」のエラーになった。nullable は「空でよい」という意味なので、null を書いて検証に通す（破壊的変更）。
+   - 空の値を決める関数 `emptyValueOf` を zod-form-react に置き、export する。optional なら undefined、nullable だけなら null、どちらでもなければ undefined
+   - 使う部品：文字（string、複数行、パスワード、選択式、lazy）、数値、bigint、真偽値の選択、enum、ファイル、日付、時刻、文字の複数選択、object の削除、union
+   - 数値・bigint の読めない入力は、今までどおり undefined を書く（画面の文字が残ったまま検証に通らないように）
+   - object の 0..1 の UI は、null も未設定として扱う
+   - `useDynamicSchema` に `nullable` を足し、登録する schema を nullable で包む。externalKey・dynamic で、空にして書いた null を、決まった schema の検証で止めないため（今までは optional で包んでいたので、null の値は止まっていた）
+   - mantine-lite の reactive 版の部品は、値の書き方が別の仕組みなので扱わない
+3. **Enter での送信（8.13 の 6）。** form-demo の e2e（`submit-enter.spec.ts`）で確かめ、ブラウザでは起きなかった。TanStack の `form.handleSubmit()` が検証せずに戻っても、AutoForm がそのあと schema で検証し直して送るため。AutoForm を使わずに `form.handleSubmit()` を直接呼ぶときだけの話なので、課題から外す

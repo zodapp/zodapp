@@ -15,3 +15,5 @@ zf.union の不具合を直し、`ZodFormProps` の `required` を `optional` �
 - object の腕の子の欄の型のエラーを、欄を離れずに直してもすぐ消す
 - discriminatedUnion で腕が未選択のときも「選択してください」
 - 入れ子の union が無い欄にエラーを書いていた不具合を修正
+- discriminator のない保存値の discriminatedUnion でも「選択してください」
+- **破壊的変更**：nullable だけの欄を空にすると `null` を書く（optional の欄は今までどおり `undefined`）。`emptyValueOf` を export し、`useDynamicSchema` に `{ nullable }` を足した

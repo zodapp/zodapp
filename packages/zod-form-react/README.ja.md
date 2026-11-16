@@ -171,7 +171,7 @@ Provider コンポーネント:
 - `nullable`: 外側の `.nullable()` の中の部品なら `true`。`.optional().nullable()` のように重なると両方 `true`
 
 ラベルの必須の印（Mantine の `required`）は、`!(optional || nullable)` で決めます。
-値を空にするとき、zf.union は `optional` なら `undefined`、`nullable` だけなら `null` を書きます。
+値を空にするとき、部品は `optional` なら `undefined`、`nullable` だけなら `null` を書きます（両方なら `undefined`。どちらでもない必須の欄は `undefined` を書き、「必須」のエラーにする）。自作の部品は `emptyValueOf({ optional, nullable })` でこの値を得られます。
 
 > 以前の `required?: boolean`（`false` で optional）は `optional?: boolean` に置き換えました。自作の部品は `required !== false` を `!(optional || nullable)` に、`required={false}` を `optional={true}` に読み替えてください。
 
