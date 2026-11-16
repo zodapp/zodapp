@@ -15,6 +15,7 @@ import {
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../utils/styles";
 import { FetchErrorView } from "../utils/fetchErrorView";
+import { externalKeyDisplayLabel, withUnlistedOption } from "../utils/unlisted";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -29,6 +30,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   const meta = getMeta(schema, "externalKey");
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;
+  const allowUnlisted = meta?.allowUnlisted === true;
 
   const { options, isLoading, retry } = useExternalKeyOptions(schema);
 
@@ -37,13 +39,19 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
     useConfirmableState(rawValue, fieldPath);
   const actionWrapper = useExternalKeyAction(schema, value);
 
+  // 選択肢に無い値は、zod-form-mantine の欄や表のセルと同じく「（不正な値）」と出す（生の値は見せない）。
+  // allowUnlisted なら正しい値なので、値そのものを出す。選択肢が無い（取得に失敗した）ときも、生の値は見せない
   const displayLabel = useMemo(() => {
     if (isLoading) return "Loading...";
     if (!value) return "";
-    if (!options) return String(value);
-    const option = options.find((o) => o.value === value);
-    return option?.label ?? String(value);
-  }, [isLoading, options, value]);
+    return externalKeyDisplayLabel(options ?? [], value, allowUnlisted);
+  }, [isLoading, options, value, allowUnlisted]);
+
+  // 編集できる欄では、選択肢に無い値を選べない選択肢として足す（足さないと Select は空欄に見せる）
+  const selectData = useMemo(
+    () => withUnlistedOption(options ?? [], value || null, displayLabel),
+    [options, value, displayLabel],
+  );
 
   const actionContent = actionWrapper
     ? actionWrapper(
@@ -115,7 +123,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   const select = (
     <Select
       value={value}
-      data={options}
+      data={selectData}
       onChange={(next) => onChange(next)}
       onBlur={() => void onBlur()}
       label={label || undefined}

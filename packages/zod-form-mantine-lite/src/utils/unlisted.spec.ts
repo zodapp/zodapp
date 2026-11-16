@@ -5,6 +5,7 @@ import {
   UNLISTED_LABEL,
   externalKeyDisplayLabel,
   isEnumValueListed,
+  withUnlistedOption,
 } from "./unlisted";
 
 describe("isEnumValueListed", () => {
@@ -32,5 +33,21 @@ describe("externalKeyDisplayLabel", () => {
 
   it("allowUnlisted なら、選択肢に無い値もそのまま出す", () => {
     expect(externalKeyDisplayLabel(options, "u9", true)).toBe("u9");
+  });
+});
+
+describe("withUnlistedOption", () => {
+  const options = [{ label: "利用者 A", value: "u1" }];
+
+  it("選択肢に無い値を、選べない選択肢として足す", () => {
+    expect(withUnlistedOption(options, "u9", UNLISTED_LABEL)).toEqual([
+      ...options,
+      { value: "u9", label: UNLISTED_LABEL, disabled: true, color: "red" },
+    ]);
+  });
+
+  it("値が無いか、選択肢にあるときは、選択肢をそのまま返す", () => {
+    expect(withUnlistedOption(options, null, UNLISTED_LABEL)).toEqual(options);
+    expect(withUnlistedOption(options, "u1", UNLISTED_LABEL)).toEqual(options);
   });
 });

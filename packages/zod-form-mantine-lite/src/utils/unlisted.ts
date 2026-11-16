@@ -25,3 +25,26 @@ export const externalKeyDisplayLabel = (
   if (option) return option.label;
   return allowUnlisted ? value : UNLISTED_LABEL;
 };
+
+/** 選択肢に無い今の値を、Select に選べない選択肢として足したもの */
+export type UnlistedSelectOption = {
+  value: string;
+  label: string;
+  disabled: true;
+  color: string;
+};
+
+/**
+ * Select の選択肢に、選択肢に無い今の値を、選べない選択肢として足す
+ * （Select は選択肢に無い値を空欄に見せるので、値が残っていることが分からなくなるため）。
+ * label は「（不正な値）」、allowUnlisted の externalKey なら値そのもの。
+ * 今の値が無いか、選択肢にあるときは、選択肢をそのまま返す
+ */
+export const withUnlistedOption = <T extends { value: string }>(
+  options: readonly T[],
+  value: string | null,
+  label: string,
+): (T | UnlistedSelectOption)[] =>
+  value === null || options.some((option) => option.value === value)
+    ? [...options]
+    : [...options, { value, label, disabled: true, color: "red" }];

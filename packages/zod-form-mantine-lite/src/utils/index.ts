@@ -16,5 +16,7 @@ export {
   UNLISTED_LABEL,
   isEnumValueListed,
   externalKeyDisplayLabel,
+  withUnlistedOption,
+  type UnlistedSelectOption,
 } from "./unlisted";
 export { FetchErrorView } from "./fetchErrorView";
