@@ -2736,6 +2736,67 @@ describe("UnionComponent arm errors written to the union's own field", () => {
       await waitFor(() => expect(selectorError()).toBeNull());
     });
 
+    it("shows 選択してください on a discriminatedUnion whose saved value has no discriminator", async () => {
+      // discriminator のない保存値では、zod は invalid_union を [union の欄, discriminator] に出す。
+      // その欄は描かれないので、union が読んで腕を選ぶ欄に出す
+      const schema = z
+        .object({
+          value: z
+            .discriminatedUnion("kind", [
+              zf
+                .object({
+                  kind: zf
+                    .literal("a")
+                    .register(zf.literal.registry, { hidden: true }),
+                  note: zf
+                    .string()
+                    .register(zf.string.registry, { label: "備考" }),
+                })
+                .register(zf.object.registry, { label: "A" }),
+              zf
+                .object({
+                  kind: zf
+                    .literal("b")
+                    .register(zf.literal.registry, { hidden: true }),
+                  amount: zf
+                    .number()
+                    .register(zf.number.registry, { label: "金額" }),
+                })
+                .register(zf.object.registry, { label: "B" }),
+            ])
+            .register(zf.union.registry, {
+              label: "値",
+              selectorLabel: "値の種類",
+            }),
+        })
+        .register(zf.object.registry, { properties: ["value"] });
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        schema,
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: { note: "古い値" } as never },
+      });
+      const selectorError = () =>
+        selectors()[0]!
+          .closest(".mantine-InputWrapper-root")
+          ?.querySelector(".mantine-InputWrapper-error")?.textContent ?? null;
+      await waitFor(() => expect(selectors()[0]!.value).toBe(""));
+      expect(selectorError()).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => expect(selectorError()).toBe("選択してください"));
+      expect(onSubmit).not.toHaveBeenCalled();
+      await expectSettled(formRef);
+
+      await selectArm(0, "A");
+      await waitFor(() => expect(selectorError()).toBeNull());
+    });
+
     it("clears the child field's error as soon as it is fixed, without leaving the field", async () => {
       // object の腕の子の欄に型のエラー（空の数値）があると、zod は union の欄に invalid_union を出す。
       // 欄を離れたときの検証の結果（union の欄の onBlur）が残ると、直しても子の欄にエラーが出続けていた

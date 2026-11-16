@@ -385,6 +385,7 @@ const UnionBody = React.memo(function UnionBody({
   field,
   error,
   fieldErrors,
+  showError,
   formValue,
   accessor,
 }: {
@@ -401,6 +402,8 @@ const UnionBody = React.memo(function UnionBody({
   error: ZodFormInternalProps<UnionSchema>["error"];
   /** 欄のエラーすべて（invalid_union を含む。表示してよいときだけ） */
   fieldErrors: readonly unknown[];
+  /** エラーを表示してよいか（触ったか送信したか） */
+  showError: boolean;
   formValue: unknown;
   accessor: ValueAccessor;
 }) {
@@ -487,6 +490,26 @@ const UnionBody = React.memo(function UnionBody({
       };
     }
   }, [schema]);
+
+  /**
+   * discriminator のない保存値では、zod は invalid_union を [union の欄, discriminator] に出す。
+   * その欄は描かれないので、union が読んで腕を選ぶ欄に出す
+   */
+  const discriminatorPath = compiledOptions.discriminator
+    ? field.api.name === ""
+      ? compiledOptions.discriminator
+      : `${field.api.name}.${compiledOptions.discriminator}`
+    : undefined;
+  const rawDiscriminatorErrors = useStore(field.api.form.store, (state: any) =>
+    discriminatorPath === undefined
+      ? EMPTY_ERRORS
+      : (state.fieldMeta?.[discriminatorPath]?.errors ?? EMPTY_ERRORS),
+  );
+  const hasDiscriminatorError =
+    showError &&
+    (rawDiscriminatorErrors as unknown[])
+      .flat()
+      .some((issue) => issue !== undefined && !isPendingIssue(issue));
 
   const discriminatorFromValue = useMemo(() => {
     if (!compiledOptions.hasDiscriminator || !compiledOptions.discriminator) {
@@ -765,7 +788,7 @@ const UnionBody = React.memo(function UnionBody({
     : compiledOptions.hasDiscriminator
       ? // discriminatedUnion は、値が undefined・null のとき invalid_union ではなく
         // invalid_type を union の欄に出す。腕が未選択で欄にエラーがあれば、code を問わず出す
-        fieldErrors.length > 0
+        fieldErrors.length > 0 || hasDiscriminatorError
         ? UNSELECTED_MESSAGE
         : undefined
       : unionError
@@ -1012,6 +1035,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     field,
     error,
     fieldErrors,
+    showError,
     accessor,
   };
 
