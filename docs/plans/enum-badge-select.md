@@ -1,6 +1,6 @@
 # enum の badge 表示：選択済みの値もバッジにするプラン
 
-- ステータス: 実装済み（7 章のバッジの文字色は実装中）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-2d9cdh`（このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/zod-form-mantine-lite`、`@zodapp/zod-form-mantine`（利用側: `apps/form-demo`、`apps/taskmanager`）
 

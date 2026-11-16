@@ -17,3 +17,4 @@
 - zod-form-mantine: `uiType: "badge"` の enum で、選択肢だけでなく選択済みの値もバッジで出すようにした。ドロップダウンを開いている間は文字入力になり（選択済みのラベルを placeholder に出す）、打ち込んだ文字で絞り込む。打ち込んだ文字が選択済みのラベルに足されることもなくなった。読み取り専用表示もバッジにした。`@zodapp/zod-form-mantine-lite/utils` に追加した `BadgeSelect` で組んでいる
 - zod-form-mantine: `uiType: "multipleEnumBadge"` で、選択済みの値も × で外せるバッジで出し、読み取り専用表示もバッジにした
 - zod-form-mantine: **破壊的変更**：`uiType: "multipleEnumBudge"` を `"multipleEnumBadge"` に改名（旧綴りは認識しない）
+- zod-form-mantine-lite: バッジ（enum の選択肢・選択済み・読み取り専用、複数選択、表の computed のバッジ）の文字色を背景色から決めるようにした。濃さ付きのテーマ色（`"blue.6"`）や RGB（`#3b82f6`・`rgb()`・`hsl()`）の指定では、背景をその色そのものにし、文字は同じ色相で背景より暗い色（OKLCH の明るさを 0.45 下げた色）、暗い背景や白の方が見やすい背景では白にする。濃さなしのテーマ色（`"blue"`）は今の Mantine の `light` のまま。`@zodapp/zod-form-mantine-lite/utils` に `ColorBadge`・`computeBadgeColors` を追加
