@@ -6,16 +6,12 @@
  * formId は `e2e-` で始める
  */
 import * as e2eDynamic from "./e2eDynamic";
-import * as e2eTimeInput from "./e2eTimeInput";
-import * as e2ePrecision from "./e2ePrecision";
 import * as e2eExternalKey from "./e2eExternalKey";
 import * as e2eOpenRewrite from "./e2eOpenRewrite";
 import * as e2eUnion from "./e2eUnion";
 import * as e2eTable from "./e2eTable";
 
 import e2eDynamicCode from "./e2eDynamic.tsx?raw";
-import e2eTimeInputCode from "./e2eTimeInput.tsx?raw";
-import e2ePrecisionCode from "./e2ePrecision.tsx?raw";
 import e2eExternalKeyCode from "./e2eExternalKey.tsx?raw";
 import e2eOpenRewriteCode from "./e2eOpenRewrite.tsx?raw";
 import e2eUnionCode from "./e2eUnion.tsx?raw";
@@ -23,8 +19,6 @@ import e2eTableCode from "./e2eTable.tsx?raw";
 
 export const e2eSchemas = {
   [e2eDynamic.formId]: e2eDynamic,
-  [e2eTimeInput.formId]: e2eTimeInput,
-  [e2ePrecision.formId]: e2ePrecision,
   [e2eExternalKey.formId]: e2eExternalKey,
   [e2eOpenRewrite.formId]: e2eOpenRewrite,
   [e2eUnion.formId]: e2eUnion,
@@ -33,8 +27,6 @@ export const e2eSchemas = {
 
 export const e2eCodes: Record<keyof typeof e2eSchemas, string> = {
   [e2eDynamic.formId]: e2eDynamicCode,
-  [e2eTimeInput.formId]: e2eTimeInputCode,
-  [e2ePrecision.formId]: e2ePrecisionCode,
   [e2eExternalKey.formId]: e2eExternalKeyCode,
   [e2eOpenRewrite.formId]: e2eOpenRewriteCode,
   [e2eUnion.formId]: e2eUnionCode,
