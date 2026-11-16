@@ -54,7 +54,7 @@ const DynamicComponent = React.memo(function DynamicComponent(
   const { fieldPath, schema } = props;
   const meta = getMeta(schema, "dynamic");
   const depth = useDynamicDepth(fieldPath);
-  const state = useDynamicSchema(meta, fieldPath);
+  const state = useDynamicSchema(meta, fieldPath, props.samePath);
 
   if (state.status === "loading" || state.status === "pending") {
     return <DynamicLoadingView status={state.status} />;

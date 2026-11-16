@@ -10,7 +10,7 @@ import {
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
 import { useFormApi } from "./form";
-import { SamePathProvider } from "./samePath";
+import { useNextSamePath } from "./samePath";
 
 const memoizeGetLazyComponentMap = new WeakMap<
   DynamicZodFormDef,
@@ -45,17 +45,18 @@ const getLazyComponent = (
  * `componentLibrary` から `typeName_uiType`（なければ `typeName`）で検索し、
  * switch loader が Promise を返す場合は `LazyComponentFactory` で遅延ロードします。
  */
-export const Switch: ZodForm = (props: ZodFormProps) => {
-  // 同じ path の内側の部品に、自分の schema（外側の包み）を伝える
-  return (
-    <SamePathProvider path={props.fieldPath} schema={props.schema}>
-      {isPreprocessPipe(props.schema) ? (
-        <PreprocessSwitch {...props} />
-      ) : (
-        <SchemaSwitch {...props} />
-      )}
-    </SamePathProvider>
+export const Switch: ZodForm = (rawProps: ZodFormProps) => {
+  // 同じ path の内側の部品に、自分の schema（外側の包み）を props で伝える（案B）
+  const samePath = useNextSamePath(
+    rawProps.fieldPath,
+    rawProps.schema,
+    rawProps.samePath,
   );
+  const props = { ...rawProps, samePath };
+  if (isPreprocessPipe(props.schema)) {
+    return <PreprocessSwitch {...props} />;
+  }
+  return <SchemaSwitch {...props} />;
 };
 
 const isEqualValue = (a: unknown, b: unknown): boolean => {

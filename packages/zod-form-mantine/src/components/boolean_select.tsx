@@ -20,13 +20,17 @@ const FALSE_VALUE = "false";
 const BooleanSelectComponent = wrapComponent(
   function BooleanSelectComponentImplement({
     fieldPath,
+    samePath,
     schema,
     label: labelFromParent,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+    const { optional, nullable, emptyValue } = useEmptiness(
+      fieldPath,
+      samePath,
+    );
     const {
       label: labelFromMeta,
       trueLabel = "はい",

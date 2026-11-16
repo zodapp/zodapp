@@ -14,6 +14,7 @@ type TupleSchema = ReturnType<typeof zf.tuple>;
 
 const TupleComponent = wrapComponent(function TupleComponentImplement({
   fieldPath,
+  samePath,
   schema,
   defaultValue,
   readOnly,
@@ -21,7 +22,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   error,
   field,
 }: ZodFormInternalProps<TupleSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
+  const { optional, nullable } = useEmptiness(fieldPath, samePath);
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
 

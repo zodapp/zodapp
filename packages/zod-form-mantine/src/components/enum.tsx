@@ -24,13 +24,14 @@ type EnumSchema = ReturnType<typeof zf.enum>;
 
 const EnumComponent = wrapComponent(function EnumComponentImplement({
   fieldPath,
+  samePath,
   schema,
   label: labelFromParent,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<EnumSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
   const {
     label: labelFromMeta,
     uiType,

@@ -25,13 +25,13 @@ type ExternalKeySchema = z.ZodString;
 const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   props: ZodFormProps<ExternalKeySchema>,
 ) {
-  const { fieldPath, schema, label: labelFromParent } = props;
-  const { optional, nullable } = useEmptiness(fieldPath);
+  const { fieldPath, samePath, schema, label: labelFromParent } = props;
+  const { optional, nullable } = useEmptiness(fieldPath, samePath);
   const meta = getMeta(schema, "externalKey");
   const label = labelFromParent ?? meta?.label;
   const dynamicMeta = useExternalKeyDynamicMeta(schema);
   const depth = useDynamicDepth(fieldPath);
-  const state = useDynamicSchema(dynamicMeta, fieldPath);
+  const state = useDynamicSchema(dynamicMeta, fieldPath, samePath);
 
   const loadingView = (status?: "loading" | "pending") => (
     <Select

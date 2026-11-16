@@ -22,11 +22,12 @@ type ExternalKeySchema = z.ZodString;
 const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   schema,
   fieldPath,
+  samePath,
   defaultValue,
   label: labelFromParent,
   readOnly: readOnlyProp,
 }: ZodFormProps<ExternalKeySchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
+  const { optional, nullable } = useEmptiness(fieldPath, samePath);
   const meta = getMeta(schema, "externalKey");
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;

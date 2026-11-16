@@ -49,6 +49,8 @@ export {
   SamePathProvider,
   SamePathReset,
   useSamePathChain,
+  useNextSamePath,
+  type SamePathProp,
   useEmptiness,
   emptinessOf,
   rewrapWithChain,

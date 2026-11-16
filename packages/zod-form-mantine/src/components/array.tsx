@@ -125,13 +125,14 @@ function SortableItem({
 
 const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   fieldPath,
+  samePath,
   schema,
   readOnly,
   label: labelFromParent,
   field,
   defaultValue,
 }: ZodFormInternalProps<ArraySchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
+  const { optional, nullable } = useEmptiness(fieldPath, samePath);
   const { loadingComponent: LoadingComponent } = useZodFormContext();
 
   const value = field.value as unknown[] | undefined;

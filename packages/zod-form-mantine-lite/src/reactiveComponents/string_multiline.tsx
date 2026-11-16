@@ -15,11 +15,12 @@ type StringSchema = z.ZodString;
 const StringMultilineComponent = React.memo(function StringMultilineComponent({
   schema,
   fieldPath,
+  samePath,
   defaultValue,
   label: labelFromParent,
   readOnly: readOnlyProp,
 }: ZodFormProps<StringSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
+  const { optional, nullable } = useEmptiness(fieldPath, samePath);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;

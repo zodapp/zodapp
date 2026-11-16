@@ -14,10 +14,11 @@ const LiteralComponent: ZodForm<LiteralSchema> = React.memo(
   function LiteralComponent({
     schema,
     fieldPath,
+    samePath,
     defaultValue,
     label: labelFromParent,
   }: ZodFormProps<LiteralSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath);
+    const { optional, nullable } = useEmptiness(fieldPath, samePath);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
 

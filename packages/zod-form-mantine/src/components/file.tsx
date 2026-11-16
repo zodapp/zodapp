@@ -42,13 +42,14 @@ const formatFileSize = (bytes: number): string => {
 
 const FileComponent = wrapComponent(function FileComponentImplement({
   fieldPath,
+  samePath,
   schema,
   label: labelFromParent,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<FileSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
   const meta = getMeta(schema, "file");
   const label = labelFromParent ?? meta?.label;
 

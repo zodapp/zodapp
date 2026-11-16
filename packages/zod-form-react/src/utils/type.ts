@@ -17,6 +17,11 @@ export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
   schema: TSchema;
   defaultValue?: z.infer<TSchema>;
+  /**
+   * 同じ path に重なった schema の連なり（案B：props で渡す）。Switch が付ける。
+   * path が違えば使わない
+   */
+  samePath?: { path: string; chain: readonly z.ZodTypeAny[] };
   readOnly?: boolean;
   /**
    * Label to display above the input.

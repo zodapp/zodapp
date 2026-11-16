@@ -34,11 +34,12 @@ const unitToValueFormat: Record<DateUnit, string> = {
 const DateComponent = React.memo(function DateComponent({
   schema,
   fieldPath,
+  samePath,
   defaultValue,
   label: labelFromParent,
   readOnly: readOnlyProp,
 }: ZodFormProps<DateSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
+  const { optional, nullable } = useEmptiness(fieldPath, samePath);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema, "date");
   const readOnly = meta?.readOnly ?? readOnlyProp;

@@ -22,13 +22,14 @@ type BigIntSchema = ReturnType<typeof zf.bigint>;
 
 const BigIntComponent = wrapComponent(function BigIntComponentImplement({
   fieldPath,
+  samePath,
   schema,
   field,
   label: labelFromParent,
   readOnly,
   error,
 }: ZodFormInternalProps<BigIntSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;

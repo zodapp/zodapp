@@ -15,13 +15,17 @@ type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
 const ArrayOfStringComponent = wrapComponent(
   function ArrayOfStringComponentImplement({
     fieldPath,
+    samePath,
     schema,
     label: labelFromParent,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<ArrayOfStringSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+    const { optional, nullable, emptyValue } = useEmptiness(
+      fieldPath,
+      samePath,
+    );
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
     // arrayスキーマ自体のメタからlabelを取得

@@ -29,13 +29,14 @@ type DateSchema = z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate;
 
 const DateComponent = wrapComponent(function DateComponentImplement({
   fieldPath,
+  samePath,
   schema,
   field,
   label: labelFromParent,
   readOnly,
   error,
 }: ZodFormInternalProps<DateSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+  const { optional, nullable, emptyValue } = useEmptiness(fieldPath, samePath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema) as

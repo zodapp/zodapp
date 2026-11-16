@@ -21,13 +21,17 @@ type StringSchema = z.ZodString;
 const StringMultilineComponent = wrapComponent(
   function StringMultilineComponentImplement({
     fieldPath,
+    samePath,
     schema,
     field,
     label: labelFromParent,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
+    const { optional, nullable, emptyValue } = useEmptiness(
+      fieldPath,
+      samePath,
+    );
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const {
       label: labelFromMeta,

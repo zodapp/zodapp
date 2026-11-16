@@ -151,14 +151,21 @@ const actionIconStyle: React.CSSProperties = {
  * 削除（-）で値を空にする（optional なら undefined、nullable だけなら null）。
  */
 function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
-  const { fieldPath, schema, readOnly, label: labelFromParent, error } = props;
+  const {
+    fieldPath,
+    samePath,
+    schema,
+    readOnly,
+    label: labelFromParent,
+    error,
+  } = props;
   const field = useZodField(fieldPath);
   const value = field.state.value;
   const meta = getMeta(schema);
   const label = labelFromParent ?? meta?.label;
   const isSet = value !== undefined && value !== null;
   const runAsUserEdit = useRunAsUserEdit();
-  const { emptyValue } = useEmptiness(fieldPath);
+  const { emptyValue } = useEmptiness(fieldPath, samePath);
 
   const handleAdd = () => {
     runAsUserEdit(() => field.handleChange(getObjectDefaultValue(schema)));
@@ -246,7 +253,10 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
 
 const ObjectComponent = wrapComponent(
   function ObjectComponentImplement(props: ZodFormInternalProps<ObjectSchema>) {
-    const { optional, nullable } = useEmptiness(props.fieldPath);
+    const { optional, nullable } = useEmptiness(
+      props.fieldPath,
+      props.samePath,
+    );
     if ((optional || nullable) && props.fieldPath !== "") {
       return <OptionalObjectImplement {...props} />;
     }

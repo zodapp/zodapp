@@ -15,11 +15,12 @@ const LiteralComponent: ZodForm<LiteralSchema> = wrapComponent(
   function LiteralComponentImplement({
     schema,
     fieldPath,
+    samePath,
     field,
     label: labelFromParent,
     error,
   }: ZodFormInternalProps<LiteralSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath);
+    const { optional, nullable } = useEmptiness(fieldPath, samePath);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
