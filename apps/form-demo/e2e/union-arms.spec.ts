@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import {
   choose,
+  clearSelect,
   expect,
   field,
   fieldError,
@@ -119,6 +120,29 @@ test.describe("文字列・数値・オブジェクトの腕", () => {
     await expect(field(page, "値の種類")).toHaveValue("オブジェクト");
   });
 
+  test("どの腕にも型が合わない値（空の数値の腕）のエラーは、選んだ腕の欄に出る", async ({
+    page,
+    pageErrors: _,
+  }) => {
+    // 数値の腕を選んで空のまま送信する。空の値は、文字列・数値・オブジェクトのどの腕にも型が合わない
+    await choose(page, "値の種類", "数値");
+    await expect(armInput(page, VALUE)).toHaveValue("");
+    await submit(page);
+    await waitSubmitSettled(page, 1);
+    await expect(
+      unionGroup(page, VALUE).getByText("必ず入力してください。"),
+    ).toBeVisible();
+    await expect(field(page, "値の種類")).toHaveValue("数値");
+    expect((await formDemo(page)).submitted.count).toBe(0);
+
+    // 数値を打つと、エラーは消える
+    await armInput(page, VALUE).fill("15");
+    await expect.poll(() => valueOf(page, "value")).toBe(15);
+    await expect(
+      unionGroup(page, VALUE).getByText("必ず入力してください。"),
+    ).toHaveCount(0);
+  });
+
   test("値を外から書き換えると、腕の選択が値に追う", async ({
     page,
     pageErrors: _,
@@ -227,7 +251,7 @@ test("真偽値・literal・文字列の腕を切り替える", async ({
   await expect(field(page, "回答のしかた")).toHaveValue("はい・いいえ");
 });
 
-test("optional・nullable の union は、空のままなら送信してもその欄にエラーを出さない。必須の union は、開いただけではエラーを出さない", async ({
+test("optional・nullable の union は、空のままなら送信してもその欄にエラーを出さない。必須の union は、開いただけではエラーを出さず、送信で腕を選ぶ欄にエラーを出す", async ({
   page,
   pageErrors: _,
 }) => {
@@ -242,9 +266,18 @@ test("optional・nullable の union は、空のままなら送信してもそ�
   const { fields } = (await formDemo(page)).errors;
   expect(fields.memo).toBeUndefined();
   expect(fields.note).toBeUndefined();
-  // 必須の union は送信を止める
+  // 必須の union は送信を止め、腕を選ぶ欄にエラーを出す
   expect(fields.required).toBeDefined();
   expect((await formDemo(page)).submitted.count).toBe(0);
+  await expect(fieldError(page, "必須の値の種類")).toHaveText(
+    "選択してください",
+  );
+  await expect(fieldError(page, "メモの種類")).toHaveCount(0);
+  await expect(fieldError(page, "備考の種類")).toHaveCount(0);
+
+  // 腕を選ぶと、腕を選ぶ欄のエラーは消える
+  await choose(page, "必須の値の種類", "文字");
+  await expect(fieldError(page, "必須の値の種類")).toHaveCount(0);
 });
 
 test("optional・nullable の union で腕を選び、値を書ける", async ({
@@ -258,6 +291,44 @@ test("optional・nullable の union で腕を選び、値を書ける", async ({
   await choose(page, "備考の種類", "文字");
   await armInput(page, "備考（nullable。空のままでよい）").fill("備考です");
   await expect.poll(() => valueOf(page, "note")).toBe("備考です");
+});
+
+test("optional の union は、× で腕を外して空に戻せる", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const MEMO = "メモ（optional。空のままでよい）";
+  await choose(page, "メモの種類", "数");
+  await armInput(page, MEMO).fill("5");
+  await expect.poll(() => valueOf(page, "memo")).toBe(5);
+
+  await clearSelect(page, "メモの種類");
+  await expect(field(page, "メモの種類")).toHaveValue("");
+  await expect(unionGroup(page, MEMO).getByRole("textbox")).toHaveCount(0);
+  await expect.poll(() => valueOf(page, "memo")).toBeUndefined();
+
+  // 空に戻した欄は、送信してもエラーにならない
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  expect((await formDemo(page)).errors.fields.memo).toBeUndefined();
+});
+
+test("nullable の union は、腕を選んでも空なら null のまま。× で null に戻る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const NOTE = "備考（nullable。空のままでよい）";
+  await choose(page, "備考の種類", "数");
+  await expect(armInput(page, NOTE)).toHaveValue("");
+  await expect.poll(() => valueOf(page, "note")).toBeNull();
+
+  await armInput(page, NOTE).fill("7");
+  await expect.poll(() => valueOf(page, "note")).toBe(7);
+
+  await clearSelect(page, "備考の種類");
+  await expect(field(page, "備考の種類")).toHaveValue("");
+  await expect(unionGroup(page, NOTE).getByRole("textbox")).toHaveCount(0);
+  await expect.poll(() => valueOf(page, "note")).toBeNull();
 });
 
 test.describe("配列の中の union", () => {
@@ -366,4 +437,10 @@ test("初期値がどの腕にも通らないとき、literal の欄で腕を推
     .poll(() => valueOf(page, "draft"))
     .toEqual({ type: "amount", amount: 300 });
   await expect(field(page, "下書きの種類")).toHaveValue("金額");
+
+  // 腕が空欄のまま送信すると、どの腕にも型が合わない値のエラーを、腕を選ぶ欄に出す
+  await expect(fieldError(page, "保存値の種類")).toHaveCount(0);
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  await expect(fieldError(page, "保存値の種類")).toHaveText("選択してください");
 });
