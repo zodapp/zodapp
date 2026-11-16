@@ -1753,6 +1753,115 @@ describe("UnionComponent optional・nullable・required union without discrimina
   const values = (formRef: { current: AnyFormApi | undefined }) =>
     formRef.current?.state.values as Values;
 
+  describe("optional union", () => {
+    it("clears the selected arm and the value with ×", async () => {
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      renderForm({ formRef });
+      await waitFor(() => expect(selectorOf("メモ").value).toBe(""));
+
+      await selectArm("メモ", "数");
+      fireEvent.change(armInputsOf("メモ")[0]!, { target: { value: "5" } });
+      await waitFor(() => expect(values(formRef).memo).toBe(5));
+
+      const clear = clearButtonOf("メモ");
+      expect(clear).toBeTruthy();
+      fireEvent.click(clear!);
+
+      await waitFor(() => {
+        expect(selectorOf("メモ").value).toBe("");
+        expect(armInputsOf("メモ")).toHaveLength(0);
+      });
+      expect(values(formRef).memo).toBeUndefined();
+    });
+
+    it("can be submitted after clearing", async () => {
+      const onSubmit = vi.fn();
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      renderForm({
+        onSubmit,
+        formRef,
+        defaultValues: { memo: 5, required: "x" },
+      });
+      await waitFor(() => expect(selectorOf("メモ").value).toBe("数"));
+
+      fireEvent.click(clearButtonOf("メモ")!);
+      await waitFor(() => expect(selectorOf("メモ").value).toBe(""));
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0]![0]).toMatchObject({
+        memo: undefined,
+        note: null,
+        required: "x",
+      });
+    });
+  });
+
+  describe("optional and nullable union", () => {
+    it("writes undefined (not null) when an arm is picked empty and with ×", async () => {
+      const both = z
+        .object({
+          both: textOrNumber("両方").optional().nullable(),
+        })
+        .register(zf.object.registry, { properties: ["both"] });
+      const runtime = new FormRuntime();
+      const validator = runtime.wrapValidator<z.input<typeof both>>(both);
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const FormUnderTest = () => {
+        const form = useZodForm({
+          defaultValues: { both: null } as z.input<typeof both>,
+          validators: { onChange: validator, onSubmit: validator },
+        });
+        formRef.current = form as unknown as AnyFormApi;
+        return (
+          <MantineProvider>
+            <ZodFormContextProvider
+              componentLibrary={{
+                nullable: () => ({ component: NullableComponent }),
+                number: () => ({ component: NumberComponent }),
+                object: () => ({ component: ObjectComponent }),
+                optional: () => ({ component: OptionalComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form} runtime={runtime}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={both} />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </MantineProvider>
+        );
+      };
+      render(<FormUnderTest />);
+      await waitFor(() => expect(selectorOf("両方").value).toBe(""));
+
+      await selectArm("両方", "文字");
+      expect(
+        (formRef.current!.state.values as { both?: unknown }).both,
+      ).toBeUndefined();
+
+      fireEvent.change(armInputsOf("両方")[0]!, { target: { value: "a" } });
+      await waitFor(() =>
+        expect((formRef.current!.state.values as { both?: unknown }).both).toBe(
+          "a",
+        ),
+      );
+      fireEvent.click(clearButtonOf("両方")!);
+      await waitFor(() => expect(selectorOf("両方").value).toBe(""));
+      expect(
+        (formRef.current!.state.values as { both?: unknown }).both,
+      ).toBeUndefined();
+    });
+  });
+
   describe("required union", () => {
     /** 腕を選ぶ欄の下のエラー */
     const selectorErrorOf = (label: string) =>
@@ -1807,6 +1916,46 @@ describe("UnionComponent optional・nullable・required union without discrimina
         ).toBeTruthy();
       });
       expect(selectorErrorOf("必須")).toBeNull();
+    });
+  });
+  describe("nullable union", () => {
+    it("keeps null when an arm is picked, and can be submitted with the arm left empty", async () => {
+      const onSubmit = vi.fn();
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      renderForm({ onSubmit, formRef, defaultValues: { required: "x" } });
+      await waitFor(() => expect(selectorOf("備考").value).toBe(""));
+
+      await selectArm("備考", "文字");
+      expect(values(formRef).note).toBeNull();
+      expect(armInputsOf("備考")).toHaveLength(1);
+      expect(armInputsOf("備考")[0]!.value).toBe("");
+
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0]![0]).toMatchObject({ note: null });
+      // 送信しても、選んだ腕は保たれる
+      expect(selectorOf("備考").value).toBe("文字");
+    });
+
+    it("goes back to null with ×", async () => {
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      renderForm({ formRef });
+      await waitFor(() => expect(selectorOf("備考").value).toBe(""));
+
+      await selectArm("備考", "数");
+      fireEvent.change(armInputsOf("備考")[0]!, { target: { value: "7" } });
+      await waitFor(() => expect(values(formRef).note).toBe(7));
+
+      fireEvent.click(clearButtonOf("備考")!);
+      await waitFor(() => {
+        expect(selectorOf("備考").value).toBe("");
+        expect(armInputsOf("備考")).toHaveLength(0);
+      });
+      expect(values(formRef).note).toBeNull();
     });
   });
 });

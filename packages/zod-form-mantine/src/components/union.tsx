@@ -266,6 +266,18 @@ const replaceWrittenIssues = (
 
 const EMPTY_ERRORS: readonly unknown[] = [];
 
+/**
+ * union を空にするときに書く値。optional なら undefined、nullable だけなら null。
+ * 両方（`.optional().nullable()` など）のときは undefined を優先する
+ */
+const emptyValueOf = ({
+  optional,
+  nullable,
+}: {
+  optional: boolean | undefined;
+  nullable: boolean | undefined;
+}): undefined | null => (optional ? undefined : nullable ? null : undefined);
+
 /** 腕が未選択で検証に落ちているときに、腕を選ぶ欄に出す文言 */
 const UNSELECTED_MESSAGE = "選択してください";
 
@@ -719,6 +731,7 @@ const UnionBody = React.memo(function UnionBody({
       : undefined;
 
   const runAsUserEdit = useRunAsUserEdit();
+  const emptyValue = emptyValueOf({ optional, nullable });
   const handleSelect = useCallback(
     (id: string | null) => {
       const setValueWithoutValidation = (nextValue: unknown) => {
@@ -752,7 +765,7 @@ const UnionBody = React.memo(function UnionBody({
         id === selectedProfile?.value
       ) {
         setSelectedDiscriminator(undefined);
-        setValueWithoutValidation(undefined);
+        setValueWithoutValidation(emptyValue);
         return;
       }
 
@@ -760,11 +773,16 @@ const UnionBody = React.memo(function UnionBody({
       if (!profile) {
         if (compiledOptions.hasDiscriminator) {
           setSelectedDiscriminator(undefined);
-          setValueWithoutValidation(undefined);
-          return;
-        } else {
+          setValueWithoutValidation(emptyValue);
           return;
         }
+        // discriminator のない union：× で、覚えた腕を消して空にする。
+        // 必須の union では外さない（× は出さないが、Mantine は選択中の腕を選び直すと null で呼ぶ）
+        if (optional || nullable) {
+          setSelectedPlainArm(undefined);
+          setValueWithoutValidation(emptyValue);
+        }
+        return;
       }
       if (compiledOptions.hasDiscriminator && compiledOptions.discriminator) {
         setSelectedDiscriminator(profile.value);
@@ -792,11 +810,14 @@ const UnionBody = React.memo(function UnionBody({
 
       // discriminator のない union：選んだ腕を覚え、値は検証せずに書く。
       // 値がまだ腕の検証に通らなくても、覚えた腕の入力欄を出し続ける。
+      // 腕の既定の値が undefined なら空の値（nullable だけの union では null）にする
       setSelectedPlainArm(profile.value);
       const normalized = profile.schema
         ? normalizeValue(profile.schema, formValue)
         : undefined;
-      setValueWithoutValidation(normalized ?? undefined);
+      setValueWithoutValidation(
+        normalized === undefined ? emptyValue : normalized,
+      );
     },
     [
       field,
@@ -805,6 +826,7 @@ const UnionBody = React.memo(function UnionBody({
       accessor,
       optional,
       nullable,
+      emptyValue,
       selectedProfile,
       runAsUserEdit,
     ],
