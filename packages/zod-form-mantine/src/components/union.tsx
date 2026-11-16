@@ -609,19 +609,36 @@ const UnionBody = React.memo(function UnionBody({
       ? unionError.errors?.[selectedProfile.index]
       : undefined;
 
-  const directIssues = useMemo(
-    () =>
-      !unionError &&
-      error &&
-      // union が書いた・振り分けた issue は振り分けない
-      !isWrittenIssue(error) &&
-      (error as WrittenIssue).distributedBy === undefined &&
-      Array.isArray((error as any).path) &&
-      (error as any).path.length > 0
-        ? [error]
-        : undefined,
-    [error, unionError],
+  /** この union の欄の path（segment の並び） */
+  const ownSegments = useMemo(
+    () => (ownPath === "" ? [] : ownPath.split(".")),
+    [ownPath],
   );
+
+  /**
+   * invalid_union でないエラー（discriminatedUnion の選んだ腕の issue など）。
+   * 欄のエラーの path はフォームの値からの path なので、この union の値からの path に直す。
+   * この union の欄より下を指さないもの（union 自身を指すものなど）は振り分けない
+   */
+  const directIssues = useMemo(() => {
+    if (
+      unionError ||
+      !error ||
+      // union が書いた・振り分けた issue は振り分けない
+      isWrittenIssue(error) ||
+      (error as WrittenIssue).distributedBy !== undefined ||
+      !Array.isArray((error as any).path)
+    ) {
+      return undefined;
+    }
+    const path = (error as any).path as PropertyKey[];
+    const isUnder =
+      path.length > ownSegments.length &&
+      ownSegments.every((segment, index) => String(path[index]) === segment);
+    return isUnder
+      ? [{ ...(error as object), path: path.slice(ownSegments.length) }]
+      : undefined;
+  }, [error, unionError, ownSegments]);
 
   const distributableIssues = useMemo(
     () => optionIssues ?? directIssues,
@@ -707,10 +724,7 @@ const UnionBody = React.memo(function UnionBody({
       list.push({
         ...iss,
         // 欄の issue と同じく、path はフォームの値からの path（errors の中は書き換えない）
-        path: [
-          ...(Array.isArray(unionError?.path) ? unionError.path : []),
-          ...relative,
-        ],
+        path: [...ownSegments, ...relative],
         distributedBy: writer,
       });
       byName.set(name, list);
@@ -746,10 +760,17 @@ const UnionBody = React.memo(function UnionBody({
    * どちらも、この union が読む invalid_union があり、腕が選ばれていない状態になる。
    * 出す時機は fieldErrors と同じ（触ったか送信したか）
    */
-  const selectorError =
-    !compiledOptions.hasDiscriminator && !selectedProfile && unionError
-      ? UNSELECTED_MESSAGE
-      : undefined;
+  const selectorError = selectedProfile
+    ? undefined
+    : compiledOptions.hasDiscriminator
+      ? // discriminatedUnion は、値が undefined・null のとき invalid_union ではなく
+        // invalid_type を union の欄に出す。腕が未選択で欄にエラーがあれば、code を問わず出す
+        fieldErrors.length > 0
+        ? UNSELECTED_MESSAGE
+        : undefined
+      : unionError
+        ? UNSELECTED_MESSAGE
+        : undefined;
 
   const runAsUserEdit = useRunAsUserEdit();
   const emptyValue = emptyValueOf({ optional, nullable });
