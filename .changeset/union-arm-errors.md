@@ -1,4 +1,5 @@
 ---
+"@zodapp/zod-form": minor
 "@zodapp/zod-form-react": minor
 "@zodapp/zod-form-mantine-lite": minor
 "@zodapp/zod-form-mantine": minor
@@ -17,3 +18,6 @@ zf.union の不具合を直し、`ZodFormProps` の `required` を `optional` �
 - 入れ子の union が無い欄にエラーを書いていた不具合を修正
 - discriminator のない保存値の discriminatedUnion でも「選択してください」
 - **破壊的変更**：nullable だけの欄を空にすると `null` を書く（optional の欄は今までどおり `undefined`）。`emptyValueOf` を export し、`useDynamicSchema` に `{ nullable }` を足した
+- 複数選択の欄（enum・外部キー）も、全部外すと nullable だけなら `null` を書く
+- mantine-lite の reactive 版の部品も、`onBlur`・`onConfirm` に渡す空の値を `emptyValueOf` にそろえる（`useConfirmableState` に `emptyValue`）
+- `getDefaultValue` は、optional と nullable の両方が付いた欄（`.optional().nullable()`）の初期値を `undefined` にする

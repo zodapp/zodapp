@@ -308,3 +308,14 @@ form-demo の e2e（`union-arms.spec.ts`）。7 章で入れていなかった�
    - `useDynamicSchema` に `nullable` を足し、登録する schema を nullable で包む。externalKey・dynamic で、空にして書いた null を、決まった schema の検証で止めないため（今までは optional で包んでいたので、null の値は止まっていた）
    - mantine-lite の reactive 版の部品は、値の書き方が別の仕組みなので扱わない
 3. **Enter での送信（8.13 の 6）。** form-demo の e2e（`submit-enter.spec.ts`）で確かめ、ブラウザでは起きなかった。TanStack の `form.handleSubmit()` が検証せずに戻っても、AutoForm がそのあと schema で検証し直して送るため。AutoForm を使わずに `form.handleSubmit()` を直接呼ぶときだけの話なので、課題から外す
+
+### 8.15 今の設計で直せる残りの課題
+
+8.14 のあとで洗い出し、ユーザが決めた。
+
+1. **複数選択の欄。** `array_multipleEnum`（外部キーの複数選択もこの部品で描く）は全部外すと undefined を書いていた。`emptyValueOf` の値を書く。外部キーの複数選択のテストで、`useDynamicSchema` が決まった schema を nullable で包まないと、空にした null が検証で止まることも確かめた
+2. **dynamic・外部キーの欄の外側の `.refine()` のエラーが捨てられる。** 作業用のテストで確かめた（FormRuntime が登録された欄より下の静的な issue をまとめて捨てるため）。決定：直さず、同じ path の受け渡しの実験の結果を待つ
+3. **mantine-lite の reactive 版の部品。** 消した値を ""・null のまま `onBlur`・`onConfirm` に渡していた。決定：`emptyValueOf` にそろえる。`useConfirmableState` に `emptyValue` を渡すと、空（""・null・undefined）の値をその値に置き換えて渡す
+4. **optional と nullable の両方が付いた欄の初期値。** `getDefaultValue` は `.optional().nullable()` の欄の初期値を null にしていた（`.nullable().optional()` は undefined）。決定：undefined にそろえる
+- 気づいたが扱わないこと：`getDefaultValue` は `.default(x).nullable()` の初期値を、default の値ではなく null にする（以前から）
+
