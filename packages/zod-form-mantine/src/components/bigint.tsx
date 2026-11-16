@@ -10,6 +10,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -51,10 +52,11 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
     }
   }, [field.value]);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const tryCommit = useCallback(
     (raw: string) => {
       if (raw === "") {
-        field.onChange(undefined);
+        field.onChange(emptyValue);
         return;
       }
       if (/^-?\d+$/.test(raw)) {
@@ -63,7 +65,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       }
       field.onChange(undefined);
     },
-    [field],
+    [field, emptyValue],
   );
 
   const onChange = useCallback(
@@ -71,12 +73,12 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       const next = event.currentTarget.value;
       setLocalValue(next);
       if (next === "") {
-        field.onChange(undefined);
+        field.onChange(emptyValue);
       } else if (/^-?\d+$/.test(next)) {
         field.onChange(BigInt(next));
       }
     },
-    [field],
+    [field, emptyValue],
   );
 
   const onBlur = useCallback(() => {

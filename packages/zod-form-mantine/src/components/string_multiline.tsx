@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -38,18 +39,19 @@ const StringMultilineComponent = wrapComponent(
 
     const value = typeof field.value === "string" ? field.value : "";
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        field.onChange(event.target.value || undefined);
+        field.onChange(event.target.value || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     const setSuggestionValue = useCallback(
       (nextValue: string) => {
-        field.onChange(nextValue || undefined);
+        field.onChange(nextValue || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {

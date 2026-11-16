@@ -19,6 +19,7 @@ export {
   type CollectionReferenceActionEntry,
 } from "./context";
 export { useExternalKeyAction } from "../utils/externalKey";
+export { emptyValueOf } from "../utils/emptyValue";
 export { useValueAction, useSchemaValueAction } from "../utils/valueAction";
 export {
   FormProvider,

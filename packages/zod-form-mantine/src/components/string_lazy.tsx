@@ -10,6 +10,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -56,10 +57,11 @@ const StringLazyComponent = wrapComponent(
       [],
     );
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onBlur = useCallback(() => {
-      field.onChange(localValue || undefined);
+      field.onChange(localValue || emptyValue);
       field.onBlur();
-    }, [field, localValue]);
+    }, [field, localValue, emptyValue]);
 
     const disabled = useMemo(
       () => readOnly || field.disabled,

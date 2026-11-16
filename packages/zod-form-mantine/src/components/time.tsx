@@ -11,6 +11,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -139,14 +140,18 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
 
   const { version, markOwn } = useExternalChangeVersion(field.value);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   // 値を変えたときだけ、データの持ち方の形式で書く（開いただけでは値に触らない）
   const onChange = useCallback(
     (next: string | null) => {
-      const value = converter.fromPickerValue(next);
+      const value =
+        next === null || next === ""
+          ? emptyValue
+          : converter.fromPickerValue(next);
       markOwn(value);
       field.onChange(value);
     },
-    [converter, field, markOwn],
+    [converter, field, markOwn, emptyValue],
   );
 
   // ミリ秒の欄で確定した文字を書く。空なら値を消す。

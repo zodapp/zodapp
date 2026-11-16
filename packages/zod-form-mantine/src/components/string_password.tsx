@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -31,11 +32,12 @@ const StringPasswordComponent = wrapComponent(
 
     const maskedValue = useMemo(() => "●".repeat(value.length), [value.length]);
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
-        field.onChange(event.currentTarget.value || undefined);
+        field.onChange(event.currentTarget.value || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {

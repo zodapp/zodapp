@@ -6,6 +6,7 @@ import {
   useValidatePrecedingFields,
   useSchemaValueAction,
   useRunAsUserEdit,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -39,11 +40,12 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (value: string | null | undefined) => {
-      field.onChange(fromEnumOptionValue(schema, value));
+      field.onChange(fromEnumOptionValue(schema, value) ?? emptyValue);
     },
-    [field, schema],
+    [field, schema, emptyValue],
   );
 
   const data = useEnumData(schema);

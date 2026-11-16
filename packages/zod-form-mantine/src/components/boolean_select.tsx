@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -50,6 +51,7 @@ const BooleanSelectComponent = wrapComponent(
           ? FALSE_VALUE
           : null;
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string | null | undefined) => {
         if (next === TRUE_VALUE) {
@@ -61,10 +63,10 @@ const BooleanSelectComponent = wrapComponent(
           return;
         }
         if (isOptional) {
-          field.onChange(undefined);
+          field.onChange(emptyValue);
         }
       },
-      [field, isOptional],
+      [field, isOptional, emptyValue],
     );
 
     const displayLabel =

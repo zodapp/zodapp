@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -38,11 +39,12 @@ const ArrayOfStringComponent = wrapComponent(
       [field.value],
     );
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string[]) => {
-        field.onChange(next.length === 0 ? undefined : next);
+        field.onChange(next.length === 0 ? emptyValue : next);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {

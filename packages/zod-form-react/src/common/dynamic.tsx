@@ -203,6 +203,15 @@ const callResolve = (
  *   値を新しい schema に合わせて削る。それ以外は値に触らない
  * - 古い結果は捨てる
  */
+/** 登録する schema を、欄の optional・nullable に合わせて包む */
+const wrapEmpty = (
+  schema: z.ZodTypeAny,
+  { optional, nullable }: { optional: boolean; nullable: boolean },
+): z.ZodTypeAny => {
+  const withNull = nullable ? schema.nullable() : schema;
+  return optional ? withNull.optional() : withNull;
+};
+
 export const useDynamicSchema = (
   meta: DynamicMetaDef | undefined,
   fieldPath: string,
@@ -212,9 +221,15 @@ export const useDynamicSchema = (
      * 値が無いときに、決まった schema の「必須」で止めないため
      */
     optional?: boolean;
+    /**
+     * true なら（nullable の中にあるなら）、登録する schema を nullable にする。
+     * 空にした欄に書く null を、決まった schema の検証で止めないため
+     */
+    nullable?: boolean;
   } = {},
 ): DynamicSchemaState => {
   const optional = options.optional === true;
+  const nullable = options.nullable === true;
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);
@@ -244,6 +259,7 @@ export const useDynamicSchema = (
         path: string;
         depth: number;
         optional: boolean;
+        nullable: boolean;
       }
     | undefined
   >(undefined);
@@ -283,7 +299,8 @@ export const useDynamicSchema = (
         previous.schema === resolved.schema &&
         previous.path === fieldPath &&
         previous.depth === depth &&
-        previous.optional === optional
+        previous.optional === optional &&
+        previous.nullable === nullable
       ) {
         return;
       }
@@ -293,6 +310,7 @@ export const useDynamicSchema = (
         path: fieldPath,
         depth,
         optional,
+        nullable,
       };
       if (
         applyCause === "user" &&
@@ -309,7 +327,7 @@ export const useDynamicSchema = (
       }
       runtime.set(fieldPath, depth, {
         status: "resolved",
-        schema: optional ? resolved.schema.optional() : resolved.schema,
+        schema: wrapEmpty(resolved.schema, { optional, nullable }),
       });
     };
 
@@ -373,7 +391,7 @@ export const useDynamicSchema = (
     subscriptionKeyRef.current = result.key;
     unsubscribeRef.current = startAsync(result, deliver, fail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outcome, fieldPath, depth, optional]);
+  }, [outcome, fieldPath, depth, optional, nullable]);
 
   if (outcome.kind === "thrown") {
     return {

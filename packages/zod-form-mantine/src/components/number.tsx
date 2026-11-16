@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
 import {
@@ -41,16 +42,17 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
 
   const value = toNumberValue(rawValue);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (value: string | number | null | undefined) => {
       if (value === "" || value === null || value === undefined) {
-        field.onChange(undefined);
+        field.onChange(emptyValue);
         return;
       }
       const numeric = typeof value === "number" ? value : Number(value);
       field.onChange(Number.isNaN(numeric) ? undefined : numeric);
     },
-    [field],
+    [field, emptyValue],
   );
 
   if (readOnly || field.disabled) {

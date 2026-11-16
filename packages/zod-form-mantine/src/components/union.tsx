@@ -21,6 +21,7 @@ import {
   useFormValues,
   useRunAsUserEdit,
   isPendingIssue,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -265,18 +266,6 @@ const replaceWrittenIssues = (
 };
 
 const EMPTY_ERRORS: readonly unknown[] = [];
-
-/**
- * union を空にするときに書く値。optional なら undefined、nullable だけなら null。
- * 両方（`.optional().nullable()` など）のときは undefined を優先する
- */
-const emptyValueOf = ({
-  optional,
-  nullable,
-}: {
-  optional: boolean | undefined;
-  nullable: boolean | undefined;
-}): undefined | null => (optional ? undefined : nullable ? null : undefined);
 
 /** 腕が未選択で検証に落ちているときに、腕を選ぶ欄に出す文言 */
 const UNSELECTED_MESSAGE = "選択してください";

@@ -36,7 +36,8 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   const dynamicMeta = useExternalKeyDynamicMeta(schema);
   const depth = useDynamicDepth(fieldPath);
   const state = useDynamicSchema(dynamicMeta, fieldPath, {
-    optional: optional || nullable,
+    optional,
+    nullable,
   });
 
   const loadingView = (status?: "loading" | "pending") => (

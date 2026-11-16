@@ -10,6 +10,7 @@ import {
   useZodField,
   useRunAsUserEdit,
   wrapComponent,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 
@@ -149,7 +150,7 @@ const actionIconStyle: React.CSSProperties = {
 /**
  * optional（Boolean(optional || nullable)）な object 用の 0..1 UI。
  * array().max(1) と同じ操作感で、追加（+）で getDefaultValue から生成し、
- * 削除（-）で値を undefined に戻す。
+ * 削除（-）で値を空にする（optional なら undefined、nullable だけなら null）。
  */
 function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
   const { fieldPath, schema, readOnly, label: labelFromParent, error } = props;
@@ -157,15 +158,16 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
   const value = field.state.value;
   const meta = getMeta(schema);
   const label = labelFromParent ?? meta?.label;
-  const isSet = value !== undefined;
+  const isSet = value !== undefined && value !== null;
   const runAsUserEdit = useRunAsUserEdit();
+  const emptyValue = emptyValueOf(props);
 
   const handleAdd = () => {
     runAsUserEdit(() => field.handleChange(getObjectDefaultValue(schema)));
   };
 
   const handleRemove = () => {
-    runAsUserEdit(() => field.handleChange(undefined));
+    runAsUserEdit(() => field.handleChange(emptyValue));
     // 配下フィールドに残ったエラー meta を掃除する
     const prefix = `${fieldPath}.`;
     const fieldMeta = field.form.state.fieldMeta as Record<string, unknown>;

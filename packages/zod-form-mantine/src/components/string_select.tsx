@@ -5,6 +5,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useSchemaValueAction,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -52,11 +53,12 @@ const StringSelectComponent = wrapComponent(
       [data, value],
     );
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string | null) => {
-        field.onChange(next || undefined);
+        field.onChange(next || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {
