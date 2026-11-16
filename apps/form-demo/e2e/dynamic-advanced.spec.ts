@@ -95,6 +95,32 @@ test("都道府県を消すと、市区町村・町名は選択肢が0件にな�
   );
 });
 
+test("在庫が変わると、在庫を超えたときだけエラーになり、値は消えない", async ({
+  page,
+  pageErrors: _,
+}) => {
+  // 3 秒ごとに変わる在庫を止め、ボタンで 1 回ずつ変える
+  await page
+    .getByRole("switch", { name: /在庫を 3 秒ごとに変える/ })
+    .uncheck({ force: true });
+  await page.getByRole("button", { name: "在庫を 10 にする" }).click();
+  const quantity = () => field(page, "数量");
+  // 初期値（2）は在庫 3 を超えないので、5 にしてから始める
+  await quantity().fill("5");
+  await quantity().blur();
+  await expect(quantity()).toHaveValue("5");
+  await expect.poll(async () => (await previewValue(page)).quantity).toBe(5);
+  await page.getByRole("button", { name: "在庫を 3 にする" }).click();
+  // 欄を触ったあとなので、欄の下と見るための部品の両方に出る
+  await expect(page.getByText("在庫（3）を超えています").first()).toBeVisible();
+  expect((await previewValue(page)).quantity).toBe(5);
+
+  await page.getByRole("button", { name: "在庫を 10 にする" }).click();
+  await expect(page.getByText("在庫（3）を超えています")).toHaveCount(0);
+  await expect(page.getByText("在庫（10）を超えています")).toHaveCount(0);
+  expect((await previewValue(page)).quantity).toBe(5);
+});
+
 // ============================================================
 // 「動きを試す」で取得の時機を選んで確かめる。
 // 待ち時間ではなく、画面の状態と window.__formDemo を待つ

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
-import { Stack } from "@mantine/core";
+import { Button, Group, Stack, Switch } from "@mantine/core";
 import { IconBolt } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
@@ -94,7 +94,26 @@ const templateFieldsSchema = z.unknown().register(
 
 // ============================================================
 // 2. 購読：同じ key のまま schema が届き続ける。値は prune されず、検証だけが変わる
+//    在庫は「動きを試す」で変える（既定は 3 秒ごとに変わる。ボタンで 1 回ずつ決めることもできる）
 // ============================================================
+
+const stockStore = (() => {
+  let stock = 10;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => stock,
+    set: (next: number) => {
+      stock = next;
+      for (const listener of [...listeners]) listener();
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+})();
 
 const quantitySchema = z.number().register(
   zf.dynamic.registry,
@@ -103,8 +122,8 @@ const quantitySchema = z.number().register(
     resolve: () => ({
       key: "stock",
       subscribe: (emit) => {
-        let stock = 10;
-        const send = () =>
+        const send = () => {
+          const stock = stockStore.get();
           emit({
             key: "stock",
             schema: zf
@@ -112,15 +131,12 @@ const quantitySchema = z.number().register(
               .min(1)
               .max(stock, `在庫（${stock}）を超えています`)
               .register(zf.number.registry, {
-                label: `数量（在庫 ${stock}。3 秒ごとに変わる）`,
+                label: `数量（在庫 ${stock}）`,
               }),
           });
+        };
         send();
-        const timer = setInterval(() => {
-          stock = 3 + Math.floor(Math.random() * 10);
-          send();
-        }, 3000);
-        return () => clearInterval(timer);
+        return stockStore.subscribe(send);
       },
     }),
   }),
@@ -244,12 +260,50 @@ const harness = [
 
 export const Component = () => {
   // 分け方・失敗・待っている取得はページをまたいで残るので、離れるときに戻す
-  useEffect(() => () => control.reset(), []);
+  useEffect(
+    () => () => {
+      control.reset();
+      stockStore.set(10);
+    },
+    [],
+  );
+
+  // 在庫を 3 秒ごとに変える（既定はオン）
+  const [rotating, setRotating] = useState(true);
+  useEffect(() => {
+    if (!rotating) return;
+    const timer = setInterval(
+      () => stockStore.set(3 + Math.floor(Math.random() * 10)),
+      3000,
+    );
+    return () => clearInterval(timer);
+  }, [rotating]);
 
   return (
     <Stack>
-      <TryBehavior description="取得が届く時機を選んだり、わざと失敗させたりできる。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では、待っている取得が並び、「届ける」「失敗させる」で 1 回ずつ進める">
+      <TryBehavior description="取得が届く時機を選ぶ・わざと失敗させる・在庫を変える。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める">
         <FetchControlPanel control={control} />
+        <Group gap="xs">
+          <Switch
+            label="在庫を 3 秒ごとに変える"
+            checked={rotating}
+            onChange={(event) => setRotating(event.currentTarget.checked)}
+          />
+          <Button
+            size="compact-xs"
+            variant="default"
+            onClick={() => stockStore.set(3)}
+          >
+            在庫を 3 にする
+          </Button>
+          <Button
+            size="compact-xs"
+            variant="default"
+            onClick={() => stockStore.set(10)}
+          >
+            在庫を 10 にする
+          </Button>
+        </Group>
       </TryBehavior>
       <AutoForm
         schema={schema}
