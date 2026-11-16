@@ -222,6 +222,24 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
   });
 
+  it("外側の .refine() のエラーが、externalKey の欄に出て送信が止まる", async () => {
+    const r = makeResolvers();
+    const t = renderForm(
+      z.object({
+        owner: owner().refine((v) => v !== "u2", "佐藤さんは選べません"),
+      }),
+      { owner: "u2" },
+      r.resolvers,
+    );
+    await r.publish("members", [
+      { label: "山田", value: "u1" },
+      { label: "佐藤", value: "u2" },
+    ]);
+    await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("resolved"));
+    await t.submit();
+    expect(t.onSubmit).not.toHaveBeenCalled();
+  });
+
   it("既定（unlisted: clear）では、選択肢に無い保存値を消す", async () => {
     const r = makeResolvers();
     const t = renderForm(z.object({ owner: owner() }), { owner: "gone" }, r.resolvers);
