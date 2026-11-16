@@ -116,6 +116,22 @@ const resolveArmDiscriminatorValue = (
   );
 };
 
+/**
+ * object の腕から、literal の欄（値が 1 つの `ZodLiteral`）を `{ key: value }` で集める。
+ * object 以外の腕や、literal の欄を持たない腕は空を返す。
+ */
+const getArmLiteralFields = (schema: z.ZodTypeAny): Record<string, unknown> => {
+  if (!(schema instanceof z.ZodObject)) return {};
+  const shape = (schema as z.ZodObject<z.ZodRawShape>).shape;
+  return Object.fromEntries(
+    Object.entries(shape).flatMap(([key, field]) =>
+      field instanceof z.ZodLiteral && field.values.size === 1
+        ? [[key, field.value] as const]
+        : [],
+    ),
+  );
+};
+
 type schemaProfile = {
   schema: z.ZodTypeAny | undefined;
   label: string;
@@ -241,6 +257,11 @@ const UnionBody = React.memo(function UnionBody({
     profiles: schemaProfile[];
     determinator: (value: unknown) => schemaProfile | undefined;
     selector: (id: string) => schemaProfile | undefined;
+    /**
+     * discriminator のない union で、どの腕にも通らない値から、
+     * literal の欄が一致する腕を 1 つに絞れたらそれを返す。
+     */
+    guessByLiteral?: (value: unknown) => schemaProfile | undefined;
     hasDiscriminator: boolean;
     discriminator?: string;
   } = useMemo(() => {
@@ -289,11 +310,24 @@ const UnionBody = React.memo(function UnionBody({
         }),
       );
       const profiles = Array.from(profileMap.values());
+      const literalFieldsByProfile = profiles
+        .map((profile) => ({
+          profile,
+          literals: Object.entries(getArmLiteralFields(profile.schema)),
+        }))
+        .filter(({ literals }) => literals.length > 0);
       return {
         profiles,
         determinator: (value: unknown) =>
           profiles.find((profile) => profile.schema.safeParse(value).success),
         selector: (id: string) => profileMap.get(id),
+        guessByLiteral: (value: unknown) => {
+          if (!isRecord(value)) return undefined;
+          const matched = literalFieldsByProfile.filter(({ literals }) =>
+            literals.every(([key, literal]) => value[key] === literal),
+          );
+          return matched.length === 1 ? matched[0]!.profile : undefined;
+        },
         hasDiscriminator: false,
         discriminator: undefined,
       };
@@ -331,14 +365,53 @@ const UnionBody = React.memo(function UnionBody({
     selectedDiscriminator,
   ]);
 
+  /**
+   * discriminator のない union で、覚えている腕（current）と値から、表示する腕を決める。
+   * - 覚えている腕に値が通る → そのまま（ほかの腕にも通っても切り替えない）
+   * - 覚えている腕には通らず、ほかの腕に通る → 通った最初の腕
+   * - どの腕にも通らない → 覚えている腕のまま（入力の途中）。覚えていなければ literal の欄で推定する
+   */
+  const resolvePlainArm = useCallback(
+    (value: unknown, current: string | undefined): string | undefined => {
+      if (compiledOptions.hasDiscriminator) return undefined;
+      const currentProfile =
+        current !== undefined ? compiledOptions.selector(current) : undefined;
+      if (currentProfile?.schema?.safeParse(value).success) {
+        return currentProfile.value;
+      }
+      const matched = compiledOptions.determinator(value);
+      if (matched) return matched.value;
+      if (currentProfile) return currentProfile.value;
+      return compiledOptions.guessByLiteral?.(value)?.value;
+    },
+    [compiledOptions],
+  );
+
+  const [selectedPlainArm, setSelectedPlainArm] = useState<string | undefined>(
+    () => resolvePlainArm(formValue, undefined),
+  );
+
+  useEffect(() => {
+    setSelectedPlainArm((prev) => resolvePlainArm(formValue, prev));
+  }, [formValue, resolvePlainArm]);
+
   const selectedProfile = useMemo(
     () =>
       compiledOptions.hasDiscriminator
         ? (compiledOptions.selector(
             selectedDiscriminator ?? discriminatorFromValue ?? "",
           ) ?? compiledOptions.determinator(formValue))
-        : compiledOptions.determinator(formValue),
-    [compiledOptions, discriminatorFromValue, formValue, selectedDiscriminator],
+        : compiledOptions.selector(
+            resolvePlainArm(formValue, selectedPlainArm) ?? "",
+          ),
+    [
+      compiledOptions,
+      discriminatorFromValue,
+      formValue,
+      selectedDiscriminator,
+      selectedPlainArm,
+      resolvePlainArm,
+    ],
   );
 
   const dynamicDefaultValue = useMemo(() => {
@@ -505,10 +578,13 @@ const UnionBody = React.memo(function UnionBody({
         return;
       }
 
+      // discriminator のない union：選んだ腕を覚え、値は検証せずに書く。
+      // 値がまだ腕の検証に通らなくても、覚えた腕の入力欄を出し続ける。
+      setSelectedPlainArm(profile.value);
       const normalized = profile.schema
         ? normalizeValue(profile.schema, formValue)
         : undefined;
-      field.onChange(normalized ?? undefined);
+      setValueWithoutValidation(normalized ?? undefined);
     },
     [
       field,
