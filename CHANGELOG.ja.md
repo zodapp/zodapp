@@ -24,3 +24,4 @@
 - zod-form-mantine: discriminator のない union（`zf.union`）のエラーの表示を修正。どの腕にも型が合わない値（数値の腕が空のときなど）のエラーを、選んだ腕の欄に出す（AutoForm では何も出ず、`useZodForm` に schema を直接渡すと描き直しが止まらなくなっていた）。腕のエラーは、`invalid_union` を残したまま同じ欄の errorMap の `onDynamic` に足す。同じ欄に union が重なっても、object の腕の子の欄に union があっても、その union の腕の欄に出す。腕が未選択で検証に落ちているとき（必須の union が空、値がどの腕にも合わない）は、腕を選ぶ欄に「選択してください」を出す
 - zod-form-mantine: optional・nullable の `zf.union` で、× を押すと腕を外して空にする。腕を選んだ直後に空なら、空の値を書く。空の値は optional なら `undefined`、nullable だけなら `null`（両方なら `undefined`）
 - zod-form-mantine: `zf.union` で腕を選んだ直後の最初の送信が、検証されずに止まる不具合を修正
+- zod-form-mantine: `zf.union` の object の腕の子の欄で、型のエラー（空の数値など）を欄を離れずに直しても、エラーが消えない不具合を修正。discriminatedUnion で腕が未選択のとき（必須で値が空）も、腕を選ぶ欄に「選択してください」を出す。入れ子の union が、無い欄（`value.value` など）にエラーを書いていた不具合を修正

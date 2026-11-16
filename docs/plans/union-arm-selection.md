@@ -147,7 +147,7 @@ form-demo の union と同じ形の schema（文字列の腕 + literal `type` �
 
 ## 8. 不具合の直し方（7.1 の 1〜5 と、あとで見つかった 2 件）
 
-- ステータス: 実装済み（E は判断待ち。8.13）
+- ステータス: 実装済み（8.13 の判断事項 J・K も実装済み）
 - 対象ブランチ: `claude/union-arm-errors-v2`（main から作る。このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/zod-form-react`・`@zodapp/zod-form-mantine`・`@zodapp/zod-form-mantine-lite`（利用側: `apps/form-demo`）
 - 判断の経緯: Claude Docs「zf.union の不具合の直し方の判断事項」（A〜I）。実験の実装はブランチ `claude/union-arm-errors`（context で腕のエラーを渡す案）と `claude/union-arm-errors-e`（この章の案）にあり、使えるテストだけを参考にする
@@ -281,13 +281,18 @@ form-demo の e2e（`union-arms.spec.ts`）。7 章で入れていなかった�
 - string・number などの部品で、消したときに null を書くこと
 - `onDynamic` 以外の置き場所への移しかえ（TanStack に専用の仕組みができたら見直す）
 
-### 8.13 実装で分かったこと（判断待ち）
+### 8.13 実装で分かったこと（判断事項 J〜L）
 
-1. **E（discriminatedUnion の未選択）は、`invalid_union` を通しては出せない。** zod の discriminatedUnion は、値が undefined・null のとき `invalid_type`（expected object）を union の欄に出し、discriminator が無い・どれにも合わないときは `invalid_union` を **discriminator の欄（`[...path, discriminator]`）** に出す（`errors` は空）。B と同じ「自分の欄の `invalid_union`」では拾えないので、E は実装していない
-2. **object の腕の子の欄を直しても、blur するまで子の欄のエラーが消えない。** 外側の union の欄の onBlur に、検証の `invalid_union` が残り、外側の union がそれを子の欄に振り分け続ける。子の欄の値の変更では、外側の union の欄の onBlur は消えない（`wrapComponent` が消すのは自分の欄の onBlur）。main でも object の腕の子の欄で同じ流れになるはず（未確認）
-3. **G の直し方は、form 全体のエラーを消す。** 8.8 のとおり、ほかの欄の form 全体のエラーも次の検証まで消える
-4. **プランからずらしたところ（判断は要らない想定）**
+判断事項の Doc で決めた。J・K は直し、L は今のまま。
+
+1. **J：E（discriminatedUnion の未選択）は、`invalid_union` を通しては出せなかった。** zod の discriminatedUnion は、値が undefined・null のとき `invalid_type`（expected object）を union の欄に出し、discriminator が無い・どれにも合わないときは `invalid_union` を discriminator の欄（`[...path, discriminator]`）に出す（`errors` は空）。
+   決定：腕が未選択で、union の欄に読み込み中以外のエラーがあれば、code を問わず「選択してください」を出す。discriminator の欄の `invalid_union` は拾わない（画面で腕を外したときの値は undefined・null なので、ふつうの未選択はこれで拾える）
+2. **K：object の腕の子の欄を、欄を離れずに直しても、エラーが消えなかった（main からある）。** 子の欄の型のエラー（空の数値・未選択の選択肢・欠けた項目）は、zod が union の欄の `invalid_union` に入れる。子の欄を空にして離れると、その検証の結果が union の欄の onBlur に入り、次に欄を離れるまで残る。union はそれを子の欄に振り分け続けていた（`wrapComponent` が値の変更で消すのは、自分の欄の onBlur だけ）。discriminatedUnion と union でない object は、zod が子の欄に直接エラーを出すので起きない。
+   決定：union の欄の値が変わったら（子の欄の入力でも変わる）、union が自分の欄の onBlur のエラーを消す
+3. **L：G の直し方は、フォーム全体のエラーを消す。** 8.8 のとおり、ほかの欄のフォーム全体のエラーも次の検証まで消える。表示は欄ごとのエラーから、送信の可否も欄ごとのエラーで決まるので影響しない。決定：今のまま
+4. **プランからずらしたところ**
    - `invalid_union` かを見分ける関数は zod-form-react の中に置き（export しない）、zf.union は同じ判定を自分で持つ。パッケージをまたいで使うには export が要るため
    - 空の値を決める関数（8.3）は zod-form-react ではなく、使うところ（zf.union）に置いた。今は union だけが使うため
-   - `discriminatedUnion` の × と、選んだ腕をもう一度選んだときも、8.3 の空の値を書く（今までは undefined）
-5. **ついでに見つけたこと（直していない）**：入れ子の union で `invalid_union` 以外のエラーが自分の欄に出ると（discriminatedUnion の値が undefined のときの `invalid_type` など）、`directIssues` がその絶対の path を相対の path として扱い、`value.value` のような無い欄に書く（コードを読んで分かったこと。テストでは確かめていない）。main からある挙動
+   - discriminatedUnion の × と、選んだ腕をもう一度選んだときも、8.3 の空の値を書く（今までは undefined）
+5. **あわせて直したこと**：invalid_union でない欄のエラーを子の欄に振り分けるとき、フォームの値からの path をそのまま union の値からの path として使っていたため、入れ子の union では `value.value` のような無い欄に書いていた（main からある）。union の欄の path を外してから振り分け、union の欄より下を指さないものは振り分けない
+6. **別の課題**：単体テストでは、union に関係ないふつうの欄でも「空にして離れる → 離れずに直す → 送信」で、1 回目の送信が検証されずに止まった（フォーム全体の onBlur が残り、`canSubmit` が false のまま）。ブラウザでは送信ボタンを押すと先に欄を離れるので起きない。Enter で送信するときに起きるかは確かめていない
