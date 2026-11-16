@@ -2664,14 +2664,72 @@ describe("UnionComponent arm errors written to the union's own field", () => {
       expect(onSubmit).not.toHaveBeenCalled();
 
       fireEvent.change(innerInput(), { target: { value: "7" } });
-      // 外側の union の欄（value）の onBlur に残った invalid_union は、blur の検証まで消えない
-      fireEvent.blur(innerInput());
       await waitFor(() => {
         expect(within(innerGroup()).queryByText(NUMBER_ERROR)).toBeNull();
       });
       fireEvent.click(screen.getByRole("button", { name: "Submit" }));
       await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
       expect(onSubmit.mock.calls[0]![0]).toEqual({ value: { inner: 7 } });
+    });
+
+    it("clears the child field's error as soon as it is fixed, without leaving the field", async () => {
+      // object の腕の子の欄に型のエラー（空の数値）があると、zod は union の欄に invalid_union を出す。
+      // 欄を離れたときの検証の結果（union の欄の onBlur）が残ると、直しても子の欄にエラーが出続けていた
+      const schema = z
+        .object({
+          value: zf
+            .union([
+              zf.string().register(zf.string.registry, { label: "外の文字列" }),
+              zf
+                .object({
+                  amount: zf
+                    .number()
+                    .register(zf.number.registry, { label: "金額" }),
+                })
+                .register(zf.object.registry, { label: "オブジェクト" }),
+            ])
+            .register(zf.union.registry, {
+              label: "値",
+              selectorLabel: "値の種類",
+            }),
+        })
+        .register(zf.object.registry, { properties: ["value"] });
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        schema,
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: { amount: 5 } },
+      });
+      const amountInput = () =>
+        screen.getByRole("textbox", { name: "金額" }) as HTMLInputElement;
+      await waitFor(() => expect(selectors()[0]!.value).toBe("オブジェクト"));
+
+      fireEvent.change(amountInput(), { target: { value: "" } });
+      fireEvent.blur(amountInput());
+      // 1 回目の送信は、欄を離れたときの検証のエラーがあるので TanStack Form が止める。2 回目で検証する
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+      });
+      expect(
+        formRef.current!.getFieldMeta("value")?.errorMap?.onBlur,
+      ).toBeTruthy();
+
+      // 欄を離れずに直す
+      fireEvent.change(amountInput(), { target: { value: "7" } });
+      await waitFor(() => {
+        expect(within(group()).queryByText(NUMBER_ERROR)).toBeNull();
+      });
+      expect(
+        formRef.current!.getFieldMeta("value")?.errorMap?.onBlur,
+      ).toBeUndefined();
+      await expectSettled(formRef);
     });
   });
 });

@@ -664,6 +664,27 @@ const UnionBody = React.memo(function UnionBody({
   // 書くと field.api が変わり、それで書き直すと止まらないので、変わらない form と欄の名前で書く
   const form = field.api.form;
   const fieldName = field.api.name;
+  /**
+   * union の欄の値が変わったら（腕の子の欄の入力でも変わる）、union の欄の onBlur のエラーを消す。
+   * object の腕の子の欄の型のエラー（空の数値など）は、zod が union の欄の invalid_union に入れる。
+   * 欄を離れたときの検証の結果（onBlur）は次に欄を離れるまで残るので、消さないと、子の欄を直しても
+   * 古い invalid_union から子の欄にエラーを振り分け続ける。wrapComponent が自分の欄でしているのと同じ
+   */
+  const lastValueRef = useRef(formValue);
+  useEffect(() => {
+    if (Object.is(lastValueRef.current, formValue)) return;
+    lastValueRef.current = formValue;
+    queueMicrotask(() => {
+      const meta = form.getFieldMeta(fieldName);
+      if (!meta?.errorMap?.onBlur) return;
+      form.setFieldMeta(fieldName, (prev: any) => ({
+        ...prev,
+        errorMap: { ...prev.errorMap, onBlur: undefined },
+        errorSourceMap: { ...prev.errorSourceMap, onBlur: undefined },
+      }));
+    });
+  }, [formValue, form, fieldName]);
+
   useEffect(() => {
     const isMine = (iss: unknown) =>
       isWrittenIssue(iss) && iss.writtenBy === writer;
