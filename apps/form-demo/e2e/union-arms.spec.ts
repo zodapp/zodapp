@@ -444,3 +444,30 @@ test("初期値がどの腕にも通らないとき、literal の欄で腕を推
   await waitSubmitSettled(page, 1);
   await expect(fieldError(page, "保存値の種類")).toHaveText("選択してください");
 });
+
+test("object の腕の子の欄の型のエラーは、欄を離れずに直してもすぐ消える", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const amount = field(page, "下書きの金額");
+  // 金額を空にして欄を離れると、エラーが出る（空の数値は型のエラーで、union の欄の invalid_union になる）
+  await amount.fill("3");
+  await amount.fill("");
+  await page.keyboard.press("Tab");
+  await expect(fieldError(page, "下書きの金額")).toHaveText(
+    "必ず入力してください。",
+  );
+
+  // 欄を離れずに直すと、すぐ消える（離れたときの検証の結果が union の欄に残らない）
+  await amount.click();
+  await amount.fill("300");
+  await expect
+    .poll(() => valueOf(page, "draft"))
+    .toEqual({
+      type: "amount",
+      amount: 300,
+    });
+  await page.waitForTimeout(500);
+  expect(await fieldError(page, "下書きの金額").count()).toBe(0);
+  await expect(amount).toBeFocused();
+});
