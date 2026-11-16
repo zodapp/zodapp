@@ -73,11 +73,21 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
     } as PreprocessorDef,
     {
       processor: {
+        // optional と nullable の両方（`.optional().nullable()`）なら、null ではなく
+        // undefined にする（部品が欄を空にするときに書く値 emptyValueOf とそろえる）。
+        // `.nullable().optional()` は optional が先に undefined を返す
+        nullable: (obj, schema, context) => {
+          const innerType = schema.def.innerType as z.ZodTypeAny;
+          if (obj === undefined && innerType.type === "optional") {
+            return context.transform(obj, innerType);
+          }
+          return context.transform(obj, [z.null(), innerType]);
+        },
         union: (obj, schema, context) => {
           const options = schema.def.options as z.ZodTypeAny[];
           if (obj === undefined) {
-            const matchedOption = options.find((option) =>
-              option.safeParse(obj).success,
+            const matchedOption = options.find(
+              (option) => option.safeParse(obj).success,
             );
             return matchedOption
               ? context.transform(obj, matchedOption)
@@ -89,4 +99,3 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
     },
   );
 };
-

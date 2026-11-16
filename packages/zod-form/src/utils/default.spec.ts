@@ -48,4 +48,22 @@ describe("getDefaultValue", () => {
       label: undefined,
     });
   });
+
+  it("uses null for nullable-only fields and undefined when both optional and nullable", () => {
+    const schema = z.object({
+      nullableOnly: z.string().nullable(),
+      optionalThenNullable: z.string().optional().nullable(),
+      nullableThenOptional: z.string().nullable().optional(),
+      nullableObject: z.object({ x: z.string() }).nullable(),
+    });
+
+    expect(getDefaultValue(schema)).toEqual({
+      nullableOnly: null,
+      optionalThenNullable: undefined,
+      nullableThenOptional: undefined,
+      nullableObject: null,
+    });
+    const value = getDefaultValue(schema) as Record<string, unknown>;
+    expect("optionalThenNullable" in value).toBe(true);
+  });
 });
