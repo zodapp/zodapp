@@ -115,6 +115,11 @@ const resolvers = [
 - `onError` は省略できます。使わない resolver はそのまま動きます
 - モックの topic は `fail(error)` で失敗を届けます。失敗の状態は次の `set` まで続き、そのあいだに購読した欄にもその場で失敗を届けます
 
+単一選択の欄（`zf.externalKey`）も、複数選択の欄（`z.array(zf.externalKey ...)` に `uiType: "multipleExternalKey"`）も、dynamic の上に作られています。どちらも選択肢から schema を作って dynamic に届けるので、読み込み中・取り直し中・取得の失敗（送信を止める）・prune の扱いは同じです。
+
+- 複数選択の欄に届く schema は、選択肢から作った enum（`allowUnlisted` なら string + 選択式）の配列です。元の配列の制約（`min` / `max` / `length`）と meta（`label` など）を引き継ぎます
+- 複数選択の欄の `unlisted` / `allowUnlisted` / `emptyMessage` は、要素の `zf.externalKey` に書きます。`clear` は選択肢に無い要素だけを消し、`keep` は「（不正な値）」と出してエラーにします（× で 1 つずつ消せます）
+
 ## 開発・テスト用: `createMockFileResolver`
 
 アップロード先が未確定な段階や、UI 開発時の動作確認向けに、**実アップロードを行わない** file resolver を提供しています。
@@ -163,6 +168,7 @@ const fileResolvers = [createMockFileResolver()];
 
 - 必須の欄: `zf.externalKey` の `emptyMessage` を書くと、その文言が欄のエラーになります（例: 都道府県が空のときの市区町村に「先に都道府県を選んでください」）。「必ず入力してください」の代わりにこの文言がフォームのエラーに入り、送信は止まります。欄に赤で出るのは、ほかの必須の欄と同じく、触るか送信したあとです
 - optional の欄: 無効にして文言を出すだけで、エラーにはしません
+- 複数選択の欄: 無効にして文言を出します。必須の欄のエラーは、ほかの必須の配列と同じ文言のままです（`emptyMessage` にはなりません）
 
 ## API（抜粋）
 

@@ -129,7 +129,8 @@ export const schema = z.object({
 - **コンテキスト**
   - `useZodFormContext()`: `componentLibrary` / resolvers / timezone などにアクセス
   - `useExternalKeyResolver(config)`: `externalKeyResolvers` から該当 resolver を取得して実行
-  - `useExternalKeyOptions(schema)`（`@zodapp/zod-form-react/utils/externalKey`）: externalKey の選択肢を購読する。resolver が `onError` を呼ぶと `error` と `retry` を返す（複数選択の欄や zod-form-mantine-lite の欄は、これで「再試行」を出す）。同じ購読のまま選択肢が届けば戻り、`retry` は購読をやめて最初からやり直す
+  - `useExternalKeyDynamicMeta(schema)` / `useArrayExternalKeyDynamicMeta(schema)`（`@zodapp/zod-form-react/utils/externalKey`）: externalKey の単一選択・複数選択（`z.array(zf.externalKey ...)`）の欄から dynamic の meta を作る。`useDynamicSchema` に渡すと、選択肢から作った schema（既定は enum、`allowUnlisted` なら string + 選択式。複数選択なら、元の配列の制約と meta を引き継いだその配列）が届く。取得の失敗は dynamic の error になり、送信は止まる
+  - `useExternalKeyOptions(schema)`（`@zodapp/zod-form-react/utils/externalKey`）: externalKey の選択肢を購読する。resolver が `onError` を呼ぶと `error` と `retry` を返す（zod-form-mantine-lite の欄は、これで「再試行」を出す）。同じ購読のまま選択肢が届けば戻り、`retry` は購読をやめて最初からやり直す
   - `useFileResolver(config)`: `fileResolvers` から該当 resolver を取得して実行
   - `useMediaResolvers()`: `mediaResolvers`（未指定なら `basicMediaResolvers`）を返す
 - **フォーム/フィールド**
