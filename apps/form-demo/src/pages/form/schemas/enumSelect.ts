@@ -9,8 +9,9 @@ export const description = "決まった選択肢から、ラベル付きで選�
 export const icon = IconListCheck;
 export const category = "Basic";
 
-// 色は色相（Mantine の 12 色）と濃さ（淡い .2〜.3・中間 .5〜.6・濃い .8〜.9）が偏らないように散らす。
-// RGB 指定（#hex）の例も混ぜている
+// 色は、色調（明度・彩度）が近いものを 3 つずつまとめ、色調ごとに色相を散らす。
+// 鮮やか（.6）・明るい（.4）・パステル（.1）・深い（.9）は Mantine のテーマ色、
+// くすみ・淡いグレイッシュ・暗いくすみは Mantine に無い色調なので RGB で指定する
 const hobbyLiterals = [
   z
     .literal("reading")
@@ -23,61 +24,61 @@ const hobbyLiterals = [
     .register(zf.literal.registry, { label: "音楽", color: "red.6" }),
   z
     .literal("gaming")
-    .register(zf.literal.registry, { label: "ゲーム", color: "grape.6" }),
+    .register(zf.literal.registry, { label: "ゲーム", color: "violet.4" }),
   z
     .literal("travel")
-    .register(zf.literal.registry, { label: "旅行", color: "yellow.5" }),
+    .register(zf.literal.registry, { label: "旅行", color: "yellow.4" }),
   z
     .literal("cooking")
-    .register(zf.literal.registry, { label: "料理", color: "orange.6" }),
+    .register(zf.literal.registry, { label: "料理", color: "orange.4" }),
   z
     .literal("baking")
-    .register(zf.literal.registry, { label: "お菓子作り", color: "pink.3" }),
+    .register(zf.literal.registry, { label: "お菓子作り", color: "pink.1" }),
   z
     .literal("photography")
-    .register(zf.literal.registry, { label: "写真", color: "cyan.2" }),
+    .register(zf.literal.registry, { label: "写真", color: "cyan.1" }),
   z
     .literal("movies")
-    .register(zf.literal.registry, { label: "映画", color: "indigo.9" }),
+    .register(zf.literal.registry, { label: "映画", color: "lime.1" }),
   z
     .literal("anime")
-    .register(zf.literal.registry, { label: "アニメ", color: "violet.3" }),
+    .register(zf.literal.registry, { label: "アニメ", color: "grape.9" }),
   z
     .literal("hiking")
-    .register(zf.literal.registry, { label: "ハイキング", color: "teal.8" }),
+    .register(zf.literal.registry, { label: "ハイキング", color: "teal.9" }),
   z
     .literal("camping")
-    .register(zf.literal.registry, { label: "キャンプ", color: "lime.3" }),
+    .register(zf.literal.registry, { label: "キャンプ", color: "indigo.9" }),
   z
     .literal("fishing")
-    .register(zf.literal.registry, { label: "釣り", color: "blue.2" }),
+    .register(zf.literal.registry, { label: "釣り", color: "#779eba" }),
   z
     .literal("cycling")
-    .register(zf.literal.registry, { label: "サイクリング", color: "lime.9" }),
+    .register(zf.literal.registry, { label: "サイクリング", color: "#b88997" }),
   z
     .literal("running")
-    .register(zf.literal.registry, { label: "ランニング", color: "green.2" }),
+    .register(zf.literal.registry, { label: "ランニング", color: "#939e74" }),
   z
     .literal("yoga")
-    .register(zf.literal.registry, { label: "ヨガ", color: "violet.8" }),
+    .register(zf.literal.registry, { label: "ヨガ", color: "#c0bacf" }),
   z
     .literal("drawing")
-    .register(zf.literal.registry, { label: "イラスト", color: "pink.8" }),
+    .register(zf.literal.registry, { label: "イラスト", color: "#cdbaab" }),
   z.literal("crafts").register(zf.literal.registry, {
     label: "ハンドメイド",
-    color: "orange.2",
+    color: "#aac4be",
   }),
   z.literal("programming").register(zf.literal.registry, {
     label: "プログラミング",
-    color: "#2f4858",
+    color: "#294751",
   }),
   z.literal("boardgames").register(zf.literal.registry, {
     label: "ボードゲーム",
-    color: "#8d6e63",
+    color: "#553b32",
   }),
   z
     .literal("karaoke")
-    .register(zf.literal.registry, { label: "カラオケ", color: "red.9" }),
+    .register(zf.literal.registry, { label: "カラオケ", color: "#513a49" }),
 ] as const;
 
 type Hobby = z.output<(typeof hobbyLiterals)[number]>;
