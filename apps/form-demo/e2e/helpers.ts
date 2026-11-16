@@ -67,7 +67,7 @@ export const optionsOf = async (page: Page, label: string) => {
   return texts;
 };
 
-/** 遅延の分け方を選ぶ（e2e 用のデモページ） */
+/** 遅延の分け方を選ぶ（「動きを試す」の枠を持つデモページ） */
 export const setDelayMode = async (
   page: Page,
   label:

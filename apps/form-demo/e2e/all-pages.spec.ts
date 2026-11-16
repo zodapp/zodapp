@@ -27,9 +27,9 @@ test("すべてのデモページが開ける", async ({ page }) => {
   }
 });
 
-// e2e 用のデモページ（メニューに出さない）も、すべて開け、例外が起きない。
+// e2e 用のページ（メニューに出さない）も、すべて開け、例外が起きない。
 // サイドバーからはたどれないので、登録簿の formId を dev サーバーから読む
-test("e2e 用のデモページがすべて開ける", async ({ page }) => {
+test("e2e 用のページがすべて開ける", async ({ page }) => {
   await page.goto("/form/detail?formId=basicInput");
   const formIds = await page.evaluate(async () => {
     const path = "/src/pages/form/schemas/e2e/index.ts";
