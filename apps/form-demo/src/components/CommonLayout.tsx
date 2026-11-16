@@ -266,7 +266,13 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         </AppShell.Navbar>
       )}
 
-      <AppShell.Main>
+      {/* 最後の欄が画面の下端に付くと操作しづらいので、下の余白を 60px 足す */}
+      <AppShell.Main
+        style={{
+          paddingBottom:
+            "calc(var(--app-shell-footer-offset, 0rem) + var(--app-shell-padding) + 60px)",
+        }}
+      >
         <Outlet />
       </AppShell.Main>
     </AppShell>
