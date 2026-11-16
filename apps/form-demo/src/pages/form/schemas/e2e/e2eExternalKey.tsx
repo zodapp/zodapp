@@ -19,7 +19,7 @@ import {
   FetchControlPanel,
   createControlledExternalKeyResolvers,
   createFetchControl,
-} from "./fetchControl";
+} from "../../../../shared/demo/fetchControl";
 
 export const formId = "e2e-external-key";
 export const title = "e2e：選択肢の届き方";

@@ -1,21 +1,32 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
-import { Stack, Switch } from "@mantine/core";
+import { Stack } from "@mantine/core";
 import { IconBolt } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
-import { createE2eHarness } from "../../../components/E2eHarness";
 import {
-  demoExternalKeyResolvers,
+  createE2eHarness,
+  type HarnessWrite,
+} from "../../../components/E2eHarness";
+import {
+  cities,
   demoValueActionResolver,
+  prefectures,
+  towns,
 } from "../../../shared/demo/resolvers";
-import { logLoad } from "../../../shared/demo/formDemoLog";
+import {
+  FetchControlPanel,
+  controlledLoad,
+  createControlledExternalKeyResolvers,
+  createFetchControl,
+} from "../../../shared/demo/fetchControl";
+import { TryBehavior } from "../../../shared/demo/TryBehavior";
 
 export const formId = "dynamicAdvanced";
 export const title = "zf.dynamic（読み込み・購読・連動）";
 export const description =
-  "スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、都道府県→市区町村→町名の連動";
+  "スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、都道府県→市区町村→町名の連動。帳票の種類を変えると、帳票の項目だけを取り直す。取得を失敗させると「再試行」が出て送信が止まる。都道府県を変えると、市区町村・町名が順に消える。「動きを試す」で取得の時機を選び、止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める";
 export const icon = IconBolt;
 export const category = "Advanced";
 
@@ -28,10 +39,9 @@ export const category = "Advanced";
 //    load は { schema, key } を返せる。取得のあとで決まる同一性（リビジョンなど）はそこで返す
 // ============================================================
 
-// 画面のスイッチで切り替える。オンのあいだは取得が失敗する
-const failure = { on: false };
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// 取得の時機（遅延の分け方）と失敗。「動きを試す」の枠で切り替える。
+// 既定は見やすい遅延（帳票の項目は 1 秒、選択肢は 0.4 秒）
+const control = createFetchControl();
 
 type Template = "invoice" | "receipt";
 
@@ -45,10 +55,7 @@ const templateFields: Record<Template, () => z.ZodTypeAny> = {
           .min(1)
           .register(zf.number.registry, { label: "請求額" }),
       })
-      .register(zf.object.registry, {
-        label: "請求書の項目（取得に 1 秒かかる）",
-        uiType: "box",
-      }),
+      .register(zf.object.registry, { label: "請求書の項目", uiType: "box" }),
   receipt: () =>
     z
       .object({
@@ -57,11 +64,13 @@ const templateFields: Record<Template, () => z.ZodTypeAny> = {
           .string()
           .register(zf.string.registry, { label: "但し書き" })
           .optional(),
+        // 領収書だけが使う部品（真偽）。初めて使う部品が出ても、ほかの欄は取り直さない
+        reissued: zf
+          .boolean()
+          .register(zf.boolean.registry, { label: "再発行" })
+          .optional(),
       })
-      .register(zf.object.registry, {
-        label: "領収書の項目（取得に 1 秒かかる）",
-        uiType: "box",
-      }),
+      .register(zf.object.registry, { label: "領収書の項目", uiType: "box" }),
 };
 
 const templateFieldsSchema = z.unknown().register(
@@ -73,12 +82,11 @@ const templateFieldsSchema = z.unknown().register(
       const template = parent?.template ?? "invoice";
       return {
         key: template,
-        load: logLoad("templateFields", template, async () => {
-          await wait(1000);
-          if (failure.on) throw new Error("取得に失敗しました（デモ）");
-          // 取得した定義のリビジョンを key に含める（リビジョンが変われば別の schema とみなす）
-          return { key: `${template}@1`, schema: templateFields[template]() };
-        }),
+        // 取得した定義のリビジョンを key に含める（リビジョンが変われば別の schema とみなす）
+        load: controlledLoad(control, "templateFields", template, () => ({
+          key: `${template}@1`,
+          schema: templateFields[template](),
+        })),
       };
     },
   }),
@@ -197,27 +205,56 @@ export const defaultValues = {
 
 export type SchemaType = z.infer<typeof schema>;
 
-// 見るための部品（値・エラー・送信・ログ）
-const harness = [createE2eHarness({ formId })];
+// 選択肢（都道府県・市区町村・町名）。親が空のとき（`cities/`・`towns/`）は 0 件を届ける
+const optionsOf = (topic: string) => {
+  if (topic === "prefectures") return prefectures;
+  const [kind, name = ""] = topic.split("/");
+  if (kind === "cities") return name ? cities[name] : [];
+  if (kind === "towns") return name ? towns[name] : [];
+  return undefined;
+};
+
+const { resolvers: externalKeyResolvers } =
+  createControlledExternalKeyResolvers(control, optionsOf);
+
+// 帳票の種類を、今と違う方に書き込む
+const toggleTemplate: HarnessWrite["run"] = (form) =>
+  form.setFieldValue(
+    "template",
+    form.getFieldValue("template") === "receipt" ? "invoice" : "receipt",
+  );
+
+// 見るための部品（値・エラー・送信・ログ）。外からの書き込みと、利用者の編集としての書き込みのボタンも出す
+const harness = [
+  createE2eHarness<typeof schema>({
+    formId,
+    writes: [
+      {
+        label: "外から書き込む（帳票の種類を切り替える）",
+        run: toggleTemplate,
+      },
+      {
+        label: "利用者の編集として書き込む（帳票の種類を切り替える）",
+        asUser: true,
+        run: toggleTemplate,
+      },
+    ],
+  }),
+];
 
 export const Component = () => {
-  const [failing, setFailing] = useState(false);
+  // 分け方・失敗・待っている取得はページをまたいで残るので、離れるときに戻す
+  useEffect(() => () => control.reset(), []);
 
   return (
     <Stack>
-      <Switch
-        label="「帳票の項目」の取得を失敗させる（オンにして帳票の種類を変えると失敗し、オフにして再試行すると戻る）"
-        checked={failing}
-        onChange={(event) => {
-          const checked = event.currentTarget.checked;
-          failure.on = checked;
-          setFailing(checked);
-        }}
-      />
+      <TryBehavior description="取得が届く時機を選んだり、わざと失敗させたりできる。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では、待っている取得が並び、「届ける」「失敗させる」で 1 回ずつ進める">
+        <FetchControlPanel control={control} />
+      </TryBehavior>
       <AutoForm
         schema={schema}
         defaultValues={defaultValues}
-        externalKeyResolvers={demoExternalKeyResolvers}
+        externalKeyResolvers={externalKeyResolvers}
         valueActionResolver={demoValueActionResolver}
         actionComponents={harness}
       />

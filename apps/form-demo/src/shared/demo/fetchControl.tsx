@@ -1,5 +1,5 @@
 /**
- * e2e 用のデモページで、取得の時機（遅延の分け方）と失敗を決める仕組み。
+ * デモページで、取得の時機（遅延の分け方）と失敗を決める仕組み。
  *
  * 分け方は「何と競るか」で決める（ms はテストの根拠にしない）。
  * - 見やすい遅延：人が読み込み中を見られるように ms 待つ（人が開いたときの既定）
@@ -26,7 +26,7 @@ import {
   type MockTopic,
 } from "@zodapp/zod-form";
 
-import { logLoad, withFetchLog } from "../../../../shared/demo/formDemoLog";
+import { logLoad, withFetchLog } from "./formDemoLog";
 
 export type DelayMode = "human" | "immediate" | "frame1" | "frame2" | "held";
 
@@ -170,7 +170,7 @@ export const createControlledExternalKeyResolvers = (
   const topics: Record<string, MockTopic<MockExternalKeyOption[]>> = {};
   const active = new Map<string, Set<MockTopic<MockExternalKeyOption[]>>>();
   const mock = createMockExternalKeyResolver({ topics });
-  const failError = () => new Error("取得に失敗しました（e2e）");
+  const failError = () => new Error("取得に失敗しました（デモ）");
 
   const settleLater = (
     name: string,
@@ -250,14 +250,14 @@ export const controlledLoad = <T,>(
   logLoad(field, key, () => {
     if (control.getState().mode === "immediate") {
       return control.getState().failing
-        ? Promise.reject(new Error("取得に失敗しました（e2e）"))
+        ? Promise.reject(new Error("取得に失敗しました（デモ）"))
         : Promise.resolve(produce());
     }
     return new Promise<T>((resolve, reject) => {
       control.schedule(
         `load: ${field} key=${key}`,
         () => resolve(produce()),
-        () => reject(new Error("取得に失敗しました（e2e）")),
+        () => reject(new Error("取得に失敗しました（デモ）")),
         HUMAN_DELAY_MS.load,
       );
     });
