@@ -43,9 +43,21 @@ export const ConfirmableInputActions = ({
  * - blur 時は `onBlur` ガードの返り値で confirm / revert / 維持を決める
  * - pending がなければ親からの `defaultValue` 変更を同期する
  * - Escape でキャンセル、Ctrl+Enter で確定
+ * - `options.emptyValue` を渡すと、空（""・null・undefined）の値を、`onBlur`・`onConfirm` に
+ *   渡すときにその値に置き換える（欄の optional・nullable に合わせた空の値。`emptyValueOf`）
  */
-export const useConfirmableState = <T,>(defaultValue: T, fieldPath: string) => {
+export const useConfirmableState = <T,>(
+  defaultValue: T,
+  fieldPath: string,
+  options: { emptyValue?: undefined | null } = {},
+) => {
   const reactiveForm = useReactiveFormContext();
+  const hasEmptyValue = "emptyValue" in options;
+  const emptyValue = options.emptyValue;
+  const toEventValue = (raw: T): unknown =>
+    hasEmptyValue && (raw === "" || raw === null || raw === undefined)
+      ? emptyValue
+      : raw;
   const baseValueRef = useRef(defaultValue);
   const valueRef = useRef(defaultValue);
   const [value, setValue] = useState(defaultValue);
@@ -88,8 +100,8 @@ export const useConfirmableState = <T,>(defaultValue: T, fieldPath: string) => {
 
     await reactiveForm.onConfirm?.({
       fieldPath,
-      value: nextValue,
-      previousValue,
+      value: toEventValue(nextValue),
+      previousValue: toEventValue(previousValue),
     });
 
     baseValueRef.current = nextValue;
@@ -118,8 +130,8 @@ export const useConfirmableState = <T,>(defaultValue: T, fieldPath: string) => {
     const previousValue = baseValueRef.current;
     const shouldConfirm = await reactiveForm.onBlur?.({
       fieldPath,
-      value: nextValue,
-      previousValue,
+      value: toEventValue(nextValue),
+      previousValue: toEventValue(previousValue),
     });
 
     if (shouldConfirm === true) {

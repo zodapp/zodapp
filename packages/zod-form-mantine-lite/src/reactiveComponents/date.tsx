@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import "dayjs/locale/ja.js";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptyValueOf, type ZodFormProps } from "@zodapp/zod-form-react/common";
 import { useZodFormContext } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
@@ -65,7 +65,9 @@ const DateComponent = React.memo(function DateComponent({
   }, [converter, defaultValue]);
 
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
-    useConfirmableState(pickerDefault, fieldPath);
+    useConfirmableState(pickerDefault, fieldPath, {
+      emptyValue: emptyValueOf({ optional, nullable }),
+    });
 
   if (readOnly) {
     return (

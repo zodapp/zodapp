@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { ActionIcon, Group, InputWrapper, Loader, Select } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptyValueOf, type ZodFormProps } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
   useExternalKeyAction,
@@ -37,7 +37,9 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
 
   const rawValue = (defaultValue as string | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
-    useConfirmableState(rawValue, fieldPath);
+    useConfirmableState(rawValue, fieldPath, {
+      emptyValue: emptyValueOf({ optional, nullable }),
+    });
   const actionWrapper = useExternalKeyAction(schema, value);
 
   // 選択肢に無い値は、zod-form-mantine の欄や表のセルと同じく「（不正な値）」と出す（生の値は見せない）。

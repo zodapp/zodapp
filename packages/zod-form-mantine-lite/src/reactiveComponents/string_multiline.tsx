@@ -1,6 +1,6 @@
 import React from "react";
 import { InputWrapper, Textarea } from "@mantine/core";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptyValueOf, type ZodFormProps } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { ReadonlyText } from "../utils/text";
@@ -35,7 +35,9 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
     onBlur,
     onCancel,
     onKeyDown,
-  } = useConfirmableState(rawValue, fieldPath);
+  } = useConfirmableState(rawValue, fieldPath, {
+    emptyValue: emptyValueOf({ optional, nullable }),
+  });
 
   if (readOnly) {
     return (

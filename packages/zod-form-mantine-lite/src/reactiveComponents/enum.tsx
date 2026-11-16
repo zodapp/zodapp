@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { InputWrapper, Select } from "@mantine/core";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptyValueOf, type ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import { renderBadge } from "../utils/selectOption";
@@ -40,7 +40,9 @@ const EnumComponent = React.memo(function EnumComponent({
 
   const rawValue = (defaultValue as string | number | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
-    useConfirmableState(rawValue, fieldPath);
+    useConfirmableState(rawValue, fieldPath, {
+      emptyValue: emptyValueOf({ optional, nullable }),
+    });
 
   const data = useEnumData(schema);
 
