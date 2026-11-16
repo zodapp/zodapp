@@ -25,6 +25,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   defaultValue,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly: readOnlyProp,
 }: ZodFormProps<ExternalKeySchema>) {
   const meta = getMeta(schema, "externalKey");
@@ -96,7 +97,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         data={[]}
         onChange={() => {}}
         label={label || undefined}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled
         rightSection={<Loader size="xs" />}
         placeholder="Loading..."
@@ -112,7 +113,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         data={[]}
         onChange={() => {}}
         label={label || undefined}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled
         placeholder="選択肢がありません"
         style={inputWrapperStyle}
@@ -128,7 +129,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
       onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
-      required={!optional}
+      required={!(optional || nullable)}
       allowDeselect
       clearable
       style={inputWrapperStyle}

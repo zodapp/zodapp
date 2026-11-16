@@ -23,12 +23,16 @@ const StringComponent = wrapComponent(function StringComponentImplement({
   field,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<StringSchema>) {
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta, formatter, suggestions } =
-    getMeta(schema, "string") ?? {};
+  const {
+    label: labelFromMeta,
+    formatter,
+    suggestions,
+  } = getMeta(schema, "string") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const suggestionData = normalizeStringSuggestions(suggestions);
 
@@ -56,43 +60,50 @@ const StringComponent = wrapComponent(function StringComponentImplement({
         labelElement="div"
         style={inputWrapperStyle}
       >
-        <WithValueAction wrapper={actionWrapper} label={label || undefined} align="center">
-          {value && formatter
-            ? renderComputedValue(formatter(value), "readOnly")
-            : <ReadonlyText>{value}</ReadonlyText>}
+        <WithValueAction
+          wrapper={actionWrapper}
+          label={label || undefined}
+          align="center"
+        >
+          {value && formatter ? (
+            renderComputedValue(formatter(value), "readOnly")
+          ) : (
+            <ReadonlyText>{value}</ReadonlyText>
+          )}
         </WithValueAction>
       </InputWrapper>
     );
   }
 
-  const input = suggestionData.length > 0 ? (
-    <Autocomplete
-      ref={ref}
-      value={value}
-      data={suggestionData}
-      onChange={onAutocompleteChange}
-      onBlur={field.onBlur}
-      onFocus={onFocus}
-      label={label || undefined}
-      error={error?.message}
-      required={!optional}
-      disabled={readOnly || field.disabled}
-      style={inputWrapperStyle}
-    />
-  ) : (
-    <TextInput
-      ref={ref}
-      value={value}
-      onChange={onChange}
-      onBlur={field.onBlur}
-      onFocus={onFocus}
-      label={label || undefined}
-      error={error?.message}
-      required={!optional}
-      disabled={readOnly || field.disabled}
-      style={inputWrapperStyle}
-    />
-  );
+  const input =
+    suggestionData.length > 0 ? (
+      <Autocomplete
+        ref={ref}
+        value={value}
+        data={suggestionData}
+        onChange={onAutocompleteChange}
+        onBlur={field.onBlur}
+        onFocus={onFocus}
+        label={label || undefined}
+        error={error?.message}
+        required={!(optional || nullable)}
+        disabled={readOnly || field.disabled}
+        style={inputWrapperStyle}
+      />
+    ) : (
+      <TextInput
+        ref={ref}
+        value={value}
+        onChange={onChange}
+        onBlur={field.onBlur}
+        onFocus={onFocus}
+        label={label || undefined}
+        error={error?.message}
+        required={!(optional || nullable)}
+        disabled={readOnly || field.disabled}
+        style={inputWrapperStyle}
+      />
+    );
 
   return (
     <WithValueAction wrapper={actionWrapper} label={label || undefined}>

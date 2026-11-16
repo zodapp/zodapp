@@ -16,6 +16,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   schema,
   defaultValue,
   optional,
+  nullable,
   readOnly,
   label: labelFromParent,
   error,
@@ -45,6 +46,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
         schema={itemSchema as z.ZodTypeAny}
         defaultValue={defaultArray[index]}
         optional={optional}
+        nullable={nullable}
         readOnly={readOnly}
         label={getMeta(itemSchema)?.label ?? false}
       />
@@ -54,7 +56,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={!optional}
+      required={!(optional || nullable)}
       error={error?.message}
       labelElement="div"
       style={inputWrapperStyle}

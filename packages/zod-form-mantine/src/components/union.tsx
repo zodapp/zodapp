@@ -227,6 +227,7 @@ const UnionBody = React.memo(function UnionBody({
   fieldPath,
   schema,
   optional,
+  nullable,
   readOnly,
   label,
   selectorLabel,
@@ -240,6 +241,7 @@ const UnionBody = React.memo(function UnionBody({
   fieldPath: string;
   schema: UnionSchema;
   optional: boolean | undefined;
+  nullable: boolean | undefined;
   readOnly: boolean | undefined;
   label: string | false | undefined;
   selectorLabel: string | undefined;
@@ -535,7 +537,7 @@ const UnionBody = React.memo(function UnionBody({
 
       if (
         id &&
-        optional === true &&
+        Boolean(optional || nullable) &&
         compiledOptions.hasDiscriminator &&
         id === selectedProfile?.value
       ) {
@@ -592,6 +594,7 @@ const UnionBody = React.memo(function UnionBody({
       formValue,
       accessor,
       optional,
+      nullable,
       selectedProfile,
       runAsUserEdit,
     ],
@@ -620,10 +623,10 @@ const UnionBody = React.memo(function UnionBody({
             onFocus={onFocus}
             label={selectorLabel ?? "タイプ"}
             error={undefined}
-            required={!optional}
+            required={!(optional || nullable)}
             disabled={selectorIsReadOnly}
-            allowDeselect={optional === true}
-            clearable={optional === true}
+            allowDeselect={Boolean(optional || nullable)}
+            clearable={Boolean(optional || nullable)}
           />
         ))}
       {selectedProfile?.schema && (
@@ -635,6 +638,7 @@ const UnionBody = React.memo(function UnionBody({
                 schema={selectedProfile.schema}
                 defaultValue={dynamicDefaultValue}
                 optional={undefined}
+                nullable={undefined}
                 readOnly={readOnly}
                 label={false}
               />
@@ -646,6 +650,7 @@ const UnionBody = React.memo(function UnionBody({
               schema={selectedProfile.schema}
               defaultValue={dynamicDefaultValue}
               optional={undefined}
+              nullable={undefined}
               readOnly={readOnly}
               label={false}
             />
@@ -676,6 +681,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   fieldPath,
   schema,
   optional,
+  nullable,
   readOnly,
   label: labelFromParent,
   field,
@@ -695,6 +701,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     fieldPath,
     schema,
     optional,
+    nullable,
     readOnly,
     label,
     selectorLabel,

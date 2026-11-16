@@ -12,7 +12,10 @@ import {
   useValidatePrecedingFields,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type BigIntSchema = ReturnType<typeof zf.bigint>;
 
@@ -21,6 +24,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
   field,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<BigIntSchema>) {
@@ -101,7 +105,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={!optional}
+      required={!(optional || nullable)}
       disabled={readOnly || field.disabled}
       inputMode="numeric"
       pattern="-?\\d*"

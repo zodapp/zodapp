@@ -16,6 +16,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = wrapComponent(
     field,
     label: labelFromParent,
     optional,
+    nullable,
     error,
   }: ZodFormInternalProps<LiteralSchema>) {
     const { label: labelFromMeta } = getMeta(schema) ?? {};
@@ -27,7 +28,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = wrapComponent(
       <Input.Wrapper
         label={label ?? undefined}
         error={error?.message}
-        required={!optional}
+        required={!(optional || nullable)}
         style={inputWrapperStyle}
       >
         <Text size="sm" c="dimmed">

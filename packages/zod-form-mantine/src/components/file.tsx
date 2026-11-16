@@ -43,6 +43,7 @@ const FileComponent = wrapComponent(function FileComponentImplement({
   schema,
   label: labelFromParent,
   optional: _optional,
+  nullable: _nullable,
   readOnly,
   field,
   error,

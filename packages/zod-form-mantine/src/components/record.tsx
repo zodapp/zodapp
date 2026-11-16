@@ -13,9 +13,7 @@ type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
 const joinFieldPath = (fieldPath: string, key: string) => {
   return (
-    fieldPath +
-    (fieldPath === "" || fieldPath.endsWith(".") ? "" : ".") +
-    key
+    fieldPath + (fieldPath === "" || fieldPath.endsWith(".") ? "" : ".") + key
   );
 };
 
@@ -43,6 +41,7 @@ const RecordComponent = wrapComponent(
           schema={valueSchema}
           defaultValue={value?.[key]}
           optional={undefined}
+          nullable={undefined}
           readOnly={readOnly}
           label={key}
         />

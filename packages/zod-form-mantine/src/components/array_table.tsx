@@ -348,6 +348,7 @@ const ArrayTableComponent = wrapComponent(
     fieldPath,
     schema,
     optional,
+    nullable,
     readOnly,
     label: labelFromParent,
     field,
@@ -454,7 +455,7 @@ const ArrayTableComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={!optional}
+        required={!(optional || nullable)}
         error={error?.message}
         labelElement="div"
         style={inputWrapperStyle}
@@ -591,6 +592,7 @@ const ArrayTableComponent = wrapComponent(
                                       column.propertyName,
                                     ),
                                     optional: undefined,
+                                    nullable: undefined,
                                     readOnly,
                                     label: false as const,
                                   };

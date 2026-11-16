@@ -21,6 +21,7 @@ const BooleanSelectComponent = wrapComponent(
     schema,
     label: labelFromParent,
     optional,
+    nullable,
     readOnly,
     field,
     error,
@@ -32,7 +33,7 @@ const BooleanSelectComponent = wrapComponent(
     } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const isOptional = optional === true;
+    const isOptional = Boolean(optional || nullable);
 
     const data = useMemo(
       () => [
@@ -67,7 +68,11 @@ const BooleanSelectComponent = wrapComponent(
     );
 
     const displayLabel =
-      field.value === true ? trueLabel : field.value === false ? falseLabel : "";
+      field.value === true
+        ? trueLabel
+        : field.value === false
+          ? falseLabel
+          : "";
 
     if (readOnly || field.disabled) {
       return (

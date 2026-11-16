@@ -37,6 +37,7 @@ const DateComponent = React.memo(function DateComponent({
   defaultValue,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly: readOnlyProp,
 }: ZodFormProps<DateSchema>) {
   const { timezone } = useZodFormContext();
@@ -86,7 +87,7 @@ const DateComponent = React.memo(function DateComponent({
       valueFormat={valueFormat}
       locale="ja"
       label={label || undefined}
-      required={!optional}
+      required={!(optional || nullable)}
       clearable
       style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel, {

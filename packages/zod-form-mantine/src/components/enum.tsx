@@ -25,6 +25,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   schema,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly,
   field,
   error,
@@ -93,7 +94,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   );
   // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
   const errorMessage = showUnlisted
-    ? optional === true
+    ? Boolean(optional || nullable)
       ? "選択肢に無い値です。選び直すか、消してください。"
       : "選択肢に無い値です。選び直してください。"
     : error?.message;
@@ -139,11 +140,11 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         label={label || undefined}
         placeholder={emptyMessage ?? "選択肢がありません"}
         error={
-          emptyMessage !== undefined && !optional
+          emptyMessage !== undefined && !(optional || nullable)
             ? error?.message
             : undefined
         }
-        required={!optional}
+        required={!(optional || nullable)}
         disabled={true}
         style={inputWrapperStyle}
       />
@@ -163,7 +164,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
           onFocus={onFocus}
           label={label || undefined}
           error={errorMessage}
-          required={!optional}
+          required={!(optional || nullable)}
           disabled={readOnly || field.disabled}
           style={inputWrapperStyle}
         />
@@ -183,7 +184,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         label={label || undefined}
         searchable={true}
         error={errorMessage}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
         allowDeselect={true}
         clearable={true}

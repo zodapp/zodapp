@@ -21,6 +21,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
   schema,
   defaultValue,
   optional,
+  nullable,
   readOnly: readOnlyProp,
   label: labelFromParent,
 }: ZodFormProps<ObjectSchema>) {
@@ -63,6 +64,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
             schema={property.schema}
             defaultValue={fieldDefaultValue}
             optional={undefined}
+            nullable={undefined}
             readOnly={readOnly}
           />
         </div>

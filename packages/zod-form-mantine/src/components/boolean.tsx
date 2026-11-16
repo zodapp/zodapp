@@ -14,6 +14,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   schema,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly,
   field,
   error,
@@ -33,7 +34,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
     onBlur: field.onBlur,
     onChange: onChange,
     onFocus: onFocus,
-    required: !optional,
+    required: !(optional || nullable),
     disabled: readOnly || field.disabled,
   };
 
@@ -53,7 +54,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={!optional}
+      required={!(optional || nullable)}
       error={error?.message}
       style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
@@ -63,7 +64,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
           size="md"
           ref={ref}
           {...commonSwitchProps}
-          required={!optional}
+          required={!(optional || nullable)}
         />
       </div>
     </InputWrapper>

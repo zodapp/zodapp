@@ -6,7 +6,10 @@ import {
   useValidatePrecedingFields,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+} from "@zodapp/zod-form-mantine-lite/utils";
 import z from "zod";
 
 type StringSchema = z.ZodString;
@@ -17,6 +20,7 @@ const StringPasswordComponent = wrapComponent(
     field,
     label: labelFromParent,
     optional,
+    nullable,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
@@ -25,10 +29,7 @@ const StringPasswordComponent = wrapComponent(
     const label = labelFromParent ?? labelFromMeta;
     const value = typeof field.value === "string" ? field.value : "";
 
-    const maskedValue = useMemo(
-      () => "●".repeat(value.length),
-      [value.length],
-    );
+    const maskedValue = useMemo(() => "●".repeat(value.length), [value.length]);
 
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +59,7 @@ const StringPasswordComponent = wrapComponent(
         onFocus={onFocus}
         label={label || undefined}
         error={error?.message}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
         style={inputWrapperStyle}
       />

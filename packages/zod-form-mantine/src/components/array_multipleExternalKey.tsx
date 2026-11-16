@@ -27,18 +27,26 @@ const ArrayOfExternalKeyComponent = React.memo(
   function ArrayOfExternalKeyComponent(
     props: ZodFormProps<ArrayOfExternalKeySchema>,
   ) {
-    const { fieldPath, schema, optional, label: labelFromParent } = props;
+    const {
+      fieldPath,
+      schema,
+      optional,
+      nullable,
+      label: labelFromParent,
+    } = props;
     const label = labelFromParent ?? getMeta(schema)?.label;
     const dynamicMeta = useArrayExternalKeyDynamicMeta(schema);
     const depth = useDynamicDepth(fieldPath);
-    const state = useDynamicSchema(dynamicMeta, fieldPath, { optional });
+    const state = useDynamicSchema(dynamicMeta, fieldPath, {
+      optional: optional || nullable,
+    });
 
     const loadingView = (status?: "loading" | "pending") => (
       <MultiSelect
         value={[]}
         data={[]}
         label={label || undefined}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled={true}
         rightSection={<Loader size="xs" />}
         placeholder="読み込み中"

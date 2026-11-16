@@ -14,6 +14,7 @@ const BooleanCheckboxComponent = wrapComponent(
     schema,
     label: labelFromParent,
     optional,
+    nullable,
     readOnly,
     field,
     error,
@@ -38,7 +39,7 @@ const BooleanCheckboxComponent = wrapComponent(
         onFocus={onFocus}
         label={label || undefined}
         error={error?.message}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
         style={{
           marginBottom: 6,

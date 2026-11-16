@@ -49,6 +49,7 @@ const RecordEntriesComponent = wrapComponent(
     schema,
     defaultValue,
     optional,
+    nullable,
     readOnly,
     label: labelFromParent,
     error,
@@ -173,6 +174,7 @@ const RecordEntriesComponent = wrapComponent(
                   schema={valueSchema}
                   defaultValue={value[row.key]}
                   optional={undefined}
+                  nullable={undefined}
                   readOnly={readOnly}
                   label="値"
                 />
@@ -212,7 +214,7 @@ const RecordEntriesComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={!optional}
+        required={!(optional || nullable)}
         error={error?.message}
         labelElement="div"
         style={inputWrapperStyle}

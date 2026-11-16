@@ -7,7 +7,10 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
 import { $ZodCheckMultipleOfDef } from "zod/v4/core";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -16,6 +19,7 @@ const NumberSliderComponent = wrapComponent(
     schema,
     label: labelFromParent,
     optional,
+    nullable,
     readOnly,
     field,
     error,
@@ -45,7 +49,7 @@ const NumberSliderComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={!optional}
+        required={!(optional || nullable)}
         error={error?.message}
         style={{ ...inputWrapperStyle, marginBottom: 10 }}
         labelElement="div"

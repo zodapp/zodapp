@@ -126,6 +126,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   fieldPath,
   schema,
   optional,
+  nullable,
   readOnly,
   label: labelFromParent,
   field,
@@ -151,10 +152,14 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   const canRemove = value && value.length > (minLength?.minimum ?? 0);
   const label = labelFromParent ?? labelFromMeta;
 
-  const { items, insert, remove, append, move, error: arrayError } = useArray(
-    field.api,
-    discriminator,
-  );
+  const {
+    items,
+    insert,
+    remove,
+    append,
+    move,
+    error: arrayError,
+  } = useArray(field.api, discriminator);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -190,6 +195,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       // 配列自体のoptional性は要素へ伝播させない。
       // 要素のoptional性はitemSchema（ZodOptional）だけで決まる。
       optional: undefined,
+      nullable: undefined,
       readOnly,
       label: false as const,
     };
@@ -326,7 +332,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={!optional}
+      required={!(optional || nullable)}
       error={arrayError?.message}
       labelElement="div"
       style={inputWrapperStyle}

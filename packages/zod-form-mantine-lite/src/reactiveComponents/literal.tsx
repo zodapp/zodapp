@@ -6,27 +6,30 @@ import { inputWrapperStyle } from "../utils/styles";
 
 type LiteralSchema = ReturnType<typeof zf.literal>;
 
-const LiteralComponent: ZodForm<LiteralSchema> = React.memo(function LiteralComponent({
-  schema,
-  defaultValue,
-  label: labelFromParent,
-  optional,
-}: ZodFormProps<LiteralSchema>) {
-  const { label: labelFromMeta } = getMeta(schema) ?? {};
-  const label = labelFromParent ?? labelFromMeta;
+const LiteralComponent: ZodForm<LiteralSchema> = React.memo(
+  function LiteralComponent({
+    schema,
+    defaultValue,
+    label: labelFromParent,
+    optional,
+    nullable,
+  }: ZodFormProps<LiteralSchema>) {
+    const { label: labelFromMeta } = getMeta(schema) ?? {};
+    const label = labelFromParent ?? labelFromMeta;
 
-  return (
-    <Input.Wrapper
-      label={label ?? undefined}
-      required={!optional}
-      style={inputWrapperStyle}
-    >
-      <Text size="sm" c="dimmed">
-        {String(defaultValue)}
-      </Text>
-    </Input.Wrapper>
-  );
-});
+    return (
+      <Input.Wrapper
+        label={label ?? undefined}
+        required={!(optional || nullable)}
+        style={inputWrapperStyle}
+      >
+        <Text size="sm" c="dimmed">
+          {String(defaultValue)}
+        </Text>
+      </Input.Wrapper>
+    );
+  },
+);
 
 LiteralComponent.displayName = "ReactiveLiteralComponent";
 

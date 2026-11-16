@@ -6,7 +6,11 @@ import {
   useValidatePrecedingFields,
 } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+  renderComputedValue,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -26,6 +30,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
   field,
   label: labelFromParent,
   optional,
+  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<NumberSchema>) {
@@ -55,9 +60,11 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
         labelElement="div"
         style={inputWrapperStyle}
       >
-        {value !== undefined && formatter
-          ? renderComputedValue(formatter(value), "readOnly")
-          : <ReadonlyText>{value}</ReadonlyText>}
+        {value !== undefined && formatter ? (
+          renderComputedValue(formatter(value), "readOnly")
+        ) : (
+          <ReadonlyText>{value}</ReadonlyText>
+        )}
       </InputWrapper>
     );
   }
@@ -71,7 +78,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={!optional}
+      required={!(optional || nullable)}
       disabled={readOnly || field.disabled}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}

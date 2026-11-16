@@ -23,12 +23,16 @@ const StringMultilineComponent = wrapComponent(
     field,
     label: labelFromParent,
     optional,
+    nullable,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter, suggestions } =
-      getMeta(schema, "string") ?? {};
+    const {
+      label: labelFromMeta,
+      formatter,
+      suggestions,
+    } = getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const suggestionData = normalizeStringSuggestions(suggestions);
 
@@ -76,7 +80,7 @@ const StringMultilineComponent = wrapComponent(
           onFocus={onFocus}
           label={label || undefined}
           error={error?.message}
-          required={!optional}
+          required={!(optional || nullable)}
           disabled={readOnly || field.disabled}
           style={inputWrapperStyle}
           autosize

@@ -50,6 +50,7 @@ const ArrayOfEnumComponent = wrapComponent(
     schema,
     label: labelFromParent,
     optional,
+    nullable,
     readOnly,
     field,
     error,
@@ -274,7 +275,7 @@ const ArrayOfEnumComponent = wrapComponent(
           label={label || undefined}
           placeholder={emptyMessage ?? "選択肢がありません"}
           error={error?.message}
-          required={!optional}
+          required={!(optional || nullable)}
           disabled={true}
           style={inputWrapperStyle}
         />
@@ -294,7 +295,7 @@ const ArrayOfEnumComponent = wrapComponent(
         label={label || undefined}
         placeholder={data.length === 0 ? emptyMessage : undefined}
         error={errorMessage}
-        required={!optional}
+        required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
         clearable={true}
         searchable={true}
