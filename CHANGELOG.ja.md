@@ -14,3 +14,7 @@
 - zod-form-widget: AutoForm を `<form>` 要素で包み、入力欄で Enter を押すと送信できるようにした。Enter で押されるのは、最初の `type: "submit"` のアクション（`onSubmit` prop の送信ボタンを含む）で、そのボタンは HTML の `type="submit"` で描く。`custom` のアクションを Enter の対象にするときは、ボタンに `type="submit"` を付ける。**振る舞いの変更**：送信ボタンのある AutoForm では、テキスト欄で Enter を押すと送信されるようになる（テキストエリアは改行のまま）
 - zod-form-widget: AutoForm に `actionsPosition`（`"top"` | `"bottom"`、既定は `"top"`）を追加し、ボタンの行を入力欄の下にも置けるようにした
 - taskmanager・survey: ログイン・新規登録・確認コード・パスワード再設定の画面で、ボタンを入力欄の下に横幅いっぱいで置くようにした
+- zod-form-mantine: `uiType: "badge"` の enum で、選択肢だけでなく選択済みの値もバッジで出すようにした。ドロップダウンを開いている間は文字入力になり（選択済みのラベルを placeholder に出す）、打ち込んだ文字で絞り込む。打ち込んだ文字が選択済みのラベルに足されることもなくなった。読み取り専用表示もバッジにした。`@zodapp/zod-form-mantine-lite/utils` に追加した `BadgeSelect` で組んでいる
+- zod-form-mantine: `uiType: "multipleEnumBadge"` で、選択済みの値も × で外せるバッジで出し、読み取り専用表示もバッジにした
+- zod-form-mantine: **破壊的変更**：`uiType: "multipleEnumBudge"` を `"multipleEnumBadge"` に改名（旧綴りは認識しない）
+- zod-form-mantine-lite: バッジ（enum の選択肢・選択済み・読み取り専用、複数選択、表の computed のバッジ）の文字色を背景色から決めるようにした。濃さ付きのテーマ色（`"blue.6"`）や RGB（`#3b82f6`・`rgb()`・`hsl()`）の指定では、背景をその色そのものにし、文字は同じ色相で背景より暗い色（OKLCH の明るさを 0.45 下げた色）、暗い背景や白の方が見やすい背景では白にする。濃さなしのテーマ色（`"blue"`）は今の Mantine の `light` のまま。`@zodapp/zod-form-mantine-lite/utils` に `ColorBadge`・`computeBadgeColors` を追加
