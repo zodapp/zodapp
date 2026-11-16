@@ -11,6 +11,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useRunAsUserEdit,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -97,14 +98,15 @@ const ArrayOfEnumComponent = wrapComponent(
           : [],
       [field.value],
     );
+    const emptyValue = emptyValueOf({ optional, nullable });
     const fromOptionValues = useCallback(
       (next: string[]) =>
         next.length === 0
-          ? undefined
+          ? emptyValue
           : allowUnlisted
             ? next
             : next.map((item) => fromEnumOptionValue(enumSchema, item)),
-      [allowUnlisted, enumSchema],
+      [allowUnlisted, enumSchema, emptyValue],
     );
     const onChange = useCallback(
       (next: string[] | null | undefined) => {
