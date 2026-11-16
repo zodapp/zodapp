@@ -769,10 +769,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
-                <Switch
-                  fieldPath="payload"
-                  schema={toolSchema.optional()}
-                />
+                <Switch fieldPath="payload" schema={toolSchema.optional()} />
               </Suspense>
             </FormProvider>
           </ZodFormContextProvider>
