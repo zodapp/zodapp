@@ -3,22 +3,21 @@
  *
  * モジュールの形は、メニューに出るデモ（../index.ts の formSchemas）と同じ。
  * 詳細ページ（/form/detail?formId=…）からは開けるが、サイドバー・一覧・トップには出さない。
- * formId は `e2e-` で始める
+ * formId は `e2e-` で始める。
+ *
+ * e2e で確かめたいことは、まず重なるデモページに置く（「動きを試す」の枠に操作をまとめる）。
+ * ここに置くのは、デモに向かないものだけ（わざと不正な値や古い形の初期値を持つ e2e-open-rewrite）
  */
 import * as e2eOpenRewrite from "./e2eOpenRewrite";
-import * as e2eTable from "./e2eTable";
 
 import e2eOpenRewriteCode from "./e2eOpenRewrite.tsx?raw";
-import e2eTableCode from "./e2eTable.tsx?raw";
 
 export const e2eSchemas = {
   [e2eOpenRewrite.formId]: e2eOpenRewrite,
-  [e2eTable.formId]: e2eTable,
 } as const;
 
 export const e2eCodes: Record<keyof typeof e2eSchemas, string> = {
   [e2eOpenRewrite.formId]: e2eOpenRewriteCode,
-  [e2eTable.formId]: e2eTableCode,
 };
 
 export type E2eFormId = keyof typeof e2eSchemas;
