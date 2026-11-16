@@ -42,7 +42,7 @@ export const componentLibrary: ComponentLibrary = {
   array_table: (() => import("./array_table.js")) as DynamicZodFormDef,
   array_multipleEnum: (() =>
     import("./array_multipleEnum.js")) as DynamicZodFormDef,
-  array_multipleEnumBudge: (() =>
+  array_multipleEnumBadge: (() =>
     import("./array_multipleEnum.js")) as DynamicZodFormDef,
   array_multipleExternalKey: (() =>
     import("./array_multipleExternalKey.js")) as DynamicZodFormDef,

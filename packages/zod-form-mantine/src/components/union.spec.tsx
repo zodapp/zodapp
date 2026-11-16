@@ -1040,3 +1040,211 @@ describe("UnionComponent top-level discriminatedUnion", () => {
     expect(screen.queryByRole("textbox", { name: "URL" })).toBeNull();
   });
 });
+
+describe("UnionComponent union without discriminator", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupDomMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  // form-demo の zf.union のページと同じ形：文字列の腕と、literal の type を持つ object の腕
+  const contactSchema = zf
+    .union([
+      z
+        .email("有効なメールアドレスを入力してください")
+        .register(zf.string.registry, { label: "メールアドレス" }),
+      zf
+        .object({
+          type: zf
+            .literal("phone")
+            .register(zf.literal.registry, { hidden: true }),
+          phone: zf
+            .string()
+            .min(10, "10桁以上で入力してください")
+            .register(zf.string.registry, { label: "電話番号" }),
+        })
+        .register(zf.object.registry, { label: "電話" }),
+      zf
+        .object({
+          type: zf
+            .literal("address")
+            .register(zf.literal.registry, { hidden: true }),
+          address: zf.string().register(zf.string.registry, { label: "住所" }),
+        })
+        .register(zf.object.registry, { label: "住所" }),
+    ])
+    .register(zf.union.registry, {
+      label: "連絡先",
+      selectorLabel: "連絡先タイプ",
+    });
+
+  const schema = z
+    .object({ contact: contactSchema })
+    .register(zf.object.registry, { properties: ["contact"] });
+
+  const renderPlainUnion = (
+    defaultValues: unknown,
+    options: {
+      onSubmit?: (value: unknown) => void;
+      formRef?: { current: AnyFormApi | undefined };
+    } = {},
+  ) => {
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: defaultValues as z.input<typeof schema>,
+        onSubmit: ({ value }) => options.onSubmit?.(value),
+        validators: {
+          onChange: schema,
+          onBlur: schema,
+          onSubmit: schema,
+        },
+      });
+      if (options.formRef) {
+        options.formRef.current = form as unknown as AnyFormApi;
+      }
+
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              hidden: () => ({ component: HiddenComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+    return render(<FormUnderTest />);
+  };
+
+  const selectorValue = () =>
+    (
+      document.querySelector(
+        "input.mantine-Select-input",
+      ) as HTMLInputElement | null
+    )?.value;
+
+  it("shows the fields of an object arm right after selecting it", async () => {
+    renderPlainUnion({ contact: "user@example.com" });
+    expect(screen.getByDisplayValue("user@example.com")).toBeTruthy();
+
+    await openAndSelect("電話");
+
+    await waitFor(() => {
+      expect(selectorValue()).toBe("電話");
+      expect(screen.getByRole("textbox", { name: "電話番号" })).toBeTruthy();
+    });
+    expect(screen.queryByDisplayValue("user@example.com")).toBeNull();
+  });
+
+  it("keeps the selected arm while its fields are partially filled", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPlainUnion({ contact: "user@example.com" }, { formRef });
+
+    await openAndSelect("電話");
+    const phone = await screen.findByRole("textbox", { name: "電話番号" });
+    fireEvent.change(phone, { target: { value: "090" } });
+
+    await waitFor(() => {
+      expect(formRef.current?.state.values).toEqual({
+        contact: { type: "phone", phone: "090" },
+      });
+    });
+    expect(selectorValue()).toBe("電話");
+    expect(screen.getByRole("textbox", { name: "電話番号" })).toBeTruthy();
+  });
+
+  it("can switch back to the string arm", async () => {
+    renderPlainUnion({ contact: "user@example.com" });
+
+    await openAndSelect("電話");
+    await screen.findByRole("textbox", { name: "電話番号" });
+    await openAndSelect("メールアドレス");
+
+    await waitFor(() => {
+      expect(selectorValue()).toBe("メールアドレス");
+      // 腕の欄はラベルなしで描画される（union の Fieldset がラベルを持つ）
+      expect(screen.getAllByRole("textbox")).toHaveLength(1);
+    });
+    expect(screen.queryByRole("textbox", { name: "電話番号" })).toBeNull();
+  });
+
+  it("does not show errors right after switching arms", async () => {
+    renderPlainUnion({ contact: "user@example.com" });
+
+    await openAndSelect("電話");
+    await screen.findByRole("textbox", { name: "電話番号" });
+
+    expect(screen.queryByText("10桁以上で入力してください")).toBeNull();
+  });
+
+  it("shows the selected arm's errors on submit", async () => {
+    const onSubmit = vi.fn();
+    renderPlainUnion({ contact: "user@example.com" }, { onSubmit });
+
+    await openAndSelect("電話");
+    const phone = await screen.findByRole("textbox", { name: "電話番号" });
+    fireEvent.change(phone, { target: { value: "090" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("10桁以上で入力してください")).toBeTruthy();
+    });
+    expect(selectorValue()).toBe("電話");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("follows the value when it is changed from outside to another arm", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderPlainUnion({ contact: "user@example.com" }, { formRef });
+
+    await openAndSelect("電話");
+    await screen.findByRole("textbox", { name: "電話番号" });
+
+    formRef.current?.setFieldValue("contact", {
+      type: "address",
+      address: "東京都",
+    });
+
+    await waitFor(() => {
+      expect(selectorValue()).toBe("住所");
+      expect(screen.getByDisplayValue("東京都")).toBeTruthy();
+    });
+  });
+
+  it("guesses the arm from its literal field when the initial value fits no arm", async () => {
+    renderPlainUnion({ contact: { type: "phone" } });
+
+    await waitFor(() => {
+      expect(selectorValue()).toBe("電話");
+      expect(screen.getByRole("textbox", { name: "電話番号" })).toBeTruthy();
+    });
+  });
+
+  it("leaves the selector empty when no arm can be determined", async () => {
+    renderPlainUnion({ contact: { type: "fax" } });
+
+    await waitFor(() => {
+      expect(document.querySelector("input.mantine-Select-input")).toBeTruthy();
+    });
+    expect(selectorValue()).toBe("");
+    expect(screen.queryByRole("textbox", { name: "電話番号" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "住所" })).toBeNull();
+  });
+});

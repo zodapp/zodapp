@@ -3,7 +3,8 @@ import { InputWrapper, Select } from "@mantine/core";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
-import { renderSelectOption } from "../utils/selectOption";
+import { renderBadge } from "../utils/selectOption";
+import { BadgeSelect } from "../utils/badgeSelect";
 import {
   useEnumData,
   toEnumOptionValue,
@@ -12,11 +13,15 @@ import {
 import {
   useConfirmableState,
   confirmableRightSectionProps,
+  ConfirmableInputActions,
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../utils/styles";
 import { UNLISTED_LABEL, withUnlistedOption } from "../utils/unlisted";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
+
+/** 確定・取消ボタン 2 つ分の幅（confirmableRightSectionProps の BASE_WIDTH と同じ） */
+const CONFIRM_ACTIONS_WIDTH = 64;
 
 const EnumComponent = React.memo(function EnumComponent({
   schema,
@@ -48,11 +53,14 @@ const EnumComponent = React.memo(function EnumComponent({
     [data, optionValue],
   );
 
+  const isBadge = uiType === "badge";
   const displayLabel = useMemo(() => {
     if (optionValue === null) return "";
-    const option = selectData.find((d) => d.value === optionValue);
-    return option?.label ?? UNLISTED_LABEL;
-  }, [selectData, optionValue]);
+    const option = data.find((d) => d.value === optionValue);
+    if (!option) return UNLISTED_LABEL;
+    // badge は選択肢の色でバッジにする（選択肢に無い値は「（不正な値）」の文字のまま）
+    return isBadge ? renderBadge(option) : option.label;
+  }, [data, optionValue, isBadge]);
 
   if (readOnly) {
     return (
@@ -66,11 +74,34 @@ const EnumComponent = React.memo(function EnumComponent({
     );
   }
 
+  // badge は選択済みの値もバッジで出す（Select は選択済みの値の描画を差し替えられない）
+  if (isBadge) {
+    return (
+      <BadgeSelect
+        value={optionValue}
+        data={selectData}
+        onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
+        onBlur={() => void onBlur()}
+        label={label || undefined}
+        required={required !== false}
+        style={inputWrapperStyle}
+        actions={
+          hasPendingChange ? (
+            <ConfirmableInputActions
+              onConfirm={() => void onConfirm()}
+              onCancel={onCancel}
+            />
+          ) : undefined
+        }
+        actionsWidth={hasPendingChange ? CONFIRM_ACTIONS_WIDTH : 0}
+      />
+    );
+  }
+
   return (
     <Select
       value={optionValue}
       data={selectData}
-      renderOption={uiType === "badge" ? renderSelectOption : undefined}
       onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
       onBlur={() => void onBlur()}
       label={label || undefined}

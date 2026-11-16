@@ -1,9 +1,10 @@
 import React from "react";
-import { ActionIcon, Anchor, Badge, Group, Text, Title } from "@mantine/core";
+import { ActionIcon, Anchor, Group, Text, Title } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
 import { isElement } from "react-is";
 import type { ComputedValue } from "@zodapp/zod-form";
 import { ReadonlyText } from "./text";
+import { ColorBadge } from "./selectOption";
 
 export type RenderComputedValueVariant = "table" | "readOnly";
 type LinkComputedValue = { type: "link"; label: string; href: string };
@@ -81,9 +82,7 @@ export function renderComputedFieldValue(content: unknown): React.ReactNode {
   return <Text component="div">{renderComputedValue(content)}</Text>;
 }
 
-function getLinkValue(
-  content: unknown,
-): LinkComputedValue | undefined {
+function getLinkValue(content: unknown): LinkComputedValue | undefined {
   if (
     typeof content !== "object" ||
     content === null ||
@@ -127,11 +126,7 @@ function renderStructured(content: unknown): React.ReactNode {
 
   if (obj.type === "badge") {
     const { label, color } = obj as Extract<ComputedValue, { type: "badge" }>;
-    return (
-      <Badge color={color} variant="light">
-        {label}
-      </Badge>
-    );
+    return <ColorBadge color={color}>{label}</ColorBadge>;
   }
 
   if (obj.type === "icon") {

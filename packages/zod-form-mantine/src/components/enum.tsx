@@ -9,7 +9,8 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
-  renderSelectOption,
+  BadgeSelect,
+  renderBadge,
   useEnumData,
   toEnumOptionValue,
   fromEnumOptionValue,
@@ -28,8 +29,12 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   field,
   error,
 }: ZodFormInternalProps<EnumSchema>) {
-  const { label: labelFromMeta, uiType, unlisted, emptyMessage } =
-    getMeta(schema) ?? {};
+  const {
+    label: labelFromMeta,
+    uiType,
+    unlisted,
+    emptyMessage,
+  } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 
@@ -87,18 +92,20 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
     [data, showUnlisted, optionValue],
   );
   // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
-  const errorMessage =
-    showUnlisted
-      ? required === false
-        ? "選択肢に無い値です。選び直すか、消してください。"
-        : "選択肢に無い値です。選び直してください。"
-      : error?.message;
+  const errorMessage = showUnlisted
+    ? required === false
+      ? "選択肢に無い値です。選び直すか、消してください。"
+      : "選択肢に無い値です。選び直してください。"
+    : error?.message;
 
+  const isBadge = uiType === "badge";
   const displayLabel = useMemo(() => {
     if (optionValue === null) return "";
     const option = selectData.find((d) => d.value === optionValue);
+    // badge は選択肢の色でバッジにする（選択肢に無い値は文字のまま）
+    if (isBadge && option) return renderBadge(option);
     return option?.label ?? optionValue;
-  }, [selectData, optionValue]);
+  }, [selectData, optionValue, isBadge]);
 
   if (readOnly || field.disabled) {
     return (
@@ -107,7 +114,11 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         labelElement="div"
         style={inputWrapperStyle}
       >
-        <WithValueAction wrapper={actionWrapper} label={label || undefined} align="center">
+        <WithValueAction
+          wrapper={actionWrapper}
+          label={label || undefined}
+          align="center"
+        >
           <ReadonlyText>{displayLabel}</ReadonlyText>
         </WithValueAction>
       </InputWrapper>
@@ -139,24 +150,44 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
     );
   }
 
+  // badge は選択済みの値もバッジで出す（Select は選択済みの値の描画を差し替えられない）
+  if (isBadge) {
+    return (
+      <WithValueAction wrapper={actionWrapper} label={label || undefined}>
+        <BadgeSelect
+          inputRef={ref}
+          value={optionValue}
+          data={selectData}
+          onChange={onChange}
+          onBlur={field.onBlur}
+          onFocus={onFocus}
+          label={label || undefined}
+          error={errorMessage}
+          required={required !== false}
+          disabled={readOnly || field.disabled}
+          style={inputWrapperStyle}
+        />
+      </WithValueAction>
+    );
+  }
+
   return (
     <WithValueAction wrapper={actionWrapper} label={label || undefined}>
       <Select
-      ref={ref}
-      value={optionValue}
-      data={selectData}
-      renderOption={uiType === "badge" ? renderSelectOption : undefined}
-      onChange={onChange}
-      onBlur={field.onBlur}
-      onFocus={onFocus}
-      label={label || undefined}
-      searchable={true}
-      error={errorMessage}
-      required={required !== false}
-      disabled={readOnly || field.disabled}
-      allowDeselect={true}
-      clearable={true}
-      style={inputWrapperStyle}
+        ref={ref}
+        value={optionValue}
+        data={selectData}
+        onChange={onChange}
+        onBlur={field.onBlur}
+        onFocus={onFocus}
+        label={label || undefined}
+        searchable={true}
+        error={errorMessage}
+        required={required !== false}
+        disabled={readOnly || field.disabled}
+        allowDeselect={true}
+        clearable={true}
+        style={inputWrapperStyle}
       />
     </WithValueAction>
   );
