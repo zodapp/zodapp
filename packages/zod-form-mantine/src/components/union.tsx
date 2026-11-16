@@ -740,6 +740,17 @@ const UnionBody = React.memo(function UnionBody({
           accessor.setValue(nextValue, { dontValidate: true }),
         );
         queueMicrotask(() => {
+          // フォーム全体のエラー（form.state.errorMap）も消す。standard schema の検証では、
+          // フォーム全体のエラーにも欄ごとのエラーが入る。値を検証せずに書くと、腕を選ぶ前の
+          // 検証（腕を選ぶ欄を離れたときの onBlur など）の結果が残り、canSubmit が false のままになって、
+          // TanStack Form が初めの送信を検証せずに止める。次の検証で入れ直される
+          const formErrorMap = field.api.form.state.errorMap;
+          if (formErrorMap?.onChange || formErrorMap?.onBlur) {
+            field.api.form.setErrorMap({
+              onChange: undefined,
+              onBlur: undefined,
+            });
+          }
           const errorMap = field.api.state.meta.errorMap;
           if (!errorMap?.onChange && !errorMap?.onBlur) return;
           field.api.setMeta((prev) => ({

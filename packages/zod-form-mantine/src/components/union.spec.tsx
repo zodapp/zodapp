@@ -2128,6 +2128,38 @@ describe("UnionComponent arm errors written to the union's own field", () => {
   };
 
   describe.each([
+    { name: "schema passed directly", withRuntime: false },
+    { name: "FormRuntime", withRuntime: true },
+  ])("first submit right after switching arms ($name)", ({ withRuntime }) => {
+    it("validates on the first submit after picking the outer and the inner arm", async () => {
+      // 腕を選ぶ欄を離れると、フォーム全体の onBlur の検証が走り、その結果（フォーム全体のエラー）が残る。
+      // 腕を選ぶと値を検証せずに書くので、そのエラーが残ったままだと canSubmit が false になり、
+      // TanStack Form は初めの送信を検証せずに止める
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: { text: "本文" } },
+      });
+      await waitFor(() => expect(selectors()[0]!.value).toBe("オブジェクト"));
+      await selectArm(0, "内側");
+      await waitFor(() => expect(selectors()).toHaveLength(2));
+      await selectArm(1, "数値");
+      expect(formRef.current?.state.values.value).toBeUndefined();
+
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+      });
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe.each([
     { name: "union arm", lazy: false, armLabel: "内側" },
     {
       name: "z.lazy arm creating a new union on each call",
@@ -2158,9 +2190,6 @@ describe("UnionComponent arm errors written to the union's own field", () => {
         await selectArm(1, "数値");
         expect(formRef.current?.state.values.value).toBeUndefined();
 
-        // 腕を 2 回選ぶと、フォーム全体の onBlur のエラーだけが残り（欄のエラーは腕を選んだときに消す）、
-        // TanStack Form は初めの送信を検証せずに止める（canSubmit が false）。欄を離れて検証してから送る
-        fireEvent.blur(armInputs()[0]!);
         fireEvent.click(screen.getByRole("button", { name: "Submit" }));
         await waitFor(() => {
           expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
