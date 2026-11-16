@@ -37,10 +37,7 @@ const ArrayOfExternalKeyComponent = React.memo(
     const label = labelFromParent ?? getMeta(schema)?.label;
     const dynamicMeta = useArrayExternalKeyDynamicMeta(schema);
     const depth = useDynamicDepth(fieldPath);
-    const state = useDynamicSchema(dynamicMeta, fieldPath, {
-      optional,
-      nullable,
-    });
+    const state = useDynamicSchema(dynamicMeta, fieldPath);
 
     const loadingView = (status?: "loading" | "pending") => (
       <MultiSelect

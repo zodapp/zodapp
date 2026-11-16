@@ -35,10 +35,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   const label = labelFromParent ?? meta?.label;
   const dynamicMeta = useExternalKeyDynamicMeta(schema);
   const depth = useDynamicDepth(fieldPath);
-  const state = useDynamicSchema(dynamicMeta, fieldPath, {
-    optional,
-    nullable,
-  });
+  const state = useDynamicSchema(dynamicMeta, fieldPath);
 
   const loadingView = (status?: "loading" | "pending") => (
     <Select

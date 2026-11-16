@@ -157,6 +157,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -261,6 +262,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -368,6 +370,7 @@ describe("UnionComponent discriminatedUnion regression", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -464,6 +467,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -562,6 +566,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -680,14 +685,14 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
                 <Switch
                   fieldPath="payload"
-                  schema={singleToolSchema}
-                  optional={true}
+                  schema={singleToolSchema.optional()}
                 />
               </Suspense>
             </FormProvider>
@@ -759,14 +764,14 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
               <Suspense fallback={null}>
                 <Switch
                   fieldPath="payload"
-                  schema={toolSchema}
-                  optional={true}
+                  schema={toolSchema.optional()}
                 />
               </Suspense>
             </FormProvider>
@@ -843,6 +848,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -938,6 +944,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -1025,6 +1032,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>
@@ -1129,6 +1137,7 @@ describe("UnionComponent union without discriminator", () => {
               object: () => ({ component: ObjectComponent }),
               string: () => ({ component: StringComponent }),
               union: () => ({ component: UnionComponent }),
+              optional: () => ({ component: OptionalComponent }),
             }}
           >
             <FormProvider form={form}>

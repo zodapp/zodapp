@@ -15,6 +15,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   Switch,
+  SamePathReset,
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
@@ -927,31 +928,30 @@ const UnionBody = React.memo(function UnionBody({
           />
         ))}
       {selectedProfile?.schema && (
+        // 腕は同じ path だが、空は腕を選ぶ欄が受け持つので、外の包みを伝えない
         <div style={{ marginTop: 1, minHeight: 20, marginBottom: 15 }}>
-          <Suspense
-            fallback={
-              <LoadingComponent
+          <SamePathReset>
+            <Suspense
+              fallback={
+                <LoadingComponent
+                  fieldPath={fieldPath}
+                  schema={selectedProfile.schema}
+                  defaultValue={dynamicDefaultValue}
+                  readOnly={readOnly}
+                  label={false}
+                />
+              }
+            >
+              <Switch
+                key={selectedProfile.value}
                 fieldPath={fieldPath}
                 schema={selectedProfile.schema}
                 defaultValue={dynamicDefaultValue}
-                optional={undefined}
-                nullable={undefined}
                 readOnly={readOnly}
                 label={false}
               />
-            }
-          >
-            <Switch
-              key={selectedProfile.value}
-              fieldPath={fieldPath}
-              schema={selectedProfile.schema}
-              defaultValue={dynamicDefaultValue}
-              optional={undefined}
-              nullable={undefined}
-              readOnly={readOnly}
-              label={false}
-            />
-          </Suspense>
+            </Suspense>
+          </SamePathReset>
         </div>
       )}
     </UnionRelayContext.Provider>

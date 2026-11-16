@@ -21,6 +21,7 @@ import type { AnyFormApi } from "@tanstack/react-form";
 import { useFormApi, useFormRuntime } from "./form";
 import { useFnInput } from "./fnInput";
 import type { EditCause } from "./schemaRegistry";
+import { rewrapWithChain, useSamePathChain } from "./samePath";
 
 /**
  * dynamic の状態。
@@ -203,33 +204,13 @@ const callResolve = (
  *   値を新しい schema に合わせて削る。それ以外は値に触らない
  * - 古い結果は捨てる
  */
-/** 登録する schema を、欄の optional・nullable に合わせて包む */
-const wrapEmpty = (
-  schema: z.ZodTypeAny,
-  { optional, nullable }: { optional: boolean; nullable: boolean },
-): z.ZodTypeAny => {
-  const withNull = nullable ? schema.nullable() : schema;
-  return optional ? withNull.optional() : withNull;
-};
-
 export const useDynamicSchema = (
   meta: DynamicMetaDef | undefined,
   fieldPath: string,
-  options: {
-    /**
-     * true なら（optional の中にあるなら）、登録する schema を optional にする。
-     * 値が無いときに、決まった schema の「必須」で止めないため
-     */
-    optional?: boolean;
-    /**
-     * true なら（nullable の中にあるなら）、登録する schema を nullable にする。
-     * 空にした欄に書く null を、決まった schema の検証で止めないため
-     */
-    nullable?: boolean;
-  } = {},
 ): DynamicSchemaState => {
-  const optional = options.optional === true;
-  const nullable = options.nullable === true;
+  // 同じ path の外側の schema（optional・nullable・default・refine など）。
+  // 登録する schema をこれで包み直し、path で切り出して検証しても外側の包みが効くようにする
+  const chain = useSamePathChain(fieldPath);
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);
@@ -258,8 +239,7 @@ export const useDynamicSchema = (
         schema: z.ZodTypeAny;
         path: string;
         depth: number;
-        optional: boolean;
-        nullable: boolean;
+        chain: readonly z.ZodTypeAny[];
       }
     | undefined
   >(undefined);
@@ -299,8 +279,7 @@ export const useDynamicSchema = (
         previous.schema === resolved.schema &&
         previous.path === fieldPath &&
         previous.depth === depth &&
-        previous.optional === optional &&
-        previous.nullable === nullable
+        previous.chain === chain
       ) {
         return;
       }
@@ -309,8 +288,7 @@ export const useDynamicSchema = (
         schema: resolved.schema,
         path: fieldPath,
         depth,
-        optional,
-        nullable,
+        chain,
       };
       if (
         applyCause === "user" &&
@@ -327,7 +305,7 @@ export const useDynamicSchema = (
       }
       runtime.set(fieldPath, depth, {
         status: "resolved",
-        schema: wrapEmpty(resolved.schema, { optional, nullable }),
+        schema: rewrapWithChain(resolved.schema, chain),
       });
     };
 
@@ -391,7 +369,7 @@ export const useDynamicSchema = (
     subscriptionKeyRef.current = result.key;
     unsubscribeRef.current = startAsync(result, deliver, fail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outcome, fieldPath, depth, optional, nullable]);
+  }, [outcome, fieldPath, depth, chain]);
 
   if (outcome.kind === "thrown") {
     return {

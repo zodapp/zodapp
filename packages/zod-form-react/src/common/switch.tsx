@@ -10,6 +10,7 @@ import {
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
 import { useFormApi } from "./form";
+import { SamePathProvider, useEmptiness } from "./samePath";
 
 const memoizeGetLazyComponentMap = new WeakMap<
   DynamicZodFormDef,
@@ -45,10 +46,16 @@ const getLazyComponent = (
  * switch loader が Promise を返す場合は `LazyComponentFactory` で遅延ロードします。
  */
 export const Switch: ZodForm = (props: ZodFormProps) => {
-  if (isPreprocessPipe(props.schema)) {
-    return <PreprocessSwitch {...props} />;
-  }
-  return <SchemaSwitch {...props} />;
+  // 同じ path の内側の部品に、自分の schema（外側の包み）を伝える
+  return (
+    <SamePathProvider path={props.fieldPath} schema={props.schema}>
+      {isPreprocessPipe(props.schema) ? (
+        <PreprocessSwitch {...props} />
+      ) : (
+        <SchemaSwitch {...props} />
+      )}
+    </SamePathProvider>
+  );
 };
 
 const isEqualValue = (a: unknown, b: unknown): boolean => {
@@ -131,10 +138,17 @@ const PreprocessSwitch = (props: ZodFormProps) => {
   );
 };
 
-const SchemaSwitch = (props: ZodFormProps) => {
+const SchemaSwitch = (rawProps: ZodFormProps) => {
   const lazyFactory = useLazyFactory();
 
-  const { schema } = props;
+  const { schema } = rawProps;
+  // optional・nullable は props で受け渡さず、同じ path の連なりから求める
+  const emptiness = useEmptiness(rawProps.fieldPath);
+  const props: ZodFormProps = {
+    ...rawProps,
+    optional: emptiness.optional ? true : undefined,
+    nullable: emptiness.nullable ? true : undefined,
+  };
   const { componentLibrary, notFoundComponent: NotFoundComponent } =
     useZodFormContext();
   const meta = getMeta(schema);
