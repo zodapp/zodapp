@@ -15,20 +15,11 @@ import {
 
 type DateSchema = SupportedDateSchema;
 
-const formatDate = (value: Date) =>
-  value.toLocaleString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
 /**
  * 表の日付のセル。
- * Date はこれまでどおり日時で出す。数（timestamp）や ISO の文字列（z.iso.date・z.iso.datetime）は、
- * フォームの欄と同じ converter で読み、unit の形（例：日付だけなら YYYY-MM-DD）で出す
+ * Date・数（timestamp）・ISO の文字列（z.iso.date・z.iso.datetime）のどれも、
+ * フォームの欄と同じ converter で読み、ピッカーと同じ unit の形
+ * （例：秒までなら YYYY-MM-DD HH:mm:ss、日付だけなら YYYY-MM-DD）で出す
  */
 const DateComponent = ({ schema, defaultValue }: ZodFormProps<DateSchema>) => {
   const { timezone } = useZodFormContext();
@@ -37,12 +28,11 @@ const DateComponent = ({ schema, defaultValue }: ZodFormProps<DateSchema>) => {
   const encoding = meta?.encoding as DateEncoding | undefined;
 
   const text = useMemo(() => {
-    if (defaultValue instanceof Date) {
-      return Number.isNaN(defaultValue.getTime())
-        ? null
-        : formatDate(defaultValue);
-    }
     if (defaultValue === undefined || defaultValue === null) return null;
+    // 不正な Date は空として出す
+    if (defaultValue instanceof Date && Number.isNaN(defaultValue.getTime())) {
+      return null;
+    }
     try {
       return createDateConverter({
         schema,

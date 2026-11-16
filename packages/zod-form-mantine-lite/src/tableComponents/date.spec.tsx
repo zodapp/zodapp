@@ -32,10 +32,25 @@ describe("表の日付のセル", () => {
     expect(html).toContain("2026-04-10 09:30");
   });
 
-  it("Date はこれまでどおり日時で出す", () => {
+  it("Date も、フォームの欄（ピッカー）と同じ形で出す", () => {
     const schema = z.date().register(zf.date.registry, { label: "日時" });
     const html = render(schema, new Date(2026, 3, 10, 9, 30, 15));
-    expect(html).toContain("2026/04/10 09:30:15");
+    expect(html).toContain("2026-04-10 09:30:15");
+    expect(html).not.toContain("2026/04/10");
+  });
+
+  it("Date も unit の形で出す", () => {
+    const schema = z
+      .date()
+      .register(zf.date.registry, { label: "日付", unit: "day" });
+    const html = render(schema, new Date(2026, 3, 10, 9, 30, 15));
+    expect(html).toContain("2026-04-10");
+    expect(html).not.toContain("09:30");
+  });
+
+  it("不正な Date は - を出す", () => {
+    const schema = z.date().register(zf.date.registry, { label: "日時" });
+    expect(render(schema, new Date(Number.NaN))).toContain(">-<");
   });
 
   it("値が無いときは - を出す", () => {
