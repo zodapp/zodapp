@@ -1,11 +1,14 @@
 import React, {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { Fieldset, Select, InputWrapper } from "@mantine/core";
+import { useStore } from "@tanstack/react-form";
 import z from "zod";
 
 import {
@@ -17,6 +20,7 @@ import {
   useZodFormContext,
   useFormValues,
   useRunAsUserEdit,
+  isPendingIssue,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -132,6 +136,136 @@ const getArmLiteralFields = (schema: z.ZodTypeAny): Record<string, unknown> => {
   );
 };
 
+/** invalid_union の腕ごとの issue（path はその union の値からの相対） */
+type ArmIssue = { path?: unknown; message?: string; code?: string };
+
+/** 腕の issue が union 自身を指すか（path が []） */
+const isRootIssue = (iss: ArmIssue | undefined): boolean =>
+  !Array.isArray(iss?.path) || iss.path.length === 0;
+
+/**
+ * union が、選んだ腕のエラーを書く先（TanStack Form の errorMap の枠）。
+ *
+ * - `meta.errors` は errorMap の値を並べ直したものなので、errors には直接書かず、枠に書く
+ * - AutoForm などの検証は onChange・onBlur・onSubmit の枠を使い、検証のたびに上書き・消去する。
+ *   部品も値の変更で onBlur を消す。onMount は値を書くたびに TanStack が消す（setFieldValue）。
+ *   onServer はフォームの検証のたびに消える。
+ *   onDynamic は、既定の検証の流れ（defaultValidationLogic）では TanStack が読み書きしない
+ * - 値は issue の配列。書いた union ごとの印を付け、union は自分が書いたものだけを足し引きする
+ *   （同じ欄に入れ子の union が書き、子の欄にも外の union と子の union が書くため）
+ */
+const ARM_ERROR_SLOT = "onDynamic";
+
+/** union が errorMap に書いた issue */
+type WrittenIssue = ArmIssue & {
+  /**
+   * 自分の欄に書いた union（部品ごとの印）。同じ欄の内側の union は、この印で読む
+   */
+  writtenBy?: object;
+  /**
+   * 子の欄に振り分けた union（部品ごとの印）。読む側から見ると、検証が出したものと同じく
+   * 印のない issue として扱う（子の欄の union は、印のない invalid_union を読む）
+   */
+  distributedBy?: object;
+};
+
+const isWrittenIssue = (
+  issue: unknown,
+): issue is WrittenIssue & { writtenBy: object } =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as WrittenIssue).writtenBy !== undefined;
+
+const isUnionIssue = (
+  issue: unknown,
+): issue is ArmIssue & { errors?: unknown } =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as ArmIssue).code === "invalid_union";
+
+/** いちばん近い外側の union の、欄の path と印 */
+type UnionRelay = { path: string; token: object };
+
+/**
+ * いちばん近い外側の union が、自分の欄の path と印を子に渡す（公開しない）。
+ * union は受け取った組を読んだあと、自分の組に置き換えて子に渡す（祖先の一覧は持たない）
+ */
+const UnionRelayContext = createContext<UnionRelay | undefined>(undefined);
+
+/** 欄の path をそろえる（`a[0].b` と `a.0.b` を同じにする） */
+const normalizeFieldPath = (fieldPath: string): string =>
+  fieldPath
+    .replace(/\[(\d+)\]/g, ".$1")
+    .split(".")
+    .filter(Boolean)
+    .join(".");
+
+/**
+ * 欄のエラーから、この union が読む invalid_union を選ぶ。
+ * - 外側の union が同じ欄にある（受け取った組の path が自分と同じ）：その union が
+ *   書いたもの（受け取った印が付いたもの）だけ
+ * - それ以外（外側の union が別の欄にある・無い）：印のない最初のもの
+ *   （検証が出したもの。別の欄の外側の union が振り分けたものも、ここでは印なしとして扱う）
+ */
+const pickUnionIssue = (
+  errors: readonly unknown[],
+  received: UnionRelay | undefined,
+  ownPath: string,
+) =>
+  received && received.path === ownPath
+    ? errors.find(
+        (issue) =>
+          isUnionIssue(issue) &&
+          isWrittenIssue(issue) &&
+          issue.writtenBy === received.token,
+      )
+    : errors.find((issue) => isUnionIssue(issue) && !isWrittenIssue(issue));
+
+/** 書く issue の比べ方（同じなら書き直さず、store を揺らさない） */
+const issueKey = (issue: unknown): string => {
+  const { writtenBy: _w, distributedBy: _d, ...rest } = issue as WrittenIssue;
+  return JSON.stringify(rest);
+};
+
+const sameIssues = (a: readonly unknown[], b: readonly unknown[]): boolean =>
+  a.length === b.length &&
+  a.every((issue, index) => issueKey(issue) === issueKey(b[index]));
+
+const listOf = (slot: unknown): unknown[] =>
+  Array.isArray(slot) ? slot : slot === undefined ? [] : [slot];
+
+/**
+ * 欄の errorMap の {@link ARM_ERROR_SLOT} のうち、`isMine` に当たるものを `issues` に入れ替える。
+ * ほかの union が書いたものは残す。同じ内容なら書かない
+ */
+const replaceWrittenIssues = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: any,
+  name: string,
+  isMine: (issue: unknown) => boolean,
+  issues: readonly unknown[],
+) => {
+  const meta = form.getFieldMeta(name);
+  const current = listOf(meta?.errorMap?.[ARM_ERROR_SLOT]);
+  if (sameIssues(current.filter(isMine), issues)) return;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form.setFieldMeta(name, (prev: any) => {
+    const others = listOf(prev?.errorMap?.[ARM_ERROR_SLOT]).filter(
+      (iss) => !isMine(iss),
+    );
+    const next = [...others, ...issues];
+    return {
+      ...prev,
+      errorMap: {
+        ...(prev?.errorMap ?? {}),
+        [ARM_ERROR_SLOT]: next.length > 0 ? next : undefined,
+      },
+    };
+  });
+};
+
+const EMPTY_ERRORS: readonly unknown[] = [];
+
 type schemaProfile = {
   schema: z.ZodTypeAny | undefined;
   label: string;
@@ -235,6 +369,7 @@ const UnionBody = React.memo(function UnionBody({
   readOnlySelector,
   field,
   error,
+  fieldErrors,
   formValue,
   accessor,
 }: {
@@ -249,6 +384,8 @@ const UnionBody = React.memo(function UnionBody({
   readOnlySelector: boolean | undefined;
   field: ZodFormInternalProps<UnionSchema>["field"];
   error: ZodFormInternalProps<UnionSchema>["error"];
+  /** 欄のエラーすべて（invalid_union を含む。表示してよいときだけ） */
+  fieldErrors: readonly unknown[];
   formValue: unknown;
   accessor: ValueAccessor;
 }) {
@@ -437,10 +574,20 @@ const UnionBody = React.memo(function UnionBody({
 
   const prevInjectedRef = useRef<string[]>([]);
 
-  const unionError =
-    error && (error as any).code === "invalid_union"
-      ? (error as any)
-      : undefined;
+  /** この union の印。書いたものに付け、自分が書いたものだけを足し引きする */
+  const [writer] = useState(() => ({}));
+  /** いちばん近い外側の union の組 */
+  const received = useContext(UnionRelayContext);
+  const ownPath = normalizeFieldPath(fieldPath);
+  /** 子に渡す、この union の組 */
+  const relay = useMemo(
+    (): UnionRelay => ({ path: ownPath, token: writer }),
+    [ownPath, writer],
+  );
+  const unionError = useMemo(
+    () => pickUnionIssue(fieldErrors, received, ownPath) as any,
+    [fieldErrors, received, ownPath],
+  );
 
   const optionIssues =
     unionError && selectedProfile
@@ -451,6 +598,9 @@ const UnionBody = React.memo(function UnionBody({
     () =>
       !unionError &&
       error &&
+      // union が書いた・振り分けた issue は振り分けない
+      !isWrittenIssue(error) &&
+      (error as WrittenIssue).distributedBy === undefined &&
       Array.isArray((error as any).path) &&
       (error as any).path.length > 0
         ? [error]
@@ -463,50 +613,96 @@ const UnionBody = React.memo(function UnionBody({
     [directIssues, optionIssues],
   );
 
+  /**
+   * 選んだ腕のエラーのうち union 自身を指すもの（path が []。プリミティブの腕が空・型違いのとき、
+   * 腕が union のときなど）。union と同じ欄に描かれる腕の部品に出すため、invalid_union を残したまま、
+   * 同じ欄の {@link ARM_ERROR_SLOT} にこの union の印を付けて足す。
+   * 腕が union なら、その invalid_union も足し、同じ欄の腕の union は受け取った印でそれを読む。
+   * 自分が書いたものは自分では読まない（印の付いたものは、外側の同じ欄の union の印のときだけ読む）
+   */
+  const ownArmIssues = useMemo((): WrittenIssue[] => {
+    if (!unionError || !selectedProfile) return [];
+    return (Array.isArray(optionIssues) ? (optionIssues as ArmIssue[]) : [])
+      .filter(isRootIssue)
+      .map((iss) => ({
+        ...iss,
+        // 欄の issue と同じく、path はフォームの値からの path
+        path: unionError.path,
+        writtenBy: writer,
+      }));
+  }, [unionError, selectedProfile, optionIssues, writer]);
+
+  /**
+   * 選んだ腕のエラーのうち、子の欄を指すもの（object の腕の子の欄）。
+   * issue はまるごと（code・errors を落とさずに）渡す。子の欄の union が invalid_union を読むため
+   */
+  const childIssues = useMemo(
+    () =>
+      (Array.isArray(distributableIssues)
+        ? (distributableIssues as ArmIssue[])
+        : []
+      ).filter((iss) => !isRootIssue(iss)),
+    [distributableIssues],
+  );
+
+  // field.api は、欄の meta が変わるたびに別の object になる（TanStack の useField）。
+  // 書くと field.api が変わり、それで書き直すと止まらないので、変わらない form と欄の名前で書く
+  const form = field.api.form;
+  const fieldName = field.api.name;
   useEffect(() => {
-    const redistributeIssues = (issues: any[] | undefined) => {
-      const touched = new Set<string>();
+    const isMine = (iss: unknown) =>
+      isWrittenIssue(iss) && iss.writtenBy === writer;
+    replaceWrittenIssues(form, fieldName, isMine, ownArmIssues);
+    // 腕が変わった・invalid_union が消えた・外れたときは、自分が書いたものだけ消す
+    return () => replaceWrittenIssues(form, fieldName, isMine, []);
+  }, [ownArmIssues, form, fieldName, writer]);
 
-      issues?.forEach((iss) => {
-        const name = accessor.toAbsolutePath((iss.path ?? []) as string[]);
-        if (!name) return;
-        touched.add(name);
-
-        field.api.form.setFieldMeta(name, (meta: any) => {
-          const nextErrors = [{ message: iss.message, type: iss.code }];
-          if (
-            Array.isArray(meta?.errors) &&
-            meta.errors.length === 1 &&
-            meta.errors[0]?.message === iss.message &&
-            meta.errors[0]?.type === iss.code
-          ) {
-            return meta;
-          }
-          return {
-            ...meta,
-            errors: nextErrors,
-            errorMap: { ...(meta?.errorMap ?? {}), onBlur: nextErrors },
-          };
-        });
+  useEffect(() => {
+    const isMine = (iss: unknown) =>
+      typeof iss === "object" &&
+      iss !== null &&
+      (iss as WrittenIssue).distributedBy === writer;
+    const byName = new Map<string, WrittenIssue[]>();
+    childIssues.forEach((iss) => {
+      const relative = (iss.path ?? []) as string[];
+      const name = accessor.toAbsolutePath(relative);
+      if (!name) return;
+      const list = byName.get(name) ?? [];
+      list.push({
+        ...iss,
+        // 欄の issue と同じく、path はフォームの値からの path（errors の中は書き換えない）
+        path: [
+          ...(Array.isArray(unionError?.path) ? unionError.path : []),
+          ...relative,
+        ],
+        distributedBy: writer,
       });
+      byName.set(name, list);
+    });
+    const names = Array.from(byName.keys());
+    names.forEach((name) =>
+      replaceWrittenIssues(form, name, isMine, byName.get(name)!),
+    );
+    prevInjectedRef.current
+      .filter((name) => !byName.has(name))
+      .forEach((name) => replaceWrittenIssues(form, name, isMine, []));
+    prevInjectedRef.current = names;
+  }, [childIssues, accessor, form, writer, unionError]);
 
-      prevInjectedRef.current
-        .filter((p) => !touched.has(p))
-        .forEach((p) =>
-          field.api.form.setFieldMeta(p, (meta: any) => ({
-            ...meta,
-            errors: undefined,
-            errorMap: { ...(meta?.errorMap ?? {}), onBlur: undefined },
-          })),
-        );
-
-      prevInjectedRef.current = Array.from(touched);
-    };
-
-    redistributeIssues(distributableIssues);
-
-    return () => redistributeIssues(undefined);
-  }, [distributableIssues, accessor, field.api.form]);
+  // 外れたときは、振り分けたものを消す
+  useEffect(
+    () => () => {
+      const isMine = (iss: unknown) =>
+        typeof iss === "object" &&
+        iss !== null &&
+        (iss as WrittenIssue).distributedBy === writer;
+      prevInjectedRef.current.forEach((name) =>
+        replaceWrittenIssues(form, name, isMine, []),
+      );
+      prevInjectedRef.current = [];
+    },
+    [form, writer],
+  );
 
   const runAsUserEdit = useRunAsUserEdit();
   const handleSelect = useCallback(
@@ -603,7 +799,7 @@ const UnionBody = React.memo(function UnionBody({
   const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;
 
   const content = (
-    <>
+    <UnionRelayContext.Provider value={relay}>
       {!shouldHideSelector &&
         (selectorIsReadOnly ? (
           <InputWrapper
@@ -657,7 +853,7 @@ const UnionBody = React.memo(function UnionBody({
           </Suspense>
         </div>
       )}
-    </>
+    </UnionRelayContext.Provider>
   );
 
   if (!label) {
@@ -686,6 +882,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   label: labelFromParent,
   field,
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
+  isTouched,
 }: ZodFormInternalProps<UnionSchema>) {
   const {
     label: labelFromMeta,
@@ -696,6 +893,22 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   const label = labelFromParent ?? labelFromMeta;
   const isRoot = fieldPath === "";
   const accessor = useValueAccessor(fieldPath, field);
+  // wrapComponent の error は invalid_union を除くので、union は欄のエラーをすべて読む。
+  // 表示してよい（触った・送信した）ときだけ使う（wrapComponent と同じ）
+  const rawErrors = useStore(
+    field.api.store,
+    (state: any) => state.meta.errors,
+  );
+  const showError = isTouched || field.api.form.state.isSubmitted;
+  const fieldErrors = useMemo(
+    () =>
+      showError
+        ? (rawErrors as unknown[])
+            .flat()
+            .filter((issue) => !isPendingIssue(issue))
+        : EMPTY_ERRORS,
+    [rawErrors, showError],
+  );
 
   const commonProps = {
     fieldPath,
@@ -709,6 +922,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     readOnlySelector,
     field,
     error,
+    fieldErrors,
     accessor,
   };
 

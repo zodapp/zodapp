@@ -49,6 +49,15 @@ export const isPendingIssue = (issue: unknown): boolean =>
   (issue as { code?: unknown }).code === PENDING_ISSUE_CODE;
 
 /**
+ * issue が invalid_union か。union の部品だけが読み、ほかの部品の欄のエラーとしては表示しない
+ * （union の部品が、選んだ腕のエラーを同じ欄に足す）。パッケージの外には出さない
+ */
+export const isUnionIssue = (issue: unknown): boolean =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as { code?: unknown }).code === "invalid_union";
+
+/**
  * フォームごとの実行時の状態。
  *
  * 1. dynamic が resolve した schema の登録先（{@link RegisteredSchema}）

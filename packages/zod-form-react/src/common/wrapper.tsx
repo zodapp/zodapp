@@ -4,7 +4,7 @@ import type { AnyFieldApi } from "@tanstack/react-form";
 import type { ZodForm, ZodFormProps } from "../utils/type";
 import { getMeta } from "@zodapp/zod-form";
 import { useRunAsUserEdit, useZodField } from "./form";
-import { isPendingIssue } from "./schemaRegistry";
+import { isPendingIssue, isUnionIssue } from "./schemaRegistry";
 
 type AdaptedError =
   | {
@@ -89,10 +89,13 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
     const runAsUserEdit = useRunAsUserEdit();
     const rawErrors = fieldApi.state.meta.errors;
 
-    // 取り直し中（読み込み中）の issue は、欄のエラーとしては表示しない
-    const error = rawErrors.flat().find((candidate) => !isPendingIssue(candidate)) as
-      | AdaptedError
-      | undefined;
+    // 取り直し中（読み込み中）の issue は、欄のエラーとしては表示しない。
+    // invalid_union も出さない（union の部品が読み、選んだ腕のエラーを同じ欄に足す）
+    const error = rawErrors
+      .flat()
+      .find(
+        (candidate) => !isPendingIssue(candidate) && !isUnionIssue(candidate),
+      ) as AdaptedError | undefined;
 
     const showError =
       fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted;

@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import type { AnyFieldApi } from "@tanstack/react-form";
 import { useRunAsUserEdit } from "./form";
-import { isPendingIssue } from "./schemaRegistry";
+import { isPendingIssue, isUnionIssue } from "./schemaRegistry";
 import {
   normalizeIssuePath,
   parseFieldPath,
@@ -41,7 +41,8 @@ export const getArrayFieldError = (
   const error = errors.flat(Number.POSITIVE_INFINITY).find((candidate) => {
     if (typeof candidate === "string") return true;
     if (!candidate || typeof candidate !== "object") return false;
-    if (isPendingIssue(candidate)) return false;
+    // 読み込み中の印と invalid_union は出さない（invalid_union は union の部品が読む）
+    if (isPendingIssue(candidate) || isUnionIssue(candidate)) return false;
     const issuePath = getIssuePath(candidate);
     return issuePath === undefined || pathsEqual(issuePath, ownPath);
   });

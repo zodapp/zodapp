@@ -17,11 +17,18 @@ import { readOnlySchemaFieldsExcept, zf } from "@zodapp/zod-form";
 import {
   Switch,
   FormProvider,
+  FormRuntime,
+  PENDING_ISSUE_CODE,
   ZodFormContextProvider,
   useZodForm,
 } from "@zodapp/zod-form-react/common";
 
-import { HiddenComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
+import {
+  HiddenComponent,
+  LazyComponent,
+  NullableComponent,
+  OptionalComponent,
+} from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as BooleanComponent } from "./boolean";
 import { component as EnumComponent } from "./enum";
 import { component as LiteralComponent } from "./literal";
@@ -1330,8 +1337,14 @@ describe("UnionComponent union of primitive arms", () => {
       defaultValues?: Partial<Values>;
       onSubmit?: (value: unknown) => void;
       formRef?: { current: AnyFormApi | undefined };
+      /** AutoForm と同じく、validator を FormRuntime で包む */
+      withRuntime?: boolean;
     } = {},
   ) => {
+    const runtime = new FormRuntime();
+    const validator = options.withRuntime
+      ? runtime.wrapValidator<z.input<typeof schema>>(schema)
+      : schema;
     const FormUnderTest = () => {
       const form = useZodForm({
         defaultValues: {
@@ -1340,9 +1353,9 @@ describe("UnionComponent union of primitive arms", () => {
         } as z.input<typeof schema>,
         onSubmit: ({ value }) => options.onSubmit?.(value),
         validators: {
-          onChange: schema,
-          onBlur: schema,
-          onSubmit: schema,
+          onChange: validator,
+          onBlur: validator,
+          onSubmit: validator,
         },
       });
       if (options.formRef) {
@@ -1363,7 +1376,7 @@ describe("UnionComponent union of primitive arms", () => {
               union: () => ({ component: UnionComponent }),
             }}
           >
-            <FormProvider form={form}>
+            <FormProvider form={form} runtime={runtime}>
               <Suspense fallback={null}>
                 <Switch fieldPath="" schema={schema} />
                 <button onClick={() => void form.handleSubmit()}>Submit</button>
@@ -1551,6 +1564,56 @@ describe("UnionComponent union of primitive arms", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  // 空の数値の腕は、どの腕にも型が合わない（invalid_union）。腕のエラーの path は [] で、union 自身を指す
+  describe.each([
+    { name: "schema passed directly to useZodForm", withRuntime: false },
+    {
+      name: "validator wrapped with FormRuntime (as AutoForm)",
+      withRuntime: true,
+    },
+  ])("value that fits no arm's type ($name)", ({ withRuntime }) => {
+    it("shows the selected arm's error on the empty number arm on submit", async () => {
+      const onSubmit = vi.fn();
+      renderPrimitiveUnion({ onSubmit, withRuntime });
+      await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+
+      await selectArm("値", "数値");
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+      await waitFor(() => {
+        expect(
+          within(group("値")).getByText(
+            "Invalid input: expected number, received undefined",
+          ),
+        ).toBeTruthy();
+      });
+      expect(selectorOf("値").value).toBe("数値");
+      expect(onSubmit).not.toHaveBeenCalled();
+      // union 自身の総称の文言は、腕の欄に重ねて出さない
+      expect(within(group("値")).queryByText("Invalid input")).toBeNull();
+    });
+
+    it("clears the arm's error once a valid value is typed", async () => {
+      renderPrimitiveUnion({ withRuntime });
+      await waitFor(() => expect(selectorOf("値").value).toBe("文字列"));
+
+      await selectArm("値", "数値");
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await within(group("値")).findByText(
+        "Invalid input: expected number, received undefined",
+      );
+
+      fireEvent.change(armInputOf("値"), { target: { value: "15" } });
+      await waitFor(() => {
+        expect(
+          within(group("値")).queryByText(
+            "Invalid input: expected number, received undefined",
+          ),
+        ).toBeNull();
+      });
+    });
+  });
+
   it("leaves the selector empty when a primitive initial value fits no arm", async () => {
     const formRef: { current: AnyFormApi | undefined } = { current: undefined };
     // "ab" は文字列の腕（3文字以上）にも、ほかの腕にも通らず、literal の欄も無い
@@ -1563,5 +1626,692 @@ describe("UnionComponent union of primitive arms", () => {
     ).toHaveLength(1);
     // 開いただけでは値を書き換えない
     expect(formRef.current?.state.values.value).toBe("ab");
+  });
+});
+
+describe("UnionComponent arm errors written to the union's own field", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupDomMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const NUMBER_ERROR = "Invalid input: expected number, received undefined";
+  const STRING_ERROR = "Invalid input: expected string, received undefined";
+
+  const innerUnion = () =>
+    zf
+      .union([
+        zf.string().register(zf.string.registry, { label: "文字列" }),
+        zf.number().register(zf.number.registry, { label: "数値" }),
+      ])
+      .register(zf.union.registry, {
+        label: "内側",
+        selectorLabel: "内側の種類",
+      });
+
+  /**
+   * 値：数値 | (文字列 | 数値) | オブジェクト。2 つめの腕は、同じ欄に描かれる union。
+   * `lazy` は、2 つめの腕を `z.lazy(() => zf.union(...))`（呼ぶたびに別の union を作る）にする
+   */
+  const makeSchema = (lazy: boolean) =>
+    z
+      .object({
+        value: zf
+          .union([
+            zf.number().register(zf.number.registry, { label: "外の数値" }),
+            lazy ? z.lazy(() => innerUnion()) : innerUnion(),
+            zf
+              .object({
+                text: zf
+                  .string()
+                  .register(zf.string.registry, { label: "本文" }),
+              })
+              .register(zf.object.registry, { label: "オブジェクト" }),
+          ])
+          .register(zf.union.registry, {
+            label: "値",
+            selectorLabel: "値の種類",
+          }),
+      })
+      .register(zf.object.registry, { properties: ["value"] });
+
+  const renderForm = (options: {
+    lazy?: boolean;
+    /** makeSchema の代わりに使う schema（欄 value を持つ object） */
+    schema?: z.ZodTypeAny;
+    withRuntime?: boolean;
+    formRef: { current: AnyFormApi | undefined };
+    onSubmit?: (value: unknown) => void;
+    defaultValue?: unknown;
+  }) => {
+    const schema = (options.schema ??
+      makeSchema(options.lazy ?? false)) as ReturnType<typeof makeSchema>;
+    const runtime = new FormRuntime();
+    const validator = options.withRuntime
+      ? runtime.wrapValidator<z.input<typeof schema>>(schema)
+      : schema;
+    const FormUnderTest = () => {
+      const form = useZodForm({
+        defaultValues: (options.defaultValue ?? { value: 1 }) as z.input<
+          typeof schema
+        >,
+        onSubmit: ({ value }) => options.onSubmit?.(value),
+        validators: {
+          onChange: validator,
+          onBlur: validator,
+          onSubmit: validator,
+        },
+      });
+      options.formRef.current = form as unknown as AnyFormApi;
+      return (
+        <MantineProvider>
+          <ZodFormContextProvider
+            componentLibrary={{
+              boolean: () => ({ component: BooleanComponent }),
+              hidden: () => ({ component: HiddenComponent }),
+              lazy: () => ({ component: LazyComponent }),
+              literal: () => ({ component: LiteralComponent }),
+              number: () => ({ component: NumberComponent }),
+              object: () => ({ component: ObjectComponent }),
+              string: () => ({ component: StringComponent }),
+              union: () => ({ component: UnionComponent }),
+            }}
+          >
+            <FormProvider form={form} runtime={runtime}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>Submit</button>
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </MantineProvider>
+      );
+    };
+    return render(<FormUnderTest />);
+  };
+
+  const group = () => screen.getByRole("group", { name: "値" });
+  /** 腕を選ぶ欄（外側から順） */
+  const selectors = () =>
+    Array.from(
+      group().querySelectorAll<HTMLInputElement>("input.mantine-Select-input"),
+    );
+  /** 腕の欄（腕を選ぶ欄のほかの入力欄） */
+  const armInputs = () =>
+    Array.from(
+      group().querySelectorAll<HTMLInputElement>(
+        "input:not([type=hidden]):not(.mantine-Select-input)",
+      ),
+    );
+  const selectArm = async (index: number, optionLabel: string) => {
+    const selector = selectors()[index]!;
+    fireEvent.click(selector);
+    fireEvent.focus(selector);
+    fireEvent.keyDown(selector, { key: "ArrowDown" });
+    const listbox = await waitFor(() => {
+      const id = selector.getAttribute("aria-controls");
+      const element = id ? document.getElementById(id) : null;
+      expect(element).toBeTruthy();
+      return element!;
+    });
+    fireEvent.click(
+      within(listbox).getByRole("option", { name: optionLabel, hidden: true }),
+    );
+    await waitFor(() =>
+      expect(selectors()[index]!.value.trim()).toBe(optionLabel),
+    );
+  };
+  /** union が書いた枠 */
+  const armSlot = (formRef: { current: AnyFormApi | undefined }) =>
+    (
+      formRef.current?.getFieldMeta("value")?.errorMap as Record<
+        string,
+        unknown
+      >
+    )?.onDynamic as { message?: string; code?: string }[] | undefined;
+  /** 落ち着いたあと、store が書き換わり続けない（描き直しが止まる）ことを確かめる */
+  const expectSettled = async (formRef: {
+    current: AnyFormApi | undefined;
+  }) => {
+    let updates = 0;
+    const subscription = formRef.current!.store.subscribe(() => {
+      updates += 1;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    subscription.unsubscribe();
+    expect(updates).toBe(0);
+    const errorCalls = (
+      console.error as unknown as { mock: { calls: unknown[][] } }
+    ).mock.calls;
+    expect(
+      errorCalls.some((call) =>
+        String(call[0]).includes("Maximum update depth"),
+      ),
+    ).toBe(false);
+  };
+
+  describe.each([
+    { name: "union arm", lazy: false, armLabel: "内側" },
+    {
+      name: "z.lazy arm creating a new union on each call",
+      lazy: true,
+      armLabel: "2",
+    },
+  ])("nested union at the same path ($name)", ({ lazy, armLabel }) => {
+    describe.each([
+      { name: "schema passed directly", withRuntime: false },
+      { name: "FormRuntime", withRuntime: true },
+    ])("$name", ({ withRuntime }) => {
+      it("shows the inner arm's error on the inner arm's input, without a loop, and clears it after fixing", async () => {
+        const formRef: { current: AnyFormApi | undefined } = {
+          current: undefined,
+        };
+        const onSubmit = vi.fn();
+        renderForm({
+          lazy,
+          withRuntime,
+          formRef,
+          onSubmit,
+          defaultValue: { value: { text: "本文" } },
+        });
+        await waitFor(() => expect(selectors()[0]!.value).toBe("オブジェクト"));
+
+        await selectArm(0, armLabel);
+        await waitFor(() => expect(selectors()).toHaveLength(2));
+        await selectArm(1, "数値");
+        expect(formRef.current?.state.values.value).toBeUndefined();
+
+        // 腕を 2 回選ぶと、フォーム全体の onBlur のエラーだけが残り（欄のエラーは腕を選んだときに消す）、
+        // TanStack Form は初めの送信を検証せずに止める（canSubmit が false）。欄を離れて検証してから送る
+        fireEvent.blur(armInputs()[0]!);
+        fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+        await waitFor(() => {
+          expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+        });
+        // 内側の union の腕（数値）のエラーだけ。外側の腕（外の数値）や内側の別の腕（文字列）のものは出さない
+        expect(within(group()).getAllByText(NUMBER_ERROR)).toHaveLength(1);
+        expect(within(group()).queryByText(STRING_ERROR)).toBeNull();
+        expect(armInputs()).toHaveLength(1);
+        expect(armInputs()[0]!.getAttribute("aria-invalid")).toBe("true");
+        expect(onSubmit).not.toHaveBeenCalled();
+
+        // invalid_union は欄に残り、外側の union が内側の invalid_union を、内側の union が腕のエラーを足している
+        const errors = formRef.current!.getFieldMeta("value")!.errors as {
+          code?: string;
+        }[];
+        expect(errors.some((issue) => issue.code === "invalid_union")).toBe(
+          true,
+        );
+        const slot = armSlot(formRef)!;
+        expect(slot.map((issue) => issue.code).sort()).toEqual([
+          "invalid_type",
+          "invalid_union",
+        ]);
+        await expectSettled(formRef);
+
+        fireEvent.change(armInputs()[0]!, { target: { value: "12" } });
+        await waitFor(() => {
+          expect(within(group()).queryByText(NUMBER_ERROR)).toBeNull();
+        });
+        expect(armSlot(formRef)).toBeUndefined();
+        expect(armInputs()[0]!.getAttribute("aria-invalid")).not.toBe("true");
+        await expectSettled(formRef);
+
+        fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+        await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+        expect(onSubmit.mock.calls[0]![0]).toEqual({ value: 12 });
+      });
+    });
+  });
+
+  it("shows the arm's error with the error style (via wrapComponent) and stops re-rendering", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderForm({ formRef, withRuntime: true });
+    await waitFor(() => expect(selectors()[0]!.value).toBe("外の数値"));
+
+    // 外の数値の腕を空にする（どの腕にも型が合わない）
+    fireEvent.change(armInputs()[0]!, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+    });
+    const input = armInputs()[0]!;
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.hasAttribute("data-error")).toBe(true);
+    await expectSettled(formRef);
+  });
+
+  it("writes and shows the arm's error only after the field is touched or the form is submitted", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderForm({ formRef, withRuntime: true });
+    await waitFor(() => expect(selectors()[0]!.value).toBe("外の数値"));
+
+    // 触っていない欄に、検証だけで invalid_union を出す
+    formRef.current!.setFieldValue("value", undefined as never, {
+      dontUpdateMeta: true,
+      dontValidate: true,
+    });
+    formRef.current!.setFieldMeta("value", (meta) => ({
+      ...meta,
+      isTouched: false,
+    }));
+    await formRef.current!.validate("change");
+    await waitFor(() => {
+      const errors = formRef.current!.getFieldMeta("value")!.errors as {
+        code?: string;
+      }[];
+      expect(errors.some((issue) => issue.code === "invalid_union")).toBe(true);
+    });
+    await expectSettled(formRef);
+    expect(within(group()).queryByText(NUMBER_ERROR)).toBeNull();
+    expect(armSlot(formRef)).toBeUndefined();
+
+    // 触ったら出す
+    fireEvent.blur(armInputs()[0]!);
+    await waitFor(() => {
+      expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+    });
+    expect(armSlot(formRef)).toHaveLength(1);
+  });
+
+  it("finds invalid_union even when a pending issue comes first in the field's errors", async () => {
+    const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+    renderForm({ formRef, withRuntime: true });
+    await waitFor(() => expect(selectors()[0]!.value).toBe("外の数値"));
+
+    // 読み込み中の印を、欄のエラーの先頭に置く（ほかの枠より先に並ぶ枠に入れる。
+    // onMount は値を書くと TanStack が消すので、onServer を使う）
+    formRef.current!.setFieldMeta("value", (meta) => ({
+      ...meta,
+      errorMap: {
+        onServer: [
+          { code: PENDING_ISSUE_CODE, message: "読み込み中", path: ["value"] },
+        ],
+        ...Object.fromEntries(
+          Object.entries(meta.errorMap ?? {}).filter(
+            ([key]) => key !== "onServer",
+          ),
+        ),
+      },
+    }));
+    // 空にして、どの腕にも型が合わない値にする（触った扱いになり、onChange で検証する）
+    fireEvent.change(armInputs()[0]!, { target: { value: "" } });
+
+    await waitFor(() => {
+      expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+    });
+    const errors = formRef.current!.getFieldMeta("value")!.errors as {
+      code?: string;
+    }[];
+    expect(errors.map((issue) => issue.code)).toEqual([
+      PENDING_ISSUE_CODE,
+      "invalid_union",
+      "invalid_type",
+    ]);
+    expect(within(group()).queryByText("読み込み中")).toBeNull();
+    await expectSettled(formRef);
+  });
+
+  const BOOLEAN_ERROR = "Invalid input: expected boolean, received undefined";
+
+  /**
+   * 欄の枠（onDynamic）に書かれたことのある文言をすべて集める。
+   * store が変わるたびに読むので、描き直しの間の一瞬の取り違えも拾う
+   */
+  const recordSlotMessages = (
+    formRef: { current: AnyFormApi | undefined },
+    fieldName = "value",
+  ) => {
+    const seen = new Set<string>();
+    const subscription = formRef.current!.store.subscribe(() => {
+      const slot = (
+        formRef.current!.getFieldMeta(fieldName)?.errorMap as
+          | Record<string, unknown>
+          | undefined
+      )?.onDynamic;
+      (Array.isArray(slot) ? slot : []).forEach((issue) => {
+        const message = (issue as { message?: unknown } | undefined)?.message;
+        if (typeof message === "string") seen.add(message);
+      });
+    });
+    return { seen, stop: () => subscription.unsubscribe() };
+  };
+
+  describe.each([
+    { name: "schema passed directly", withRuntime: false },
+    { name: "FormRuntime", withRuntime: true },
+  ])("which invalid_union each union reads ($name)", ({ withRuntime }) => {
+    it("never lets the inner union read the outer union's issue, even for one render (same arm count)", async () => {
+      // 外側も内側も腕が 2 つ。内側が外側の invalid_union を読むと、外側の 1 つめの腕（文字列）の文言を腕の欄に書く
+      const schema = z
+        .object({
+          value: zf
+            .union([
+              zf.string().register(zf.string.registry, { label: "外の文字列" }),
+              zf
+                .union([
+                  zf
+                    .number()
+                    .register(zf.number.registry, { label: "内の数値" }),
+                  zf
+                    .boolean()
+                    .register(zf.boolean.registry, { label: "内の真偽" }),
+                ])
+                .register(zf.union.registry, {
+                  label: "内側",
+                  selectorLabel: "内側の種類",
+                }),
+            ])
+            .register(zf.union.registry, {
+              label: "値",
+              selectorLabel: "値の種類",
+            }),
+        })
+        .register(zf.object.registry, { properties: ["value"] });
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        schema,
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: "abc" },
+      });
+      await waitFor(() => expect(selectors()[0]!.value).toBe("外の文字列"));
+      await selectArm(0, "内側");
+      await waitFor(() => expect(selectors()).toHaveLength(2));
+      await selectArm(1, "内の数値");
+      expect(formRef.current?.state.values.value).toBeUndefined();
+
+      const recorder = recordSlotMessages(formRef);
+      fireEvent.blur(armInputs()[0]!);
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+      });
+      await expectSettled(formRef);
+      recorder.stop();
+
+      expect(recorder.seen.has(NUMBER_ERROR)).toBe(true);
+      expect(recorder.seen.has(STRING_ERROR)).toBe(false);
+      expect(within(group()).queryByText(STRING_ERROR)).toBeNull();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it("shows the arm's error of three unions stacked on the same field, and clears it after fixing", async () => {
+      // 外側（文字列 | 中）→ 中（真偽 | 内）→ 内（数値 | 文字列）。どれも同じ欄 value に描かれる
+      const schema = z
+        .object({
+          value: zf
+            .union([
+              zf.string().register(zf.string.registry, { label: "外の文字列" }),
+              zf
+                .union([
+                  zf
+                    .boolean()
+                    .register(zf.boolean.registry, { label: "中の真偽" }),
+                  zf
+                    .union([
+                      zf
+                        .number()
+                        .register(zf.number.registry, { label: "内の数値" }),
+                      zf
+                        .string()
+                        .register(zf.string.registry, { label: "内の文字列" }),
+                    ])
+                    .register(zf.union.registry, {
+                      label: "内側",
+                      selectorLabel: "内側の種類",
+                    }),
+                ])
+                .register(zf.union.registry, {
+                  label: "中",
+                  selectorLabel: "中の種類",
+                }),
+            ])
+            .register(zf.union.registry, {
+              label: "値",
+              selectorLabel: "値の種類",
+            }),
+        })
+        .register(zf.object.registry, { properties: ["value"] });
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        schema,
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: "abc" },
+      });
+      await waitFor(() => expect(selectors()[0]!.value).toBe("外の文字列"));
+      await selectArm(0, "中");
+      // 中の既定の値によっては、中がすでに内側を選んでいる
+      await waitFor(() => expect(selectors().length).toBeGreaterThanOrEqual(2));
+      if (selectors()[1]!.value !== "内側") await selectArm(1, "内側");
+      await waitFor(() => expect(selectors()).toHaveLength(3));
+      await selectArm(2, "内の数値");
+      expect(formRef.current?.state.values.value).toBeUndefined();
+
+      const recorder = recordSlotMessages(formRef);
+      fireEvent.blur(armInputs()[0]!);
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(within(group()).getByText(NUMBER_ERROR)).toBeTruthy();
+      });
+      expect(within(group()).getAllByText(NUMBER_ERROR)).toHaveLength(1);
+      expect(armInputs()).toHaveLength(1);
+      expect(armInputs()[0]!.getAttribute("aria-invalid")).toBe("true");
+      // 外側・中が、それぞれ腕の union の invalid_union を、内側が腕のエラーを書いている
+      expect(
+        armSlot(formRef)!
+          .map((issue) => issue.code)
+          .sort(),
+      ).toEqual(["invalid_type", "invalid_union", "invalid_union"]);
+      await expectSettled(formRef);
+      recorder.stop();
+      // 外側の腕（文字列）・中の腕（真偽）の文言を、どの union も読み違えない
+      expect(recorder.seen.has(STRING_ERROR)).toBe(false);
+      expect(recorder.seen.has(BOOLEAN_ERROR)).toBe(false);
+      expect(onSubmit).not.toHaveBeenCalled();
+
+      fireEvent.change(armInputs()[0]!, { target: { value: "12" } });
+      await waitFor(() => {
+        expect(within(group()).queryByText(NUMBER_ERROR)).toBeNull();
+      });
+      expect(armSlot(formRef)).toBeUndefined();
+      await expectSettled(formRef);
+
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0]![0]).toEqual({ value: 12 });
+    });
+
+    it("lets a plain union in a child field of a discriminatedUnion read the validator's issue at its own path", async () => {
+      // 外側の discriminatedUnion（欄 value）が、子の欄 value.amount に discriminator のない union を持つ
+      const schema = z
+        .object({
+          value: z
+            .discriminatedUnion("kind", [
+              zf
+                .object({
+                  kind: zf
+                    .literal("a")
+                    .register(zf.literal.registry, { hidden: true }),
+                  amount: zf
+                    .union([
+                      zf
+                        .number()
+                        .register(zf.number.registry, { label: "金額の数値" }),
+                      zf
+                        .boolean()
+                        .register(zf.boolean.registry, { label: "金額の真偽" }),
+                    ])
+                    .register(zf.union.registry, {
+                      label: "金額",
+                      selectorLabel: "金額の種類",
+                    }),
+                })
+                .register(zf.object.registry, { label: "A" }),
+              zf
+                .object({
+                  kind: zf
+                    .literal("b")
+                    .register(zf.literal.registry, { hidden: true }),
+                  note: zf
+                    .string()
+                    .register(zf.string.registry, { label: "備考" }),
+                })
+                .register(zf.object.registry, { label: "B" }),
+            ])
+            .register(zf.union.registry, {
+              label: "値",
+              selectorLabel: "値の種類",
+            }),
+        })
+        .register(zf.object.registry, { properties: ["value"] });
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        schema,
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: { kind: "a", amount: 5 } },
+      });
+      const amountGroup = () => screen.getByRole("group", { name: "金額" });
+      const amountInput = () =>
+        amountGroup().querySelector<HTMLInputElement>(
+          "input:not([type=hidden]):not(.mantine-Select-input)",
+        )!;
+      await waitFor(() => expect(selectors()).toHaveLength(2));
+      await waitFor(() => expect(selectors()[1]!.value).toBe("金額の数値"));
+
+      // 子の欄を空にする（どの腕にも型が合わない。invalid_union は value.amount の欄に、印なしで出る）
+      fireEvent.change(amountInput(), { target: { value: "" } });
+      fireEvent.blur(amountInput());
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(within(amountGroup()).getByText(NUMBER_ERROR)).toBeTruthy();
+      });
+      expect(amountInput().getAttribute("aria-invalid")).toBe("true");
+      expect(within(amountGroup()).queryByText(BOOLEAN_ERROR)).toBeNull();
+      const slot = (
+        formRef.current!.getFieldMeta("value.amount")?.errorMap as Record<
+          string,
+          unknown
+        >
+      )?.onDynamic as { code?: string }[] | undefined;
+      expect(slot?.map((issue) => issue.code)).toEqual(["invalid_type"]);
+      await expectSettled(formRef);
+      expect(onSubmit).not.toHaveBeenCalled();
+
+      fireEvent.change(amountInput(), { target: { value: "7" } });
+      await waitFor(() => {
+        expect(within(amountGroup()).queryByText(NUMBER_ERROR)).toBeNull();
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0]![0]).toEqual({
+        value: { kind: "a", amount: 7 },
+      });
+    });
+
+    it("delivers invalid_union to a union in a child field of an object arm of a plain union", async () => {
+      // 外側の discriminator のない union（欄 value）の object の腕が、子の欄 value.inner に union を持つ。
+      // 検証の invalid_union は value の欄に出て、value.inner の分は外側の union が振り分ける
+      const schema = z
+        .object({
+          value: zf
+            .union([
+              zf.string().register(zf.string.registry, { label: "外の文字列" }),
+              zf
+                .object({
+                  inner: zf
+                    .union([
+                      zf
+                        .number()
+                        .register(zf.number.registry, { label: "中の数値" }),
+                      zf
+                        .boolean()
+                        .register(zf.boolean.registry, { label: "中の真偽" }),
+                    ])
+                    .register(zf.union.registry, {
+                      label: "中",
+                      selectorLabel: "中の種類",
+                    }),
+                })
+                .register(zf.object.registry, { label: "オブジェクト" }),
+            ])
+            .register(zf.union.registry, {
+              label: "値",
+              selectorLabel: "値の種類",
+            }),
+        })
+        .register(zf.object.registry, { properties: ["value"] });
+      const formRef: { current: AnyFormApi | undefined } = {
+        current: undefined,
+      };
+      const onSubmit = vi.fn();
+      renderForm({
+        schema,
+        withRuntime,
+        formRef,
+        onSubmit,
+        defaultValue: { value: { inner: 5 } },
+      });
+      const innerGroup = () => screen.getByRole("group", { name: "中" });
+      const innerInput = () =>
+        innerGroup().querySelector<HTMLInputElement>(
+          "input:not([type=hidden]):not(.mantine-Select-input)",
+        )!;
+      await waitFor(() => expect(selectors()).toHaveLength(2));
+      await waitFor(() => expect(selectors()[1]!.value).toBe("中の数値"));
+
+      fireEvent.change(innerInput(), { target: { value: "" } });
+      fireEvent.blur(innerInput());
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => {
+        expect(within(innerGroup()).getByText(NUMBER_ERROR)).toBeTruthy();
+      });
+      expect(innerInput().getAttribute("aria-invalid")).toBe("true");
+      // 振り分けた issue は、code と errors を落とさない
+      const slot = (
+        formRef.current!.getFieldMeta("value.inner")?.errorMap as Record<
+          string,
+          unknown
+        >
+      )?.onDynamic as { code?: string; errors?: unknown }[] | undefined;
+      expect(slot?.map((issue) => issue.code)).toEqual([
+        "invalid_union",
+        "invalid_type",
+      ]);
+      expect(Array.isArray(slot?.[0]?.errors)).toBe(true);
+      await expectSettled(formRef);
+      expect(onSubmit).not.toHaveBeenCalled();
+
+      fireEvent.change(innerInput(), { target: { value: "7" } });
+      // 外側の union の欄（value）の onBlur に残った invalid_union は、blur の検証まで消えない
+      fireEvent.blur(innerInput());
+      await waitFor(() => {
+        expect(within(innerGroup()).queryByText(NUMBER_ERROR)).toBeNull();
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+      expect(onSubmit.mock.calls[0]![0]).toEqual({ value: { inner: 7 } });
+    });
   });
 });
