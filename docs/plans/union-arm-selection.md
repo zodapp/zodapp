@@ -1,6 +1,6 @@
 # zf.union：選んだ腕を、値が検証に通らなくても表示し続けるプラン
 
-- ステータス: レビュー中
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-po6sz4`（このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/zod-form-mantine`（利用側: `apps/form-demo`）
 
@@ -94,7 +94,8 @@ form-demo の union と同じ形の schema（文字列の腕 + literal `type` �
 
 `formId=union` のページで、電話を選ぶ → 電話番号タイプ・電話番号の欄が出る → 入力するとプレビューの値に入る、
 住所に切り替える → 住所の欄が出る、メールに戻す、を確かめる。
-あわせて `recursiveSchema`（z.lazy）のページで、腕の切り替えが今どおり動くことを 1 本確かめる。
+あわせて `recursiveSchema`（z.lazy）のページで、腕の切り替えが今どおり動くことを 1 本確かめる
+（spec は 1 つのデモページに 1 つ、という form-demo の決まりに合わせ、`apps/form-demo/e2e/recursive-schema.spec.ts` に分ける）。
 
 ## 5. ドキュメント
 
