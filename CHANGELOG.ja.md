@@ -31,3 +31,6 @@
 - zod-form-mantine-lite: reactive 版の日付の欄は、`onBlur`・`onConfirm` にピッカーの文字列ではなく保存の形式（Date・数値・文字列）で渡す。`useConfirmableState` に `toValue` のオプションを足した
 - zod-form-mantine: bigint の欄は、先頭の「-」と数字以外の文字を受け付けない
 - zod-form: `getDefaultValue` は、optional と nullable の両方が付いた欄（`.optional().nullable()`）の初期値を `null` ではなく `undefined` にする（欄を空にしたときに書く値とそろえる）
+- zod-form: `getDefaultValue` は、object の子の値が undefined のときキーを置かない（`{ x: undefined }` ではなく `{}`）。optional でないのに undefined を通す子（`z.unknown()` など）のキーは残す
+- zod-form: `getDefaultValue(schema, value)` で、今の値を持ったまま schema を歩き、値が無いところだけを既定値で補えるようにした（配列の要素・record の値・union の腕の中も補う）。`adaptValueToSchema` もこの補い方にした
+- zod-form-react・zod-form-widget: `zf.dynamic` の schema が最初に決まったとき、値が無いところを決まった schema の既定値で補う（削らない）。補いは `FormRuntime` に登録し、AutoForm は `useDefaultValuesWithFills` で defaultValues にも入れる（開いただけでは「変更あり」にならず、reset でも残る）

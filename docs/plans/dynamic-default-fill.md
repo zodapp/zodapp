@@ -1,6 +1,6 @@
 # zf.dynamic：決まった schema の既定値を、今の値の足りないところに補うプラン
 
-- ステータス: プラン（未実装）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/union-arm-errors-v2`
 - 対象パッケージ: `@zodapp/zod-form`（`getDefaultValue`・`prune.ts`）、`@zodapp/zod-form-react`（`dynamic.tsx`）
 
@@ -99,13 +99,27 @@ export const adaptValueToSchema = (value, schema) =>
 
 `fillMissing` は使わなくなるので消す（外には出していない）。
 
+### 2.5 補った値を AutoForm の defaultValues にも入れる
+
+最初の回に値だけを書くと、TanStack は今の値を `options.defaultValues` と比べて `isDefaultValue` を決めるので、開いただけで false になる（保存ボタンを `isDefaultValue` で無効にしている画面では、開いただけで押せる）。`reset()` も `defaultValues` に戻すので、補った値が消える（テストで確認）。
+
+`form.options.defaultValues` を直接書き換える手は使えない。useForm は描画のたびに呼び出し側の options で上書きし、未操作のフォームでは値ごと `defaultValues` に戻すため。
+
+そこで、TanStack の正規の経路で `defaultValues` に入れる。
+
+- dynamic は、最初の回に「この path はこの schema（外側の包みごと）で補う」と `FormRuntime.setDefaultFill` に登録する。外れたら（path が変わったら）`removeDefaultFill` で外す
+- `FormRuntime.applyDefaultFills(defaults)` は、登録された path を浅い順に `getDefaultValue(schema, その位置の値)` で補った値を返す。親が無い path や配列の範囲の外には値を作らない（利用者が足した配列の要素などを、初期値の側に作らないため）。何も変わらなければ defaults をそのまま返す
+- `useDefaultValuesWithFills(runtime, defaults)`（zod-form-react）は、登録が変わると計算し直す。AutoForm はこれを `useZodForm` の `defaultValues` に渡す
+- dynamic は、今の値にも直接書く（利用者が先に触っていて、TanStack が値を `defaultValues` に戻さないときのため）
+
+AutoForm を使わずに `useZodForm` を直接使う場合は、`useDefaultValuesWithFills` を通さなければ、`isDefaultValue` と `reset()` は補う前の `defaultValues` を基準にしたままになる。
+
 ## 3. 確かめること
 
-実装のあとに、単体テストと e2e で確かめる。
+単体テストと e2e で確かめた（form-demo の e2e は 106 件すべて通過）。
 
-1. dynamic の最初の回に値を書くと、フォーム全体の `isDefaultValue` が false になり、開いただけで「変更あり」に見えないか。
-   見えるなら、最初の回だけは `form.options.defaultValues` の同じ path も補うなどの手当てを検討する
-2. `form.reset()` で初期値に戻したあと、補った値が消えたままにならないか（dynamic は schema が同じなので、もう一度は補わない）
+1. dynamic の最初の回に値を書いても、フォーム全体の `isDefaultValue` が true のままであること（2.5 の手当てのあと）
+2. `form.reset()` で初期値に戻したあとも、補った値が残ること（2.5 の手当てのあと）
 3. 配列の要素・record の値・union の腕の中の `.default()` が、最初の回にも切り替えのときにも補われること
 4. 入っている値が変わらないこと（保存済みのデータを開いたとき）
 5. 腕を決められない union の値が、そのまま残ること

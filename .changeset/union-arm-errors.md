@@ -3,6 +3,7 @@
 "@zodapp/zod-form-react": minor
 "@zodapp/zod-form-mantine-lite": minor
 "@zodapp/zod-form-mantine": minor
+"@zodapp/zod-form-widget": minor
 ---
 
 zf.union の不具合を直し、`ZodFormProps` の `required` を `optional` に裏返す。
@@ -23,3 +24,5 @@ zf.union の不具合を直し、`ZodFormProps` の `required` を `optional` �
 - `getDefaultValue` は、optional と nullable の両方が付いた欄（`.optional().nullable()`）の初期値を `undefined` にする
 - reactive 版の日付の欄は、`onConfirm` に保存の形式で渡す（`useConfirmableState` に `toValue`）
 - bigint の欄は、先頭の「-」と数字以外の文字を受け付けない
+- `getDefaultValue` は、object の子の値が undefined のときキーを置かない。`getDefaultValue(schema, value)` で値が無いところだけを補える
+- `zf.dynamic` の schema が最初に決まったとき、値が無いところを既定値で補い、AutoForm の defaultValues にも入れる（`useDefaultValuesWithFills`）
