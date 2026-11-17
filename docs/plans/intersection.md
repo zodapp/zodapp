@@ -1,6 +1,6 @@
 # zf.intersection を描くプラン
 
-- ステータス: 実装済み（form-demo の e2e は 132 件すべて通過）
+- ステータス: 2〜5 は実装済み（form-demo の e2e は 132 件すべて通過）。6（エラーの扱いの見直し）は未実装
 - 対象ブランチ: `claude/union-arm-errors-v2`
 - 対象パッケージ: `@zodapp/zod-extendable`、`@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`apps/form-demo`
 
@@ -56,7 +56,7 @@ object の部品の、入れ物を描く部分（既定・`box`・`horizontal`�
 - object・intersection の `flat`：InputWrapper も枠も出さず、子（を包む div）だけを返す
 - union の `flat`：Fieldset とその legend（union のラベル）だけを出さない。腕を選ぶ欄と腕の欄は今のまま出す（腕を選ぶ欄のラベルは、今と同じく `selectorLabel`、無ければ union の `label`）
 - 自分の path のエラーがあるときだけ（受け取った `error` があるときだけ）、子のあとにエラーの box を 1 つ出す
-  - box は `uiType: "box"` と同じ Mantine の Fieldset で描き、中身はエラーの文言だけ（文字色は Mantine のエラーの色）
+  - ~~box は `uiType: "box"` と同じ Mantine の Fieldset で描く~~ → 6.6 で Alert に変える
   - 横並びの中では、box を幅いっぱいにして次の行に出す（flex の項目として `flex-basis: 100%`）。`horizontal`（折り返さない）の中でも box だけは折り返すよう、外側の flex は、子に `flat` があるときは `flex-wrap: wrap` にし、`flat` でない子の幅は今のまま（折り返さない）にする
   - intersection の中では `hideError` で `error` が来ないので、box も出ない
 
@@ -112,3 +112,98 @@ e2e で確かめること：
 
 - union の腕を切り替えると、腕の外のキーを消していたので、intersection で並べた object の欄の値が消えていた。どの腕にも無いキーは消さないようにした（discriminatedUnion・discriminator の無い union の両方）
 - object 自体の `.refine()` のエラー（object の path のエラー）は、子の欄を直しても消えず、送り直しても残る。intersection だけでなく、ふつうの object でも同じ（errorMap の onBlur・onSubmit に残る）。今からある不具合で、このプランでは直していない
+
+## 6. エラーの扱いの見直し（未実装）
+
+2〜5 の実装のあと、同じ path に出るエラーを、union が腕に回すもの・discriminatedUnion が出すものまで調べ直した（jsdom で試した結果をもとにする）。次のとおり決める。
+
+### 6.1 同じ path に出るエラーと、出す部品
+
+discriminatedUnion（`contact`）が union と同じ path（`["contact"]`）に出す issue と、intersection の中で出す部品：
+
+| 状況                                           | code              | 出す部品            |
+| ---------------------------------------------- | ----------------- | ------------------- |
+| 値が undefined・null                           | invalid_type      | intersection（6.4） |
+| 値が object でない                             | invalid_type      | intersection        |
+| 選んだ腕の、path を指定しない `.refine()`      | custom            | intersection（6.3） |
+| 選んだ腕が strictObject で、知らないキーがある | unrecognized_keys | intersection（6.5） |
+
+- discriminator が無い・どの腕にも合わない：invalid_union が discriminator の欄（`["contact", "type"]`）に出る。今と同じく union が腕を選ぶ欄に「選択してください」を出す（intersection とは関係しない）
+- 腕の子の欄のエラー：その欄に出る（関係しない）
+
+### 6.2 union が書いたエラーの印を、props の `errorToken` で渡す
+
+union が同じ欄に書き直した issue（`writtenBy` の印付き）は、印が一致する部品だけが出す。
+
+- zod-form-react の `ZodFormProps` に `errorToken?: object` を足す。「この欄で、この印の付いた issue を出す」という意味
+- union は、今の印（部品ごとに `useState(() => ({}))` で作るもの）を、腕の Switch（と Suspense の fallback）に `errorToken={writer}` で渡す
+- 同じ path の包みは `{...props}` で渡すので届き、path が変わる部品は渡さないので子の欄には届かない（hideError と同じ）
+- `wrapComponent`・`useArrayField` が部品に渡すエラーは、次の順で選ぶ
+  1. `writtenBy` が `props.errorToken` と一致する issue：hideError でも出す
+  2. 印の無い issue（invalid_union・読み込み中の印を除く）：hideError なら出さない
+  3. `writtenBy` が一致しない issue（`errorToken` が無いときは、印の付いたものすべて）：出さない
+- union が invalid_union を読むところ（`pickUnionIssue`）も、`UnionRelayContext` をやめて `props.errorToken` で選ぶ。`errorToken` があればその印の付いたもの、無ければ印の無いもの
+- `UnionRelayContext` は消す
+
+これで、`z.union` の腕の、path を指定しない `.refine()` などは、intersection の中でも腕の中に出る。
+
+### 6.3 discriminatedUnion の腕のエラーは intersection に出す
+
+discriminatedUnion は、選んだ腕の `.refine()` などの issue を invalid_union に包まず、印の無い issue として union と同じ path に出す。zod の issue には、どの schema から出たかの情報が残らない。そのため、intersection 自身の issue と見分けられない。
+
+- intersection の中では、hideError のまま intersection の入れ物に出す（今の動きを仕様にする）
+- 腕の中に出したいときは `.refine(..., { path: ["phone"] })` のように欄を指す。デモの説明に、この書き方をすすめる形で載せる
+- 中身（code・文言・path）で照合して見分ける方法はとらない（同じ中身の issue が重なると、出たり消えたりするため）
+
+### 6.4 値が undefined・null のとき、union は「選択してください」を重ねて出さない
+
+discriminatedUnion は、値が undefined・null のとき invalid_type を union の欄に出す。union は今、腕が未選択で欄にエラーがあれば、code を問わず腕を選ぶ欄に「選択してください」を出している。そのため、intersection の中では intersection の「必ず入力してください。」と重なる。
+
+- union は、`hideError` のときは、自分の欄のエラーでは「選択してください」を出さない。discriminator の欄のエラー（`hasDiscriminatorError`）では、今のとおり出す
+- `z.union`（discriminator の無いもの）の「選択してください」は invalid_union から出すので、変えない（intersection は invalid_union を出さない）
+
+### 6.5 unrecognized_keys の文言
+
+zod の intersection は、両側の unrecognized_keys をまとめ、両側とも知らないキーだけを intersection の path に 1 つの issue（`{ code: "unrecognized_keys", keys: [...] }`）として出し直す。ただし、discriminatedUnion の、選んでいない腕にあるキーは「知らないキー」になる（腕が替わった保存データに、前の腕の欄が残っているときなど）。この場合は、腕を選び直せば直る。
+
+文言は、キーごとに作らず、キーを持つ union の名前を並べて、選択を促す。
+
+- `issue.keys` のキーごとに、そのキーをどれかの腕に持つ discriminatedUnion を、schema からたどって探す
+  - たどる範囲：包み（optional など）を外し、intersection は両側、discriminatedUnion は全部の腕。object の子の欄（path が変わるもの）には入らない
+  - 腕の中のキーは、腕を包みから外した object の shape で見る
+- 見つかった union の名前を、見つけた順に「と」でつなぎ、「連絡方法と会員タイプを選択してください」と出す（同じ union は 1 回だけ）
+  - union の名前は `selectorLabel`、無ければ `label`、どちらも無ければ「タイプ」（腕を選ぶ欄のラベルと同じ）
+- 見つからないキーしか無いとき（schema のどこにも無いキー）：issue のメッセージ（errorMap のもの）をそのまま出す。画面で直せないデータの不具合なので、作り直さない
+- 見つかるキーと見つからないキーが混ざるとき：作り直した文言を出す（画面で直せる方を出す）
+- 文言を作る関数は zod-form-mantine の utils に置き、intersection と union で使う
+
+出す部品：
+
+- intersection の中：intersection が、受け取った error が unrecognized_keys なら、この文言に作り直して入れ物に出す
+- intersection の外の discriminatedUnion：union が、自分の欄の unrecognized_keys を読み、腕を選ぶ欄のエラーとして出す（腕を選んでいるときも出す）。`hideError` のときは出さない
+- 腕の部品は、unrecognized_keys を出さない。`wrapComponent` は、`errorToken` を受け取った部品（union の腕）には、印の無い unrecognized_keys を渡さない
+- union の無い strictObject は、今のとおり object の部品が errorMap のメッセージで出す
+
+### 6.6 flat のエラーは Alert で出す
+
+2.5 のエラーの box を、Mantine の `Alert`（`color="red"`、`variant="light"`、アイコンは `@tabler/icons-react` の `IconAlertCircle`）に変える。余白は今の box と同じ（`mt={10}`、`py={8}`）。横並びの中では今のとおり幅いっぱいにして次の行に出す。
+
+### 6.7 デモと e2e に足すもの
+
+デモに次のエラーの例を足し、e2e で出る場所と回数を確かめる。
+
+- box の子の object に `.refine()`：エラーは intersection に 1 回だけ出て、子の枠には出ない
+- flat（横並び）の子に `.refine()`：横並びの中のエラーの出方
+- 子の欄に `min(1)`：欄のエラーは今のとおり欄の下に出る
+- `z.union` の腕の object に、path を指定しない `.refine()`：腕の中に出る（6.2）
+- discriminatedUnion の腕の object に、path を指定しない `.refine()`：intersection に出る（6.3）
+- 必須の intersection（object と discriminatedUnion）の値が空：「必ず入力してください。」が 1 回だけ出て、「選択してください」は出ない（6.4）
+- 2 つの discriminatedUnion（腕は strictObject）の intersection に、選んでいない腕のキーが残った初期値：「連絡方法と会員タイプを選択してください」が出る（6.5）
+- intersection の外の discriminatedUnion（腕は strictObject）に、選んでいない腕のキーが残った初期値：腕を選ぶ欄に「連絡方法を選択してください」が出る（6.5）
+
+スクリーンショットは、欄ごとに分けて、送信前と送信後を撮る。
+
+### 6.8 扱わないこと
+
+- unrecognized_keys を、キーを持つ union に振り分けて、その union の中に出すこと（intersection から union に向けて印を渡す仕組みが要る）
+- `z.union`（discriminator の無いもの）の腕の unrecognized_keys の文言を作り直すこと
