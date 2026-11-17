@@ -45,19 +45,26 @@ export const ConfirmableInputActions = ({
  * - Escape でキャンセル、Ctrl+Enter で確定
  * - `options.emptyValue` を渡すと、空（""・null・undefined）の値を、`onBlur`・`onConfirm` に
  *   渡すときにその値に置き換える（欄の optional・nullable に合わせた空の値。`emptyValueOf`）
+ * - `options.toValue` を渡すと、空でない値を、`onBlur`・`onConfirm` に渡すときにそれで直す
+ *   （日付の欄で、ピッカーの文字列を保存の形式に直すなど）
  */
 export const useConfirmableState = <T,>(
   defaultValue: T,
   fieldPath: string,
-  options: { emptyValue?: undefined | null } = {},
+  options: {
+    emptyValue?: undefined | null;
+    toValue?: (raw: T) => unknown;
+  } = {},
 ) => {
   const reactiveForm = useReactiveFormContext();
   const hasEmptyValue = "emptyValue" in options;
   const emptyValue = options.emptyValue;
-  const toEventValue = (raw: T): unknown =>
-    hasEmptyValue && (raw === "" || raw === null || raw === undefined)
-      ? emptyValue
-      : raw;
+  const toValue = options.toValue;
+  const toEventValue = (raw: T): unknown => {
+    const isEmpty = raw === "" || raw === null || raw === undefined;
+    if (isEmpty) return hasEmptyValue ? emptyValue : raw;
+    return toValue ? toValue(raw) : raw;
+  };
   const baseValueRef = useRef(defaultValue);
   const valueRef = useRef(defaultValue);
   const [value, setValue] = useState(defaultValue);

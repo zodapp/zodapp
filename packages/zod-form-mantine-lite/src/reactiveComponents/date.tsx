@@ -71,6 +71,10 @@ const DateComponent = React.memo(function DateComponent({
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(pickerDefault, fieldPath, {
       emptyValue: emptyValueOf({ optional, nullable }),
+      // ピッカーの文字列を、保存の形式（Date・数値・文字列）に直して渡す。
+      // 元の値から変えていなければ、元の値をそのまま渡す（ピッカーの粒度で丸めない）
+      toValue: (raw) =>
+        raw === pickerDefault ? defaultValue : converter.fromPickerValue(raw),
     });
 
   if (readOnly) {
