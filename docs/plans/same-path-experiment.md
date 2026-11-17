@@ -147,3 +147,11 @@ path で読めない場所（実験 2 の中のフォームの根、表の行）
   zod は object の検査を走らせない。登録された path の issue は捨てるので、z.never の issue も見えないが、object の `.refine()` も黙って効かない。
   同じ path の受け渡しでは直せない（`it.fails` で今の動きを記録した）。直すなら、静的な検証で dynamic の土台を
   「何でも通す」schema に差し替えるか、登録された schema を静的な木に差し込んで一度に検証する（別の実験）
+- **zod 4 の ZodEffects に当たるもの**（zod 4 には ZodEffects が無い）
+  - refine・superRefine・check・overwrite：包みを作らず、同じ型の複製の `def.checks` に入る。dynamic 自身に付いたものは
+    `props.schema` から付け直せる（案E）。包みに付いたものは、包みの部品が下へ渡す必要がある
+  - preprocess（`pipe(transform, X)`）：PreprocessSwitch が保存値をそろえて書き戻し、同じ path で X を `{...props}` で描く。
+    登録する schema はそろえたあとの値を検証するので、preprocess を付け直す必要はない。preprocess の pipe 自体に付けた検査は、
+    包みの検査と同じ扱い（props で運ぶなら、PreprocessSwitch が足す）
+  - transform・pipe（`pipe(X, …)`）：今の PipeComponent は `def.out` を描くので、`.transform()` の欄は描けず（out が ZodTransform）、
+    dynamic を in に置く書き方も描けない。出力側で検証する `.pipe(Y)` を付け直すのは、PipeComponent が in を描くように直してからの課題
