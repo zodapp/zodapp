@@ -52,6 +52,21 @@ test("nullable だけの文字・数値・選択の欄は、空にすると null
   await expect(fieldError(page, "数値（nullable）")).toHaveCount(0);
 });
 
+test("nullable だけの日付の欄は、× で消すと null を書き、エラーを出さない", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await expect(field(page, "日付（nullable）")).toHaveValue("2026-11-17");
+  // 日付の欄の × は、選択の欄と同じく欄の右端のボタン
+  await clearSelect(page, "日付（nullable）");
+  await expect(field(page, "日付（nullable）")).toHaveValue("");
+  await expect
+    .poll(async () => (await valueOf(page, "nullableDate")).value)
+    .toBeNull();
+  await field(page, "文字（optional）").click();
+  await expect(fieldError(page, "日付（nullable）")).toHaveCount(0);
+});
+
 test("optional の欄は、optional と nullable の両方でも、空にすると undefined を書く", async ({
   page,
   pageErrors: _,
