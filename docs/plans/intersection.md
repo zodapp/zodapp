@@ -131,59 +131,50 @@ discriminatedUnion（`contact`）が union と同じ path（`["contact"]`）に�
 - discriminator が無い・どの腕にも合わない：invalid_union が discriminator の欄（`["contact", "type"]`）に出る。今と同じく union が腕を選ぶ欄に「選択してください」を出す（intersection とは関係しない）
 - 腕の子の欄のエラー：その欄に出る（関係しない）
 
-### 6.2 同じ欄の issue の種類と、出す部品（`errorTokens`）
+### 6.2 同じ欄の issue の種類と、出す部品（`errorToken`）
 
-1 つの欄（path P）に来る issue を 3 種類に分け、種類ごとに出す部品を 1 つに決める。3 つの規則は対象が重ならないので、互いを参照しない。
+1 つの欄（path P）に来る issue を 3 種類に分け、種類ごとに出す部品を決める。
 
-**① union が同じ欄に書いた issue（`writtenBy` 付き）**
+**zod の union の出し方（実装中に確かめた）**
 
-union は、選んだ腕のエラーのうち path が `[]` のもの（string の腕の too_small、腕の object の path を指定しない `.refine()` など）を、`writtenBy: writer` を付けて同じ欄 P に書く（今の `ownArmIssues`）。`writer` は union の部品ごとに `useState(() => ({}))` で作るオブジェクトで、書き直し（`replaceWrittenIssues`）と invalid_union の読み分けに使う。union ごとに別である必要がある。
+zod の union は、通らなかった腕を「途中で止まった腕」（型のエラー。必須の欄が空・型が違う）と「止まらなかった腕」（min・形式・refine などのチェックのエラーだけ）に分ける。止まらなかった腕がちょうど 1 つなら、その腕の issue をそのまま返し、それ以外（0 個・2 個以上）なら invalid_union に全部の腕の issue を入れる。子の欄に型のエラーがある object では refine は実行されない。
 
-- zod-form-react の `ZodFormProps` に `errorTokens?: readonly object[]` を足す。定義：同じ欄で、その部品を囲んでいる union すべての `writer`（外側から順）
-- 部品は、`writtenBy` が `errorTokens` の中にある issue を出す。それ以外の `writtenBy` 付きの issue は捨てる。`hideError` とは関係しない
-- union は、受け取った `errorTokens` に自分の `writer` を足したもの（`useMemo`）を、腕の Switch（と Suspense の fallback）に渡す
-- 同じ path の包みは `{...props}` で渡すので届き、path が変わる部品は渡さないので子の欄には届かない
-- union の部品は自分の欄のエラーを出す場所を持たないので、union あての issue は、それを囲まれた、出せる部品が出す。入れ子（`A = z.union([B, …])`、B に `.refine()`）では、B の refine を A が `writtenBy: wA` で書き、B の腕は `[wA, wB]` を受け取るので、B の refine も B の腕のエラーも腕の部品が出す
-- intersection は `errorTokens` を子に渡さない（union ではなく、自分で出せるため）。intersection の両側の union は互いを囲まないので、腕はそれぞれの union の `writer` だけを受け取る
-- 子の欄に振り分けたもの（`distributedBy` 付き）は、表示の規則では ③ として扱う（今のとおり）。`distributedBy` は、union が自分の振り分けたものを消すためだけに使う
+- 腕の子の欄のチェックのエラー：そのまま子の欄に出る
+- 腕の子の欄の型のエラー：invalid_union に入り、union が子の欄に振り分ける（`distributedBy`）
+- 腕そのもの（path が P）のエラー（腕の object の path を指定しない refine、プリミティブの腕の min など）：腕が重ならない union では、いつもそのまま P に出る。invalid_union から union が `writtenBy` を付けて P に書き直すのは、型の合う腕が 2 つ以上あって、どちらもチェックで落ちるとき（腕が重なる union）だけ
 
-**② union が解釈する issue（invalid_union と、union の腕の unrecognized_keys）**
+**① union が解釈する issue（invalid_union と、union の腕の unrecognized_keys）**
 
-そのままでは画面に出せない（どの腕の話か、どの union を選び直せばいいかが、union にしか分からない）。
+- 表示の共通関数（`wrapComponent`・`useArrayField`）は、invalid_union を部品に渡さない（今のとおり）。unrecognized_keys は、`errorToken` を受け取った部品（union の腕）には渡さない（6.5）
+- union は、読んだものを腕に配るか、腕を選ぶ欄の文言（6.4・6.5）にして出す
 
-- 表示の共通関数（`wrapComponent`・`useArrayField`）は、invalid_union を部品に渡さない（今のとおり）。unrecognized_keys は、`errorTokens` を受け取った部品（union の腕）には渡さない（6.5）
-- union が読む invalid_union（`pickUnionIssue`）：`UnionRelayContext` をやめる。`props.errorTokens` があれば、`writtenBy` がその最後の要素（すぐ外側の union の `writer`）のもの、無ければ `writtenBy` の無いもの
-- `UnionRelayContext` は消す
-- union は、読んだものを腕に配る（①にする）か、腕を選ぶ欄の文言（6.4・6.5）にして出す
-
-**③ `writtenBy` の無いふつうの issue（refine、invalid_type、union の外の unrecognized_keys）**
+**② それ以外の issue（`writtenBy` 付きのものを含む）**
 
 - 出す部品：P のいちばん外側の部品。内側の部品には、外側が `hideError` を渡す（2.3 のとおり）
-- union は、受け取った `hideError` をそのまま腕に渡す（union は ③ を表示しないので、外側の役を取らない）
+- union は、受け取った `hideError` をそのまま腕に渡す（union は ② を表示しないので、外側の役を取らない）
+- `writtenBy` 付きの issue も、ここに入れる。腕そのもののエラーは、そのまま出たものも書き直したものも、intersection の中では intersection に、外では腕に出る（出る場所がそろう）
+
+**`errorToken`（単数）**
+
+- zod-form-react の `ZodFormProps` に `errorToken?: object` を足す。定義：同じ欄で、すぐ外側の union の `writer`
+- union は、腕の Switch（と Suspense の fallback）に `errorToken={writer}` を渡す。同じ path の包みは `{...props}` で渡すので届き、path が変わる部品は渡さない
+- 使い道は 2 つ
+  1. 入れ子の union が invalid_union を読み分ける（`pickUnionIssue`）：`errorToken` があれば `writtenBy === errorToken` のもの、無ければ `writtenBy` の無いもの。`UnionRelayContext` をやめる
+  2. 表示の共通関数が、部品が union の腕かを知る（① の unrecognized_keys）
 
 表示の共通関数が部品に渡す error は、次で選ぶ：
 
 ```ts
-const isMine = (issue) =>
-  issue.writtenBy !== undefined
-    ? (props.errorTokens?.includes(issue.writtenBy) ?? false)
-    : !props.hideError;
-const error = rawErrors
-  .flat()
-  .find(
-    (issue) =>
-      !isPendingIssue(issue) &&
-      !isUnionIssue(issue) &&
-      !(props.errorTokens && isUnrecognizedKeysIssue(issue)) &&
-      isMine(issue),
-  );
+const isDisplayedIssue = (issue, { hideError, errorToken }) =>
+  !isPendingIssue(issue) &&
+  !isUnionIssue(issue) &&
+  !(errorToken && isUnrecognizedKeysIssue(issue) && !issue.writtenBy) &&
+  !hideError;
 ```
 
-これで、`z.union` の腕の、path を指定しない `.refine()` などは、intersection の中でも腕の中に出る。入れ子の refine は、単体テストで確かめる。
+### 6.3 腕そのもののエラーは intersection に出す
 
-### 6.3 discriminatedUnion の腕のエラーは intersection に出す
-
-discriminatedUnion は、選んだ腕の `.refine()` などの issue を invalid_union に包まず、`writtenBy` の無い issue として union と同じ path に出す。zod の issue には、どの schema から出たかの情報が残らない。そのため、intersection 自身の issue と見分けられない。
+discriminatedUnion は、選んだ腕の `.refine()` などの issue を invalid_union に包まず、`writtenBy` の無い issue として union と同じ path に出す。z.union も、腕が重ならなければ同じ（6.2）。zod の issue には、どの schema から出たかの情報が残らない。そのため、intersection 自身の issue と見分けられない。
 
 - intersection の中では、hideError のまま intersection の入れ物に出す（今の動きを仕様にする）
 - 腕の中に出したいときは `.refine(..., { path: ["phone"] })` のように欄を指す。デモの説明に、この書き方をすすめる形で載せる
@@ -191,10 +182,10 @@ discriminatedUnion は、選んだ腕の `.refine()` などの issue を invalid
 
 ### 6.4 値が空のとき、union は「選択してください」を重ねて出さない
 
-discriminatedUnion は、値が undefined・null のとき invalid_type（③）を union の欄に出す。union は今、腕が未選択で欄にエラーがあれば、code を問わず腕を選ぶ欄に「選択してください」を出している。そのため、intersection の中では intersection の「必ず入力してください。」と重なる。z.union も、intersection のもう片方が object なら、そちらの invalid_type（③）を intersection が出すので、invalid_union から作る「選択してください」と重なる。
+discriminatedUnion は、値が undefined・null のとき invalid_type（②）を union の欄に出す。union は今、腕が未選択で欄にエラーがあれば、code を問わず腕を選ぶ欄に「選択してください」を出している。そのため、intersection の中では intersection の「必ず入力してください。」と重なる。z.union も、intersection のもう片方が object なら、そちらの invalid_type（②）を intersection が出すので、invalid_union から作る「選択してください」と重なる。
 
-- union は、`hideError` を受け取っていて、P に ③ があるとき（外側が出すものがあるとき）は、自分の欄のエラーからは「選択してください」を出さない
-- P に ③ が無いとき（invalid_union しか無い。値はあるがどの腕にも合わないとき、intersection の両側が union のときなど）は、`hideError` でも出す。ほかに出す部品が無いため
+- union は、`hideError` を受け取っていて、P に ② があるとき（外側が出すものがあるとき）は、自分の欄のエラーからは「選択してください」を出さない
+- P に ② が無いとき（invalid_union しか無い。値はあるがどの腕にも合わないとき、intersection の両側が union のときなど）は、`hideError` でも出す。ほかに出す部品が無いため
 - discriminator の欄のエラー（`hasDiscriminatorError`）からは、今のとおり出す（P の issue ではないので、intersection とは重ならない）
 
 ### 6.5 unrecognized_keys の文言
@@ -216,7 +207,7 @@ zod の intersection は、両側の unrecognized_keys をまとめ、両側と�
 
 - intersection の中：intersection が、受け取った error が unrecognized_keys なら、この文言に作り直して入れ物に出す
 - intersection の外の discriminatedUnion：union が、自分の欄の unrecognized_keys を読み、腕を選ぶ欄のエラーとして出す（腕を選んでいるときも出す）。`hideError` のときは出さない
-- 腕の部品は、unrecognized_keys を出さない。表示の共通関数は、`errorTokens` を受け取った部品（union の腕）には、`writtenBy` の無い unrecognized_keys を渡さない（6.2 の ②）
+- 腕の部品は、unrecognized_keys を出さない。表示の共通関数は、`errorToken` を受け取った部品（union の腕）には、`writtenBy` の無い unrecognized_keys を渡さない（6.2 の ①）
 - union の無い strictObject は、今のとおり object の部品が errorMap のメッセージで出す
 
 ### 6.6 flat のエラーは Alert で出す
@@ -230,7 +221,7 @@ zod の intersection は、両側の unrecognized_keys をまとめ、両側と�
 - box の子の object に `.refine()`：エラーは intersection に 1 回だけ出て、子の枠には出ない
 - flat（横並び）の子に `.refine()`：横並びの中のエラーの出方
 - 子の欄に `min(1)`：欄のエラーは今のとおり欄の下に出る
-- `z.union` の腕の object に、path を指定しない `.refine()`：腕の中に出る（6.2）
+- `z.union` の腕の object に、path を指定しない `.refine()`：intersection に出る（6.3）
 - discriminatedUnion の腕の object に、path を指定しない `.refine()`：intersection に出る（6.3）
 - 必須の intersection（object と discriminatedUnion）の値が空：「必ず入力してください。」が 1 回だけ出て、「選択してください」は出ない（6.4）
 - 2 つの discriminatedUnion（腕は strictObject）の intersection に、選んでいない腕のキーが残った初期値：「連絡方法と会員タイプを選択してください」が出る（6.5）
