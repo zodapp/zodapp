@@ -22,6 +22,20 @@ const hasDefault = (schema: z.ZodTypeAny): boolean => {
 };
 
 /**
+ * object のキーを置かなくても、undefined を置いたときと同じ検証結果になるか。
+ * zod 4 は、optional でない子（z.unknown()・z.any()・z.custom()・undefined を含む union など）の
+ * キーが無いと、子が undefined を受け付けても「expected nonoptional」にする。そういう子のキーは残す
+ */
+const canOmitUndefinedKey = (schema: z.ZodTypeAny): boolean => {
+  if (schema._zod.optin === "optional") return true;
+  try {
+    return !schema.safeParse(undefined).success;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Zod スキーマから「フォーム初期化向け」のデフォルト値を生成します。
  *
  * `z.default(...)` の defaultValue だけでなく、object/array/set/map なども「空の値」を補完します。
@@ -31,14 +45,9 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
     undefined,
     schema,
     {
-      object: (obj, schema) => {
-        const _schema = schema as z.ZodObject<z.ZodRawShape>;
-        return {
-          ...Object.fromEntries(
-            Object.entries(_schema.shape).map(([key]) => [key, undefined]),
-          ),
-          ...obj,
-        };
+      // shape のキーは processor の object が歩くので、ここでは object にするだけ
+      object: (obj) => {
+        return { ...obj };
       },
       set: (obj) => {
         return obj ?? new Set();
@@ -105,6 +114,33 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
             if (inner !== undefined) return inner;
           }
           return acceptsUndefined(innerType) ? undefined : null;
+        },
+        // object：shape のキーをすべて歩いて子の値を作り、値が undefined になったキーは置かない
+        // （{ x: undefined } ではなく {}）。ただし、キーが無いと検証結果が変わる子のキーは残す。
+        // shape にないキーは catchall があれば変換し、なければ素通しする
+        object: (obj, schema, context) => {
+          if (typeof obj !== "object" || obj === null) return obj;
+          const shape = schema.shape as Record<string, z.ZodTypeAny>;
+          const catchall = schema.def.catchall as z.ZodTypeAny | undefined;
+          const result: Record<string, unknown> = {};
+          for (const key of new Set([
+            ...Object.keys(obj),
+            ...Object.keys(shape),
+          ])) {
+            const childSchema = Object.hasOwn(shape, key)
+              ? shape[key]
+              : catchall;
+            const value = childSchema
+              ? context.transform(obj[key], childSchema, key)
+              : obj[key];
+            if (
+              value !== undefined ||
+              (childSchema !== undefined && !canOmitUndefinedKey(childSchema))
+            ) {
+              result[key] = value;
+            }
+          }
+          return result;
         },
         union: (obj, schema, context) => {
           const options = schema.def.options as z.ZodTypeAny[];
