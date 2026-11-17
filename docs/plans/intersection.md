@@ -61,11 +61,12 @@ object どうしだけでなく、object と union の intersection も同じ仕
 
 object と union に `uiType: "flat"` を足す。
 
-- object の `flat`：ラベル・枠・エラーの文言の場所を出さず、欄だけを並べる。欄を包む div と、object 自体の入れ物を `display: contents` にし、中の欄が外側の並び（縦並びの流れ、横並びの flex）にそのまま入るようにする
-- union の `flat`：Fieldset を出さず、腕を選ぶ欄と腕の欄を、外側の並びにそのまま入れる
+- object の `flat`：InputWrapper（ラベル・余白・エラーの文言の場所）も枠も出さず、欄（を包む div）だけを返す。縦並びなら、欄はそのまま外側の流れに入る（`display: contents` も要らない）
+- union の `flat`：Fieldset を出さず、腕を選ぶ欄と腕の欄だけを返す
+- 自分の path のエラーがあるときだけ、欄のあとにエラーの box を 1 つ出す（2.4）
 - intersection の部品の中でなくても使える（object の中の object を平らに並べるなど）
 - `display: contents` は主なブラウザで使える。div に付けるので、読み上げの問題も無い
-- 外側が横並びのときは、外側の object・intersection の、欄を包む div も `display: contents` にする必要がある。外側の部品は、子が `flat` のときだけ、包む div を `display: contents` にする
+- 外側が横並びのときは、外側の object・intersection が欄を包む div を `display: contents` にする必要がある。外側の部品は、子が `flat` のときだけ、包む div を `display: contents` にする（`flat` の部品自体には、消す入れ物がもう無い）
 
 ### 2.4 エラー（同じ path で重ならないようにする）
 
@@ -77,7 +78,12 @@ object と union に `uiType: "flat"` を足す。
   - 伝え方は、Switch に渡す props か context にする（実装のときに決める。`same-path-experiment.md` の案F で props をまとめる流れに合わせる）
   - 子の中の欄（path が違うもの）のエラーは、今までどおり各欄に出す
   - `box` のままの子も、この指示に従って出さない
-- `flat` の object・union は、そもそも自分の path のエラーを出す場所が無い。intersection の中でなく単独で `flat` を使うときは、外側の object の欄としてのエラーは出ない（親の path のエラーとして出ることも無い）ので、`.refine()` などを付けた object を `flat` にしないよう、開発中に警告を出す
+- `flat` の object・union は、InputWrapper を出さないので、自分の path のエラーを出す場所を別に作る
+  - エラーがあるときだけ、欄のあとにエラーの box を 1 つ出す。エラーが無ければ何も出さない
+  - box は `uiType: "box"` と同じ仕組み（Mantine の Fieldset）で描き、枠の見た目をそろえる。中身はエラーの文言だけ
+  - 特定の欄の下の赤い文言とは違う見た目になるので、欄のまとまりについてのエラーだと分かる
+  - 横並びのときは、box を 1 行ぶんの幅にして（flex の項目として幅いっぱい）、次の行に出す。`horizontal`（折り返さない）の中でも box だけは折り返す必要があるので、外側の部品の並べ方を少し変える
+  - intersection の中では「この path のエラーは出さない」と指示されるので、box も出さない
 - union は今も、自分の path のエラーを同じ path の腕の部品に出させている。intersection の中の union では、腕の部品にもこの指示が伝わり、腕の部品は出さない（intersection が出す）
 
 ### 2.5 同じキーが両側にあるとき
