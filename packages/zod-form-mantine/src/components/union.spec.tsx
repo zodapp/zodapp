@@ -1448,7 +1448,7 @@ describe("UnionComponent union of primitive arms", () => {
     fireEvent.change(armInputOf("値"), { target: { value: "20" } });
     await waitFor(() => expect(value()).toBe(20));
     expect(selectorOf("値").value).toBe("数値");
-  });
+  }, 15_000); // 腕を 4 回切り替える長いテスト。CI では 5 秒を超えることがある
 
   it("keeps a number-like string in the string arm while typing", async () => {
     const formRef: { current: AnyFormApi | undefined } = { current: undefined };
