@@ -138,13 +138,13 @@ form の中でも value にそろえてよい理由と注意：
 
 #### props の役割
 
-| props                                      | 役割                                                                                                                  | 書く部品                                                                                                                                      | 読む部品                                                 |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `fieldPath`・`schema`・`readOnly`・`label` | 今のまま                                                                                                              |                                                                                                                                               |                                                          |
-| `outer`（名前は仮）                        | 同じ path の外側の包みの情報。下の表                                                                                  | 包みの部品（足して下へ渡す）                                                                                                                  | 葉の部品、dynamic・externalKey                           |
-| `defaultValue`                             | default・optional・nullable が下の層に渡す既定の値                                                                    | default（`.default(x)` の x）、nullable（無ければ null）、object・array・tuple・record（子の分を取り出して渡す）                              | 新しく値を作るところ（配列の追加、union の腕の選択など） |
-| `value`（新設）                            | 部品が表示する値。form を使うかどうかに関係なくこれで受け取る（今 form を使わない部品は defaultValue で代用している） | 親の部品（根は AutoForm・ReactiveAutoForm・AutoTable）。object・array・tuple・record は子の分を取り出して渡す。同じ path の包みはそのまま渡す | すべての部品                                             |
-| `parent`（新設）                           | 一つ上の値。meta の関数（`dependsOnParent`）に渡す                                                                    | object・array・tuple・record が自分の value を子に渡す。同じ path の包みはそのまま渡す                                                        | `useFnInput`（path で store を読む代わり）               |
+| props                                      | 役割                                                                                                                  | 書く部品                                                                                                                                                                                                                        | 読む部品                                                 |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `fieldPath`・`schema`・`readOnly`・`label` | 今のまま                                                                                                              |                                                                                                                                                                                                                                 |                                                          |
+| `outer`（名前は仮）                        | 同じ path の外側の包みの情報。下の表                                                                                  | 包みの部品（足して下へ渡す）                                                                                                                                                                                                    | 葉の部品、dynamic・externalKey                           |
+| `defaultValue`                             | default・optional・nullable が下の層に渡す既定の値                                                                    | 包みは受け取った値に手を付けずに渡す。default（`.default(x)`）は無ければ x を入れる。一番内側で、まだ無く nullable だけなら null にする（下の「defaultValue の決まり」）。object・array・tuple・record は子の分を取り出して渡す | 新しく値を作るところ（配列の追加、union の腕の選択など） |
+| `value`（新設）                            | 部品が表示する値。form を使うかどうかに関係なくこれで受け取る（今 form を使わない部品は defaultValue で代用している） | 親の部品（根は AutoForm・ReactiveAutoForm・AutoTable）。object・array・tuple・record は子の分を取り出して渡す。同じ path の包みはそのまま渡す                                                                                   | すべての部品                                             |
+| `parent`（新設）                           | 一つ上の値。meta の関数（`dependsOnParent`）に渡す                                                                    | object・array・tuple・record が自分の value を子に渡す。同じ path の包みはそのまま渡す                                                                                                                                          | `useFnInput`（path で store を読む代わり）               |
 
 `outer` の中身：
 
@@ -152,6 +152,23 @@ form の中でも value にそろえてよい理由と注意：
   空にしたときに書く値（optional なら undefined、nullable だけなら null）をここから決める
 - `wraps`：外側の包みの並び（外から内の順）。それぞれ「包みの種類（optional・nullable・default など）」と「その包みに付いた検査」。
   検査がどの包みの内か外かで、undefined・null のときに走るかが変わるので、まとめて 1 つの配列にせず順を保つ
+
+#### defaultValue の決まり（e2e スレッドの課題 7 を直す）
+
+課題 7：`.default("x").nullable()` の欄の初期値が、default の値ではなく null になる。
+zod では `.default("x").nullable()` も `.nullable().default("x")` も、undefined なら "x"、null なら null になる
+（`.nullable()` が引き受けるのは null だけで、undefined は中に渡すので、中の `.default()` が効く）。
+今は nullable の部品が下に `defaultValue ?? null` を渡すので、中の default は null を受け取り、x を使えない。
+
+- optional・nullable の部品は、defaultValue に手を付けずに下へ渡す（null で埋めない）
+- default・prefault の部品は、受け取った defaultValue が undefined なら `.default(x)` の x を入れて渡す
+  （今の DefaultComponent は `defaultValue ?? null` を渡しているので直す）
+- 一番内側（葉の部品、または値を作るところ）で、defaultValue がまだ undefined で、`outer` が nullable だけ（optional でない）なら null にする。
+  optional なら undefined のまま
+- これで、どちらの順の `.default("x").nullable()`・`.nullable().default("x")` も x になり、zod と同じになる。
+  nullable だけの欄（中に default が無い）は今どおり null
+- `getDefaultValue`（zod-form）の nullable の処理も同じ決まりにそろえる（中が default なら null ではなく中の default を使う）
+- テスト：`.default("x").nullable()`・`.nullable().default("x")`・nullable だけ・optional だけ・`.optional().nullable()` の欄の初期値を確かめる
 
 #### 書く側・読む側
 
@@ -195,7 +212,7 @@ form の中でも value にそろえてよい理由と注意：
   3. dynamic の欄に直接付いた検査は、zod 4 では包みを作らず、同じ型の複製の `def.checks` に入る。zf の meta は
      zod-propagating-registry（zod-form 独自のしくみ。zod の仕様ではない）で複製に引き継がれるので、DynamicComponent が受け取る
      schema にその検査が入っている。案E・案F はこれに頼る
-  4. 今の DefaultComponent は `.default(x)` の x ではなく `defaultValue ?? null` を下に渡している。defaultValue の役割に合わせて x を渡すように直す
+  4. 今の DefaultComponent は `.default(x)` の x ではなく `defaultValue ?? null` を下に渡している。上の「defaultValue の決まり」で直す
   5. record の `field.value ?? defaultValue` と union の腕の初期値が、defaultValue の手渡しにどこまで頼っているかを、実装の前に確かめる
 
 ## 5. 案F でも解決できないこと
@@ -209,7 +226,11 @@ form の中でも value にそろえてよい理由と注意：
   （`outer.wraps` に「出力側の schema」を足せば運べる）
 - **漏れの構造**：props で運ぶので、path が変わるところで `outer` を消すのは手作業のまま。消し忘れると漏れる（tuple で起きた形）。
   案A＋D の「path で自動に切れる」性質は持たない。部品を足すときの決まりとして明記する
-- **union の腕のエラーの配り直し**（`invalid_union`・`onDynamic`）：同じ path の受け渡しとは別の問題（実験 2）
+- **union の腕のエラーの配り直し**（`invalid_union`・`onDynamic`）：同じ path の受け渡しとは別の問題。e2e スレッドの課題 2〜4 は、今の中継の作りのまま個別に直す
+- **e2e スレッドの課題 5（自作の部品で union を描くと `invalid_union` が出ない）**：後で別に考える。
+  候補として、union が腕に渡す `outer` に「この path の `invalid_union` は union が受け持つ」という印を持たせ、
+  `wrapComponent` はその印があるときだけ隠す形がある（同じ path の情報を運ぶ仕組みが一つで済む）
+- **e2e スレッドの課題 6・8・9**（数値・bigint の読めない入力、reactive 版の日付の変換、`handleSubmit` を直接呼んだときの 1 回目）：案F とは関係なく、個別に直す
 
 ## 6. 見たところ（案A〜D のとき）
 
