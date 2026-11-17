@@ -178,3 +178,118 @@ describe("getDefaultValue", () => {
     });
   });
 });
+
+describe("getDefaultValue に値を渡す（値が無いところだけを補う）", () => {
+  it("入っている値は変えず、無いキーだけを既定値で補う", () => {
+    const schema = z.object({
+      a: z.string().default("x"),
+      b: z.number(),
+      c: z.string().nullable(),
+    });
+    expect(getDefaultValue(schema, { b: 1 })).toStrictEqual({
+      a: "x",
+      b: 1,
+      c: null,
+    });
+    expect(getDefaultValue(schema, { a: "keep", b: 1, c: "y" })).toStrictEqual({
+      a: "keep",
+      b: 1,
+      c: "y",
+    });
+  });
+
+  it("値が null の欄は null のまま（default も配列の既定値も入れない）", () => {
+    const schema = z.object({
+      a: z.string().default("x").nullable(),
+      list: z.array(z.string()).nullable(),
+    });
+    expect(getDefaultValue(schema, { a: null, list: null })).toStrictEqual({
+      a: null,
+      list: null,
+    });
+  });
+
+  it("配列の各要素の中も補う", () => {
+    const schema = z.object({
+      items: z.array(
+        z.object({ name: z.string(), qty: z.number().default(1) }),
+      ),
+    });
+    expect(
+      getDefaultValue(schema, {
+        items: [{ name: "a" }, { name: "b", qty: 3 }],
+      }),
+    ).toStrictEqual({
+      items: [
+        { name: "a", qty: 1 },
+        { name: "b", qty: 3 },
+      ],
+    });
+  });
+
+  it("record の各値の中も補う", () => {
+    const schema = z.record(
+      z.string(),
+      z.object({ on: z.boolean().default(false) }),
+    );
+    // record は zod-transform が null プロトタイプの object で作るので toEqual で比べる
+    expect(getDefaultValue(schema, { k: {} })).toEqual({
+      k: { on: false },
+    });
+  });
+
+  it("値に元からある undefined のキーは残す", () => {
+    const schema = z.object({ a: z.string() });
+    const value = getDefaultValue(schema, { a: undefined }) as object;
+    expect("a" in value).toBe(true);
+  });
+
+  it("discriminatedUnion は discriminator の値で腕を選び、入力の途中でも補う", () => {
+    const schema = z.discriminatedUnion("type", [
+      z.object({ type: z.literal("a"), x: z.string().default("ax") }),
+      z.object({
+        type: z.literal("b"),
+        name: z.string(),
+        y: z.string().default("by"),
+      }),
+    ]);
+    expect(getDefaultValue(schema, { type: "b" })).toStrictEqual({
+      type: "b",
+      y: "by",
+    });
+  });
+
+  it("discriminator の無い union も、literal の欄が一致する腕が 1 つなら、その腕で補う", () => {
+    const schema = z.union([
+      z.object({ kind: z.literal("a"), x: z.string().default("ax") }),
+      z.object({
+        kind: z.literal("b"),
+        name: z.string(),
+        y: z.string().default("by"),
+      }),
+    ]);
+    expect(getDefaultValue(schema, { kind: "b" })).toStrictEqual({
+      kind: "b",
+      y: "by",
+    });
+  });
+
+  it("腕を決められない union の値は、そのまま残す", () => {
+    const schema = z.union([
+      z.object({ a: z.string(), x: z.string().default("x") }),
+      z.object({ b: z.string(), y: z.string().default("y") }),
+    ]);
+    const value = { c: 1 };
+    expect(getDefaultValue(schema, value)).toBe(value);
+  });
+
+  it("optional の中も、値があれば補う", () => {
+    const schema = z.object({
+      detail: z.object({ n: z.number().default(0), s: z.string() }).optional(),
+    });
+    expect(getDefaultValue(schema, { detail: {} })).toStrictEqual({
+      detail: { n: 0 },
+    });
+    expect(getDefaultValue(schema, {})).toStrictEqual({});
+  });
+});

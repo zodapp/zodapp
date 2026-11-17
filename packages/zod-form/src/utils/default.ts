@@ -35,37 +35,100 @@ const canOmitUndefinedKey = (schema: z.ZodTypeAny): boolean => {
   }
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  !(value instanceof Date) &&
+  !(value instanceof Map) &&
+  !(value instanceof Set);
+
+/** schema（object や union の腕）が持つ literal の欄の値（zod 4 の propValues） */
+const propValuesOf = (
+  schema: z.ZodTypeAny,
+): Record<string, Set<unknown>> | undefined =>
+  (schema._zod as { propValues?: Record<string, Set<unknown>> }).propValues;
+
+/**
+ * 値がある union で、補うときに歩く腕を選ぶ。zf.union の部品が腕を決める規則にそろえる。
+ *
+ * 1. discriminatedUnion なら、discriminator の値が一致する腕
+ * 2. 値がそのまま検証に通る腕があれば、その最初の腕
+ * 3. literal の欄の値が一致する腕が 1 つだけなら、その腕
+ * 4. 決められなければ undefined（値をそのまま残す）
+ */
+const pickUnionOption = (
+  value: unknown,
+  options: z.ZodTypeAny[],
+  discriminator: string | undefined,
+): z.ZodTypeAny | undefined => {
+  if (discriminator !== undefined && isPlainObject(value)) {
+    const key = value[discriminator];
+    const matched = options.find((option) =>
+      propValuesOf(option)?.[discriminator]?.has(key),
+    );
+    if (matched) return matched;
+  }
+  const passed = options.find((option) => option.safeParse(value).success);
+  if (passed) return passed;
+  if (!isPlainObject(value)) return undefined;
+  const byLiteral = options.filter((option) => {
+    const propValues = propValuesOf(option);
+    if (!propValues) return false;
+    const keys = Object.keys(propValues).filter((key) =>
+      Object.hasOwn(value, key),
+    );
+    return (
+      keys.length > 0 && keys.every((key) => propValues[key]!.has(value[key]))
+    );
+  });
+  return byLiteral.length === 1 ? byLiteral[0] : undefined;
+};
+
 /**
  * Zod スキーマから「フォーム初期化向け」のデフォルト値を生成します。
  *
  * `z.default(...)` の defaultValue だけでなく、object/array/set/map なども「空の値」を補完します。
+ *
+ * `value` を渡すと、その値を持ったまま schema を歩き、値が undefined のところだけを補います
+ * （配列の各要素・record の各値・union の腕の中も補う）。入っている値は変えません。
+ * 補えないとき（schema の形と値が合わないなど）は、値をそのまま返します。
  */
-export const getDefaultValue = (schema: z.ZodTypeAny) => {
+export const getDefaultValue = (schema: z.ZodTypeAny, value?: unknown) => {
+  if (value === undefined) return fillDefaults(undefined, schema);
+  try {
+    return fillDefaults(value, schema);
+  } catch {
+    return value;
+  }
+};
+
+const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
   return preprocess(
-    undefined,
+    value,
     schema,
     {
       // shape のキーは processor の object が歩くので、ここでは object にするだけ
       object: (obj) => {
-        return { ...obj };
+        return obj === undefined ? {} : obj;
       },
       set: (obj) => {
-        return obj ?? new Set();
+        return obj !== undefined ? obj : new Set();
       },
       map: (obj) => {
-        return obj ?? new Map();
+        return obj !== undefined ? obj : new Map();
       },
       record: (obj) => {
-        return obj ?? {};
+        return obj !== undefined ? obj : {};
       },
       null: (obj) => {
-        return obj ?? null;
+        return obj !== undefined ? obj : null;
       },
       undefined: (obj) => {
-        return obj ?? undefined;
+        return obj;
       },
       array: (obj, schema) => {
-        if (obj) return obj;
+        if (obj !== undefined) return obj;
         const exactLength = extractCheck<$ZodCheckLengthEqualsDef>(
           schema.def.checks,
           "length_equals",
@@ -80,35 +143,38 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
         return [];
       },
       tuple: (obj, schema) => {
-        return (
-          obj ??
-          Array((schema as z.ZodTuple).def.items.length ?? 0).fill(undefined)
-        );
+        return obj !== undefined
+          ? obj
+          : Array((schema as z.ZodTuple).def.items.length ?? 0).fill(undefined);
       },
       literal: (obj, schema) => {
-        return obj ?? (schema as z.ZodLiteral).value;
+        return obj !== undefined ? obj : (schema as z.ZodLiteral).value;
       },
       default: (obj, schema) => {
         const defaultValue = schema.def.defaultValue;
-        return (
-          obj ??
-          (typeof defaultValue === "function"
-            ? defaultValue()
-            : schema.def.defaultValue)
-        );
+        if (obj !== undefined) return obj;
+        return typeof defaultValue === "function"
+          ? defaultValue()
+          : schema.def.defaultValue;
       },
     } as PreprocessorDef,
     {
       processor: {
+        // optional：値が無ければ undefined のまま、値があれば中で歩く
+        // （zod-transform の既定は [z.undefined(), 中] を試し、入力途中の値では通らずに投げるため）
+        optional: (obj, schema, context) =>
+          obj === undefined
+            ? undefined
+            : context.transform(obj, schema.def.innerType as z.ZodTypeAny),
         // nullable：中が default なら（`.default("x").nullable()`）その値を使う（zod と同じく、
         // nullable は undefined を中に渡す）。optional を含むなら undefined。それ以外は null にする。
         // object・配列・record の空の値（{ x: undefined }・[]・{}）は使わない。nullable な object は
         // null で始まり、「＋」で開くまで中の欄を出さない
         nullable: (obj, schema, context) => {
           const innerType = schema.def.innerType as z.ZodTypeAny;
-          if (obj !== undefined) {
-            return context.transform(obj, [z.null(), innerType]);
-          }
+          // 値があるときは、null なら null のまま、それ以外は中で歩く
+          if (obj === null) return null;
+          if (obj !== undefined) return context.transform(obj, innerType);
           if (hasDefault(innerType)) {
             const inner = context.transform(undefined, innerType);
             if (inner !== undefined) return inner;
@@ -117,9 +183,10 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
         },
         // object：shape のキーをすべて歩いて子の値を作り、値が undefined になったキーは置かない
         // （{ x: undefined } ではなく {}）。ただし、キーが無いと検証結果が変わる子のキーは残す。
-        // shape にないキーは catchall があれば変換し、なければ素通しする
+        // shape にないキーは catchall があれば変換し、なければ素通しする。
+        // 値に元からあるキーは、undefined でも残す（入っている値の形を変えない）
         object: (obj, schema, context) => {
-          if (typeof obj !== "object" || obj === null) return obj;
+          if (!isPlainObject(obj)) return obj;
           const shape = schema.shape as Record<string, z.ZodTypeAny>;
           const catchall = schema.def.catchall as z.ZodTypeAny | undefined;
           const result: Record<string, unknown> = {};
@@ -135,6 +202,7 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
               : obj[key];
             if (
               value !== undefined ||
+              Object.hasOwn(obj, key) ||
               (childSchema !== undefined && !canOmitUndefinedKey(childSchema))
             ) {
               result[key] = value;
@@ -152,7 +220,12 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
               ? context.transform(obj, matchedOption)
               : undefined;
           }
-          return context.transform(obj, options);
+          const option = pickUnionOption(
+            obj,
+            options,
+            (schema.def as { discriminator?: string }).discriminator,
+          );
+          return option ? context.transform(obj, option) : obj;
         },
       },
     },

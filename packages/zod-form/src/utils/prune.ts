@@ -101,33 +101,12 @@ export const pruneValueToSchema = (
     processor: valueProcessors,
   });
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" &&
-  value !== null &&
-  !Array.isArray(value) &&
-  !(value instanceof Date);
-
-/**
- * value に無いキーだけ defaults で補う（入っている値は変えない）。
- */
-const fillMissing = (value: unknown, defaults: unknown): unknown => {
-  if (value === undefined) return defaults;
-  if (!isPlainObject(value) || !isPlainObject(defaults)) return value;
-  const next: Record<string, unknown> = { ...value };
-  for (const [key, defaultValue] of Object.entries(defaults)) {
-    if (defaultValue === undefined) continue;
-    next[key] = fillMissing(value[key], defaultValue);
-  }
-  return next;
-};
-
 /**
  * 値を新しい schema に合わせる。{@link pruneValueToSchema} で合わない値を消し、
- * 無いキーは既定値（{@link getDefaultValue}）で補う。新しい schema で必須になった
- * object を、フォームを開いたときと同じ形で用意する。
+ * 値が無いところを既定値（{@link getDefaultValue} に値を渡したもの）で補う。
+ * 配列の各要素・record の各値・union の腕の中も補う。
  */
 export const adaptValueToSchema = (
   value: unknown,
   schema: z.ZodTypeAny,
-): unknown =>
-  fillMissing(pruneValueToSchema(value, schema), getDefaultValue(schema));
+): unknown => getDefaultValue(schema, pruneValueToSchema(value, schema));
