@@ -24,6 +24,7 @@ import * as discriminatedUnion from "./discriminatedUnion";
 import * as discriminatedUnionAsTopLevel from "./discriminatedUnionAsTopLevel";
 import * as arrayFields from "./arrayFields";
 import * as nestedObject from "./nestedObject";
+import * as nullableFields from "./nullableFields";
 import * as refineValidation from "./refineValidation";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
@@ -60,6 +61,7 @@ import discriminatedUnionCode from "./discriminatedUnion.tsx?raw";
 import discriminatedUnionAsTopLevelCode from "./discriminatedUnionAsTopLevel.ts?raw";
 import arrayFieldsCode from "./arrayFields.ts?raw";
 import nestedObjectCode from "./nestedObject.ts?raw";
+import nullableFieldsCode from "./nullableFields.ts?raw";
 import refineValidationCode from "./refineValidation.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
@@ -79,6 +81,7 @@ export const formSchemas = {
   [enumSelect.formId]: enumSelect,
   [arrayFields.formId]: arrayFields,
   [nestedObject.formId]: nestedObject,
+  [nullableFields.formId]: nullableFields,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
   [union.formId]: union,
@@ -117,6 +120,7 @@ export const formCodes = {
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
   [nestedObject.formId]: nestedObjectCode,
+  [nullableFields.formId]: nullableFieldsCode,
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
   [union.formId]: unionCode,
