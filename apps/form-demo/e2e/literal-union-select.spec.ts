@@ -13,7 +13,7 @@ import {
 
 // literal の union を選ぶ：uiType の select・badge と、配列の multipleEnum・multipleEnumBadge
 test.beforeEach(async ({ page }) => {
-  await openDemo(page, "literalUnionSelect", "literal の union を選ぶ");
+  await openDemo(page, "literalUnionSelect", "zf.union（literal）");
   await expect(field(page, "価格（optional）")).toHaveValue("10（文字）");
 });
 
@@ -124,4 +124,70 @@ test("複数選ぶ・バッジの形は、選んだ値をバッジで出し、×
   await expect
     .poll(async () => (await valueOf(page, "sizes")).value)
     .toEqual(["large"]);
+});
+
+/** 欄の × の数（Select のクリアのボタン） */
+const clearButtonCount = (page: Page, label: string) =>
+  field(page, label)
+    .locator(
+      "xpath=ancestor::div[contains(@class,'mantine-InputWrapper-root')][1]",
+    )
+    .locator("button")
+    .count();
+
+test("literal に入るすべての値と null・undefined の腕を選び、その値を書く", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const label = "回答（すべての値）";
+  // 値が無いときは undefined の腕に見える
+  await expect(field(page, label)).toHaveValue("未回答");
+  const cases: [string, unknown][] = [
+    ["いいえ", false],
+    ["該当なし", null],
+    ["b", "b"],
+    ["はい", true],
+  ];
+  for (const [option, value] of cases) {
+    await choose(page, label, option);
+    await expect
+      .poll(async () => (await valueOf(page, "answer")).value)
+      .toBe(value);
+    await expect(field(page, label)).toHaveValue(option);
+  }
+  // bigint の腕は 10n と出す
+  await choose(page, label, "10n");
+  await expect(field(page, label)).toHaveValue("10n");
+  await choose(page, label, "未回答");
+  await expect.poll(async () => (await valueOf(page, "answer")).has).toBe(true);
+  expect((await valueOf(page, "answer")).value).toBeUndefined();
+});
+
+test("optional・nullable と併用すると腕を優先し、腕で表せないときだけ × を出す", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await expect(field(page, "回答（optional・undefined の腕）")).toHaveValue(
+    "未回答",
+  );
+  expect(await clearButtonCount(page, "回答（optional・undefined の腕）")).toBe(
+    0,
+  );
+  await expect(field(page, "回答（nullable・null の腕）")).toHaveValue("はい");
+  expect(await clearButtonCount(page, "回答（nullable・null の腕）")).toBe(0);
+
+  // null の腕を選ぶと null を書く（空の値に置き換えない）
+  await choose(page, "回答（nullable・null の腕）", "該当なし");
+  await expect
+    .poll(async () => (await valueOf(page, "answerNullable")).value)
+    .toBeNull();
+  await expect(field(page, "回答（nullable・null の腕）")).toHaveValue(
+    "該当なし",
+  );
+
+  // optional・nullable で undefined の腕だけなら、× で null を書く
+  await clearSelect(page, "回答（optional・nullable・undefined の腕）");
+  await expect
+    .poll(async () => (await valueOf(page, "answerBoth")).value)
+    .toBeNull();
 });
