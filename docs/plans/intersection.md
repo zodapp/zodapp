@@ -1,6 +1,6 @@
 # zf.intersection を描くプラン
 
-- ステータス: 2〜5 は実装済み（form-demo の e2e は 132 件すべて通過）。6（エラーの扱いの見直し）は未実装
+- ステータス: 実装済み
 - 対象ブランチ: `claude/union-arm-errors-v2`
 - 対象パッケージ: `@zodapp/zod-extendable`、`@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`apps/form-demo`
 
@@ -113,7 +113,7 @@ e2e で確かめること：
 - union の腕を切り替えると、腕の外のキーを消していたので、intersection で並べた object の欄の値が消えていた。どの腕にも無いキーは消さないようにした（discriminatedUnion・discriminator の無い union の両方）
 - object 自体の `.refine()` のエラー（object の path のエラー）は、子の欄を直しても消えず、送り直しても残る。intersection だけでなく、ふつうの object でも同じ（errorMap の onBlur・onSubmit に残る）。今からある不具合で、このプランでは直していない
 
-## 6. エラーの扱いの見直し（未実装）
+## 6. エラーの扱いの見直し
 
 2〜5 の実装のあと、同じ path に出るエラーを、union が腕に回すもの・discriminatedUnion が出すものまで調べ直した（jsdom で試した結果をもとにする）。次のとおり決める。
 
@@ -201,7 +201,7 @@ zod の intersection は、両側の unrecognized_keys をまとめ、両側と�
   - union の名前は `selectorLabel`、無ければ `label`、どちらも無ければ「タイプ」（腕を選ぶ欄のラベルと同じ）
 - 見つからないキーしか無いとき（schema のどこにも無いキー）：issue のメッセージ（errorMap のもの）をそのまま出す。画面で直せないデータの不具合なので、作り直さない
 - 見つかるキーと見つからないキーが混ざるとき：作り直した文言を出す（画面で直せる方を出す）
-- 文言を作る関数は zod-form-mantine の utils に置き、intersection と union で使う
+- 文言を作る関数（`unrecognizedKeysMessage`）は zod-form-mantine の `components/unrecognizedKeys.ts` に置き、intersection と union で使う
 
 出す部品：
 
