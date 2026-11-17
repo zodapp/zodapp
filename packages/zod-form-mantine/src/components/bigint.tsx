@@ -11,6 +11,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -24,11 +25,11 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<BigIntSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;

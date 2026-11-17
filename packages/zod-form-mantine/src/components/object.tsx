@@ -10,7 +10,7 @@ import {
   useZodField,
   useRunAsUserEdit,
   wrapComponent,
-  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 
@@ -75,8 +75,7 @@ function ObjectBodyImplement({
                 ? defaultValue[property.propertyName]
                 : undefined
             }
-            optional={undefined}
-            nullable={undefined}
+            outer={undefined}
             readOnly={readOnly}
           />
         </div>
@@ -160,7 +159,7 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
   const label = labelFromParent ?? meta?.label;
   const isSet = value !== undefined && value !== null;
   const runAsUserEdit = useRunAsUserEdit();
-  const emptyValue = emptyValueOf(props);
+  const { emptyValue } = emptinessOf(props.outer);
 
   const handleAdd = () => {
     runAsUserEdit(() => field.handleChange(getObjectDefaultValue(schema)));
@@ -209,12 +208,7 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
               paddingBottom: 4,
             }}
           >
-            <ObjectBodyImplement
-              {...props}
-              optional={undefined}
-              nullable={undefined}
-              label={false}
-            />
+            <ObjectBodyImplement {...props} outer={undefined} label={false} />
           </div>
           {!readOnly && (
             <ActionIcon
@@ -253,7 +247,8 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
 
 const ObjectComponent = wrapComponent(
   function ObjectComponentImplement(props: ZodFormInternalProps<ObjectSchema>) {
-    if (Boolean(props.optional || props.nullable) && props.fieldPath !== "") {
+    const { optional, nullable } = emptinessOf(props.outer);
+    if ((optional || nullable) && props.fieldPath !== "") {
       return <OptionalObjectImplement {...props} />;
     }
     return <ObjectBodyImplement {...props} />;

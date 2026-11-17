@@ -3,6 +3,7 @@ import { InputWrapper } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import "dayjs/locale/ja.js";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptinessOf } from "@zodapp/zod-form-react/common";
 import { useZodFormContext } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
@@ -36,10 +37,10 @@ const DateComponent = React.memo(function DateComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<DateSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema, "date");
   const readOnly = meta?.readOnly ?? readOnlyProp;

@@ -22,6 +22,7 @@ import {
   useRunAsUserEdit,
   isPendingIssue,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -934,8 +935,7 @@ const UnionBody = React.memo(function UnionBody({
                 fieldPath={fieldPath}
                 schema={selectedProfile.schema}
                 defaultValue={dynamicDefaultValue}
-                optional={undefined}
-                nullable={undefined}
+                outer={undefined}
                 readOnly={readOnly}
                 label={false}
               />
@@ -946,8 +946,7 @@ const UnionBody = React.memo(function UnionBody({
               fieldPath={fieldPath}
               schema={selectedProfile.schema}
               defaultValue={dynamicDefaultValue}
-              optional={undefined}
-              nullable={undefined}
+              outer={undefined}
               readOnly={readOnly}
               label={false}
             />
@@ -977,14 +976,14 @@ const UnionBody = React.memo(function UnionBody({
 const UnionComponent = wrapComponent(function UnionComponentImplement({
   fieldPath,
   schema,
-  optional,
-  nullable,
+  outer,
   readOnly,
   label: labelFromParent,
   field,
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
   isTouched,
 }: ZodFormInternalProps<UnionSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const {
     label: labelFromMeta,
     selectorLabel,

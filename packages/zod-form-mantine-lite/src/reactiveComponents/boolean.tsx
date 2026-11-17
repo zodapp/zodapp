@@ -1,6 +1,7 @@
 import React from "react";
 import { Group, InputWrapper, Switch } from "@mantine/core";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptinessOf } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
   useConfirmableState,
@@ -15,10 +16,10 @@ const BooleanComponent = React.memo(function BooleanComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<BooleanSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema);
   const uiType = meta?.uiType;
   const labelFromMeta = meta?.label;

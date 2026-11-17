@@ -235,40 +235,34 @@ describe("同じ path の外側の包み（dynamic）", () => {
     expect(input.required).toBe(true);
   });
 
-  // 案E（今の形のまま直す）では、包みの側に付いた検査は dynamic から見えない。失うものとして記録しておく
-  it.fails(
-    "包み（optional）の側に付いた .refine() も、dynamic の欄で効く",
-    async () => {
-      const schema = object({
-        x: dyn(z.string())
-          .optional()
-          .refine((v) => v !== "bad", "包みのrefine"),
-      });
-      const { submit, onSubmit, messagesAt } = renderForm(schema, { x: "bad" });
-      await submit();
-      expect(messagesAt("x")).toContain("包みのrefine");
-      expect(onSubmit).not.toHaveBeenCalled();
-    },
-  );
+  // 案F：包みの側に付いた検査も outer で運び、dynamic が包み直す
+  it("包み（optional）の側に付いた .refine() も、dynamic の欄で効く", async () => {
+    const schema = object({
+      x: dyn(z.string())
+        .optional()
+        .refine((v) => v !== "bad", "包みのrefine"),
+    });
+    const { submit, onSubmit, messagesAt } = renderForm(schema, { x: "bad" });
+    await submit();
+    expect(messagesAt("x")).toContain("包みのrefine");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 
-  it.fails(
-    "入れ子の dynamic でも、外の dynamic に付いた .refine() が効く",
-    async () => {
-      const inner = dyn(z.string());
-      const outer = z
-        .string()
-        .register(
-          zf.dynamic.registry,
-          defineDynamicMeta({
-            resolve: () => ({ key: "outer", schema: inner }),
-          }) as any,
-        )
-        .refine((v) => v !== "bad", "外のdynamicのrefine");
-      const schema = object({ x: outer });
-      const { submit, onSubmit, messagesAt } = renderForm(schema, { x: "bad" });
-      await submit();
-      expect(messagesAt("x")).toContain("外のdynamicのrefine");
-      expect(onSubmit).not.toHaveBeenCalled();
-    },
-  );
+  it("入れ子の dynamic でも、外の dynamic に付いた .refine() が効く", async () => {
+    const inner = dyn(z.string());
+    const outer = z
+      .string()
+      .register(
+        zf.dynamic.registry,
+        defineDynamicMeta({
+          resolve: () => ({ key: "outer", schema: inner }),
+        }) as any,
+      )
+      .refine((v) => v !== "bad", "外のdynamicのrefine");
+    const schema = object({ x: outer });
+    const { submit, onSubmit, messagesAt } = renderForm(schema, { x: "bad" });
+    await submit();
+    expect(messagesAt("x")).toContain("外のdynamicのrefine");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

@@ -2,6 +2,8 @@ import React, { Suspense } from "react";
 import { Loader, Select } from "@mantine/core";
 import {
   Switch,
+  addOuter,
+  emptinessOf,
   DynamicDepthProvider,
   useDynamicDepth,
   useDynamicSchema,
@@ -24,20 +26,14 @@ type ExternalKeySchema = z.ZodString;
 const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   props: ZodFormProps<ExternalKeySchema>,
 ) {
-  const {
-    fieldPath,
-    schema,
-    optional,
-    nullable,
-    label: labelFromParent,
-  } = props;
+  const { fieldPath, schema, outer, label: labelFromParent } = props;
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema, "externalKey");
   const label = labelFromParent ?? meta?.label;
   const dynamicMeta = useExternalKeyDynamicMeta(schema);
   const depth = useDynamicDepth(fieldPath);
   const state = useDynamicSchema(dynamicMeta, fieldPath, {
-    optional,
-    nullable,
+    outer,
     schema,
   });
 
@@ -67,7 +63,11 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   return (
     <Suspense fallback={loadingView()}>
       <DynamicDepthProvider path={fieldPath} depth={depth}>
-        <Switch {...props} schema={state.schema} />
+        <Switch
+          {...props}
+          schema={state.schema}
+          outer={addOuter(props.outer, props.schema)}
+        />
       </DynamicDepthProvider>
     </Suspense>
   );

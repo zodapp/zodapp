@@ -5,6 +5,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -20,11 +21,11 @@ const StringPasswordComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    optional,
-    nullable,
+    outer,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;

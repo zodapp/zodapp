@@ -10,6 +10,7 @@ import {
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
 import { useFormApi } from "./form";
+import { addOuter } from "./outer";
 
 const memoizeGetLazyComponentMap = new WeakMap<
   DynamicZodFormDef,
@@ -127,6 +128,8 @@ const PreprocessSwitch = (props: ZodFormProps) => {
       {...props}
       schema={displaySchema}
       defaultValue={normalizedDefaultValue}
+      // preprocess の pipe 自体に付いた検査（.refine() など）を、内の dynamic が包み直せるように渡す
+      outer={addOuter(props.outer, schema)}
     />
   );
 };

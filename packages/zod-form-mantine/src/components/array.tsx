@@ -11,6 +11,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useZodFormContext,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import {
   DndContext,
@@ -125,13 +126,13 @@ function SortableItem({
 const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   fieldPath,
   schema,
-  optional,
-  nullable,
+  outer,
   readOnly,
   label: labelFromParent,
   field,
   defaultValue,
 }: ZodFormInternalProps<ArraySchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { loadingComponent: LoadingComponent } = useZodFormContext();
 
   const value = field.value as unknown[] | undefined;
@@ -194,8 +195,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       defaultValue: defaultValue?.[index],
       // 配列自体のoptional性は要素へ伝播させない。
       // 要素のoptional性はitemSchema（ZodOptional）だけで決まる。
-      optional: undefined,
-      nullable: undefined,
+      outer: undefined,
       readOnly,
       label: false as const,
     };

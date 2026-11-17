@@ -1,16 +1,22 @@
 import React from "react";
 import z from "zod";
-import { Switch, type ZodFormProps } from "@zodapp/zod-form-react/common";
+import {
+  Switch,
+  addOuter,
+  innerDefaultValue,
+  type ZodFormProps,
+} from "@zodapp/zod-form-react/common";
 
 type DefaultSchema = z.ZodDefault<z.ZodTypeAny>;
 
 const DefaultComponent = (props: ZodFormProps<DefaultSchema>) => {
+  const outer = addOuter(props.outer, props.schema);
   return (
     <Switch
       {...props}
       schema={props.schema.def.innerType}
-      optional={true}
-      defaultValue={props.defaultValue ?? null}
+      outer={outer}
+      defaultValue={innerDefaultValue(props.defaultValue, props.schema, outer)}
     />
   );
 };
