@@ -63,10 +63,19 @@ const componentLibrary = {
 
 const renderForm = (schema: z.ZodTypeAny, defaultValues: unknown) => {
   const formRef: { current: AnyFormApi | undefined } = { current: undefined };
+  // useZodForm の validators は、値の型（Record<string, unknown>）の schema を受け取る
+  const validator = schema as unknown as z.ZodType<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >;
   const FormUnderTest = () => {
     const form = useZodForm({
       defaultValues: defaultValues as Record<string, unknown>,
-      validators: { onChange: schema, onBlur: schema, onSubmit: schema },
+      validators: {
+        onChange: validator,
+        onBlur: validator,
+        onSubmit: validator,
+      },
     });
     formRef.current = form as unknown as AnyFormApi;
     return (
