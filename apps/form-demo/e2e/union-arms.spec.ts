@@ -353,6 +353,10 @@ test.describe("配列の中の union", () => {
     await expect(itemSelectors(page)).toHaveCount(4);
     await expect(itemSelectors(page).nth(3)).toHaveValue("");
 
+    // 欄にフォーカスが入ると前の欄が検証され、上の「必須の値」に「選択してください」が出て
+    // 欄が下にずれる。押してから離すまでにずれるとクリックにならないので、先に検証を済ませる
+    await itemSelectors(page).nth(3).focus();
+    await expect(page.getByText("選択してください").first()).toBeVisible();
     await itemSelectors(page).nth(3).click();
     await page.getByRole("option", { name: "数値", exact: true }).click();
     await expect(itemSelectors(page).nth(3)).toHaveValue("数値");
