@@ -14,6 +14,10 @@ import z from "zod";
  * - `label`: 表示ラベル（任意。通常は schema meta から取得する想定）
  * - `hideError`: この部品の path のエラーを出さない（任意）。同じ path の祖先（intersection）が代わりに出す。
  *   同じ path に描く包みは `{...props}` で子へ渡し、path が変わるところでは渡さない
+ * - `errorToken`: 同じ path で、すぐ外側の union の writer（任意）。union が腕に渡す。
+ *   入れ子の union が、外側の union が自分あてに書いた invalid_union を読み分けるのと、
+ *   union の腕に unrecognized_keys を出させない（union が読む）のに使う。
+ *   同じ path に描く包みは `{...props}` で子へ渡し、path が変わるところでは渡さない
  */
 export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
@@ -30,6 +34,8 @@ export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   label?: string | false;
   /** この部品の path のエラーを出さない（同じ path の祖先が出す） */
   hideError?: boolean;
+  /** 同じ path で、すぐ外側の union の writer */
+  errorToken?: object;
 };
 
 /**

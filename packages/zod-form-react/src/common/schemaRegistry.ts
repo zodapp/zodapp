@@ -59,6 +59,46 @@ export const isUnionIssue = (issue: unknown): boolean =>
   issue !== null &&
   (issue as { code?: unknown }).code === "invalid_union";
 
+/** issue が unrecognized_keys か */
+export const isUnrecognizedKeysIssue = (issue: unknown): boolean =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as { code?: unknown }).code === "unrecognized_keys";
+
+/** union が同じ欄に書いた issue の、書いた union の writer（無ければ undefined） */
+export const writtenByOf = (issue: unknown): object | undefined => {
+  if (typeof issue !== "object" || issue === null) return undefined;
+  const writtenBy = (issue as { writtenBy?: unknown }).writtenBy;
+  return typeof writtenBy === "object" && writtenBy !== null
+    ? writtenBy
+    : undefined;
+};
+
+/**
+ * 欄の issue を、この部品が出すか。
+ *
+ * - union が解釈するもの（invalid_union と、union の腕の unrecognized_keys）：出さない
+ *   （union の部品が読む）。unrecognized_keys は、`errorToken` を受け取った部品（union の腕）のときだけ
+ * - それ以外（union が書いた `writtenBy` 付きのものを含む）：`hideError` でなければ出す
+ *   （同じ欄のいちばん外側の部品が出す）
+ *
+ * 読み込み中の印は出さない
+ */
+export const isDisplayedIssue = (
+  issue: unknown,
+  options: { hideError?: boolean; errorToken?: object },
+): boolean => {
+  if (isPendingIssue(issue) || isUnionIssue(issue)) return false;
+  if (
+    options.errorToken &&
+    isUnrecognizedKeysIssue(issue) &&
+    writtenByOf(issue) === undefined
+  ) {
+    return false;
+  }
+  return !options.hideError;
+};
+
 /** path ごとに覚えておく、補った結果の数 */
 const FILL_CACHE_SIZE = 4;
 
