@@ -26,6 +26,7 @@ import * as arrayFields from "./arrayFields";
 import * as nestedObject from "./nestedObject";
 import * as nullableFields from "./nullableFields";
 import * as literalUnionSelect from "./literalUnionSelect";
+import * as intersection from "./intersection";
 import * as refineValidation from "./refineValidation";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
@@ -64,6 +65,7 @@ import arrayFieldsCode from "./arrayFields.ts?raw";
 import nestedObjectCode from "./nestedObject.ts?raw";
 import nullableFieldsCode from "./nullableFields.ts?raw";
 import literalUnionSelectCode from "./literalUnionSelect.ts?raw";
+import intersectionCode from "./intersection.ts?raw";
 import refineValidationCode from "./refineValidation.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
@@ -85,6 +87,7 @@ export const formSchemas = {
   [nestedObject.formId]: nestedObject,
   [nullableFields.formId]: nullableFields,
   [literalUnionSelect.formId]: literalUnionSelect,
+  [intersection.formId]: intersection,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
   [union.formId]: union,
@@ -125,6 +128,7 @@ export const formCodes = {
   [nestedObject.formId]: nestedObjectCode,
   [nullableFields.formId]: nullableFieldsCode,
   [literalUnionSelect.formId]: literalUnionSelectCode,
+  [intersection.formId]: intersectionCode,
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
   [union.formId]: unionCode,
