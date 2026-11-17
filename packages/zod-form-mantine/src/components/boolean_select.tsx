@@ -4,7 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -19,14 +19,14 @@ const FALSE_VALUE = "false";
 
 const BooleanSelectComponent = wrapComponent(
   function BooleanSelectComponentImplement({
-    fieldPath,
     schema,
     label: labelFromParent,
+    optional,
+    nullable,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const {
       label: labelFromMeta,
       trueLabel = "はい",
@@ -50,6 +50,8 @@ const BooleanSelectComponent = wrapComponent(
         : field.value === false
           ? FALSE_VALUE
           : null;
+
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string | null | undefined) => {
         if (next === TRUE_VALUE) {

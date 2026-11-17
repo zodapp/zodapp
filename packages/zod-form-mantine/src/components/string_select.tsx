@@ -5,7 +5,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useSchemaValueAction,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -24,14 +24,14 @@ type StringSchema = z.ZodString;
  */
 const StringSelectComponent = wrapComponent(
   function StringSelectComponentImplement({
-    fieldPath,
     schema,
     field,
     label: labelFromParent,
+    optional,
+    nullable,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta, suggestions } =
       getMeta(schema, "string") ?? {};
@@ -52,6 +52,8 @@ const StringSelectComponent = wrapComponent(
       () => data.find((option) => option.value === value)?.label ?? value ?? "",
       [data, value],
     );
+
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string | null) => {
         field.onChange(next || emptyValue);

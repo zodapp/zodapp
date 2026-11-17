@@ -1,6 +1,6 @@
 import React from "react";
 import { InputWrapper, TextInput } from "@mantine/core";
-import { useEmptiness, type ZodFormProps } from "@zodapp/zod-form-react/common";
+import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { ReadonlyText } from "../utils/text";
@@ -17,9 +17,10 @@ const StringComponent = React.memo(function StringComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
+  optional,
+  nullable,
   readOnly: readOnlyProp,
 }: ZodFormProps<StringSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;

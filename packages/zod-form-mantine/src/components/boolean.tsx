@@ -4,7 +4,6 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -12,14 +11,14 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 type BooleanSchema = ReturnType<typeof zf.boolean>;
 
 const BooleanComponent = wrapComponent(function BooleanComponentImplement({
-  fieldPath,
   schema,
   label: labelFromParent,
+  optional,
+  nullable,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<BooleanSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
   const { uiType, label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);

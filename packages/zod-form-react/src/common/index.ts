@@ -46,16 +46,6 @@ export {
   type DynamicSchemaState,
 } from "./dynamic";
 export {
-  SamePathProvider,
-  SamePathReset,
-  useSamePathChain,
-  useEmptiness,
-  emptinessOf,
-  rewrapWithChain,
-  peelSamePath,
-  type PeeledSchema,
-} from "./samePath";
-export {
   useFnInput,
   useTableFnInput,
   TableRowProvider,

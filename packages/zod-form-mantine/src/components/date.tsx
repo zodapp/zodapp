@@ -8,7 +8,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useZodFormContext,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -28,14 +28,14 @@ import { z } from "zod";
 type DateSchema = z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate;
 
 const DateComponent = wrapComponent(function DateComponentImplement({
-  fieldPath,
   schema,
   field,
   label: labelFromParent,
+  optional,
+  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<DateSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema) as
@@ -69,6 +69,8 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   const pickerValue = useMemo(() => {
     return converter.toPickerValue(field.value);
   }, [converter, field.value]);
+
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (next: string | null) => {
       const value =

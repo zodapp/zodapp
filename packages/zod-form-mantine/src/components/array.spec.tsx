@@ -374,6 +374,7 @@ describe("ArrayComponent integration (tanstack form)", () => {
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items}
+                optional={true}
                 readOnly={false}
               />
             </FormProvider>
@@ -426,6 +427,7 @@ describe("ArrayComponent integration (tanstack form)", () => {
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items}
+                optional={true}
                 readOnly={false}
               />
             </FormProvider>
@@ -476,6 +478,7 @@ describe("ArrayComponent integration (tanstack form)", () => {
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items.unwrap()}
+                optional={true}
                 readOnly={false}
               />
             </FormProvider>

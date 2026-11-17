@@ -11,7 +11,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -106,14 +106,14 @@ const MillisecondInput = ({
 };
 
 const TimeComponent = wrapComponent(function TimeComponentImplement({
-  fieldPath,
   schema,
   field,
   label: labelFromParent,
+  optional,
+  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<SupportedTimeSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const meta = getMeta(schema) as
     | { label?: string; unit?: TimeUnit; encoding?: TimeEncoding }
@@ -139,6 +139,8 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
   );
 
   const { version, markOwn } = useExternalChangeVersion(field.value);
+
+  const emptyValue = emptyValueOf({ optional, nullable });
   // 値を変えたときだけ、データの持ち方の形式で書く（開いただけでは値に触らない）
   const onChange = useCallback(
     (next: string | null) => {

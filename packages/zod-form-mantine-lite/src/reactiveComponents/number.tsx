@@ -1,6 +1,6 @@
 import React from "react";
 import { InputWrapper, NumberInput } from "@mantine/core";
-import { useEmptiness, type ZodFormProps } from "@zodapp/zod-form-react/common";
+import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import {
@@ -16,9 +16,10 @@ const NumberComponent = React.memo(function NumberComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
+  optional,
+  nullable,
   readOnly: readOnlyProp,
 }: ZodFormProps<NumberSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;

@@ -5,7 +5,6 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   Switch,
-  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -16,12 +15,13 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   fieldPath,
   schema,
   defaultValue,
+  optional,
+  nullable,
   readOnly,
   label: labelFromParent,
   error,
   field,
 }: ZodFormInternalProps<TupleSchema>) {
-  const { optional, nullable } = useEmptiness(fieldPath);
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
 
@@ -45,6 +45,9 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
         fieldPath={`${fieldPath}[${index}]`}
         schema={itemSchema as z.ZodTypeAny}
         defaultValue={defaultArray[index]}
+        // 要素は path が違う。tuple の optional・nullable は要素に渡さない
+        optional={undefined}
+        nullable={undefined}
         readOnly={readOnly}
         label={getMeta(itemSchema)?.label ?? false}
       />

@@ -7,9 +7,8 @@ import z from "zod";
  * - `fieldPath`: TanStack React Form 等のフィールドパス
  * - `schema`: 対象フィールドの Zod スキーマ
  * - `defaultValue`: 初期値（任意）
- *
- * 欄が空を受け付けるか（外側の optional・nullable）は props では渡さない。
- * 同じ path の schema の連なりから `useEmptiness(fieldPath)` で求める。
+ * - `optional`: 外側の optional などの中にあるとき true（任意）。書かないときは必須として扱う
+ * - `nullable`: 外側の nullable の中にあるとき true（任意）。optional と重なれば両方 true
  * - `readOnly`: UI 制御のヒント（任意）
  * - `label`: 表示ラベル（任意。通常は schema meta から取得する想定）
  */
@@ -17,6 +16,8 @@ export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
   schema: TSchema;
   defaultValue?: z.infer<TSchema>;
+  optional?: boolean;
+  nullable?: boolean;
   readOnly?: boolean;
   /**
    * Label to display above the input.

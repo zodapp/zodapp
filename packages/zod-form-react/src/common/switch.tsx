@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo } from "react";
-import type { z } from "zod";
 import type { ZodForm, ZodFormProps } from "../utils/type";
 import {
   getMeta,
@@ -11,7 +10,6 @@ import {
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
 import { useFormApi } from "./form";
-import { SamePathProvider, peelSamePath } from "./samePath";
 
 const memoizeGetLazyComponentMap = new WeakMap<
   DynamicZodFormDef,
@@ -46,32 +44,12 @@ const getLazyComponent = (
  * `componentLibrary` から `typeName_uiType`（なければ `typeName`）で検索し、
  * switch loader が Promise を返す場合は `LazyComponentFactory` で遅延ロードします。
  */
-export const Switch: ZodForm = (rawProps: ZodFormProps) => {
-  // 案D：同じ path の包み（optional・nullable・default・lazy）はここで剥がし、
-  // 中身の部品を直接描く。剥がした包みは連なりに積み、同じ path の内側の部品に伝える
-  const peeled = peelSamePath(rawProps.schema, hasOwnMeta);
-  const props: ZodFormProps =
-    peeled.wrappers.length === 0
-      ? rawProps
-      : {
-          ...rawProps,
-          schema: peeled.inner,
-          defaultValue: peeled.nullDefault
-            ? (rawProps.defaultValue ?? null)
-            : rawProps.defaultValue,
-        };
-  return (
-    <SamePathProvider path={props.fieldPath} schemas={peeled.schemas}>
-      {isPreprocessPipe(props.schema) ? (
-        <PreprocessSwitch {...props} />
-      ) : (
-        <SchemaSwitch {...props} />
-      )}
-    </SamePathProvider>
-  );
+export const Switch: ZodForm = (props: ZodFormProps) => {
+  if (isPreprocessPipe(props.schema)) {
+    return <PreprocessSwitch {...props} />;
+  }
+  return <SchemaSwitch {...props} />;
 };
-
-const hasOwnMeta = (schema: z.ZodTypeAny) => getMeta(schema) !== undefined;
 
 const isEqualValue = (a: unknown, b: unknown): boolean => {
   if (Object.is(a, b)) return true;

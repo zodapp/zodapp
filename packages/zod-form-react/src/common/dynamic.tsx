@@ -21,7 +21,6 @@ import type { AnyFormApi } from "@tanstack/react-form";
 import { useFormApi, useFormRuntime } from "./form";
 import { useFnInput } from "./fnInput";
 import type { EditCause } from "./schemaRegistry";
-import { rewrapWithChain, useSamePathChain } from "./samePath";
 
 /**
  * dynamic の状態。
@@ -204,13 +203,60 @@ const callResolve = (
  *   値を新しい schema に合わせて削る。それ以外は値に触らない
  * - 古い結果は捨てる
  */
+type Check = z.core.$ZodCheck<unknown>;
+
+/**
+ * 登録する schema を包み直す。
+ * 1. 欄の schema（dynamic・externalKey の土台）に付いた検査（`.refine()`・`.min()` など）を付け直す。
+ *    zod 4 では refine も包みを作らず、同じ型の複製の `def.checks` に入る
+ *    （zf の meta は zod-propagating-registry で複製に引き継がれるので、部品はこの schema を受け取る）
+ * 2. 欄の optional・nullable に合わせて包む
+ */
+const wrapEmpty = (
+  schema: z.ZodTypeAny,
+  {
+    optional,
+    nullable,
+    checks,
+  }: { optional: boolean; nullable: boolean; checks: readonly Check[] },
+): z.ZodTypeAny => {
+  const checked =
+    checks.length > 0
+      ? (schema.check(...(checks as Check[])) as z.ZodTypeAny)
+      : schema;
+  const withNull = nullable ? checked.nullable() : checked;
+  return optional ? withNull.optional() : withNull;
+};
+
+const checksOf = (schema: z.ZodTypeAny | undefined): readonly Check[] =>
+  ((schema as unknown as { def?: { checks?: Check[] } } | undefined)?.def
+    ?.checks ?? []) as Check[];
+
 export const useDynamicSchema = (
   meta: DynamicMetaDef | undefined,
   fieldPath: string,
+  options: {
+    /**
+     * true なら（optional の中にあるなら）、登録する schema を optional にする。
+     * 値が無いときに、決まった schema の「必須」で止めないため
+     */
+    optional?: boolean;
+    /**
+     * true なら（nullable の中にあるなら）、登録する schema を nullable にする。
+     * 空にした欄に書く null を、決まった schema の検証で止めないため
+     */
+    nullable?: boolean;
+    /**
+     * 欄の schema（dynamic・externalKey の土台）。付いた検査（`.refine()` など）を、
+     * 登録する schema に付け直す
+     */
+    schema?: z.ZodTypeAny;
+  } = {},
 ): DynamicSchemaState => {
-  // 同じ path の外側の schema（optional・nullable・default・refine など）。
-  // 登録する schema をこれで包み直し、path で切り出して検証しても外側の包みが効くようにする
-  const chain = useSamePathChain(fieldPath);
+  const optional = options.optional === true;
+  const nullable = options.nullable === true;
+  const fieldSchema = options.schema;
+  const checks = useMemo(() => checksOf(fieldSchema), [fieldSchema]);
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);
@@ -239,7 +285,9 @@ export const useDynamicSchema = (
         schema: z.ZodTypeAny;
         path: string;
         depth: number;
-        chain: readonly z.ZodTypeAny[];
+        optional: boolean;
+        nullable: boolean;
+        checks: readonly Check[];
       }
     | undefined
   >(undefined);
@@ -279,7 +327,9 @@ export const useDynamicSchema = (
         previous.schema === resolved.schema &&
         previous.path === fieldPath &&
         previous.depth === depth &&
-        previous.chain === chain
+        previous.optional === optional &&
+        previous.nullable === nullable &&
+        previous.checks === checks
       ) {
         return;
       }
@@ -288,7 +338,9 @@ export const useDynamicSchema = (
         schema: resolved.schema,
         path: fieldPath,
         depth,
-        chain,
+        optional,
+        nullable,
+        checks,
       };
       if (
         applyCause === "user" &&
@@ -305,7 +357,7 @@ export const useDynamicSchema = (
       }
       runtime.set(fieldPath, depth, {
         status: "resolved",
-        schema: rewrapWithChain(resolved.schema, chain),
+        schema: wrapEmpty(resolved.schema, { optional, nullable, checks }),
       });
     };
 
@@ -369,7 +421,7 @@ export const useDynamicSchema = (
     subscriptionKeyRef.current = result.key;
     unsubscribeRef.current = startAsync(result, deliver, fail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outcome, fieldPath, depth, chain]);
+  }, [outcome, fieldPath, depth, optional, nullable, checks]);
 
   if (outcome.kind === "thrown") {
     return {

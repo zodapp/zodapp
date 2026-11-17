@@ -15,14 +15,13 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   Switch,
-  SamePathReset,
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
   useFormValues,
   useRunAsUserEdit,
   isPendingIssue,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
@@ -398,8 +397,6 @@ const UnionBody = React.memo(function UnionBody({
   accessor: ValueAccessor;
 }) {
   const { loadingComponent: LoadingComponent } = useZodFormContext();
-  // 欄を空にするときに書く値（optional なら undefined、nullable だけなら null）
-  const emptyValue = optional ? undefined : nullable ? null : undefined;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 
   const compiledOptions: {
@@ -788,6 +785,7 @@ const UnionBody = React.memo(function UnionBody({
         : undefined;
 
   const runAsUserEdit = useRunAsUserEdit();
+  const emptyValue = emptyValueOf({ optional, nullable });
   const handleSelect = useCallback(
     (id: string | null) => {
       const setValueWithoutValidation = (nextValue: unknown) => {
@@ -929,30 +927,31 @@ const UnionBody = React.memo(function UnionBody({
           />
         ))}
       {selectedProfile?.schema && (
-        // 腕は同じ path だが、空は腕を選ぶ欄が受け持つので、外の包みを伝えない
         <div style={{ marginTop: 1, minHeight: 20, marginBottom: 15 }}>
-          <SamePathReset>
-            <Suspense
-              fallback={
-                <LoadingComponent
-                  fieldPath={fieldPath}
-                  schema={selectedProfile.schema}
-                  defaultValue={dynamicDefaultValue}
-                  readOnly={readOnly}
-                  label={false}
-                />
-              }
-            >
-              <Switch
-                key={selectedProfile.value}
+          <Suspense
+            fallback={
+              <LoadingComponent
                 fieldPath={fieldPath}
                 schema={selectedProfile.schema}
                 defaultValue={dynamicDefaultValue}
+                optional={undefined}
+                nullable={undefined}
                 readOnly={readOnly}
                 label={false}
               />
-            </Suspense>
-          </SamePathReset>
+            }
+          >
+            <Switch
+              key={selectedProfile.value}
+              fieldPath={fieldPath}
+              schema={selectedProfile.schema}
+              defaultValue={dynamicDefaultValue}
+              optional={undefined}
+              nullable={undefined}
+              readOnly={readOnly}
+              label={false}
+            />
+          </Suspense>
         </div>
       )}
     </UnionRelayContext.Provider>
@@ -978,13 +977,14 @@ const UnionBody = React.memo(function UnionBody({
 const UnionComponent = wrapComponent(function UnionComponentImplement({
   fieldPath,
   schema,
+  optional,
+  nullable,
   readOnly,
   label: labelFromParent,
   field,
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
   isTouched,
 }: ZodFormInternalProps<UnionSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const {
     label: labelFromMeta,
     selectorLabel,

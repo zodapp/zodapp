@@ -10,7 +10,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -24,14 +24,14 @@ type StringSchema = z.ZodString;
 
 const StringLazyComponent = wrapComponent(
   function StringLazyComponentImplement({
-    fieldPath,
     schema,
     field,
     label: labelFromParent,
+    optional,
+    nullable,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
-    const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
@@ -56,6 +56,8 @@ const StringLazyComponent = wrapComponent(
       },
       [],
     );
+
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onBlur = useCallback(() => {
       field.onChange(localValue || emptyValue);
       field.onBlur();

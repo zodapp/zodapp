@@ -10,7 +10,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
-  useEmptiness,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -21,14 +21,14 @@ import {
 type BigIntSchema = ReturnType<typeof zf.bigint>;
 
 const BigIntComponent = wrapComponent(function BigIntComponentImplement({
-  fieldPath,
   schema,
   field,
   label: labelFromParent,
+  optional,
+  nullable,
   readOnly,
   error,
 }: ZodFormInternalProps<BigIntSchema>) {
-  const { optional, nullable, emptyValue } = useEmptiness(fieldPath);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
@@ -51,6 +51,8 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       );
     }
   }, [field.value]);
+
+  const emptyValue = emptyValueOf({ optional, nullable });
   const tryCommit = useCallback(
     (raw: string) => {
       if (raw === "") {

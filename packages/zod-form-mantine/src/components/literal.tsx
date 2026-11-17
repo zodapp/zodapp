@@ -3,7 +3,6 @@ import { Input, Text } from "@mantine/core";
 import {
   ZodFormInternalProps,
   wrapComponent,
-  useEmptiness,
 } from "@zodapp/zod-form-react/common";
 import { ZodForm } from "@zodapp/zod-form-react";
 import { zf, getMeta } from "@zodapp/zod-form";
@@ -14,12 +13,12 @@ type LiteralSchema = ReturnType<typeof zf.literal>;
 const LiteralComponent: ZodForm<LiteralSchema> = wrapComponent(
   function LiteralComponentImplement({
     schema,
-    fieldPath,
     field,
     label: labelFromParent,
+    optional,
+    nullable,
     error,
   }: ZodFormInternalProps<LiteralSchema>) {
-    const { optional, nullable } = useEmptiness(fieldPath);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
