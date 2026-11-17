@@ -75,4 +75,7 @@ export const componentLibrary: ComponentLibrary = {
   string_select: (() => import("./string_select.js")) as DynamicZodFormDef,
   tuple: (() => import("./tuple.js")) as DynamicZodFormDef,
   union: (() => import("./union.js")) as DynamicZodFormDef,
+  // literal だけの union を、enum と同じ部品で選ぶ（腕の番号で Select とやりとりする）
+  union_select: (() => import("./enum.js")) as DynamicZodFormDef,
+  union_badge: (() => import("./enum.js")) as DynamicZodFormDef,
 };

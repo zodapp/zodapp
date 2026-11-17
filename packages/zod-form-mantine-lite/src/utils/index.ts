@@ -11,7 +11,14 @@ export {
   parseCssColor,
 } from "./badgeColor";
 export { BadgeSelect, type BadgeSelectProps } from "./badgeSelect";
-export { useEnumData, toEnumOptionValue, fromEnumOptionValue } from "./enum";
+export {
+  useEnumData,
+  toEnumOptionValue,
+  fromEnumOptionValue,
+  choicesOf,
+  useChoices,
+  type Choices,
+} from "./enum";
 export {
   renderComputedValue,
   renderComputedFieldValue,
