@@ -68,5 +68,18 @@ describe("getDefaultValue", () => {
       });
       expect(getDefaultValue(schema)).toEqual({ a: "x", b: null });
     });
+
+    it("nullable な object・配列・record は、空の値ではなく null で始める", () => {
+      const schema = z.object({
+        obj: z.object({ x: z.string() }).nullable(),
+        list: z.array(z.string()).nullable(),
+        dict: z.record(z.string(), z.string()).nullable(),
+      });
+      expect(getDefaultValue(schema)).toEqual({
+        obj: null,
+        list: null,
+        dict: null,
+      });
+    });
   });
 });

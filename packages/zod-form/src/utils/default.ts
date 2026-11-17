@@ -12,6 +12,15 @@ const acceptsUndefined = (schema: z.ZodTypeAny): boolean => {
   return false;
 };
 
+/** 中に default（prefault）があるか（nullable を挟んでもよい） */
+const hasDefault = (schema: z.ZodTypeAny): boolean => {
+  const def = schema.def as { type: string; innerType?: z.ZodTypeAny };
+  if (def.type === "default" || def.type === "prefault") return true;
+  if (def.type === "nullable" && def.innerType)
+    return hasDefault(def.innerType);
+  return false;
+};
+
 /**
  * Zod スキーマから「フォーム初期化向け」のデフォルト値を生成します。
  *
@@ -82,15 +91,19 @@ export const getDefaultValue = (schema: z.ZodTypeAny) => {
     } as PreprocessorDef,
     {
       processor: {
-        // nullable：中が値を作るなら（`.default("x").nullable()` の default など）それを使う。
-        // 中が何も作らず、欄が optional でもなければ null にする（zod と同じく、null を引き受けるのは nullable だけ）
+        // nullable：中が default なら（`.default("x").nullable()`）その値を使う（zod と同じく、
+        // nullable は undefined を中に渡す）。optional を含むなら undefined。それ以外は null にする。
+        // object・配列・record の空の値（{ x: undefined }・[]・{}）は使わない。nullable な object は
+        // null で始まり、「＋」で開くまで中の欄を出さない
         nullable: (obj, schema, context) => {
           const innerType = schema.def.innerType as z.ZodTypeAny;
           if (obj !== undefined) {
             return context.transform(obj, [z.null(), innerType]);
           }
-          const inner = context.transform(undefined, innerType);
-          if (inner !== undefined) return inner;
+          if (hasDefault(innerType)) {
+            const inner = context.transform(undefined, innerType);
+            if (inner !== undefined) return inner;
+          }
           return acceptsUndefined(innerType) ? undefined : null;
         },
         union: (obj, schema, context) => {
