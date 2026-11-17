@@ -1,6 +1,6 @@
 # 実験 1：同じ path の受け渡し
 
-- ステータス: 実験済み（判定：案E を採用。案A＋案D は将来の選択肢）
+- ステータス: 実験済み（判定：案F（props にまとめる版）を採用。未実装。ブランチの今のコードは案E）
 - 対象ブランチ: `claude/project-thread-6bm7mu`（土台は `claude/union-arm-errors-v2`）
 - 対象パッケージ: `@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`@zodapp/zod-form-mantine-lite`
 
@@ -97,9 +97,11 @@ union の腕は同じ path だが、空は腕を選ぶ欄が受け持つので�
 ### value・parent の受け渡し
 
 実験 1 では渡さなかった。同じ path の部品は、どれも path で store を読めば同じ value・parent が得られるため。
-props で上から渡すと、上の部品が値を購読することになり、打鍵のたびに同じ path の包み（optional → dynamic → string など）が
-描き直される。parent を object が子に渡す場合も、object が値を購読して兄弟の欄がすべて描き直される。
-path で読めない場所（実験 2 の中のフォームの根、表の行）では、今の `TableRowProvider` と同じく context で渡すのがよい。
+
+性能について、最初は「props で上から渡すと、打鍵のたびに祖先が描き直される」と考えたが、誤りだった。
+今も object・array・array_table は `wrapComponent` → `useZodField`（TanStack の `useField`）で `state.value` を購読しているので、
+子の欄を打つたびに根からその欄までの祖先はすでに描き直されている（兄弟は props が変わらず memo で止まる）。
+value を props で渡しても描き直しの回数はほぼ変わらない。差が出るのは、object・array が値ではなく構造だけを購読するように作り直したとき。
 
 ### 案E：今の props の分担のまま、dynamic が自分の検査を付け直す（コミット `28a41a5`。案A〜D を土台に戻した上）
 
@@ -117,27 +119,84 @@ path で読めない場所（実験 2 の中のフォームの根、表の行）
   - 包みの側に付いた検査（`dyn.optional().refine(...)`）。dynamic からは包みの schema が見えない
   - 入れ子の dynamic の外側に付いた検査。内側の DynamicComponent は内側の schema しか受け取らず、検証には一番深い登録を使う
 
+### 案F：包みの情報を props にまとめて運ぶ（設計。未実装）
+
+案E の議論の続きで決めた形。案E の「自分の schema に付いているものは自分で扱い、包みの情報は包みの部品が props で渡す」
+という分担を保ったまま、包みの側に付いた検査も同じ props で運び、案E で失う 2 つを扱う。同じ path の受け渡しのための
+新しい context は作らない（案A・D の連なりは使わない）。
+
+#### props の役割
+
+| props                                      | 役割                                                            | 書く部品                                                                                                         | 読む部品                                                 |
+| ------------------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `fieldPath`・`schema`・`readOnly`・`label` | 今のまま                                                        |                                                                                                                  |                                                          |
+| `outer`（名前は仮）                        | 同じ path の外側の包みの情報。下の表                            | 包みの部品（足して下へ渡す）                                                                                     | 葉の部品、dynamic・externalKey                           |
+| `defaultValue`                             | default・optional・nullable が下の層に渡す既定の値              | default（`.default(x)` の x）、nullable（無ければ null）、object・array・tuple・record（子の分を取り出して渡す） | 新しく値を作るところ（配列の追加、union の腕の選択など） |
+| `value`（新設）                            | form を使わない部品が表示する値。今 defaultValue で代用している | ReactiveAutoForm・AutoTable とその下の object など                                                               | form を使わない部品                                      |
+
+`outer` の中身：
+
+- `optional`・`nullable`：undefined・null を受け付けるか。葉の部品は、取り消し（×・選び直して外す）を出すか、必須の印、
+  空にしたときに書く値（optional なら undefined、nullable だけなら null）をここから決める
+- `wraps`：外側の包みの並び（外から内の順）。それぞれ「包みの種類（optional・nullable・default など）」と「その包みに付いた検査」。
+  検査がどの包みの内か外かで、undefined・null のときに走るかが変わるので、まとめて 1 つの配列にせず順を保つ
+
+#### 書く側・読む側
+
+- optional・nullable・default・prefault の部品：受け取った `outer` に自分の分（種類と検査）を足し、内の Switch に `{...props}` で渡す
+- PreprocessSwitch：preprocess の pipe 自体に付いた検査を `outer` に足す（値は今どおりそろえて書き戻す）
+- lazy：そのまま渡す
+- dynamic・externalKey：`useDynamicSchema` が、決まった schema に、自分の schema（`props.schema`）の検査を付け直し、
+  `outer.wraps` を内から外へ包み直して登録する。内の Switch へは、自分の検査を `outer` に足して渡す（入れ子の dynamic のため）
+- 葉の部品：`outer.optional`・`outer.nullable` を読む（今の `optional`・`nullable` の props の置き換え）
+- path が変わるところ（object・array・record・tuple）と union の腕：`outer` を消して渡す（今の `optional={undefined}` の置き換え。消すのが 1 つで済む）
+
+#### 案E・案A＋D との比べ
+
+|                                             | 案E                                | 案F                                                      | 案A＋D          |
+| ------------------------------------------- | ---------------------------------- | -------------------------------------------------------- | --------------- |
+| dynamic 自身の検査                          | 効く                               | 効く                                                     | 効く            |
+| 包みの側の検査・入れ子の dynamic の外の検査 | 効かない                           | 効く                                                     | 効く            |
+| 運ぶ仕組み                                  | props                              | props（一つ）                                            | context（一つ） |
+| 漏れの防ぎ方                                | 子で消す（`optional`・`nullable`） | 子で消す（`outer` 一つ）                                 | path で自動     |
+| 破壊的変更                                  | なし                               | あり（`optional`・`nullable` → `outer`、`value` の新設） | あり            |
+
 ## 4. 判定
 
-**案E を採用**。案A＋案D（連なりを context で運び、Switch で包みを剥がす）は、包みの側の検査まで要るようになったときの選択肢として残す。案C は採らない。
+**案F を採用**（未実装）。ブランチの今のコードは案E で、案F はその上に積む。
 
-- 案E を採る理由
-  - 今黙って捨てられている、dynamic・externalKey の `.refine()` が効く。tuple の漏れも直る
-  - 破壊的変更が無く、差分が小さい。optional・nullable を渡すのは optional・nullable の部品という、今の責務の分担のまま
-  - 失うのはまれな書き方だけ（包みの側の検査、入れ子の dynamic の外側の検査）
-- 案A＋案D を今は採らない理由
-  - 失うものは無いが、context と Switch での剥がしが入る。得るのは上のまれな書き方だけ
-  - 案C（props の optional・nullable の削除）は、約 40 ファイルの書き換えと破壊的変更に対して得るものが小さい
-- 案E の注意
+- 案F を採る理由
+  - 案E の責務の分担（包みの部品が自分の分を足して下へ渡す）のまま、案A＋D と同じ範囲（包みの側の検査、入れ子の dynamic）を扱える
+  - 運ぶ仕組みは props の一つだけ。context の連なりと props が二つの経路に分かれる形（連なりを必要なときだけ使う案）は、
+    切る場所で両方を切る必要があり、食い違いやすいので採らない
+  - 消して回るのが `outer` 一つになる
+  - value を props で渡しても性能は落ちない（上の「value・parent の受け渡し」）。defaultValue を value の代わりに使う今の形をやめられる
+- 案A＋D を採らない理由：扱える範囲は同じだが、context と Switch での剥がしが入り、optional などの部品の責務が Switch に移る
+- 注意
   1. `def.checks` の中身（検査の object）をほかの schema に `.check()` で移すのは、zod の文書にある使い方ではない。
      zod の更新で `samePath.spec.tsx`（zod-form-mantine）のテストが落ちないかを見る
   2. 土台の型そのもの（`zf.string()` の文字列であること）は付け直さない。検査だけを付け直す。`.min()` のような型ごとの検査は、
-     resolve が返した schema の値にもそのままかかる（例：enum の値に文字数の検査）。意図に合うが、型の違う schema を返す dynamic では注意
+     resolve が返した schema の値にもそのままかかる（例：enum の値に文字数の検査）。型の違う schema を返す dynamic では注意
   3. dynamic の欄に直接付いた検査は、zod 4 では包みを作らず、同じ型の複製の `def.checks` に入る。zf の meta は
      zod-propagating-registry（zod-form 独自のしくみ。zod の仕様ではない）で複製に引き継がれるので、DynamicComponent が受け取る
-     schema にその検査が入っている。案E はこれに頼る
+     schema にその検査が入っている。案E・案F はこれに頼る
+  4. 今の DefaultComponent は `.default(x)` の x ではなく `defaultValue ?? null` を下に渡している。defaultValue の役割に合わせて x を渡すように直す
+  5. record の `field.value ?? defaultValue` と union の腕の初期値が、defaultValue の手渡しにどこまで頼っているかを、実装の前に確かめる
 
-## 5. 見たところ・残ったこと
+## 5. 案F でも解決できないこと
+
+- **path の違う検査（object の `.refine()` など）**：`zf.dynamic()` は土台が `z.never` なので、静的な検証で必ず落ち、
+  zod は object の検査を走らせない。登録された path の issue は捨てるので z.never の issue も見えないが、object の `.refine()` も黙って効かない
+  （`it.fails` で記録した）。直すなら、静的な検証で dynamic の土台を「何でも通す」schema に差し替えるか、登録された schema を
+  静的な木に差し込んで一度に検証する（別の実験）
+- **transform・pipe の in 側**：今の PipeComponent は `def.out` を描くので、`.transform()` の欄は描けず（out が ZodTransform）、
+  dynamic を pipe の in 側に置く書き方も描けない。出力側で検証する `.pipe(Y)` を付け直すのは、PipeComponent が in を描くように直してから
+  （`outer.wraps` に「出力側の schema」を足せば運べる）
+- **漏れの構造**：props で運ぶので、path が変わるところで `outer` を消すのは手作業のまま。消し忘れると漏れる（tuple で起きた形）。
+  案A＋D の「path で自動に切れる」性質は持たない。部品を足すときの決まりとして明記する
+- **union の腕のエラーの配り直し**（`invalid_union`・`onDynamic`）：同じ path の受け渡しとは別の問題（実験 2）
+
+## 6. 見たところ（案A〜D のとき）
 
 - **pipe（transform）**：pipe の部品は `def.out` を描く（`in` を描かない）ので、`in` に dynamic を置く使い方は今も描けない。
   包み直しは pipe を素通しにした（検証の issue には効かないため）
