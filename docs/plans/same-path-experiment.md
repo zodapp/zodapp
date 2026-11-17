@@ -96,12 +96,23 @@ union の腕は同じ path だが、空は腕を選ぶ欄が受け持つので�
 
 ### value・parent の受け渡し
 
-実験 1 では渡さなかった。同じ path の部品は、どれも path で store を読めば同じ value・parent が得られるため。
+実験 1（案A〜E）では渡さなかった。同じ path の部品は、どれも path で store を読めば同じ value・parent が得られるため。
+案F では、form を使うかどうかに関係なく、value・parent を props で上から渡すことにした（下の理由による）。
 
 性能について、最初は「props で上から渡すと、打鍵のたびに祖先が描き直される」と考えたが、誤りだった。
 今も object・array・array_table は `wrapComponent` → `useZodField`（TanStack の `useField`）で `state.value` を購読しているので、
 子の欄を打つたびに根からその欄までの祖先はすでに描き直されている（兄弟は props が変わらず memo で止まる）。
 value を props で渡しても描き直しの回数はほぼ変わらない。差が出るのは、object・array が値ではなく構造だけを購読するように作り直したとき。
+
+form の中でも value にそろえてよい理由と注意：
+
+- 書き込み・エラー・触ったかは、これまでどおり `useField`（store）を使う。value に置き換わるのは「表示する値を読む」ところだけ
+- 親も葉も同じ store の同じ時点の値で描くので、`field.value` と props の value は食い違わない。外からの `setFieldValue`・reset も、親が描き直して新しい value を渡す
+- form を使う部品と使わない部品（ReactiveAutoForm・AutoTable）の値の読み方が一つになり、部品を共通にしやすい
+- object が子に value を渡すので、parent も props で渡せる。`useFnInput` が path で一つ上を読む必要がなくなり、
+  実験 2 の「path で読めない場所（中のフォームの根）に parent を渡す」問題も同じ仕組みで解ける
+- 引き換え：object・array を「構造だけを購読する」形にして描き直しを減らす最適化とは両立しない（今はしていないので失うものは無い）
+- 葉は `useField` でも値を購読し続けるので、同じ値を二つの経路で受け取る（害は無い）
 
 ### 案E：今の props の分担のまま、dynamic が自分の検査を付け直す（コミット `28a41a5`。案A〜D を土台に戻した上）
 
@@ -127,12 +138,13 @@ value を props で渡しても描き直しの回数はほぼ変わらない。�
 
 #### props の役割
 
-| props                                      | 役割                                                            | 書く部品                                                                                                         | 読む部品                                                 |
-| ------------------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `fieldPath`・`schema`・`readOnly`・`label` | 今のまま                                                        |                                                                                                                  |                                                          |
-| `outer`（名前は仮）                        | 同じ path の外側の包みの情報。下の表                            | 包みの部品（足して下へ渡す）                                                                                     | 葉の部品、dynamic・externalKey                           |
-| `defaultValue`                             | default・optional・nullable が下の層に渡す既定の値              | default（`.default(x)` の x）、nullable（無ければ null）、object・array・tuple・record（子の分を取り出して渡す） | 新しく値を作るところ（配列の追加、union の腕の選択など） |
-| `value`（新設）                            | form を使わない部品が表示する値。今 defaultValue で代用している | ReactiveAutoForm・AutoTable とその下の object など                                                               | form を使わない部品                                      |
+| props                                      | 役割                                                                                                                  | 書く部品                                                                                                                                      | 読む部品                                                 |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `fieldPath`・`schema`・`readOnly`・`label` | 今のまま                                                                                                              |                                                                                                                                               |                                                          |
+| `outer`（名前は仮）                        | 同じ path の外側の包みの情報。下の表                                                                                  | 包みの部品（足して下へ渡す）                                                                                                                  | 葉の部品、dynamic・externalKey                           |
+| `defaultValue`                             | default・optional・nullable が下の層に渡す既定の値                                                                    | default（`.default(x)` の x）、nullable（無ければ null）、object・array・tuple・record（子の分を取り出して渡す）                              | 新しく値を作るところ（配列の追加、union の腕の選択など） |
+| `value`（新設）                            | 部品が表示する値。form を使うかどうかに関係なくこれで受け取る（今 form を使わない部品は defaultValue で代用している） | 親の部品（根は AutoForm・ReactiveAutoForm・AutoTable）。object・array・tuple・record は子の分を取り出して渡す。同じ path の包みはそのまま渡す | すべての部品                                             |
+| `parent`（新設）                           | 一つ上の値。meta の関数（`dependsOnParent`）に渡す                                                                    | object・array・tuple・record が自分の value を子に渡す。同じ path の包みはそのまま渡す                                                        | `useFnInput`（path で store を読む代わり）               |
 
 `outer` の中身：
 
@@ -170,7 +182,10 @@ value を props で渡しても描き直しの回数はほぼ変わらない。�
   - 運ぶ仕組みは props の一つだけ。context の連なりと props が二つの経路に分かれる形（連なりを必要なときだけ使う案）は、
     切る場所で両方を切る必要があり、食い違いやすいので採らない
   - 消して回るのが `outer` 一つになる
-  - value を props で渡しても性能は落ちない（上の「value・parent の受け渡し」）。defaultValue を value の代わりに使う今の形をやめられる
+  - value・parent を props で渡しても性能は落ちない（上の「value・parent の受け渡し」）。form を使うかどうかに関係なく値の読み方が一つになり、
+    defaultValue を value の代わりに使う今の形をやめられる。parent も props になり、実験 2 の中のフォームの根にもそのまま渡せる
+  - value・parent・包みの情報（`outer`）・defaultValue がすべて props で上から流れ、同じ path の受け渡しに context を足さない。
+    案A＋D にすると、value・parent は props、包みの情報は context と経路が二つになる
 - 案A＋D を採らない理由：扱える範囲は同じだが、context と Switch での剥がしが入り、optional などの部品の責務が Switch に移る
 - 注意
   1. `def.checks` の中身（検査の object）をほかの schema に `.check()` で移すのは、zod の文書にある使い方ではない。
