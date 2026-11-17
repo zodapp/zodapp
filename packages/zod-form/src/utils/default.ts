@@ -94,6 +94,39 @@ const pickUnionOption = (
  * （配列の各要素・record の各値・union の腕の中も補う）。入っている値は変えません。
  * 補えないとき（schema の形と値が合わないなど）は、値をそのまま返します。
  */
+/**
+ * intersection の両側を別々に補った結果をまとめる。両側が object なら、キーを合わせる
+ * （片側にしか無いキーはそのまま、両側にあるキーは中も同じくまとめる）。
+ * それ以外は、補った側（元の値から変わった側）の結果を採る
+ */
+const mergeFilled = (
+  original: unknown,
+  left: unknown,
+  right: unknown,
+): unknown => {
+  if (left === undefined) return right;
+  if (right === undefined) return left;
+  if (isPlainObject(left) && isPlainObject(right)) {
+    const merged: Record<string, unknown> = {};
+    for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
+      const inLeft = Object.hasOwn(left, key);
+      const inRight = Object.hasOwn(right, key);
+      merged[key] =
+        inLeft && inRight
+          ? mergeFilled(
+              isPlainObject(original) ? original[key] : undefined,
+              left[key],
+              right[key],
+            )
+          : inLeft
+            ? left[key]
+            : right[key];
+    }
+    return merged;
+  }
+  return Object.is(left, original) ? right : left;
+};
+
 export const getDefaultValue = (schema: z.ZodTypeAny, value?: unknown) => {
   if (value === undefined) return fillDefaults(undefined, schema);
   try {
@@ -210,6 +243,14 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           }
           return result;
         },
+        // intersection：両側を同じ値から補い、まとめる（値が無いときも両側の初期値を合わせる。
+        // zod-transform の既定は、値が object でないと何もしない）
+        intersection: (obj, schema, context) =>
+          mergeFilled(
+            obj,
+            context.transform(obj, schema.def.left as z.ZodTypeAny),
+            context.transform(obj, schema.def.right as z.ZodTypeAny),
+          ),
         union: (obj, schema, context) => {
           const options = schema.def.options as z.ZodTypeAny[];
           if (obj === undefined) {

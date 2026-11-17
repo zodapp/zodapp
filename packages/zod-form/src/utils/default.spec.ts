@@ -293,3 +293,41 @@ describe("getDefaultValue に値を渡す（値が無いところだけを補う
     expect(getDefaultValue(schema, {})).toStrictEqual({});
   });
 });
+
+describe("getDefaultValue（intersection）", () => {
+  const base = z.object({ name: z.string(), count: z.number().default(1) });
+  const extra = z.object({ memo: z.string().default("m") });
+  const arms = z.discriminatedUnion("type", [
+    z.object({ type: z.literal("a"), a: z.string().default("x") }),
+    z.object({ type: z.literal("b"), b: z.number() }),
+  ]);
+
+  it("値が無いときは、両側の初期値を合わせる", () => {
+    expect(getDefaultValue(base.and(extra))).toEqual({ count: 1, memo: "m" });
+  });
+
+  it("値があるときは、両側の足りないところを補い、入っている値は変えない", () => {
+    expect(getDefaultValue(base.and(extra), { name: "n", memo: "q" })).toEqual({
+      name: "n",
+      count: 1,
+      memo: "q",
+    });
+  });
+
+  it("object と discriminatedUnion では、選ばれた腕の中も補う", () => {
+    expect(getDefaultValue(base.and(arms), { name: "n", type: "a" })).toEqual({
+      name: "n",
+      type: "a",
+      count: 1,
+      a: "x",
+    });
+  });
+
+  it("入れ子の object は、両側のキーを合わせる", () => {
+    const left = z.object({ detail: z.object({ x: z.number().default(1) }) });
+    const right = z.object({ detail: z.object({ y: z.number().default(2) }) });
+    expect(getDefaultValue(left.and(right))).toEqual({
+      detail: { x: 1, y: 2 },
+    });
+  });
+});

@@ -13,6 +13,7 @@ import {
   extendString,
   extendTuple,
   extendUnion,
+  extendIntersection,
   extendCustom,
   getMeta as getZodExtendableMeta,
   MetaOf,
@@ -521,6 +522,8 @@ const zf = {
       unlisted: unlistedSchema,
     }),
   ),
+  // 両側を同じ path に並べる。入れ物の見せ方は object と同じ uiType（box・horizontal・horizontal-wrap）
+  intersection: extendIntersection(zodExtendableCommonDefSchema),
   common,
   hidden,
   externalKey,
