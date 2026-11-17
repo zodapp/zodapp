@@ -971,7 +971,8 @@ const UnionBody = React.memo(function UnionBody({
           />
         ))}
       {selectedProfile?.schema && (
-        <div style={{ marginTop: 1, minHeight: 20, marginBottom: 15 }}>
+        // 腕の欄の入れ物。高さを固定せず（欄の無い腕では何も出さない）、下は入力欄と同じ 5px 空ける
+        <div style={{ marginTop: 1, marginBottom: 5 }}>
           <Suspense
             fallback={
               <LoadingComponent

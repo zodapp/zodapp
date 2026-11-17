@@ -146,12 +146,15 @@ export const FieldContainer = ({
     </HorizontalContext.Provider>
   );
 
+  // 入れ物のエラーは、最後の子の欄のエラー（入力欄の下 5px）と見分けられるよう、上を 8px 空ける
+  const errorStyles = { error: { marginTop: 8 } };
   if (uiType === "box") {
     return (
       <Fieldset legend={label || undefined} mt={10}>
         <InputWrapper
           required={undefined}
           error={error}
+          styles={errorStyles}
           labelElement="div" // disable auto biding of label to input
         >
           {body}
@@ -164,6 +167,7 @@ export const FieldContainer = ({
       label={label || undefined}
       required={undefined}
       error={error}
+      styles={errorStyles}
       labelElement="div" // disable auto biding of label to input
       style={inputWrapperStyle}
     >

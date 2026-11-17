@@ -214,6 +214,11 @@ zod の intersection は、両側の unrecognized_keys をまとめ、両側と�
 
 2.5 のエラーの box を、Mantine の `Alert`（`color="red"`、`variant="light"`、アイコンは `@tabler/icons-react` の `IconAlertCircle`）に変える。余白は今の box と同じ（`mt={10}`、`py={8}`）。横並びの中では今のとおり幅いっぱいにして次の行に出す。
 
+### 6.6.1 エラーの位置
+
+- 入れ物（box の object・intersection）のエラーは、最後の子の欄のすぐ下（間 0px）に出ていて、最後の欄のエラーに見えた。欄のエラーは入力欄の 5px 下に出るので、入れ物のエラーはそれより離して出す。入れ物の `InputWrapper` に `styles={{ error: { marginTop: 8 } }}` を渡す（`container.tsx`）。
+- union の腕の欄の入れ物は、高さ 20px を固定し、下に 15px 空けていた。欄の無い腕（たとえば「無料」）でも 35px の空きができ、入れ物のエラーが遠くなっていた。`minHeight` をやめ、下の余白を入力欄と同じ 5px にする（`union.tsx`）。intersection 以外の union のデモ（union・unionArms・discriminatedUnion・discriminatedUnionAsTopLevel・readOnly・recursiveSchema）も前後を撮り、枠の下の空きが詰まるだけで崩れないことを確かめた。
+
 ### 6.7 デモと e2e に足すもの
 
 デモに次のエラーの例を足し、e2e で出る場所と回数を確かめる。
