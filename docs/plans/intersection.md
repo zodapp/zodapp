@@ -1,6 +1,6 @@
 # zf.intersection を描くプラン
 
-- ステータス: プラン（未実装）
+- ステータス: 実装済み（form-demo の e2e は 132 件すべて通過）
 - 対象ブランチ: `claude/union-arm-errors-v2`
 - 対象パッケージ: `@zodapp/zod-extendable`、`@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`apps/form-demo`
 
@@ -107,3 +107,8 @@ e2e で確かめること：
 - 同じキーの欄を 1 つにまとめて描くこと
 - intersection の中でだけ子を `flat` にする指定（子の uiType より優先する、intersection の meta）
 - reactive 版（mantine-lite の reactiveComponents）の部品
+
+## 5. 実装で分かったこと
+
+- union の腕を切り替えると、腕の外のキーを消していたので、intersection で並べた object の欄の値が消えていた。どの腕にも無いキーは消さないようにした（discriminatedUnion・discriminator の無い union の両方）
+- object 自体の `.refine()` のエラー（object の path のエラー）は、子の欄を直しても消えず、送り直しても残る。intersection だけでなく、ふつうの object でも同じ（errorMap の onBlur・onSubmit に残る）。今からある不具合で、このプランでは直していない

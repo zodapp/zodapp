@@ -1,4 +1,5 @@
 ---
+"@zodapp/zod-extendable": minor
 "@zodapp/zod-form": minor
 "@zodapp/zod-form-react": minor
 "@zodapp/zod-form-mantine-lite": minor
@@ -27,3 +28,4 @@ zf.union の不具合を直し、`ZodFormProps` の `required` を `optional` �
 - `getDefaultValue` は、object の子の値が undefined のときキーを置かない。`getDefaultValue(schema, value)` で値が無いところだけを補える
 - `zf.dynamic` の schema が最初に決まったとき、値が無いところを既定値で補い、AutoForm の defaultValues にも入れる（`useDefaultValuesWithFills`）
 - literal だけの union に `uiType: "select"`・`"badge"` を付けると、enum と同じ選択の欄で選べる（配列の `multipleEnum`・`multipleEnumBadge` の要素にも使える）。`zf.union` の登録に `unlisted` を足し、literal に入るすべての値と `z.null()`・`z.undefined()` の腕を選べ、optional・nullable より腕を優先する。mantine-lite に `choicesOf`・`useChoices`・`isEmptyOption`、`BadgeSelect` に `clearable` を足した
+- `zf.intersection` と、object・union・intersection の `uiType: "flat"` を足した。同じ path のエラーを子に出させない `hideError` を `ZodFormProps` に足した。intersection の `getDefaultValue`・`pruneValueToSchema` を直した
