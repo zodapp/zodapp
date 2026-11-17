@@ -204,7 +204,7 @@ describe("zf.intersection", () => {
     expect(document.querySelectorAll("fieldset")).toHaveLength(1);
   });
 
-  it("intersection の外の flat の object は、自分のエラーがあるときだけエラーの box を出す", async () => {
+  it("intersection の外の flat の object は、自分のエラーがあるときだけエラーの Alert を出す", async () => {
     const schema = z.object({
       detail: zf
         .object({ code: text("コード") })
@@ -213,12 +213,13 @@ describe("zf.intersection", () => {
     });
     renderForm(schema, { detail: { code: "x" } });
     await screen.findByLabelText(/^コード/);
-    expect(document.querySelectorAll("fieldset")).toHaveLength(0);
+    expect(screen.queryByRole("alert")).toBeNull();
     submit();
     await waitFor(() =>
       expect(screen.getAllByText("x は使えません")).toHaveLength(1),
     );
-    expect(document.querySelectorAll("fieldset")).toHaveLength(1);
+    expect(screen.getByRole("alert").textContent).toContain("x は使えません");
+    expect(document.querySelectorAll("fieldset")).toHaveLength(0);
   });
 
   it("object と discriminatedUnion の intersection で、腕を切り替えても共通の欄の値が残る", async () => {
@@ -310,5 +311,269 @@ describe("zf.intersection", () => {
     renderForm(schema, { both: { name: "" } });
     await screen.findByLabelText(/^名前（右）/);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("name"));
+  });
+
+  describe("同じ欄のエラーの出し分け（errorTokens・hideError）", () => {
+    /** 表示されているエラーの文言と、それを囲む fieldset の legend */
+    const shownErrors = () =>
+      [
+        ...document.querySelectorAll(
+          ".mantine-InputWrapper-error, .mantine-Select-error, [role=alert]",
+        ),
+      ].map(
+        (element) =>
+          `${element.textContent}@${element.closest("fieldset")?.querySelector("legend")?.textContent ?? "-"}`,
+      );
+    const wait = () => new Promise((resolve) => setTimeout(resolve, 300));
+
+    const phoneArm = (refine: boolean) => {
+      const arm = zf.object({
+        type: zf
+          .literal("phone")
+          .register(zf.literal.registry, { hidden: true }),
+        phone: text("電話番号"),
+      });
+      return (
+        refine
+          ? arm.refine((v) => v.phone.length >= 10, { message: "10 桁以上" })
+          : arm
+      ).register(zf.object.registry, { label: "電話", uiType: "box" });
+    };
+    const mailArm = () =>
+      z
+        .strictObject({
+          type: zf
+            .literal("mail")
+            .register(zf.literal.registry, { hidden: true }),
+          mail: text("アドレス"),
+        })
+        .register(zf.object.registry, { label: "メール", uiType: "box" });
+
+    it("z.union の腕の、path を指定しない refine も、intersection に 1 回だけ出す", async () => {
+      const contact = z
+        .union([
+          zf
+            .object({ phone: text("電話番号") })
+            .refine((v) => v.phone.length >= 10, { message: "10 桁以上" })
+            .register(zf.object.registry, { label: "電話", uiType: "box" }),
+          zf
+            .object({ mail: text("アドレス") })
+            .register(zf.object.registry, { label: "メール", uiType: "box" }),
+        ])
+        .register(zf.union.registry, {
+          label: "連絡先",
+          selectorLabel: "種類",
+        });
+      const schema = z.object({
+        contact: zf
+          .intersection(zf.object({ name: text("名前") }), contact)
+          .register(zf.intersection.registry, { label: "全体", uiType: "box" }),
+      });
+      renderForm(schema, { contact: { name: "a", phone: "0901234567" } });
+      fireEvent.change(await screen.findByLabelText(/^電話番号/), {
+        target: { value: "090" },
+      });
+      submit();
+      await wait();
+      expect(shownErrors().filter((e) => e.startsWith("10 桁以上"))).toEqual([
+        "10 桁以上@全体",
+      ]);
+    });
+
+    it("discriminatedUnion の腕の、path を指定しない refine は、intersection に 1 回だけ出す", async () => {
+      const schema = z.object({
+        contact: zf
+          .intersection(
+            zf.object({ name: text("名前") }),
+            z
+              .discriminatedUnion("type", [phoneArm(true), mailArm()])
+              .register(zf.union.registry, {
+                label: "連絡先",
+                selectorLabel: "種類",
+              }),
+          )
+          .register(zf.intersection.registry, { label: "全体", uiType: "box" }),
+      });
+      renderForm(schema, {
+        contact: { name: "a", type: "phone", phone: "090" },
+      });
+      await screen.findByLabelText(/^電話番号/);
+      submit();
+      await wait();
+      expect(shownErrors().filter((e) => e.startsWith("10 桁以上"))).toEqual([
+        "10 桁以上@全体",
+      ]);
+    });
+
+    for (const kind of ["discriminatedUnion", "union"] as const) {
+      it(`値が空のとき、${kind} は「選択してください」を intersection のエラーに重ねない`, async () => {
+        const union =
+          kind === "discriminatedUnion"
+            ? z.discriminatedUnion("type", [phoneArm(false), mailArm()])
+            : z.union([phoneArm(false), mailArm()]);
+        const schema = z.object({
+          contact: zf
+            .intersection(
+              zf.object({ name: text("名前") }),
+              union.register(zf.union.registry, {
+                label: "連絡先",
+                selectorLabel: "種類",
+              }),
+            )
+            .register(zf.intersection.registry, {
+              label: "全体",
+              uiType: "box",
+            }),
+        });
+        renderForm(schema, {});
+        await screen.findByText("種類");
+        submit();
+        await wait();
+        const shown = shownErrors();
+        expect(shown.some((e) => e.startsWith("選択してください"))).toBe(false);
+        expect(shown.filter((e) => e.endsWith("@全体"))).toHaveLength(1);
+      });
+    }
+
+    it("値はあるがどの腕にも合わないときは、hideError でも「選択してください」を出す", async () => {
+      const schema = z.object({
+        contact: zf
+          .intersection(
+            zf.object({ name: text("名前") }),
+            z
+              .union([
+                zf
+                  .object({ phone: zf.string().min(10) })
+                  .register(zf.object.registry, { label: "電話" }),
+                zf
+                  .object({ mail: z.email() })
+                  .register(zf.object.registry, { label: "メール" }),
+              ])
+              .register(zf.union.registry, {
+                label: "連絡先",
+                selectorLabel: "種類",
+              }),
+          )
+          .register(zf.intersection.registry, { label: "全体", uiType: "box" }),
+      });
+      renderForm(schema, { contact: { name: "a" } });
+      await screen.findByText("種類");
+      submit();
+      await wait();
+      expect(
+        shownErrors().filter((e) => e.startsWith("選択してください")),
+      ).toHaveLength(1);
+    });
+
+    it("入れ子の union の refine は、内側の union の腕が出す", async () => {
+      const inner = z
+        .union([zf.string().register(zf.string.registry, { label: "文字" })])
+        .refine((v) => v !== "x", { message: "x は使えません" })
+        .register(zf.union.registry, {
+          label: "内",
+          selectorLabel: "内の種類",
+        });
+      const outer = z.union([inner]).register(zf.union.registry, {
+        label: "外",
+        selectorLabel: "外の種類",
+      });
+      renderForm(z.object({ value: outer }), { value: "a" });
+      fireEvent.change(await screen.findByRole("textbox"), {
+        target: { value: "x" },
+      });
+      submit();
+      await wait();
+      expect(
+        shownErrors().filter((e) => e.startsWith("x は使えません")),
+      ).toHaveLength(1);
+    });
+
+    const memberUnion = () =>
+      z
+        .discriminatedUnion("plan", [
+          z
+            .strictObject({
+              plan: zf
+                .literal("free")
+                .register(zf.literal.registry, { hidden: true }),
+            })
+            .register(zf.object.registry, { label: "無料" }),
+          z
+            .strictObject({
+              plan: zf
+                .literal("paid")
+                .register(zf.literal.registry, { hidden: true }),
+              card: text("カード"),
+            })
+            .register(zf.object.registry, { label: "有料" }),
+        ])
+        .register(zf.union.registry, {
+          label: "会員",
+          selectorLabel: "会員タイプ",
+        });
+    const contactUnion = () =>
+      z
+        .discriminatedUnion("type", [
+          z
+            .strictObject({
+              type: zf
+                .literal("phone")
+                .register(zf.literal.registry, { hidden: true }),
+              phone: text("電話番号"),
+            })
+            .register(zf.object.registry, { label: "電話" }),
+          mailArm(),
+        ])
+        .register(zf.union.registry, {
+          label: "連絡",
+          selectorLabel: "連絡方法",
+        });
+
+    it("intersection の unrecognized_keys は、キーを腕に持つ union の名前で選択を促す", async () => {
+      const schema = z.object({
+        both: zf
+          .intersection(contactUnion(), memberUnion())
+          .register(zf.intersection.registry, { label: "全体", uiType: "box" }),
+      });
+      renderForm(schema, {
+        both: {
+          type: "mail",
+          mail: "a",
+          plan: "free",
+          phone: "090",
+          card: "1",
+        },
+      });
+      await screen.findByLabelText(/^アドレス/);
+      submit();
+      await wait();
+      expect(shownErrors()).toContain(
+        "連絡方法と会員タイプを選択してください@全体",
+      );
+    });
+
+    it("discriminatedUnion 単体の unrecognized_keys は、腕を選ぶ欄に出す（腕には出さない）", async () => {
+      renderForm(z.object({ contact: contactUnion() }), {
+        contact: { type: "mail", mail: "a", phone: "090" },
+      });
+      await screen.findByLabelText(/^アドレス/);
+      submit();
+      await wait();
+      expect(shownErrors().map((e) => e.split("@")[0])).toEqual([
+        "連絡方法を選択してください",
+      ]);
+    });
+
+    it("どの腕にも無いキーは、issue のメッセージをそのまま出す", async () => {
+      renderForm(z.object({ contact: contactUnion() }), {
+        contact: { type: "mail", mail: "a", fax: "1" },
+      });
+      await screen.findByLabelText(/^アドレス/);
+      submit();
+      await wait();
+      const shown = shownErrors().map((e) => e.split("@")[0]);
+      expect(shown).toHaveLength(1);
+      expect(shown[0]).toContain("fax");
+    });
   });
 });

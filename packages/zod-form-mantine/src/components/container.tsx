@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from "react";
-import { Fieldset, Input, InputWrapper } from "@mantine/core";
+import { Alert, Fieldset, InputWrapper, Text } from "@mantine/core";
+import { IconAlertCircle } from "@tabler/icons-react";
 import z from "zod";
 import { getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -11,7 +12,7 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
  * - 既定：InputWrapper（ラベルがあれば出す）
  * - `box`：Fieldset で囲む
  * - `horizontal`・`horizontal-wrap`：子を横に並べる
- * - `flat`：入れ物を出さず、子だけを返す。自分の path のエラーがあるときだけ、子のあとにエラーの box を出す
+ * - `flat`：入れ物を出さず、子だけを返す。自分の path のエラーがあるときだけ、子のあとにエラーの Alert を出す
  *
  * `flat` の子は、外側の並びにそのまま入る。横並びでは、子を包む div を `display: contents` にし、
  * 子の欄が外側の flex の項目に直接なるようにする。`flat` の入れ物の中の子（`flat` でないもの）は、
@@ -56,7 +57,7 @@ export const isFlatSchema = (schema: z.ZodTypeAny): boolean => {
   return false;
 };
 
-/** flat の入れ物で、自分の path のエラーを出す box（box と同じ Fieldset で、中身はエラーの文言だけ） */
+/** flat の入れ物で、自分の path のエラーを出す Alert（中身はエラーの文言だけ） */
 const FlatErrorBox = ({
   message,
   horizontal,
@@ -64,14 +65,19 @@ const FlatErrorBox = ({
   message: React.ReactNode;
   horizontal: boolean;
 }) => (
-  <Fieldset
+  <Alert
+    color="red"
+    variant="light"
+    icon={<IconAlertCircle size={18} />}
     mt={10}
     py={8}
     // 横並びの中では幅いっぱいにして、次の行に出す
     style={horizontal ? { flexBasis: "100%" } : undefined}
   >
-    <Input.Error>{message}</Input.Error>
-  </Fieldset>
+    <Text size="sm" c="red">
+      {message}
+    </Text>
+  </Alert>
 );
 
 export const FieldContainer = ({

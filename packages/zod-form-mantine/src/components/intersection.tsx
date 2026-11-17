@@ -9,6 +9,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { FieldContainer, isFlatSchema } from "./container";
 import { OptionalContainer } from "./object";
+import { unrecognizedKeysMessage } from "./unrecognizedKeys";
 
 type IntersectionSchema = z.ZodIntersection<z.ZodTypeAny, z.ZodTypeAny>;
 
@@ -65,12 +66,20 @@ function IntersectionBody({
   const meta = getMeta(schema);
   const label = labelFromParent ?? meta?.label;
   warnDuplicatedKeys(schema);
+  // unrecognized_keys は、キーを腕に持つ discriminatedUnion の名前で、選択を促す文言にする
+  const issue = error as
+    | { code?: string; keys?: string[]; message?: string }
+    | undefined;
+  const errorMessage =
+    issue?.code === "unrecognized_keys"
+      ? (unrecognizedKeysMessage(schema, issue.keys ?? []) ?? issue.message)
+      : issue?.message;
   const sides = [
     ["left", schema.def.left as z.ZodTypeAny],
     ["right", schema.def.right as z.ZodTypeAny],
   ] as const;
   return (
-    <FieldContainer label={label} uiType={meta?.uiType} error={error?.message}>
+    <FieldContainer label={label} uiType={meta?.uiType} error={errorMessage}>
       {sides.map(([key, side]) => ({
         key,
         flat: isFlatSchema(side),

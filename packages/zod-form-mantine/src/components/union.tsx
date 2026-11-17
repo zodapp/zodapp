@@ -1,7 +1,5 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -25,6 +23,7 @@ import {
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
+import { unrecognizedKeysMessage } from "./unrecognizedKeys";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
 import { Suspense } from "react";
 import {
@@ -193,15 +192,6 @@ const isUnionIssue = (
   issue !== null &&
   (issue as ArmIssue).code === "invalid_union";
 
-/** いちばん近い外側の union の、欄の path と印 */
-type UnionRelay = { path: string; token: object };
-
-/**
- * いちばん近い外側の union が、自分の欄の path と印を子に渡す（公開しない）。
- * union は受け取った組を読んだあと、自分の組に置き換えて子に渡す（祖先の一覧は持たない）
- */
-const UnionRelayContext = createContext<UnionRelay | undefined>(undefined);
-
 /** 欄の path をそろえる（`a[0].b` と `a.0.b` を同じにする） */
 const normalizeFieldPath = (fieldPath: string): string =>
   fieldPath
@@ -212,24 +202,29 @@ const normalizeFieldPath = (fieldPath: string): string =>
 
 /**
  * 欄のエラーから、この union が読む invalid_union を選ぶ。
- * - 外側の union が同じ欄にある（受け取った組の path が自分と同じ）：その union が
- *   書いたもの（受け取った印が付いたもの）だけ
- * - それ以外（外側の union が別の欄にある・無い）：印のない最初のもの
- *   （検証が出したもの。別の欄の外側の union が振り分けたものも、ここでは印なしとして扱う）
+ * - `errorToken` を受け取っている（同じ欄の外側の union の腕である）：すぐ外側の union が書いたものだけ
+ * - 受け取っていない：`writtenBy` の無い最初のもの
+ *   （検証が出したもの。別の欄の外側の union が振り分けたもの（distributedBy）も、ここでは無いものとして扱う）
  */
 const pickUnionIssue = (
   errors: readonly unknown[],
-  received: UnionRelay | undefined,
-  ownPath: string,
+  errorToken: object | undefined,
 ) =>
-  received && received.path === ownPath
+  errorToken
     ? errors.find(
         (issue) =>
           isUnionIssue(issue) &&
           isWrittenIssue(issue) &&
-          issue.writtenBy === received.token,
+          issue.writtenBy === errorToken,
       )
     : errors.find((issue) => isUnionIssue(issue) && !isWrittenIssue(issue));
+
+const isUnrecognizedKeysIssue = (
+  issue: unknown,
+): issue is { code: "unrecognized_keys"; keys: string[]; message?: string } =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as { code?: unknown }).code === "unrecognized_keys";
 
 /** 書く issue の比べ方（同じなら書き直さず、store を揺らさない） */
 const issueKey = (issue: unknown): string => {
@@ -384,16 +379,18 @@ const UnionBody = React.memo(function UnionBody({
   hideSelector,
   readOnlySelector,
   field,
-  error,
   fieldErrors,
   showError,
   formValue,
   accessor,
   hideError,
+  errorToken,
   flat,
 }: {
   /** 同じ path のエラーを祖先（intersection）が出す。腕の部品に渡す */
   hideError: boolean | undefined;
+  /** 同じ欄で、すぐ外側の union の writer */
+  errorToken: object | undefined;
   /** uiType: "flat"：Fieldset（とその legend）を出さず、腕を選ぶ欄と腕の欄だけを並べる */
   flat: boolean;
   fieldPath: string;
@@ -406,7 +403,6 @@ const UnionBody = React.memo(function UnionBody({
   hideSelector: boolean | undefined;
   readOnlySelector: boolean | undefined;
   field: ZodFormInternalProps<UnionSchema>["field"];
-  error: ZodFormInternalProps<UnionSchema>["error"];
   /** 欄のエラーすべて（invalid_union を含む。表示してよいときだけ） */
   fieldErrors: readonly unknown[];
   /** エラーを表示してよいか（触ったか送信したか） */
@@ -621,17 +617,10 @@ const UnionBody = React.memo(function UnionBody({
 
   /** この union の印。書いたものに付け、自分が書いたものだけを足し引きする */
   const [writer] = useState(() => ({}));
-  /** いちばん近い外側の union の組 */
-  const received = useContext(UnionRelayContext);
   const ownPath = normalizeFieldPath(fieldPath);
-  /** 子に渡す、この union の組 */
-  const relay = useMemo(
-    (): UnionRelay => ({ path: ownPath, token: writer }),
-    [ownPath, writer],
-  );
   const unionError = useMemo(
-    () => pickUnionIssue(fieldErrors, received, ownPath) as any,
-    [fieldErrors, received, ownPath],
+    () => pickUnionIssue(fieldErrors, errorToken) as any,
+    [fieldErrors, errorToken],
   );
 
   const optionIssues =
@@ -651,6 +640,9 @@ const UnionBody = React.memo(function UnionBody({
    * この union の欄より下を指さないもの（union 自身を指すものなど）は振り分けない
    */
   const directIssues = useMemo(() => {
+    // 欄のエラーのうち invalid_union でない最初のもの（wrapComponent の error は
+    // hideError・errorToken で選ばれるので使わない）
+    const error = fieldErrors.find((issue) => !isUnionIssue(issue));
     if (
       unionError ||
       !error ||
@@ -668,7 +660,7 @@ const UnionBody = React.memo(function UnionBody({
     return isUnder
       ? [{ ...(error as object), path: path.slice(ownSegments.length) }]
       : undefined;
-  }, [error, unionError, ownSegments]);
+  }, [fieldErrors, unionError, ownSegments]);
 
   const distributableIssues = useMemo(
     () => optionIssues ?? directIssues,
@@ -785,20 +777,42 @@ const UnionBody = React.memo(function UnionBody({
   );
 
   /**
+   * 同じ欄に、外側の部品が出す issue（invalid_union でないもの）があるか。
+   * hideError のとき、これがあれば「選択してください」は重ねて出さない（外側が出す）
+   */
+  const hasIssueForAncestor = fieldErrors.some((issue) => !isUnionIssue(issue));
+  const yieldsToAncestor = Boolean(hideError) && hasIssueForAncestor;
+
+  /**
+   * 自分の欄の unrecognized_keys（writtenBy の無いもの）。腕の部品には渡らない
+   * （isDisplayedIssue）ので、union が腕を選ぶ欄に出す。hideError のときは外側が出す
+   */
+  const unrecognizedKeysError = useMemo(() => {
+    if (hideError) return undefined;
+    const issue = fieldErrors.find(
+      (iss) => isUnrecognizedKeysIssue(iss) && !isWrittenIssue(iss),
+    ) as { keys?: string[]; message?: string } | undefined;
+    if (!issue) return undefined;
+    return unrecognizedKeysMessage(schema, issue.keys ?? []) ?? issue.message;
+  }, [fieldErrors, hideError, schema]);
+
+  /**
    * 腕が未選択で検証に落ちているとき（必須の union が空のとき、値がどの腕にも合わず
    * 推定できないとき）は、腕を選ぶ欄に「選択してください」を出す。
    * どちらも、この union が読む invalid_union があり、腕が選ばれていない状態になる。
+   * hideError で、同じ欄に外側が出す issue があるときは出さない（値が空のとき、外側の
+   * intersection が「必ず入力してください。」を出すので重なる）。discriminator の欄のエラーからは出す。
    * 出す時機は fieldErrors と同じ（触ったか送信したか）
    */
   const selectorError = selectedProfile
-    ? undefined
+    ? unrecognizedKeysError
     : compiledOptions.hasDiscriminator
       ? // discriminatedUnion は、値が undefined・null のとき invalid_union ではなく
         // invalid_type を union の欄に出す。腕が未選択で欄にエラーがあれば、code を問わず出す
-        fieldErrors.length > 0 || hasDiscriminatorError
+        hasDiscriminatorError || (fieldErrors.length > 0 && !yieldsToAncestor)
         ? UNSELECTED_MESSAGE
         : undefined
-      : unionError
+      : unionError && !yieldsToAncestor
         ? UNSELECTED_MESSAGE
         : undefined;
 
@@ -930,7 +944,7 @@ const UnionBody = React.memo(function UnionBody({
   const selectorIsReadOnly = readOnly || readOnlySelector || field.disabled;
 
   const content = (
-    <UnionRelayContext.Provider value={relay}>
+    <>
       {!shouldHideSelector &&
         (selectorIsReadOnly ? (
           <InputWrapper
@@ -968,6 +982,7 @@ const UnionBody = React.memo(function UnionBody({
                 readOnly={readOnly}
                 label={false}
                 hideError={hideError}
+                errorToken={writer}
               />
             }
           >
@@ -981,11 +996,13 @@ const UnionBody = React.memo(function UnionBody({
               label={false}
               // 同じ path のエラーを祖先（intersection）が出すときは、腕にも出させない
               hideError={hideError}
+              // 腕がまた union なら、この union が書いた invalid_union を読む
+              errorToken={writer}
             />
           </Suspense>
         </div>
       )}
-    </UnionRelayContext.Provider>
+    </>
   );
 
   if (!label || flat) {
@@ -1012,9 +1029,9 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   readOnly,
   label: labelFromParent,
   field,
-  error, // eslint-disable-line @typescript-eslint/no-unused-vars
   isTouched,
   hideError,
+  errorToken,
 }: ZodFormInternalProps<UnionSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const {
@@ -1055,11 +1072,11 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     hideSelector,
     readOnlySelector,
     field,
-    error,
     fieldErrors,
     showError,
     accessor,
     hideError,
+    errorToken,
     flat: uiType === "flat",
   };
 
