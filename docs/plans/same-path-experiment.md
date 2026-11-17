@@ -1,6 +1,6 @@
 # 実験 1：同じ path の受け渡し
 
-- ステータス: 実験済み（判定：条件付きで採用）
+- ステータス: 実験済み（判定：案E を採用。案A＋案D は将来の選択肢）
 - 対象ブランチ: `claude/project-thread-6bm7mu`（土台は `claude/union-arm-errors-v2`）
 - 対象パッケージ: `@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`@zodapp/zod-form-mantine-lite`
 
@@ -101,33 +101,47 @@ props で上から渡すと、上の部品が値を購読することになり�
 描き直される。parent を object が子に渡す場合も、object が値を購読して兄弟の欄がすべて描き直される。
 path で読めない場所（実験 2 の中のフォームの根、表の行）では、今の `TableRowProvider` と同じく context で渡すのがよい。
 
+### 案E：今の props の分担のまま、dynamic が自分の検査を付け直す（コミット `28a41a5`。案A〜D を土台に戻した上）
+
+スレッドでの議論から試した。筋の通る形は「props を保つ（E）」か「連なりに統一する（A＋D）」のどちらかで、
+その中間（Switch が連なりから props に入れる）は、optional・nullable の部品の責務を Switch に移すだけで得るものが無い。
+
+- 決まり：自分の schema に付いているものは自分で扱い、包みの情報は包みの部品が props で渡す（今の分担）
+- `useDynamicSchema` に欄の schema（`props.schema`）を渡し、その `def.checks` を決まった schema に `.check()` で付け直してから、
+  今どおり optional・nullable で包む。dynamic・externalKey・複数選択の externalKey の 3 か所で schema を渡す
+- tuple が要素に optional・nullable を渡していた漏れを、ほかの部品と同じく `optional={undefined}` にして直す
+- 差分（テストを除く）：5 ファイル、+42 / −8 行。破壊的変更なし（`useDynamicSchema` の指定に任意の `schema` が増えるだけ）
+- 結果：単体テストすべて、e2e 106 件すべて通過。dynamic・externalKey の `.refine()`、optional の中の `.refine()`、
+  `.default()`・`.optional()`・`.nullable()`、tuple の要素が必須になることを確かめた
+- 失うもの（`it.fails` で記録）
+  - 包みの側に付いた検査（`dyn.optional().refine(...)`）。dynamic からは包みの schema が見えない
+  - 入れ子の dynamic の外側に付いた検査。内側の DynamicComponent は内側の schema しか受け取らず、検証には一番深い登録を使う
+
 ## 4. 判定
 
-**条件付きで採用**。案A＋案C＋案D を採る（連なりは context で運び、Switch で包みを剥がす）。
+**案E を採用**。案A＋案D（連なりを context で運び、Switch で包みを剥がす）は、包みの側の検査まで要るようになったときの選択肢として残す。案C は採らない。
 
-- 採る理由
-  - dynamic・externalKey の外側の `.refine()` が効く（今は黙って捨てられている不具合）
-  - `optional`・`nullable` の props と、それを消して回る `optional={undefined}` が無くなり、tuple のような漏れが構造的に起きない
-  - `useDynamicSchema` の包み直しが、optional・nullable の 2 つの特別扱いから、連なりの一般的な包み直しになる
-  - 案D で、包みの解釈（空の扱い・defaultValue の付け替え）が Switch の一か所にまとまり、キャッシュされる
-- 条件
-  1. **破壊的変更**として出す（`ZodFormProps` の `optional`・`nullable` の削除、`useDynamicSchema` の第 3 引数の削除）。
-     段階を踏むなら、先に案A だけ（props は Switch が連なりから入れる。呼ぶ側の指定は無視）を出す
-  2. 包み直しが使う zod の面：`def.type`・`def.checks`・`def.defaultValue` と `.check()`。どれも zod 4 の公開された `def` と API だが、
-     `def.checks` の中身（検査の object）をほかの schema に移すのは、zod の文書にある使い方ではない。zod の更新で
-     `rewrapWithChain` の単体テスト（`zod-form-react/src/common/samePath.spec.ts`）が落ちないかを見る
-  3. dynamic の欄に直接付いた検査（`.refine()`・`.min()`）は、zod 4 では包みを作らず、同じ型の複製の `def.checks` に入る。
-     zf の meta は zod-propagating-registry（zod-form 独自のしくみ）で複製に引き継がれるので、DynamicComponent が受け取る
-     schema にその検査は入っている。連なりが本当に要るのは、包みの側に付いた検査（`.optional().refine()`）と空の扱い。
-     refine を諦めるなら、連なりの代わりに「undefined を受け付けるか」「null を受け付けるか」の真偽値だけで足り、zod の内部にも頼らない
-  4. 土台の型そのもの（`zf.string()` の文字列であること）は付け直さない。検査だけを付け直す。`.min()` のような型ごとの検査は、
+- 案E を採る理由
+  - 今黙って捨てられている、dynamic・externalKey の `.refine()` が効く。tuple の漏れも直る
+  - 破壊的変更が無く、差分が小さい。optional・nullable を渡すのは optional・nullable の部品という、今の責務の分担のまま
+  - 失うのはまれな書き方だけ（包みの側の検査、入れ子の dynamic の外側の検査）
+- 案A＋案D を今は採らない理由
+  - 失うものは無いが、context と Switch での剥がしが入る。得るのは上のまれな書き方だけ
+  - 案C（props の optional・nullable の削除）は、約 40 ファイルの書き換えと破壊的変更に対して得るものが小さい
+- 案E の注意
+  1. `def.checks` の中身（検査の object）をほかの schema に `.check()` で移すのは、zod の文書にある使い方ではない。
+     zod の更新で `samePath.spec.tsx`（zod-form-mantine）のテストが落ちないかを見る
+  2. 土台の型そのもの（`zf.string()` の文字列であること）は付け直さない。検査だけを付け直す。`.min()` のような型ごとの検査は、
      resolve が返した schema の値にもそのままかかる（例：enum の値に文字数の検査）。意図に合うが、型の違う schema を返す dynamic では注意
+  3. dynamic の欄に直接付いた検査は、zod 4 では包みを作らず、同じ型の複製の `def.checks` に入る。zf の meta は
+     zod-propagating-registry（zod-form 独自のしくみ。zod の仕様ではない）で複製に引き継がれるので、DynamicComponent が受け取る
+     schema にその検査が入っている。案E はこれに頼る
 
 ## 5. 見たところ・残ったこと
 
 - **pipe（transform）**：pipe の部品は `def.out` を描く（`in` を描かない）ので、`in` に dynamic を置く使い方は今も描けない。
   包み直しは pipe を素通しにした（検証の issue には効かないため）
-- **preprocess**：連なりには入るが、包み直しは素通し。値は描く前にそろえているので、検証に preprocess を付け直す必要はない
+- **preprocess**（案A〜D）：連なりには入るが、包み直しは素通し。値は描く前にそろえているので、検証に preprocess を付け直す必要はない
 - **同じ path の境目**：path の文字列が同じかで切る。union の腕だけ明示して切る。lazy・pipe・preprocess・dynamic・externalKey は同じ path として運ぶ
 - **object の `.refine()`（path の違う検査）は直らない**。`zf.dynamic()` は土台が `z.never` なので、静的な検証で必ず落ち、
   zod は object の検査を走らせない。登録された path の issue は捨てるので、z.never の issue も見えないが、object の `.refine()` も黙って効かない。
