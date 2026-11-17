@@ -180,7 +180,9 @@ const renderForm = (
   };
   const edit = async (path: string, value: unknown) => {
     await act(async () => {
-      runtime.runAsUserEdit(() => getForm().setFieldValue(path, value as never));
+      runtime.runAsUserEdit(() =>
+        getForm().setFieldValue(path, value as never),
+      );
     });
   };
   return { getForm, runtime, onSubmit, submit, edit };
@@ -206,9 +208,15 @@ describe("externalKey（dynamic + ラッパー）", () => {
 
   it("選択肢が届くまでは読み込み中で送信できず、届いたら選んだ値のラベルを出す", async () => {
     const r = makeResolvers();
-    const t = renderForm(z.object({ owner: owner() }), { owner: "u1" }, r.resolvers);
+    const t = renderForm(
+      z.object({ owner: owner() }),
+      { owner: "u1" },
+      r.resolvers,
+    );
     await waitFor(() =>
-      expect(document.querySelector('[data-dynamic-status="loading"]')).toBeTruthy(),
+      expect(
+        document.querySelector('[data-dynamic-status="loading"]'),
+      ).toBeTruthy(),
     );
     await t.submit();
     expect(t.onSubmit).not.toHaveBeenCalled();
@@ -222,11 +230,37 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
   });
 
+  it("外側の .refine() のエラーが、externalKey の欄に出て送信が止まる", async () => {
+    const r = makeResolvers();
+    const t = renderForm(
+      z.object({
+        owner: owner().refine((v) => v !== "u2", "佐藤さんは選べません"),
+      }),
+      { owner: "u2" },
+      r.resolvers,
+    );
+    await r.publish("members", [
+      { label: "山田", value: "u1" },
+      { label: "佐藤", value: "u2" },
+    ]);
+    await waitFor(() =>
+      expect(t.runtime.get("owner")?.status).toBe("resolved"),
+    );
+    await t.submit();
+    expect(t.onSubmit).not.toHaveBeenCalled();
+  });
+
   it("既定（unlisted: clear）では、選択肢に無い保存値を消す", async () => {
     const r = makeResolvers();
-    const t = renderForm(z.object({ owner: owner() }), { owner: "gone" }, r.resolvers);
+    const t = renderForm(
+      z.object({ owner: owner() }),
+      { owner: "gone" },
+      r.resolvers,
+    );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
-    await waitFor(() => expect(t.getForm().getFieldValue("owner")).toBeUndefined());
+    await waitFor(() =>
+      expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+    );
   });
 
   it("unlisted: keep なら、選択肢に無い保存値を残し、「（不正な値）」と出して送信を止める", async () => {
@@ -237,7 +271,9 @@ describe("externalKey（dynamic + ラッパー）", () => {
       r.resolvers,
     );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
-    await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("resolved"));
+    await waitFor(() =>
+      expect(t.runtime.get("owner")?.status).toBe("resolved"),
+    );
     await screen.findByDisplayValue("（不正な値）");
     expect(
       screen.getByText("選択肢に無い値です。選び直してください。"),
@@ -255,7 +291,9 @@ describe("externalKey（dynamic + ラッパー）", () => {
       r.resolvers,
     );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
-    await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("resolved"));
+    await waitFor(() =>
+      expect(t.runtime.get("owner")?.status).toBe("resolved"),
+    );
     await t.submit();
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "gone" });
   });
@@ -271,7 +309,8 @@ describe("externalKey（dynamic + ラッパー）", () => {
     const r = makeResolvers();
     const t = renderForm(z.object({ owner: emptyOwner() }), {}, r.resolvers);
     await r.publish("members", []);
-    const input = await screen.findByPlaceholderText("先にチームを選んでください");
+    const input =
+      await screen.findByPlaceholderText("先にチームを選んでください");
     expect((input as HTMLInputElement).disabled).toBe(true);
     // 触る前・送信する前は、ほかの必須の欄と同じく出さない
     expect(screen.queryByText("先にチームを選んでください")).toBeNull();
@@ -295,7 +334,8 @@ describe("externalKey（dynamic + ラッパー）", () => {
       r.resolvers,
     );
     await r.publish("members", []);
-    const input = await screen.findByPlaceholderText("先にチームを選んでください");
+    const input =
+      await screen.findByPlaceholderText("先にチームを選んでください");
     expect((input as HTMLInputElement).disabled).toBe(true);
     await t.submit();
     expect(t.onSubmit).toHaveBeenCalledWith({});
@@ -410,9 +450,7 @@ describe("externalKey（dynamic + ラッパー）", () => {
       await screen.findByDisplayValue("利用者 A");
 
       await r.fail("members", new Error("取得に失敗しました"));
-      await waitFor(() =>
-        expect(t.runtime.get("owner")?.status).toBe("error"),
-      );
+      await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("error"));
       expect(
         document.querySelector('[data-dynamic-status="error"]'),
       ).toBeTruthy();
@@ -430,9 +468,7 @@ describe("externalKey（dynamic + ラッパー）", () => {
         r.resolvers,
       );
       await r.fail("members", new Error("取得に失敗しました"));
-      await waitFor(() =>
-        expect(t.runtime.get("owner")?.status).toBe("error"),
-      );
+      await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("error"));
       await r.publish("members", everyone);
       await screen.findByDisplayValue("利用者 A");
       expect(t.runtime.get("owner")?.status).toBe("resolved");
@@ -596,7 +632,10 @@ describe("externalKey（dynamic + ラッパー）", () => {
     it("key を書かないと、関数だけが違う config は同じ config とみなして取り直さない", async () => {
       const r = makeResolvers();
       await r.publish("all", options);
-      const schema = z.object({ team: z.string(), member: memberSchema(false) });
+      const schema = z.object({
+        team: z.string(),
+        member: memberSchema(false),
+      });
       const t = renderForm(schema, { team: "x", member: "x" }, r.resolvers);
       await screen.findByDisplayValue("X");
 

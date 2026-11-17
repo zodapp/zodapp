@@ -7,6 +7,7 @@ import {
   useSchemaValueAction,
   useRunAsUserEdit,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -25,12 +26,12 @@ type EnumSchema = ReturnType<typeof zf.enum>;
 const EnumComponent = wrapComponent(function EnumComponentImplement({
   schema,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<EnumSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const {
     label: labelFromMeta,
     uiType,

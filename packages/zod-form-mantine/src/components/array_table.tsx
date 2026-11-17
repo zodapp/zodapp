@@ -12,6 +12,7 @@ import {
   ZodFormContextProvider,
   wrapComponent,
   useZodFormContext,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import {
   DndContext,
@@ -347,14 +348,14 @@ const ArrayTableComponent = wrapComponent(
   function ArrayTableComponentImplement({
     fieldPath,
     schema,
-    optional,
-    nullable,
+    outer,
     readOnly,
     label: labelFromParent,
     field,
     error,
     defaultValue,
   }: ZodFormInternalProps<ArraySchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { loadingComponent: LoadingComponent } = useZodFormContext();
     const [activeId, setActiveId] = useState<string | null>(null);
     const tableContainerRef = useRef<HTMLDivElement | null>(null);
@@ -591,8 +592,7 @@ const ArrayTableComponent = wrapComponent(
                                       index,
                                       column.propertyName,
                                     ),
-                                    optional: undefined,
-                                    nullable: undefined,
+                                    outer: undefined,
                                     readOnly,
                                     label: false as const,
                                   };

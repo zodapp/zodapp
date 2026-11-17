@@ -12,6 +12,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -109,11 +110,11 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<SupportedTimeSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const meta = getMeta(schema) as
     | { label?: string; unit?: TimeUnit; encoding?: TimeEncoding }

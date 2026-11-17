@@ -49,21 +49,24 @@ describe("getDefaultValue", () => {
     });
   });
 
-  it("uses null for nullable-only fields and undefined when both optional and nullable", () => {
-    const schema = z.object({
-      nullableOnly: z.string().nullable(),
-      optionalThenNullable: z.string().optional().nullable(),
-      nullableThenOptional: z.string().nullable().optional(),
-      nullableObject: z.object({ x: z.string() }).nullable(),
+  describe("nullable と default・optional の重なり（zod と同じ値にする）", () => {
+    it.each([
+      ["default の外に nullable", z.string().default("x").nullable(), "x"],
+      ["nullable の外に default", z.string().nullable().default("x"), "x"],
+      ["nullable だけ", z.string().nullable(), null],
+      ["optional だけ", z.string().optional(), undefined],
+      ["optional の外に nullable", z.string().optional().nullable(), undefined],
+      ["nullable の外に optional", z.string().nullable().optional(), undefined],
+    ])("%s", (_, schema, expected) => {
+      expect(getDefaultValue(schema)).toBe(expected);
     });
 
-    expect(getDefaultValue(schema)).toEqual({
-      nullableOnly: null,
-      optionalThenNullable: undefined,
-      nullableThenOptional: undefined,
-      nullableObject: null,
+    it("object の中でも、nullable の中の default を使う", () => {
+      const schema = z.object({
+        a: z.string().default("x").nullable(),
+        b: z.string().nullable(),
+      });
+      expect(getDefaultValue(schema)).toEqual({ a: "x", b: null });
     });
-    const value = getDefaultValue(schema) as Record<string, unknown>;
-    expect("optionalThenNullable" in value).toBe(true);
   });
 });

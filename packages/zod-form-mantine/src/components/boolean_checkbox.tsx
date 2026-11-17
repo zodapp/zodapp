@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 
@@ -13,12 +14,12 @@ const BooleanCheckboxComponent = wrapComponent(
   function BooleanCheckboxComponentImplement({
     schema,
     label: labelFromParent,
-    optional,
-    nullable,
+    outer,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);

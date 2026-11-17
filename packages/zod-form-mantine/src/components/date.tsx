@@ -9,6 +9,7 @@ import {
   useValidatePrecedingFields,
   useZodFormContext,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -31,11 +32,11 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<DateSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema) as

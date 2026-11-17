@@ -14,6 +14,7 @@ import {
   useFileResolver,
   useMediaResolvers,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import type {
@@ -43,12 +44,12 @@ const formatFileSize = (bytes: number): string => {
 const FileComponent = wrapComponent(function FileComponentImplement({
   schema,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<FileSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema, "file");
   const label = labelFromParent ?? meta?.label;
 

@@ -20,6 +20,15 @@ export {
 } from "./context";
 export { useExternalKeyAction } from "../utils/externalKey";
 export { emptyValueOf } from "../utils/emptyValue";
+export {
+  addOuter,
+  emptinessOf,
+  rewrapWithOuter,
+  innerDefaultValue,
+  checksOf,
+  type Outer,
+  type OuterWrap,
+} from "./outer";
 export { useValueAction, useSchemaValueAction } from "../utils/valueAction";
 export {
   FormProvider,

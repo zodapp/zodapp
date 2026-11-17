@@ -5,6 +5,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
 import {
@@ -30,11 +31,11 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  optional,
-  nullable,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<NumberSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta, formatter } = getMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;

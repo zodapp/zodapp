@@ -176,7 +176,9 @@ describe("ArrayComponent integration (tanstack form)", () => {
         .array(itemSchema)
         .register(zf.array.registry, { label: "Items" }),
     });
-    const defaultValues = { items: [{ toolId: "dataSource" as const, indexId: "" }] };
+    const defaultValues = {
+      items: [{ toolId: "dataSource" as const, indexId: "" }],
+    };
 
     const TestSelector = ({
       fieldPath,
@@ -372,7 +374,7 @@ describe("ArrayComponent integration (tanstack form)", () => {
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items}
-                optional={true}
+                outer={{ optional: true, nullable: false, wraps: [] }}
                 readOnly={false}
               />
             </FormProvider>
@@ -425,7 +427,7 @@ describe("ArrayComponent integration (tanstack form)", () => {
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items}
-                optional={true}
+                outer={{ optional: true, nullable: false, wraps: [] }}
                 readOnly={false}
               />
             </FormProvider>
@@ -476,7 +478,7 @@ describe("ArrayComponent integration (tanstack form)", () => {
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items.unwrap()}
-                optional={true}
+                outer={{ optional: true, nullable: false, wraps: [] }}
                 readOnly={false}
               />
             </FormProvider>

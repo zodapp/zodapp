@@ -687,7 +687,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
                 <Switch
                   fieldPath="payload"
                   schema={singleToolSchema}
-                  optional={true}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
                 />
               </Suspense>
             </FormProvider>
@@ -766,7 +766,7 @@ describe("UnionComponent top-level discriminatedUnion", () => {
                 <Switch
                   fieldPath="payload"
                   schema={toolSchema}
-                  optional={true}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
                 />
               </Suspense>
             </FormProvider>

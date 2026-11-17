@@ -2,6 +2,8 @@ import React, { Suspense } from "react";
 import { Loader, MultiSelect } from "@mantine/core";
 import {
   Switch,
+  addOuter,
+  emptinessOf,
   DynamicDepthProvider,
   useDynamicDepth,
   useDynamicSchema,
@@ -27,19 +29,14 @@ const ArrayOfExternalKeyComponent = React.memo(
   function ArrayOfExternalKeyComponent(
     props: ZodFormProps<ArrayOfExternalKeySchema>,
   ) {
-    const {
-      fieldPath,
-      schema,
-      optional,
-      nullable,
-      label: labelFromParent,
-    } = props;
+    const { fieldPath, schema, outer, label: labelFromParent } = props;
+    const { optional, nullable } = emptinessOf(outer);
     const label = labelFromParent ?? getMeta(schema)?.label;
     const dynamicMeta = useArrayExternalKeyDynamicMeta(schema);
     const depth = useDynamicDepth(fieldPath);
     const state = useDynamicSchema(dynamicMeta, fieldPath, {
-      optional,
-      nullable,
+      outer,
+      schema,
     });
 
     const loadingView = (status?: "loading" | "pending") => (
@@ -70,7 +67,11 @@ const ArrayOfExternalKeyComponent = React.memo(
     return (
       <Suspense fallback={loadingView()}>
         <DynamicDepthProvider path={fieldPath} depth={depth}>
-          <Switch {...props} schema={state.schema} />
+          <Switch
+            {...props}
+            schema={state.schema}
+            outer={addOuter(props.outer, props.schema)}
+          />
         </DynamicDepthProvider>
       </Suspense>
     );

@@ -1,6 +1,7 @@
 import React from "react";
 import { Input, Text } from "@mantine/core";
 import type { ZodFormProps, ZodForm } from "@zodapp/zod-form-react/common";
+import { emptinessOf } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "../utils/styles";
 
@@ -11,9 +12,9 @@ const LiteralComponent: ZodForm<LiteralSchema> = React.memo(
     schema,
     defaultValue,
     label: labelFromParent,
-    optional,
-    nullable,
+    outer,
   }: ZodFormProps<LiteralSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
 

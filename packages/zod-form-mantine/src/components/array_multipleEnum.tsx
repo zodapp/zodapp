@@ -11,6 +11,7 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useRunAsUserEdit,
+  emptinessOf,
   emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
@@ -50,12 +51,12 @@ const ArrayOfEnumComponent = wrapComponent(
   function ArrayOfEnumComponentImplement({
     schema,
     label: labelFromParent,
-    optional,
-    nullable,
+    outer,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<ArrayOfEnumSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
     const elementSchema = schema.element as z.ZodTypeAny;

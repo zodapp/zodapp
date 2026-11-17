@@ -3,6 +3,7 @@ import z from "zod";
 import { Alert, Button, Group, Loader, Text } from "@mantine/core";
 import {
   Switch,
+  addOuter,
   DynamicDepthProvider,
   useDynamicDepth,
   useDynamicSchema,
@@ -55,8 +56,8 @@ const DynamicComponent = React.memo(function DynamicComponent(
   const meta = getMeta(schema, "dynamic");
   const depth = useDynamicDepth(fieldPath);
   const state = useDynamicSchema(meta, fieldPath, {
-    optional: props.optional,
-    nullable: props.nullable,
+    outer: props.outer,
+    schema: props.schema,
   });
 
   if (state.status === "loading" || state.status === "pending") {
@@ -70,7 +71,11 @@ const DynamicComponent = React.memo(function DynamicComponent(
   return (
     <Suspense fallback={<DynamicLoadingView />}>
       <DynamicDepthProvider path={fieldPath} depth={depth}>
-        <Switch {...props} schema={state.schema} />
+        <Switch
+          {...props}
+          schema={state.schema}
+          outer={addOuter(props.outer, props.schema)}
+        />
       </DynamicDepthProvider>
     </Suspense>
   );
