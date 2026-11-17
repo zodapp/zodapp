@@ -1,6 +1,6 @@
 # literal の union を enum のように選ぶ（uiType: "select"）プラン
 
-- ステータス: プラン（未実装）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/union-arm-errors-v2`
 - 対象パッケージ: `@zodapp/zod-form-mantine`、`@zodapp/zod-form-mantine-lite`（utils）、`apps/form-demo`
 
@@ -83,8 +83,15 @@ form-demo に「literal の union を選ぶ」ページを足す。
 
 ## 4. 確かめること
 
+単体テストと e2e で確かめた（form-demo の e2e は 123 件すべて通過）。
+
 - 単体テスト：選択肢の作り方（ラベル・色、`literal(10)` と `literal("10")` を区別できること）、値の書き方、エラーの文言
 - 今の union・enum・複数選ぶ部品の単体テストと e2e がすべて通ること
+
+### 4.1 実装で決めたこと
+
+- 選択肢に無い値を Select に渡す文字列は、`unlisted:` で始める（腕の番号と重ならないようにする）
+- 複数選ぶ形で、`keep` で残した選択肢に無い値は、選択肢の文字列から元の値に戻せない。そのため、今の値の要素を選択肢の文字列ごとに覚えておき、ほかを選んだときも元の値のまま書く
 
 ## 5. 扱わないこと
 
