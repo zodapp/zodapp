@@ -131,6 +131,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   label: labelFromParent,
   field,
   defaultValue,
+  hideError,
 }: ZodFormInternalProps<ArraySchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { loadingComponent: LoadingComponent } = useZodFormContext();
@@ -160,7 +161,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
     append,
     move,
     error: arrayError,
-  } = useArray(field.api, discriminator);
+  } = useArray(field.api, discriminator, { hideError });
 
   const sensors = useSensors(
     useSensor(PointerSensor),

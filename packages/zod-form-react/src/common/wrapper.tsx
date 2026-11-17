@@ -101,7 +101,8 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
       fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted;
 
     const adaptedFieldState: AdaptedFieldState = {
-      error: showError ? error : undefined,
+      // hideError：同じ path の祖先（intersection）が出すので、この部品には渡さない
+      error: showError && !props.hideError ? error : undefined,
       isTouched: fieldApi.state.meta.isTouched,
       isDirty: fieldApi.state.meta.isDirty,
       invalid: !!error,

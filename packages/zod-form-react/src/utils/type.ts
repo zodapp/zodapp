@@ -12,6 +12,8 @@ import z from "zod";
  *   path が変わるところでは消して渡す。部品は `emptinessOf(outer)` で optional・nullable・空の値を求める
  * - `readOnly`: UI 制御のヒント（任意）
  * - `label`: 表示ラベル（任意。通常は schema meta から取得する想定）
+ * - `hideError`: この部品の path のエラーを出さない（任意）。同じ path の祖先（intersection）が代わりに出す。
+ *   同じ path に描く包みは `{...props}` で子へ渡し、path が変わるところでは渡さない
  */
 export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
@@ -26,6 +28,8 @@ export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
    * - `string`: explicit label override（通常は schema meta（getMeta）から取得する想定のため、基本的に渡さない）
    */
   label?: string | false;
+  /** この部品の path のエラーを出さない（同じ path の祖先が出す） */
+  hideError?: boolean;
 };
 
 /**

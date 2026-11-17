@@ -62,14 +62,22 @@ const getArmPropertyKeys = (schema: z.ZodTypeAny): Set<string> => {
   return new Set();
 };
 
-const stripPropertiesOutsideArm = (
+/**
+ * 腕を切り替えるとき、ほかの腕にしか無いキーを消す。
+ * どの腕にも無いキーは残す（intersection で、同じ値を union と並べた object が持つ欄）
+ */
+const stripPropertiesOfOtherArms = (
   value: unknown,
   schema: z.ZodTypeAny,
+  unionSchema: z.ZodTypeAny,
 ): Record<string, unknown> => {
   if (!isRecord(value)) return {};
   const propertyKeys = getArmPropertyKeys(schema);
+  const allArmKeys = getArmPropertyKeys(unionSchema);
   return Object.fromEntries(
-    Object.entries(value).filter(([key]) => propertyKeys.has(key)),
+    Object.entries(value).filter(
+      ([key]) => propertyKeys.has(key) || !allArmKeys.has(key),
+    ),
   );
 };
 
@@ -381,7 +389,13 @@ const UnionBody = React.memo(function UnionBody({
   showError,
   formValue,
   accessor,
+  hideError,
+  flat,
 }: {
+  /** 同じ path のエラーを祖先（intersection）が出す。腕の部品に渡す */
+  hideError: boolean | undefined;
+  /** uiType: "flat"：Fieldset（とその legend）を出さず、腕を選ぶ欄と腕の欄だけを並べる */
+  flat: boolean;
   fieldPath: string;
   schema: UnionSchema;
   optional: boolean | undefined;
@@ -868,7 +882,7 @@ const UnionBody = React.memo(function UnionBody({
         const nextValue = {
           ...defaults,
           ...(profile.schema
-            ? stripPropertiesOutsideArm(currentValue, profile.schema)
+            ? stripPropertiesOfOtherArms(currentValue, profile.schema, schema)
             : {}),
           [compiledOptions.discriminator]: profile.value,
         };
@@ -881,9 +895,21 @@ const UnionBody = React.memo(function UnionBody({
       // 値がまだ腕の検証に通らなくても、覚えた腕の入力欄を出し続ける。
       // 腕の既定の値が undefined なら空の値（nullable だけの union では null）にする
       setSelectedPlainArm(profile.value);
-      const normalized = profile.schema
+      const armValue = profile.schema
         ? normalizeValue(profile.schema, formValue)
         : undefined;
+      // どの腕にも無いキー（intersection で、同じ値を union と並べた object が持つ欄）は残す
+      const normalized =
+        isRecord(armValue) && isRecord(formValue)
+          ? {
+              ...Object.fromEntries(
+                Object.entries(formValue).filter(
+                  ([key]) => !getArmPropertyKeys(schema).has(key),
+                ),
+              ),
+              ...armValue,
+            }
+          : armValue;
       setValueWithoutValidation(
         normalized === undefined ? emptyValue : normalized,
       );
@@ -941,6 +967,7 @@ const UnionBody = React.memo(function UnionBody({
                 outer={undefined}
                 readOnly={readOnly}
                 label={false}
+                hideError={hideError}
               />
             }
           >
@@ -952,6 +979,8 @@ const UnionBody = React.memo(function UnionBody({
               outer={undefined}
               readOnly={readOnly}
               label={false}
+              // 同じ path のエラーを祖先（intersection）が出すときは、腕にも出させない
+              hideError={hideError}
             />
           </Suspense>
         </div>
@@ -959,7 +988,7 @@ const UnionBody = React.memo(function UnionBody({
     </UnionRelayContext.Provider>
   );
 
-  if (!label) {
+  if (!label || flat) {
     return content;
   }
 
@@ -985,6 +1014,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   field,
   error, // eslint-disable-line @typescript-eslint/no-unused-vars
   isTouched,
+  hideError,
 }: ZodFormInternalProps<UnionSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const {
@@ -992,6 +1022,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     selectorLabel,
     hideSelector,
     readOnlySelector,
+    uiType,
   } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const isRoot = fieldPath === "";
@@ -1028,6 +1059,8 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     fieldErrors,
     showError,
     accessor,
+    hideError,
+    flat: uiType === "flat",
   };
 
   if (isRoot) {

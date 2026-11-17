@@ -23,14 +23,19 @@ type ArrayFieldError = {
 };
 
 const getIssuePath = (error: unknown): PathSegment[] | undefined => {
-  if (!error || typeof error !== "object" || !("path" in error)) return undefined;
+  if (!error || typeof error !== "object" || !("path" in error))
+    return undefined;
   const path = (error as { path?: unknown }).path;
   if (!Array.isArray(path)) return undefined;
   return normalizeIssuePath(path);
 };
 
-const pathsEqual = (left: readonly PathSegment[], right: readonly PathSegment[]) =>
-  left.length === right.length && left.every((segment, index) => segment === right[index]);
+const pathsEqual = (
+  left: readonly PathSegment[],
+  right: readonly PathSegment[],
+) =>
+  left.length === right.length &&
+  left.every((segment, index) => segment === right[index]);
 
 export const getArrayFieldError = (
   errors: unknown,
@@ -64,6 +69,10 @@ export const getArrayFieldError = (
 export const useArray = (
   fieldApi: AnyFieldApi,
   discriminator: string | undefined,
+  options?: {
+    /** 配列の欄のエラーを返さない（同じ path の祖先が出す。部品の props の hideError） */
+    hideError?: boolean;
+  },
 ) => {
   const keysRef = useRef<string[]>([]);
   const runAsUserEdit = useRunAsUserEdit();
@@ -160,7 +169,8 @@ export const useArray = (
   return {
     items,
     error:
-      fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted
+      !options?.hideError &&
+      (fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted)
         ? getArrayFieldError(fieldApi.state.meta.errors, fieldApi.name)
         : undefined,
     ...ops,
