@@ -100,13 +100,14 @@ form-demo に「literal の union を選ぶ」ページを足す。
 
 ## 6. 追補：literal のすべての値と、null・undefined の腕
 
-- ステータス: 実装中
+- ステータス: 実装済み（form-demo の e2e は 125 件すべて通過）
+- デモの題は、ほかのデモにそろえて「zf.union（literal）」にした
 
 ### 6.1 選べる腕
 
 - literal に入る値（文字列・数値・bigint・boolean・null・undefined）を、すべて選べるようにする
 - 値を複数持つ literal（`z.literal(["a", "b"])`）は、値ごとに選択肢を出す。ラベル・色は腕のもの
-- `z.null()`・`z.undefined()` の腕を主に扱い、`z.literal(null)`・`z.literal(undefined)` も同じに扱う
+- `z.null()`・`z.undefined()` の腕を主に扱い、`z.literal(null)`・`z.literal(undefined)` も同じに扱う。zf に null・undefined の登録は無いので、ラベル・色は `zf.common.registry` で付ける
 - ラベルが無いときは値を文字にする。bigint は `10n`、null は `null`、undefined は `undefined`（数値の 10 と区別がつくように）
 - Select とのやりとりは、腕の番号と値の番号（`"0"`、複数の値なら `"0.1"`）にする
 
@@ -121,7 +122,8 @@ form-demo に「literal の union を選ぶ」ページを足す。
 
 - undefined の腕があれば、外側の optional は無いものとして扱う
 - null の腕があれば、外側の nullable は無いものとして扱う
-- 残った optional・nullable を `emptyValueOf` に渡し、× を出すか、× で書く値、必須の印を決める
+- 残った optional・nullable を `emptyValueOf` に渡し、× で書く値と必須の印を決める
+- 外側に optional・nullable があり、それをすべて腕が受け持つときは、× を出さない（外側に何も無い必須の欄は、enum と同じく × を出す）
 
 | 外側               | 腕             | ×        | × で書く値 |
 | ------------------ | -------------- | -------- | ---------- |
