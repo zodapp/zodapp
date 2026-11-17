@@ -111,10 +111,10 @@ export const schema = z
         uiType: "select",
       })
       .nullable(),
-    // undefined の腕があるので optional は無いものとし、× で null を書く
-    answerBoth: answerWith("undefined")
+    // null の腕（該当なし）があるので nullable は無いものとし、× で undefined（未回答）を書く
+    answerBoth: answerWith("null")
       .register(zf.union.registry, {
-        label: "回答（optional・nullable・undefined の腕）",
+        label: "回答（optional・nullable・null の腕）",
         uiType: "select",
       })
       .optional()

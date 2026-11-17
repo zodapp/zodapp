@@ -185,9 +185,16 @@ test("optional・nullable と併用すると腕を優先し、腕で表せない
     "該当なし",
   );
 
-  // optional・nullable で undefined の腕だけなら、× で null を書く
-  await clearSelect(page, "回答（optional・nullable・undefined の腕）");
+  // optional・nullable で null の腕（該当なし）だけなら、× で undefined（未回答）を書く
+  const both = "回答（optional・nullable・null の腕）";
+  await choose(page, both, "該当なし");
   await expect
     .poll(async () => (await valueOf(page, "answerBoth")).value)
     .toBeNull();
+  await clearSelect(page, both);
+  await expect
+    .poll(async () => (await valueOf(page, "answerBoth")).has)
+    .toBe(true);
+  expect((await valueOf(page, "answerBoth")).value).toBeUndefined();
+  await expect(field(page, both)).toHaveValue("");
 });
