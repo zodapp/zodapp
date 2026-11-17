@@ -72,6 +72,8 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const next = event.currentTarget.value;
+      // 先頭の「-」と数字だけを受け付ける。それ以外の文字は、打っても貼り付けても欄に入れない
+      if (!/^-?\d*$/.test(next)) return;
       setLocalValue(next);
       if (next === "") {
         field.onChange(emptyValue);

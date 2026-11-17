@@ -23,6 +23,7 @@ import { baseComponents } from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
 import { component as NumberComponent } from "./number";
+import { component as BigIntComponent } from "./bigint";
 
 const setupDomMocks = () => {
   if (!window.matchMedia) {
@@ -55,6 +56,7 @@ const componentLibrary = {
   object: () => ({ component: ObjectComponent }),
   string: () => ({ component: StringComponent }),
   number: () => ({ component: NumberComponent }),
+  bigint: () => ({ component: BigIntComponent }),
 };
 
 const renderForm = (schema: z.ZodTypeAny, defaultValues: unknown) => {
@@ -164,5 +166,23 @@ describe("空にした欄に書く値（optional なら undefined、nullable だ
     expect(objectSchema.safeParse(formRef.current!.state.values).success).toBe(
       true,
     );
+  });
+
+  it("bigint の欄は、先頭の - と数字以外の文字を受け付けない", async () => {
+    const bigintSchema = z.object({
+      amount: zf.bigint().register(zf.bigint.registry, { label: "金額" }),
+    });
+    const formRef = renderForm(bigintSchema, { amount: 12n });
+    const input = screen.getByLabelText(/^金額/) as HTMLInputElement;
+    await waitFor(() => expect(input.value).toBe("12"));
+
+    // 文字を混ぜても欄に入らず、値も変わらない
+    fireEvent.change(input, { target: { value: "12a" } });
+    expect(input.value).toBe("12");
+    expect(valueOf(formRef, "amount")).toBe(12n);
+
+    fireEvent.change(input, { target: { value: "-345" } });
+    await waitFor(() => expect(valueOf(formRef, "amount")).toBe(-345n));
+    expect(input.value).toBe("-345");
   });
 });
