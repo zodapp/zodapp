@@ -21,3 +21,5 @@ zf.union の不具合を直し、`ZodFormProps` の `required` を `optional` �
 - 複数選択の欄（enum・外部キー）も、全部外すと nullable だけなら `null` を書く
 - mantine-lite の reactive 版の部品も、`onBlur`・`onConfirm` に渡す空の値を `emptyValueOf` にそろえる（`useConfirmableState` に `emptyValue`）
 - `getDefaultValue` は、optional と nullable の両方が付いた欄（`.optional().nullable()`）の初期値を `undefined` にする
+- reactive 版の日付の欄は、`onConfirm` に保存の形式で渡す（`useConfirmableState` に `toValue`）
+- bigint の欄は、先頭の「-」と数字以外の文字を受け付けない

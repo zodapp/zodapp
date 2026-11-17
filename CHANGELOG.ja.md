@@ -28,4 +28,6 @@
 - zod-form-mantine: discriminator のない保存値の discriminatedUnion で、エラーが描かれない欄に付いて何も出ずに送信だけが止まっていた不具合を修正。腕を選ぶ欄に「選択してください」を出す
 - zod-form-react・zod-form-mantine: **破壊的変更**：nullable だけの欄を空にすると（複数選択の欄も含む）、`undefined` ではなく `null` を書く（「必須」のエラーにならず、空のまま送信できる）。optional の欄（optional と nullable の両方を含む）は今までどおり `undefined`。空の値を決める `emptyValueOf` を zod-form-react から export する。`useDynamicSchema` に `{ nullable }` を足した
 - zod-form-mantine-lite: reactive 版の部品で、消した値を `onBlur`・`onConfirm` に渡すとき、空の値（""・null）を欄に合わせて置き換える（optional なら `undefined`、nullable だけなら `null`）。`useConfirmableState` に `emptyValue` のオプションを足した
+- zod-form-mantine-lite: reactive 版の日付の欄は、`onBlur`・`onConfirm` にピッカーの文字列ではなく保存の形式（Date・数値・文字列）で渡す。`useConfirmableState` に `toValue` のオプションを足した
+- zod-form-mantine: bigint の欄は、先頭の「-」と数字以外の文字を受け付けない
 - zod-form: `getDefaultValue` は、optional と nullable の両方が付いた欄（`.optional().nullable()`）の初期値を `null` ではなく `undefined` にする（欄を空にしたときに書く値とそろえる）
