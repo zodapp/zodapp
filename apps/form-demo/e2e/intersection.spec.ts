@@ -46,8 +46,9 @@ test("子が box なら子の枠のまま、flat なら枠を付けずに並べ�
   pageErrors: _,
 }) => {
   // 子の枠のまま：名前・連絡先の枠（legend）が出る
-  await expect(page.getByText("名前", { exact: true })).toBeVisible();
-  await expect(page.getByText("連絡先", { exact: true })).toBeVisible();
+  const boxed = sectionOf(page, "子の枠のまま");
+  await expect(boxed.getByText("名前", { exact: true })).toBeVisible();
+  await expect(boxed.getByText("連絡先", { exact: true })).toBeVisible();
   // flat：intersection の枠の中に、子の枠が無い
   await expect(
     sectionOf(page, "flat（縦並び）").locator("fieldset"),
@@ -78,19 +79,17 @@ test("intersection 全体の .refine() のエラーは、1 回だけ出る", asy
   ).toHaveCount(1);
 });
 
-test("intersection の外の flat の object は、エラーがあるときだけエラーの box を出す", async ({
+test("intersection の外の flat の object は、エラーがあるときだけエラーの Alert を出す", async ({
   page,
   pageErrors: _,
 }) => {
-  const message = shownError(page, "パスワードと確認が一致しません");
-  await expect(message).toHaveCount(0);
+  const alert = page
+    .getByRole("alert")
+    .filter({ hasText: "パスワードと確認が一致しません" });
+  await expect(alert).toHaveCount(0);
   await submit(page);
   await waitSubmitSettled(page, 1);
-  await expect(message).toHaveCount(1);
-  // エラーは box（fieldset）の中に出る
-  await expect(page.locator("fieldset").filter({ has: message })).toHaveCount(
-    1,
-  );
+  await expect(alert).toHaveCount(1);
 });
 
 test("object と union の intersection で、届け方を切り替えると欄が変わり、品名は残る", async ({
@@ -120,4 +119,103 @@ test("optional な intersection は、＋で開き、削除で undefined に戻�
   await expect
     .poll(async () => (await previewValue(page)).extra)
     .toBeUndefined();
+});
+
+/** 送信後、文言が 1 回だけ、legend の付いた枠の中に出ていること */
+const expectOnceIn = async (page: Page, message: string, legend: string) => {
+  const shown = shownError(page, message);
+  await expect(shown).toHaveCount(1);
+  await expect(
+    page
+      .locator("fieldset")
+      .filter({ has: page.locator(":scope > legend", { hasText: legend }) })
+      .filter({ has: shown }),
+  ).toHaveCount(1);
+};
+
+test("子の object・union の腕の、path を指定しない .refine() は、intersection に 1 回だけ出る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  await expectOnceIn(
+    page,
+    "パスワードと確認が一致しません（子の refine）",
+    "子の object の .refine()",
+  );
+  // 子の枠（legend「パスワード」）の中には出ない
+  await expect(
+    page
+      .locator("fieldset")
+      .filter({
+        has: page.locator(":scope > legend", { hasText: /^パスワード$/ }),
+      })
+      .filter({
+        has: shownError(page, "パスワードと確認が一致しません（子の refine）"),
+      }),
+  ).toHaveCount(0);
+  await expectOnceIn(
+    page,
+    "電話番号は 10 桁以上（z.union の腕の refine）",
+    "z.union の腕の .refine()",
+  );
+  await expectOnceIn(
+    page,
+    "電話番号は 10 桁以上（discriminatedUnion の腕の refine）",
+    "discriminatedUnion の腕の .refine()",
+  );
+});
+
+test("横並びの .refine() のエラーと、子の欄の min(1) のエラーは、それぞれ 1 回だけ出る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  await expect(
+    shownError(page, "最小は最大より小さくしてください"),
+  ).toHaveCount(1);
+  // 欄のエラーは欄の下（コードの欄の InputWrapper）に出る
+  const code = sectionOf(page, "子の欄の min(1)").getByLabel(/^コード/);
+  await expect(code).toHaveAttribute("aria-invalid", "true");
+  await expect(shownError(page, "コードを入力してください")).toHaveCount(1);
+});
+
+test("必須の intersection が空なら、「必ず入力してください。」だけを出す", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  const section = page.locator("fieldset").filter({
+    has: page.locator("legend", { hasText: "必須の intersection（空）" }),
+  });
+  await expect(
+    section.locator(".mantine-InputWrapper-error", {
+      hasText: "必ず入力してください。",
+    }),
+  ).toHaveCount(1);
+  await expect(
+    section.getByText("選択してください", { exact: true }),
+  ).toHaveCount(0);
+});
+
+test("選んでいない腕のキーが残っていると、キーを持つ union の名前で選択を促す", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  await expectOnceIn(
+    page,
+    "連絡方法と会員タイプを選択してください",
+    "選んでいない腕のキー（intersection）",
+  );
+  // discriminatedUnion 単体：腕を選ぶ欄に出す
+  await expectOnceIn(
+    page,
+    "連絡方法を選択してください",
+    "選んでいない腕のキー（discriminatedUnion）",
+  );
 });
