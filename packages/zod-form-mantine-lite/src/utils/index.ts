@@ -16,6 +16,7 @@ export {
   toEnumOptionValue,
   fromEnumOptionValue,
   choicesOf,
+  isEmptyOption,
   useChoices,
   type Choices,
 } from "./enum";

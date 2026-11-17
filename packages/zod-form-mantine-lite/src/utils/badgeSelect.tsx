@@ -25,6 +25,8 @@ export type BadgeSelectProps = {
   error?: React.ReactNode;
   required?: boolean;
   disabled?: boolean;
+  /** クリアボタンで値を消せるか（既定は true） */
+  clearable?: boolean;
   /** 値がないときの placeholder */
   placeholder?: string;
   /** クリアボタン／シェブロンの左に置く要素（reactive 版の確定・取消ボタンなど） */
@@ -68,6 +70,7 @@ export const BadgeSelect = ({
   error,
   required,
   disabled,
+  clearable = true,
   placeholder,
   actions,
   actionsWidth = 0,
@@ -104,7 +107,7 @@ export const BadgeSelect = ({
       ? undefined
       : placeholder;
 
-  const showClear = value !== null && !disabled;
+  const showClear = clearable && value !== null && !disabled;
   const rightSection = (
     <Group gap={4} wrap="nowrap" justify="flex-end">
       {actions}

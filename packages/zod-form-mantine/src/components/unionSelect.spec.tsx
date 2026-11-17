@@ -311,3 +311,134 @@ describe("literal の union を複数選ぶ欄（array_multipleEnum）", () => {
     await waitFor(() => expect(valueOf(formRef, "amounts")).toEqual([99, 10]));
   });
 });
+
+describe("null・undefined の腕と、optional・nullable の併用（腕を優先する）", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    setupDomMocks();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const answer = (...extra: z.ZodTypeAny[]) =>
+    zf.union([
+      zf.literal(true).register(zf.literal.registry, { label: "はい" }),
+      zf.literal(false).register(zf.literal.registry, { label: "いいえ" }),
+      ...extra,
+    ] as unknown as [z.ZodTypeAny, z.ZodTypeAny]);
+  const undefinedArm = () =>
+    z.undefined().register(zf.common.registry, { label: "未回答" });
+  const nullArm = () =>
+    z.null().register(zf.common.registry, { label: "該当なし" });
+
+  const clearButtons = () =>
+    document.querySelectorAll(
+      "button.mantine-InputClearButton-root, .mantine-CloseButton-root",
+    );
+
+  it("false の腕を選ぶと false を書く", async () => {
+    const schema = z.object({
+      answer: answer().register(zf.union.registry, {
+        label: "回答",
+        uiType: "select",
+      }),
+    });
+    const formRef = renderForm(schema, {});
+    await openAndSelect(await findInput("回答"), "いいえ");
+    await waitFor(() => expect(valueOf(formRef, "answer")).toBe(false));
+    expect((await findInput("回答")).value).toBe("いいえ");
+  });
+
+  it("optional でも undefined の腕があれば × を出さず、値が無いときはその腕を選んだ表示にする", async () => {
+    const schema = z.object({
+      answer: answer(undefinedArm())
+        .register(zf.union.registry, { label: "回答", uiType: "select" })
+        .optional(),
+    });
+    renderForm(schema, {});
+    await waitFor(async () =>
+      expect((await findInput("回答")).value).toBe("未回答"),
+    );
+    expect(clearButtons()).toHaveLength(0);
+  });
+
+  it("nullable でも null の腕があれば × を出さず、その腕を選ぶと null を書く", async () => {
+    const schema = z.object({
+      answer: answer(nullArm())
+        .register(zf.union.registry, { label: "回答", uiType: "select" })
+        .nullable(),
+    });
+    const formRef = renderForm(schema, { answer: true });
+    const input = await findInput("回答");
+    await waitFor(() => expect(input.value).toBe("はい"));
+    expect(clearButtons()).toHaveLength(0);
+    await openAndSelect(input, "該当なし");
+    await waitFor(() => expect(valueOf(formRef, "answer")).toBeNull());
+    expect(input.value).toBe("該当なし");
+  });
+
+  it("必須で null の腕を選ぶと、null を書いてエラーにしない", async () => {
+    const schema = z.object({
+      answer: answer(nullArm()).register(zf.union.registry, {
+        label: "回答",
+        uiType: "select",
+      }),
+    });
+    const formRef = renderForm(schema, {});
+    await openAndSelect(await findInput("回答"), "該当なし");
+    await waitFor(() => expect(valueOf(formRef, "answer")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "送信" }));
+    await waitFor(() => expect(formRef.current!.state.isSubmitted).toBe(true));
+    expect(screen.queryByText("必ず入力してください。")).toBeNull();
+  });
+
+  it("optional・nullable で undefined の腕だけなら、× で null を書く", async () => {
+    const schema = z.object({
+      answer: answer(undefinedArm())
+        .register(zf.union.registry, { label: "回答", uiType: "select" })
+        .optional()
+        .nullable(),
+    });
+    const formRef = renderForm(schema, { answer: true });
+    const buttons = await waitFor(() => {
+      expect(clearButtons()).toHaveLength(1);
+      return clearButtons();
+    });
+    fireEvent.click(buttons[0]!);
+    await waitFor(() => expect(valueOf(formRef, "answer")).toBeNull());
+  });
+
+  it("optional・nullable で null の腕だけなら、× で undefined を書く", async () => {
+    const schema = z.object({
+      answer: answer(nullArm())
+        .register(zf.union.registry, { label: "回答", uiType: "select" })
+        .optional()
+        .nullable(),
+    });
+    const formRef = renderForm(schema, { answer: true });
+    const buttons = await waitFor(() => {
+      expect(clearButtons()).toHaveLength(1);
+      return clearButtons();
+    });
+    fireEvent.click(buttons[0]!);
+    await waitFor(() => expect(valueOf(formRef, "answer")).toBeUndefined());
+  });
+
+  it("optional・nullable で両方の腕があれば × を出さない", async () => {
+    const schema = z.object({
+      answer: answer(undefinedArm(), nullArm())
+        .register(zf.union.registry, { label: "回答", uiType: "badge" })
+        .optional()
+        .nullable(),
+    });
+    renderForm(schema, { answer: null });
+    await waitFor(() =>
+      expect(screen.getByTestId("badge-select-value").textContent).toBe(
+        "該当なし",
+      ),
+    );
+    expect(clearButtons()).toHaveLength(0);
+  });
+});

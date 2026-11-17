@@ -70,6 +70,55 @@ describe("choicesOf（literal だけの union）", () => {
   });
 });
 
+describe("choicesOf（literal に入るすべての値と、null・undefined の腕）", () => {
+  const union = zf.union([
+    zf.literal(true),
+    zf.literal(false),
+    zf.literal(10n),
+    z.null(),
+    z.undefined().register(zf.common.registry, { label: "未定" }),
+    zf.literal(["a", "b"]),
+  ]);
+
+  it("ラベルが無ければ値を文字にし、bigint は n を付ける。複数の値の literal は値ごとに出す", () => {
+    expect(
+      choicesOf(union).data.map(({ value, label }) => [value, label]),
+    ).toEqual([
+      ["0", "true"],
+      ["1", "false"],
+      ["2", "10n"],
+      ["3", "null"],
+      ["4", "未定"],
+      ["5.0", "a"],
+      ["5.1", "b"],
+    ]);
+  });
+
+  it("null・undefined・false・bigint の値を、選択肢と行き来する", () => {
+    const choices = choicesOf(union);
+    for (const value of [true, false, 10n, null, undefined, "a", "b"]) {
+      const option = choices.toOption(value);
+      expect(option).not.toBeNull();
+      expect(choices.fromOption(option)).toBe(value);
+    }
+    expect(choices.toOption(10)).not.toBe(choices.toOption(10n));
+  });
+
+  it("null・undefined の腕があるかを返す", () => {
+    expect(choicesOf(union)).toMatchObject({
+      hasNull: true,
+      hasUndefined: true,
+    });
+    expect(choicesOf(zf.union([zf.literal("a"), z.null()]))).toMatchObject({
+      hasNull: true,
+      hasUndefined: false,
+    });
+    expect(
+      choicesOf(zf.union([zf.literal("a"), z.literal(undefined)])),
+    ).toMatchObject({ hasNull: false, hasUndefined: true });
+  });
+});
+
 describe("choicesOf（enum）", () => {
   it("今の enum と同じく、値を文字にしたものでやりとりする", () => {
     const choices = choicesOf(zf.enum([z.literal(0), z.literal("a")]));

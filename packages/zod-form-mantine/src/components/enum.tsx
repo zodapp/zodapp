@@ -17,6 +17,7 @@ import {
   BadgeSelect,
   renderBadge,
   useChoices,
+  isEmptyOption,
   ReadonlyText,
   WithValueAction,
   inputWrapperStyle,
@@ -43,7 +44,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   field,
   error,
 }: ZodFormInternalProps<EnumSchema>) {
-  const { optional, nullable } = emptinessOf(outer);
+  const outerEmptiness = emptinessOf(outer);
   const {
     label: labelFromMeta,
     uiType,
@@ -53,11 +54,23 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 
-  const emptyValue = emptyValueOf({ optional, nullable });
   const choices = useChoices(schema);
+  // 腕で表せる空の値は、外側の optional・nullable より腕を優先する（undefined の腕があれば
+  // optional を、null の腕があれば nullable を無いものとする）。残ったもので ×・空の値・必須の印を決める
+  const optional = outerEmptiness.optional && !choices.hasUndefined;
+  const nullable = outerEmptiness.nullable && !choices.hasNull;
+  // 外側の空を腕がすべて受け持つなら、× は出さない（× で書く値は、腕を選ぶのと同じになるため）
+  const clearable = !(
+    (outerEmptiness.optional || outerEmptiness.nullable) &&
+    !(optional || nullable)
+  );
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (value: string | null | undefined) => {
-      field.onChange(choices.fromOption(value) ?? emptyValue);
+      // 選んだ腕の値が null・undefined でも、空の値に置き換えずにそのまま書く
+      field.onChange(
+        isEmptyOption(value) ? emptyValue : choices.fromOption(value),
+      );
     },
     [field, choices, emptyValue],
   );
@@ -202,6 +215,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
           error={errorMessage}
           required={!(optional || nullable)}
           disabled={readOnly || field.disabled}
+          clearable={clearable}
           style={inputWrapperStyle}
         />
       </WithValueAction>
@@ -222,8 +236,8 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         error={errorMessage}
         required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
-        allowDeselect={true}
-        clearable={true}
+        allowDeselect={clearable}
+        clearable={clearable}
         style={inputWrapperStyle}
       />
     </WithValueAction>
