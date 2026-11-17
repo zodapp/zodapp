@@ -104,3 +104,19 @@ describe("FormRuntime の既定値の補い（applyDefaultFills）", () => {
     unsubscribe();
   });
 });
+
+describe("FormRuntime の既定値の補い：作るたびに変わる既定値", () => {
+  it("同じ path と値なら、今の値と defaultValues で同じ既定値を使い、登録が増えて計算し直しても変えない", () => {
+    let n = 0;
+    const schema = z.object({ id: z.string().default(() => `id-${++n}`) });
+    const runtime = new FormRuntime();
+    runtime.setDefaultFill("a", schema);
+    const live = runtime.fillValue("a", schema, undefined);
+    const first = runtime.applyDefaultFills({});
+    expect(first).toEqual({ a: live });
+
+    runtime.setDefaultFill("b", z.object({ x: z.string().default("x") }));
+    const second = runtime.applyDefaultFills({});
+    expect(second).toEqual({ a: live, b: { x: "x" } });
+  });
+});

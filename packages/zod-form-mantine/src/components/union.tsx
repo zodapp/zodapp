@@ -226,7 +226,10 @@ const pickUnionIssue = (
 /** 書く issue の比べ方（同じなら書き直さず、store を揺らさない） */
 const issueKey = (issue: unknown): string => {
   const { writtenBy: _w, distributedBy: _d, ...rest } = issue as WrittenIssue;
-  return JSON.stringify(rest);
+  // issue には bigint（`z.bigint().min(1n)` の minimum など）が入りうるので、文字にして比べる
+  return JSON.stringify(rest, (_key, value) =>
+    typeof value === "bigint" ? `${value}n` : value,
+  );
 };
 
 const sameIssues = (a: readonly unknown[], b: readonly unknown[]): boolean =>

@@ -59,23 +59,26 @@ export const isUnionIssue = (issue: unknown): boolean =>
   issue !== null &&
   (issue as { code?: unknown }).code === "invalid_union";
 
+/** path ごとに覚えておく、補った結果の数 */
+const FILL_CACHE_SIZE = 4;
+
 /**
- * value の segments の位置を、schema の既定値で補った値を返す（元の値は変えない）。
+ * value の segments の位置を fill で補った値を返す（元の値は変えない）。
  * 途中の object・配列が無ければ（配列の範囲の外を含む）、value をそのまま返す
  */
 const fillAt = (
   value: unknown,
   segments: readonly PathSegment[],
-  schema: z.ZodTypeAny,
+  fill: (value: unknown) => unknown,
 ): unknown => {
-  if (segments.length === 0) return getDefaultValue(schema, value);
+  if (segments.length === 0) return fill(value);
   if (typeof value !== "object" || value === null) return value;
   const [head, ...rest] = segments as [PathSegment, ...PathSegment[]];
   if (Array.isArray(value)) {
     if (typeof head !== "number" || head < 0 || head >= value.length) {
       return value;
     }
-    const next = fillAt(value[head], rest, schema);
+    const next = fillAt(value[head], rest, fill);
     if (next === value[head]) return value;
     const copy = value.slice();
     copy[head] = next;
@@ -86,7 +89,7 @@ const fillAt = (
   if (rest.length > 0 && (typeof child !== "object" || child === null)) {
     return value;
   }
-  const next = fillAt(child, rest, schema);
+  const next = fillAt(child, rest, fill);
   if (next === child) return value;
   return { ...record, [head]: next };
 };
@@ -115,6 +118,10 @@ export class FormRuntime {
   private readonly defaultFills = new Map<string, z.ZodTypeAny>();
   private readonly defaultFillListeners = new Set<() => void>();
   private defaultFillsVersion = 0;
+  private readonly fillCache = new Map<
+    string,
+    { schema: z.ZodTypeAny; input: unknown; output: unknown }[]
+  >();
 
   /**
    * fn を同期で実行し、そのあいだに起きた値の変更を「利用者の編集」として記録する。
@@ -244,6 +251,7 @@ export class FormRuntime {
     if (current === undefined) return;
     if (schema !== undefined && current !== schema) return;
     this.defaultFills.delete(path);
+    this.fillCache.delete(path);
     this.notifyDefaultFills();
   }
 
@@ -269,14 +277,36 @@ export class FormRuntime {
   applyDefaultFills<T>(defaults: T): T {
     if (this.defaultFills.size === 0) return defaults;
     const fills = Array.from(this.defaultFills, ([path, schema]) => ({
+      path,
       segments: parseFieldPath(path),
       schema,
     })).sort((a, b) => a.segments.length - b.segments.length);
     let result: unknown = defaults;
-    for (const { segments, schema } of fills) {
-      result = fillAt(result, segments, schema);
+    for (const { path, segments, schema } of fills) {
+      result = fillAt(result, segments, (value) =>
+        this.fillValue(path, schema, value),
+      );
     }
     return isEqualValue(result, defaults) ? defaults : (result as T);
+  }
+
+  /**
+   * path の値 value を、schema の既定値で補った値（`getDefaultValue(schema, value)`）を返す。
+   * 同じ path・schema・値なら前に作った結果を返す。`.default(() => crypto.randomUUID())` のような
+   * 作るたびに変わる既定値を、今の値と defaultValues で同じにし、登録が変わって計算し直しても変えないため
+   */
+  fillValue(path: string, schema: z.ZodTypeAny, value: unknown): unknown {
+    const cached = this.fillCache.get(path) ?? [];
+    const hit = cached.find(
+      (entry) => entry.schema === schema && isEqualValue(entry.input, value),
+    );
+    if (hit) return hit.output;
+    const output = getDefaultValue(schema, value);
+    this.fillCache.set(path, [
+      { schema, input: value, output },
+      ...cached.slice(0, FILL_CACHE_SIZE - 1),
+    ]);
+    return output;
   }
 
   private notifyDefaultFills() {

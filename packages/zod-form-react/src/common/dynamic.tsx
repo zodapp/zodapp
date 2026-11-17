@@ -9,7 +9,6 @@ import React, {
 import type { z } from "zod";
 import {
   adaptValueToSchema,
-  getDefaultValue,
   type DynamicMetaDef,
   type FnInput,
   type DeliveredSchema,
@@ -306,7 +305,7 @@ export const useDynamicSchema = (
         defaultFillRef.current = wrapped;
         runtime.setDefaultFill(fieldPath, wrapped);
         const current = readValue(form, fieldPath);
-        const next = getDefaultValue(wrapped, current);
+        const next = runtime.fillValue(fieldPath, wrapped, current);
         if (!isEqualValue(current, next)) {
           writeValue(form, fieldPath, next);
         }
