@@ -97,3 +97,44 @@ form-demo に「literal の union を選ぶ」ページを足す。
 
 - reactive 版（mantine-lite の reactiveComponents）の部品。要るなら別に足す
 - literal 以外の腕を持つ union を、この部品で描くこと
+
+## 6. 追補：literal のすべての値と、null・undefined の腕
+
+- ステータス: 実装中
+
+### 6.1 選べる腕
+
+- literal に入る値（文字列・数値・bigint・boolean・null・undefined）を、すべて選べるようにする
+- 値を複数持つ literal（`z.literal(["a", "b"])`）は、値ごとに選択肢を出す。ラベル・色は腕のもの
+- `z.null()`・`z.undefined()` の腕を主に扱い、`z.literal(null)`・`z.literal(undefined)` も同じに扱う
+- ラベルが無いときは値を文字にする。bigint は `10n`、null は `null`、undefined は `undefined`（数値の 10 と区別がつくように）
+- Select とのやりとりは、腕の番号と値の番号（`"0"`、複数の値なら `"0.1"`）にする
+
+### 6.2 null・undefined を選んだときの値
+
+今は、選んだ値が null・undefined だと「消した」と区別できず、空の値を書いてしまう。
+選択肢を選んだ（Select の値が空でない）ときは、その腕の値をそのまま書き、空の値に置き換えない。
+
+### 6.3 optional・nullable との併用（案 C）
+
+腕で表せる空の値は、外側の optional・nullable より腕を優先する。
+
+- undefined の腕があれば、外側の optional は無いものとして扱う
+- null の腕があれば、外側の nullable は無いものとして扱う
+- 残った optional・nullable を `emptyValueOf` に渡し、× を出すか、× で書く値、必須の印を決める
+
+| 外側               | 腕             | ×        | × で書く値 |
+| ------------------ | -------------- | -------- | ---------- |
+| optional           | undefined の腕 | 出さない | （なし）   |
+| nullable           | null の腕      | 出さない | （なし）   |
+| optional・nullable | undefined の腕 | 出す     | null       |
+| optional・nullable | null の腕      | 出す     | undefined  |
+| optional・nullable | 両方の腕       | 出さない | （なし）   |
+
+- 値が腕の値（undefined・null）なら、その腕が選ばれた表示にする。初期値が無く undefined の腕があれば、最初からその腕が選ばれて見える
+- 必須のまま空のエラーは、空の値が腕に無いときだけ出る
+- 複数選ぶ欄は、× で配列ごと消すので、要素の腕とは関係なく今のまま
+
+### 6.4 デモと e2e
+
+デモに、boolean・bigint・null・undefined の腕を持つ欄と、案 C の組み合わせの欄を足し、e2e で値と × の有無を確かめる。
