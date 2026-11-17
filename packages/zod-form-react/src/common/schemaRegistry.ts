@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AnyFormApi, StandardSchemaV1 } from "@tanstack/react-form";
 import type { z } from "zod";
+import { getDefaultValue } from "@zodapp/zod-form";
+import { isEqualValue } from "../utils/equal";
 import {
   getValueAt,
   normalizeIssuePath,
@@ -58,6 +60,38 @@ export const isUnionIssue = (issue: unknown): boolean =>
   (issue as { code?: unknown }).code === "invalid_union";
 
 /**
+ * value の segments の位置を、schema の既定値で補った値を返す（元の値は変えない）。
+ * 途中の object・配列が無ければ（配列の範囲の外を含む）、value をそのまま返す
+ */
+const fillAt = (
+  value: unknown,
+  segments: readonly PathSegment[],
+  schema: z.ZodTypeAny,
+): unknown => {
+  if (segments.length === 0) return getDefaultValue(schema, value);
+  if (typeof value !== "object" || value === null) return value;
+  const [head, ...rest] = segments as [PathSegment, ...PathSegment[]];
+  if (Array.isArray(value)) {
+    if (typeof head !== "number" || head < 0 || head >= value.length) {
+      return value;
+    }
+    const next = fillAt(value[head], rest, schema);
+    if (next === value[head]) return value;
+    const copy = value.slice();
+    copy[head] = next;
+    return copy;
+  }
+  const record = value as Record<PropertyKey, unknown>;
+  const child = record[head];
+  if (rest.length > 0 && (typeof child !== "object" || child === null)) {
+    return value;
+  }
+  const next = fillAt(child, rest, schema);
+  if (next === child) return value;
+  return { ...record, [head]: next };
+};
+
+/**
  * フォームごとの実行時の状態。
  *
  * 1. dynamic が resolve した schema の登録先（{@link RegisteredSchema}）
@@ -78,6 +112,9 @@ export class FormRuntime {
   private form: AnyFormApi | undefined;
   private detach: (() => void) | undefined;
   private validateScheduled = false;
+  private readonly defaultFills = new Map<string, z.ZodTypeAny>();
+  private readonly defaultFillListeners = new Set<() => void>();
+  private defaultFillsVersion = 0;
 
   /**
    * fn を同期で実行し、そのあいだに起きた値の変更を「利用者の編集」として記録する。
@@ -188,6 +225,63 @@ export class FormRuntime {
     const byDepth = this.entries.get(path);
     if (!byDepth || byDepth.size === 0) return undefined;
     return byDepth.get(Math.max(...byDepth.keys()));
+  }
+
+  /**
+   * path の値を、schema の既定値で補うことを登録する（dynamic が、schema が最初に決まったときに置く）。
+   * AutoForm は {@link applyDefaultFills} で、フォームに渡す defaultValues にも同じ補いを入れる。
+   * そうすると、補った値も「初期値のまま」（isDefaultValue）とみなされ、reset でも残る
+   */
+  setDefaultFill(path: string, schema: z.ZodTypeAny): void {
+    if (this.defaultFills.get(path) === schema) return;
+    this.defaultFills.set(path, schema);
+    this.notifyDefaultFills();
+  }
+
+  /** {@link setDefaultFill} の登録を外す。schema を渡したら、同じ schema の登録のときだけ外す */
+  removeDefaultFill(path: string, schema?: z.ZodTypeAny): void {
+    const current = this.defaultFills.get(path);
+    if (current === undefined) return;
+    if (schema !== undefined && current !== schema) return;
+    this.defaultFills.delete(path);
+    this.notifyDefaultFills();
+  }
+
+  /** 補いの登録が変わったら呼ぶ。外す関数を返す */
+  subscribeDefaultFills(listener: () => void): () => void {
+    this.defaultFillListeners.add(listener);
+    return () => {
+      this.defaultFillListeners.delete(listener);
+    };
+  }
+
+  /** 補いの登録の版。登録が変わるたびに進む */
+  getDefaultFillsVersion(): number {
+    return this.defaultFillsVersion;
+  }
+
+  /**
+   * defaults に、登録された補いを入れた値を返す。浅い path から順に入れる。
+   * path の親が defaults に無いとき（配列の範囲の外を含む）は、その補いを入れない
+   * （利用者が足した配列の要素などを、初期値の側に作らないため）。
+   * 何も変わらなければ defaults をそのまま返す
+   */
+  applyDefaultFills<T>(defaults: T): T {
+    if (this.defaultFills.size === 0) return defaults;
+    const fills = Array.from(this.defaultFills, ([path, schema]) => ({
+      segments: parseFieldPath(path),
+      schema,
+    })).sort((a, b) => a.segments.length - b.segments.length);
+    let result: unknown = defaults;
+    for (const { segments, schema } of fills) {
+      result = fillAt(result, segments, schema);
+    }
+    return isEqualValue(result, defaults) ? defaults : (result as T);
+  }
+
+  private notifyDefaultFills() {
+    this.defaultFillsVersion += 1;
+    for (const listener of Array.from(this.defaultFillListeners)) listener();
   }
 
   // 登録が変わったら、フォーム全体の検証を走らせる（同じ tick の変更はまとめる）

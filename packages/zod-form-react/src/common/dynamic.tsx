@@ -9,6 +9,7 @@ import React, {
 import type { z } from "zod";
 import {
   adaptValueToSchema,
+  getDefaultValue,
   type DynamicMetaDef,
   type FnInput,
   type DeliveredSchema,
@@ -22,6 +23,7 @@ import { useFormApi, useFormRuntime } from "./form";
 import { useFnInput } from "./fnInput";
 import type { EditCause } from "./schemaRegistry";
 import { rewrapWithOuter, type Outer } from "./outer";
+import { isEqualValue } from "../utils/equal";
 
 /**
  * dynamic の状態。
@@ -117,31 +119,6 @@ const startAsync = (
   return () => {
     active = false;
   };
-};
-
-const isEqualValue = (a: unknown, b: unknown): boolean => {
-  if (Object.is(a, b)) return true;
-  if (a instanceof Date && b instanceof Date) {
-    return a.getTime() === b.getTime();
-  }
-  if (
-    typeof a !== "object" ||
-    typeof b !== "object" ||
-    a === null ||
-    b === null ||
-    Array.isArray(a) !== Array.isArray(b)
-  ) {
-    return false;
-  }
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  if (keysA.length !== keysB.length) return false;
-  return keysA.every((key) =>
-    isEqualValue(
-      (a as Record<string, unknown>)[key],
-      (b as Record<string, unknown>)[key],
-    ),
-  );
 };
 
 const readValue = (form: AnyFormApi, fieldPath: string) =>
@@ -255,6 +232,7 @@ export const useDynamicSchema = (
     | undefined
   >(undefined);
   const requestRef = useRef(0);
+  const defaultFillRef = useRef<z.ZodTypeAny | undefined>(undefined);
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
   const subscriptionKeyRef = useRef<string | undefined>(undefined);
 
@@ -267,6 +245,10 @@ export const useDynamicSchema = (
       subscriptionKeyRef.current = undefined;
       appliedRef.current = undefined;
       runtime.remove(fieldPath, depth);
+      if (defaultFillRef.current) {
+        runtime.removeDefaultFill(fieldPath, defaultFillRef.current);
+        defaultFillRef.current = undefined;
+      }
     };
   }, [runtime, fieldPath, depth]);
 
@@ -295,6 +277,7 @@ export const useDynamicSchema = (
       ) {
         return;
       }
+      const wrapped = rewrapWithOuter(resolved.schema, fieldSchema, outer);
       appliedRef.current = {
         key: resolved.key,
         schema: resolved.schema,
@@ -315,10 +298,23 @@ export const useDynamicSchema = (
           runtime.runAsUserEdit(() => writeValue(form, fieldPath, next));
         }
         seenRevRef.current = runtime.currentRev();
+      } else if (previous === undefined) {
+        // 最初に決まったとき：値が無いところだけを既定値で補う（削らない。保存済みのデータかもしれない）。
+        // 外側の包み（optional・nullable・default）ごと歩くので、optional で値が無ければ補わない。
+        // 利用者の編集ではないので runAsUserEdit で包まず、「触った」「変えた」にもしない。
+        // AutoForm が defaultValues にも同じ補いを入れられるよう、runtime に登録する
+        defaultFillRef.current = wrapped;
+        runtime.setDefaultFill(fieldPath, wrapped);
+        const current = readValue(form, fieldPath);
+        const next = getDefaultValue(wrapped, current);
+        if (!isEqualValue(current, next)) {
+          writeValue(form, fieldPath, next);
+        }
+        seenRevRef.current = runtime.currentRev();
       }
       runtime.set(fieldPath, depth, {
         status: "resolved",
-        schema: rewrapWithOuter(resolved.schema, fieldSchema, outer),
+        schema: wrapped,
       });
     };
 

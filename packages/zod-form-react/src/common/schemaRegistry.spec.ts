@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 import { FormRuntime } from "./schemaRegistry";
@@ -44,5 +44,63 @@ describe("FormRuntime.validate", () => {
         path: ["nested", "name"],
       }),
     ]);
+  });
+});
+
+describe("FormRuntime の既定値の補い（applyDefaultFills）", () => {
+  const detail = z.object({
+    x: z.string().default("a"),
+    items: z.array(z.object({ qty: z.number().default(1) })),
+  });
+
+  it("登録が無ければ defaults をそのまま返す", () => {
+    const runtime = new FormRuntime();
+    const defaults = { detail: { x: "k", items: [] } };
+    expect(runtime.applyDefaultFills(defaults)).toBe(defaults);
+  });
+
+  it("登録された path を補い、元の defaults は変えない", () => {
+    const runtime = new FormRuntime();
+    runtime.setDefaultFill("detail", detail);
+    const defaults = { detail: { items: [{}] } };
+    expect(runtime.applyDefaultFills(defaults)).toEqual({
+      detail: { x: "a", items: [{ qty: 1 }] },
+    });
+    expect(defaults).toEqual({ detail: { items: [{}] } });
+  });
+
+  it("値が無ければ既定値を置く。親が無い path や配列の範囲の外には置かない", () => {
+    const runtime = new FormRuntime();
+    runtime.setDefaultFill("detail", detail);
+    runtime.setDefaultFill("missing.detail", detail);
+    runtime.setDefaultFill("rows[3].detail", detail);
+    expect(runtime.applyDefaultFills({ rows: [{}] })).toEqual({
+      rows: [{}],
+      detail: { x: "a", items: [] },
+    });
+  });
+
+  it("補っても変わらなければ defaults をそのまま返す", () => {
+    const runtime = new FormRuntime();
+    runtime.setDefaultFill("detail", detail);
+    const defaults = { detail: { x: "k", items: [{ qty: 2 }] } };
+    expect(runtime.applyDefaultFills(defaults)).toBe(defaults);
+  });
+
+  it("登録の変化を知らせ、同じ schema の登録だけを外す", () => {
+    const runtime = new FormRuntime();
+    const listener = vi.fn();
+    const unsubscribe = runtime.subscribeDefaultFills(listener);
+    runtime.setDefaultFill("detail", detail);
+    runtime.setDefaultFill("detail", detail);
+    expect(listener).toHaveBeenCalledTimes(1);
+    runtime.removeDefaultFill("detail", z.string());
+    expect(runtime.applyDefaultFills({})).toEqual({
+      detail: { x: "a", items: [] },
+    });
+    runtime.removeDefaultFill("detail", detail);
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(runtime.applyDefaultFills({})).toEqual({});
+    unsubscribe();
   });
 });
