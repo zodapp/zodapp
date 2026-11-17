@@ -192,7 +192,22 @@ zod では `.default("x").nullable()` も `.nullable().default("x")` も、undef
 
 ## 4. 判定
 
-**案F を採用**（未実装）。ブランチの今のコードは案E で、案F はその上に積む。
+**案F を採用**。第1段（`outer` で包みを運ぶ、dynamic・externalKey の包み直し、defaultValue の決まり、`getDefaultValue` の修正）は e5014a1 で実装した。
+第2段（value・parent を props にそろえる）はまだ。
+
+第1段の結果：
+
+- 単体テスト：zod-form 114、zod-form-react 59、zod-form-mantine 199、zod-form-mantine-lite 48、zod-form-widget 52 がすべて通る。
+  案E で `it.fails` にしていた「包み（optional）の側に付いた .refine()」「入れ子の dynamic の .refine()」が通るようになった
+- 新しいテスト：`outer.spec.ts`（zod-form-react。defaultValue の決まり、包み直しの順）、`default.spec.ts`（zod-form。nullable と default・optional の重なり）
+- 型と build：packages・apps ともに通る
+- e2e（form-demo）：106 件すべて通る
+- 実装でわかったこと
+  - `outer` は zod-form-react の `common/outer.ts`。`addOuter` は同じ outer と schema に同じ object を返す（memo した部品が描き直されないように）
+  - 包みの部品が渡す defaultValue は `innerDefaultValue` で決める。prefault の部品は今無いので、default と同じ扱いの分岐だけを入れた
+  - pipe（transform・pipe）の部品は `outer` に足さない。pipe に付いた検査は変換のあとの値にかかるので、決まった schema に付け直すと意味が変わる
+  - `getDefaultValue` で `.optional().nullable()` の初期値が null から undefined に変わった（zod が undefined を受けたときと同じ。欄の空の値も optional なので undefined）
+  - 下の注意 5（record・union の腕の defaultValue の手渡し）は、単体テストと e2e で変化が無いことを確かめた
 
 - 案F を採る理由
   - 案E の責務の分担（包みの部品が自分の分を足して下へ渡す）のまま、案A＋D と同じ範囲（包みの側の検査、入れ子の dynamic）を扱える
