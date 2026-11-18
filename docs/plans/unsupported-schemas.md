@@ -10,7 +10,7 @@
 
 main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描画・入力・送信して調べた。
 その結果を「対応した方が良いもの」「非対応で良いが落ち方を決めたいもの」「今のままで良いもの」に分け、
-このプランでは、次の 7 つに対応する。
+このプランでは、次の 8 つに対応する。
 
 | #   | 内容                                                               | 今の症状                                                                           |
 | --- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
@@ -21,6 +21,7 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 | 5   | キーを列挙できる record を、固定のキーで描く                       | キーが足りないエラーがどこにも出ず、送信できない                                   |
 | 6   | `.`・`[`・`]` を含むキーを弾く                                     | record の値を編集すると `{ "a.b": "x", a: { b: "y" } }` に分かれて壊れる           |
 | 7   | `zf.file` を `zf.externalFile` に改名する                          | `z.file()` が zf.file の部品に回り、フォームごと落ちる                             |
+| 8   | `zf.dynamic()` の土台を `z.unknown()` にする                       | 土台が `z.never()` なので、静的な parse が必ず落ち、隣の `.refine()` も走らない    |
 
 ### 1.1 このプランで扱わないもの
 
@@ -30,6 +31,24 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 - tuple の rest を足すボタン、`z.templateLiteral`、数値の enum の選択肢の名前、discriminatedUnion の腕の名前
 - AutoTable・hideSchemaFields での各型の扱い
 - 入れ物（object・intersection）の path なし refine のエラーの件（別スレッドで対応中）
+- `zf.computed()` の土台（`z.never()`）。表示専用の欄の扱いは別に考える（#8 とは分ける）
+
+### 1.2 `z.*` と `zf.*` の扱い
+
+`zf.*()` は標準の zod スキーマに meta の登録を足した別名で、値・検証は `z.*()` と同じ。
+部品は「zf の名前（typeName）で探し、無ければ zod の型の名前（`schema.type`）で探す」ので、
+各項目は zf の関数ではなく、zod の型（`schema.type` と `def`）を基準に作り、`z.*` と `zf.*` のどちらでも同じに動くようにする。
+
+- meta が無い（`z.*` で書いた）ときは、既定の見た目で描く。meta があれば label・uiType などを使う
+- 項目ごとの対応：
+  - #3：`z.literal`・`zf.literal`
+  - #4：`z.set`・`zf.set`
+  - #5：`z.record`・`zf.record`・`z.partialRecord`（キーの schema も `z.enum`・`zf.enum`・literal の union のどれでもよい）
+  - #2：`.transform()`・`.pipe()`・`z.codec()`・`z.stringbool()`（zf には pipe の別名は無い）
+- テストは、各項目を `z.*` と `zf.*` の両方で確かめる
+- **zf 独自の名前の決まり**：zf が独自に付ける typeName は、zod の型の名前と重ねない（`date` は、`z.date()` と同じ部品を使うために、わざと重ねている）。
+  今ある独自の名前（`time`・`externalKey`・`hidden`・`common`・`computed`・`dynamic`）は zod の型の名前と重なっていないことを確かめた。
+  重なっているのは `file` だけで、#7 で直す。この決まりは zod-form の README（zf の拡張の説明）に書く
 
 ---
 
@@ -43,15 +62,13 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 ### 2.2 方針
 
 `FormRuntime` に `parse(staticSchema, value)` を足し、送信のときにその結果（output）を `onSubmit` に渡す。
+#8 で `zf.dynamic()` の土台を `z.unknown()` にするので、静的な schema のまま parse でき、dynamic の所は値がそのまま通る。
+そこで次の手順で output を作る。
 
-ただし、`zf.dynamic()` の土台は `z.never()` なので、静的な schema だけで parse すると dynamic の欄で必ず失敗する
-（検証は、登録された path の issue を差し替えることで通している）。そこで次の手順で output を作る。
-
-1. 静的な schema の dynamic の所を `z.unknown()` に置き換えた schema で parse する（値はそのまま通る）
+1. 静的な schema で parse する
 2. 登録された path ごとに、登録された schema で、その path の値を parse する（深い path から）
 3. 1 の結果の、その path の所を 2 の結果で置き換える
 
-- 置き換えた schema は、静的な schema ごとに覚えておく（WeakMap）
 - dynamic の path より外側に transform があり、output の形が input と変わるときは、3 の置き換え先が正しく取れない。
   この組み合わせは非対応とし、開発中に警告を出す（transform の有無は、dynamic の所までの schema をたどって調べる）
 - `onCancel` は今のまま、フォームの値（z.input）を渡す
@@ -100,7 +117,7 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 
 ### 4.2 方針
 
-- literal の部品は、値（`schema.def.values`）が 2 つ以上なら、enum の部品で描く（`uiType` の `select`・`badge` も enum にそろえる）
+- literal の部品は（`z.literal`・`zf.literal` とも）、値（`schema.def.values`）が 2 つ以上なら、enum の部品で描く（`uiType` の `select`・`badge` も enum にそろえる）
   - 選択肢・空の扱い・`unlisted` は enum と同じ
   - 値が 1 つなら、今どおり表示だけ
 - `getDefaultValue` の literal の処理は、値が 1 つのときだけその値を入れ、複数なら値を入れない（undefined）
@@ -115,7 +132,7 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 set は順序の無い集合として扱う。並べ替えや、位置を指定した挿入は作らない。
 
 - set の要素には、TanStack Form のパス（`f[0]` など）で欄を割り当てられないので、set の値全体を 1 つの欄として扱う
-- 部品は `set`（`componentLibrary` に足す）。要素の schema で見た目を変える
+- 部品は `set`（`componentLibrary` に足す。`z.set`・`zf.set` のどちらもここに来る）。要素の schema で見た目を変える。要素の schema も `z.*`・`zf.*` のどちらでもよい
 
 | 要素の schema                                  | 見た目                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------ |
@@ -149,7 +166,7 @@ set は順序の無い集合として扱う。並べ替えや、位置を指定�
 zod と同じ基準（`keyType._zod.values` があるか）で分ける。
 
 - `_zod.values` がある record（以下「キーの決まった record」）は、そのキーを固定の欄として、object と同じように並べて描く
-  - 欄の名前はキーそのもの（数値の値は文字にする。zod と同じ）
+  - 欄の名前はキーそのもの（数値の値は文字にする。zod と同じ）。キーの schema が `zf.enum`（または zf.literal の union）で、選択肢に label があれば、その label を欄の名前にする
   - `uiType` が `entries` でも同じ（キーの追加・名前の変更はできないので、entries の見た目は使わない）
   - 値にあって、列挙に無いキーは、今どおり zod の unrecognized_keys として record の欄に出る
 - `getDefaultValue` は、キーの決まった record の値が無いとき、列挙したキーごとに値の schema の初期値を入れる
@@ -195,20 +212,47 @@ TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープ�
 - 型・ファイル名・設定の名前も合わせる（`file.tsx` → `externalFile.tsx` など）。`fileConfig`・`FileResolvers` などの設定の名前は変えない
   （「ファイルの設定」として意味が通るため）
 - 使っている所（form-demo・taskmanager・zod-form-s3・README・AGENT.md）を書き換える
+- `zf.file` は `z.string()` に meta を付けたものなので、値・検証は変わらず、変わるのは名前だけ
 - 改名のあと、`z.file()` は部品の無い型の 1 つになる（Not found。§1.1 の落ち方の整理で扱う）
 - CHANGELOG に破壊的変更として書く
 
 ---
 
-## 9. テスト
+## 9. `zf.dynamic()` の土台を `z.unknown()` にする（#8）
 
-- 各項目ごとに、zod-form-mantine の spec（jsdom）で、描画・入力・送信を確かめる
+### 9.1 今
+
+`zf.dynamic()` は `extendCustom(z.never, "dynamic", …)` で、土台が `z.never()`。
+
+- 静的な schema で parse すると、dynamic の所で必ず落ちる（検証は、登録された path の issue を捨てることで通している）
+- 落ちるので、dynamic の隣の object の `.refine()` が走らず、黙って効かない（`docs/plans/same-path-experiment.md` §5 で `it.fails` として記録済み）
+- 型が `never` になり、form-demo では初期値を `unknown` 経由で型変換している
+
+zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を渡すと通り、親の `.refine()` も走る。
+`z.object({ a: z.never() })` では never の所で落ち、親の `.refine()` は走らない。
+
+### 9.2 方針
+
+- 土台を `z.unknown()` にする（`zod-form` と、上書きしている `zod-form-react` の `def/index.ts` の両方）
+- 静的な検証では、dynamic の所は何でも通る。値の検証は、今どおり登録された schema で行う
+  - 読み込み中・取得の失敗は、今どおり登録して送信を止める
+  - キーが無いとき、`z.unknown()` は zod 4 では「expected nonoptional」になるが、登録された path の issue は捨てるので、画面の動きは変わらない
+  - 描かれていない（登録の無い）dynamic は、静的な検証では何でも通るようになる。今は never で必ず止まっている。これは受け入れる
+- `zod-form-mantine` の `samePath.spec.tsx` の `it.fails`（隣の `.refine()` が効かない）を、通るテストに直す
+- form-demo の `unknown` 経由の型変換を外す
+- CHANGELOG に、`zf.dynamic()` の型が `never` から `unknown` に変わることを書く
+
+---
+
+## 10. テスト
+
+- 各項目ごとに、zod-form-mantine の spec（jsdom）で、描画・入力・送信を確かめる。§1.2 のとおり `z.*` と `zf.*` の両方で確かめる
 - `getDefaultValue` の変更（#3・#5）は zod-form の spec で確かめる
 - #1 は zod-form-widget の AutoForm の spec を足す（今は `@testing-library/react` が入っていないので、devDependencies に足す）
 - form-demo に、pipe・transform・set・キーの決まった record・複数の値を持つ literal の例を足す（ページを足すか、既存のページに入れるかは実装のときに決める）
 - 最後に `pnpm check-types`・`pnpm build`・`pnpm test` を通す
 
-## 10. 決めていないこと
+## 11. 決めていないこと
 
 1. #1 で、dynamic の外側に transform があるとき、警告を出して生の値を渡すか、送信を止めるか（案：警告を出し、その dynamic の所は parse 前の値のままにする）
 2. #7 で、`zf.file` を互換のための別名として 1 つの版だけ残すか（案：npm にまだ出していないなら残さない）
