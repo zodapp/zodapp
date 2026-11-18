@@ -28,7 +28,9 @@
 | params の型 | `Record<string, string>`。数値・日付への変換は訳の関数が行う |
 | zod 既定のエラー | エラーマップでこちらが決めた `zod.*` のキーと params に変換する。zod の issue の形に依存するのはこのマップの中だけ |
 | 既存の `jaErrorMap` | `@zodapp/i18n-messages-zod` の ja 辞書に置き換え、`@zodapp/zod-form-widget/i18n/ja` は削除する |
-| 識別子 | `RegisteredMessages`、`defineMessages`、`msgKey`、`resolveMsg`、`messagesFromTranslator`、`I18nMessagesProvider`、`useMsg`、`useLocale`、`createUseMsg`、`zodMsgKeyErrorMap` |
+| 識別子 | `RegisteredMessages`、`defineMessages`、`msgKey`、`resolveMsg`、`messagesFromTranslator`、`I18nMessagesProvider`、`useMsg`、`useLocale`、`createUseMsg`、`zodMsgKeyErrorMap`、`MessagesOf` |
+| 型検査 | `msg` と `msgKey` は `RegisteredMessages` で型付けする（登録されていないキー・params の過不足は型エラー）。文言の食い違いは ESLint で見る |
+| キーの書き方の運用 | キーは必ず `msgKey(...)` か `msg(...)` を通して書く（meta の `label` なども）。名前空間はアプリ名・パッケージ名。ライブラリでプレフィックスの印は付けず、運用ルールとサンプルで示す |
 | meta の文言 | `label`・`description`・`placeholder`・enum の選択肢のラベルも `msg.resolve` に通す。キーなら訳し、普通の文字列ならそのまま |
 | サーバー | 想定しない。サーバーのエラーは zod 既定の英語のままでよい |
 | apps | 最小限（10 章の (A)）。アプリ自身の文言の多言語化（(B)）はいずれ必要だが、この作業の後に別に行う |
@@ -107,6 +109,16 @@ declare module "@zodapp/i18n-messages" {
 - `msgKey` 経由（文字列を経由する）で使うキーは、params を `Record<string, string>` の部分型で受け取るように宣言する（例：`(p: { length: string }) => string`）。
 - UI から直接呼ぶキーは、number などをそのまま受け取ってよい（文字列を経由しないため）。
 
+アプリが自分のキーを登録するときは、型と辞書を二重に書かないよう、辞書から型を作る `MessagesOf` を使う。
+
+```ts
+export type MessagesOf<T> = { [K in keyof T]: T[K] };
+
+declare module "@zodapp/i18n-messages" {
+  interface RegisteredMessages extends MessagesOf<typeof formDemoJa> {}
+}
+```
+
 ### 4.2 `defineMessages`
 
 ```ts
@@ -125,6 +137,15 @@ parseMsgKey("myapp.nameTooShort?length=3")  // → { key: "myapp.nameTooShort", 
 - 書式は `key` または `key?` + `URLSearchParams` の文字列。
 - params の値は `string | number | boolean | Date` を受け取り、`String()`（Date は ISO 文字列）で詰める。
 - キーは `[A-Za-z0-9_.-]+` に限る。`?` より前がこの形でなければ、キーではない（普通の文章）とみなす。
+- **型検査**: `key` は `RegisteredMessages` のキーに限る。params は辞書の項目の型から決める（文字列の項目なら渡せない、関数の項目なら引数の名前がそろっていること）。値は `string | number | boolean | Date` を受け取る。
+
+```ts
+msgKey("myapp.nameTooShort", { length: 3 })  // OK
+msgKey("myapp.nameTooShrot", { length: 3 })  // 型エラー（登録されていないキー）
+msgKey("myapp.nameTooShort")                 // 型エラー（params が足りない）
+```
+
+- 戻り値の型は `string`。zod の `.min(3, …)` や meta の `label` にそのまま渡せる。
 
 ### 4.4 `resolveMsg`
 
@@ -231,12 +252,21 @@ zod-form-react の `wrapComponent` で、部品に渡す `error.message` を `ms
 スキーマの meta の `label`・`description`・`placeholder`、enum の選択肢のラベルも `msg.resolve` に通す。
 
 ```ts
-z.string().register(zf.string.registry, { label: "myapp.phone" /* 電話番号 */ })
+z.string().register(zf.string.registry, { label: msgKey("myapp.phone" /* 電話番号 */) })
 ```
 
 - キーなら訳し、普通の文字列ならそのまま出すので、今のスキーマはそのまま動く。
+- キーは生の文字列で書かず、`msgKey(...)` を通して書く（運用ルール）。呼び出しの見た目でキーだとわかり、型検査と ESLint のコメントが効く。
 - 通す場所は、meta を読む共通の箇所（zod-form-react の `wrapComponent`、mantine-lite の表の見出しなど）に寄せ、部品ごとに書かない。実装のときに箇所を洗い出す。
-- ESLint のルールは、`callees` の呼び出しだけでなく、`label`・`description`・`placeholder` のプロパティの値がキーの形の文字列リテラルのときも対象にする（オプション `properties`、既定 `["label", "description", "placeholder"]`）。
+- ESLint は `msgKey` の呼び出しとして見るので、meta 用の特別な扱いは要らない。キーの形の生の文字列を `label` などに書いたら msgKey で包むよう警告するルールは、必要になったら足す（この作業では入れない）。
+
+### 6.6 キーの運用ルール
+
+ライブラリはプレフィックスの印を付けない。辞書にあるキーと完全に一致したときだけ訳すので、名前空間付きのキーが普通の文章と重なることはまず無い。代わりに次を運用ルールとし、form-demo のデモページと各 README にサンプルを載せる。
+
+- キーは `msg(...)` か `msgKey(...)` を通して書く。生の文字列で書かない。
+- 名前空間はアプリ名・パッケージ名（`formDemo.*`、`zodFormWidget.*`）。`zod.*` は i18n-messages-zod が使う。
+- キーの直後に基準の言語の文言をコメントで書く（ESLint の `--fix` で入る）。
 `schemaRegistry.ts` の「読み込み中」「取得できませんでした」も、`zodFormReact.dynamic.loading` などのキーにする。
 
 ---
@@ -337,7 +367,7 @@ msgKey("myapp.nameTooShort" /* {length}文字以上で入力 */, { length: 3 })
 - 3 つとも、ルートを `I18nMessagesProvider` で包み、各パッケージ（zod-form-react、mantine、mantine-lite、widget、i18n-messages-zod）の ja・en を渡す。
 - `zod-errormap.ja.ts` と、それを import している箇所を消す。
 - ヘッダーに ja / en の切り替えを付ける。選んだ言語は localStorage に保存し、既定は ja。切り替えると、ライブラリの文言・zod のエラー・日付の表示が変わる。アプリ自身の文言は日本語のまま。
-- form-demo に、meta の文言をキーで書いた多言語化のデモページを 1 つ足し、ラベル・説明・選択肢・`msgKey` のエラーの切り替えを確かめられるようにする。そのページのキー（`formDemo.*`）の ja・en 辞書を form-demo に置き、ESLint のルールも form-demo で有効にする。
+- form-demo に、meta の文言をキーで書いた多言語化のデモページを 1 つ足し、ラベル・説明・選択肢・`msgKey` のエラーの切り替えを確かめられるようにする。そのページのキー（`formDemo.*`）の ja・en 辞書を form-demo に置き、`MessagesOf` で型を登録し、ESLint のルールも form-demo で有効にする。6.6 の運用ルールのサンプルを兼ねる。
 
 ### (B) 後でやること（この作業の範囲外）
 
@@ -352,7 +382,7 @@ msgKey("myapp.nameTooShort" /* {length}文字以上で入力 */, { length: 3 })
 
 ## 11. テスト
 
-- 本体: `msgKey`/`parseMsgKey` の往復（数値・真偽・Date・記号を含む値）、キーでない文字列の判定、`resolveMsg` のフォールバック。
+- 本体: `msgKey` の型検査（登録されていないキー・params の過不足が型エラーになること。`expectTypeOf` か `@ts-expect-error` で）、`msgKey`/`parseMsgKey` の往復（数値・真偽・Date・記号を含む値）、キーでない文字列の判定、`resolveMsg` のフォールバック。
 - React: Provider の入れ子のマージ、Provider が無いときの en、`createUseMsg` の既定、props の優先。
 - zod: 6.2 の表の各行、スキーマに直接書いた文言がマップより優先されること。
 - ESLint: `RuleTester` で、コメント無し・食い違い・複数・改行・エスケープ・テンプレート・分岐する関数・辞書に無いキー。
