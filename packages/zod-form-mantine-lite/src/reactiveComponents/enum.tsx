@@ -1,6 +1,10 @@
 import React, { useMemo } from "react";
 import { InputWrapper, Select } from "@mantine/core";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import {
+  emptinessOf,
+  emptyValueOf,
+  type ZodFormProps,
+} from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import { renderBadge } from "../utils/selectOption";
@@ -28,9 +32,10 @@ const EnumComponent = React.memo(function EnumComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<EnumSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const uiType = meta?.uiType;
@@ -39,7 +44,9 @@ const EnumComponent = React.memo(function EnumComponent({
 
   const rawValue = (defaultValue as string | number | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
-    useConfirmableState(rawValue, fieldPath);
+    useConfirmableState(rawValue, fieldPath, {
+      emptyValue: emptyValueOf({ optional, nullable }),
+    });
 
   const data = useEnumData(schema);
 
@@ -83,7 +90,7 @@ const EnumComponent = React.memo(function EnumComponent({
         onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
         onBlur={() => void onBlur()}
         label={label || undefined}
-        required={required !== false}
+        required={!(optional || nullable)}
         style={inputWrapperStyle}
         actions={
           hasPendingChange ? (
@@ -106,7 +113,7 @@ const EnumComponent = React.memo(function EnumComponent({
       onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
-      required={required !== false}
+      required={!(optional || nullable)}
       allowDeselect
       clearable
       style={inputWrapperStyle}

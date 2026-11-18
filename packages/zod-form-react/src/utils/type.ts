@@ -1,4 +1,5 @@
 import React from "react";
+import type { Outer } from "../common/outer";
 import z from "zod";
 
 /**
@@ -7,14 +8,22 @@ import z from "zod";
  * - `fieldPath`: TanStack React Form 等のフィールドパス
  * - `schema`: 対象フィールドの Zod スキーマ
  * - `defaultValue`: 初期値（任意）
- * - `required` / `readOnly`: UI 表示/制御のヒント（任意）
+ * - `outer`: 同じ path の外側の包みの情報（任意）。包みの部品が自分の分を足して渡す。
+ *   path が変わるところでは消して渡す。部品は `emptinessOf(outer)` で optional・nullable・空の値を求める
+ * - `readOnly`: UI 制御のヒント（任意）
  * - `label`: 表示ラベル（任意。通常は schema meta から取得する想定）
+ * - `hideError`: この部品の path のエラーを出さない（任意）。同じ path の祖先（intersection）が代わりに出す。
+ *   同じ path に描く包みは `{...props}` で子へ渡し、path が変わるところでは渡さない
+ * - `errorToken`: 同じ path で、すぐ外側の union の writer（任意）。union が腕に渡す。
+ *   入れ子の union が、外側の union が自分あてに書いた invalid_union を読み分けるのと、
+ *   union の腕に unrecognized_keys を出させない（union が読む）のに使う。
+ *   同じ path に描く包みは `{...props}` で子へ渡し、path が変わるところでは渡さない
  */
 export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
   schema: TSchema;
   defaultValue?: z.infer<TSchema>;
-  required?: boolean;
+  outer?: Outer;
   readOnly?: boolean;
   /**
    * Label to display above the input.
@@ -23,6 +32,10 @@ export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
    * - `string`: explicit label override（通常は schema meta（getMeta）から取得する想定のため、基本的に渡さない）
    */
   label?: string | false;
+  /** この部品の path のエラーを出さない（同じ path の祖先が出す） */
+  hideError?: boolean;
+  /** 同じ path で、すぐ外側の union の writer */
+  errorToken?: object;
 };
 
 /**

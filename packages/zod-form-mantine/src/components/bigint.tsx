@@ -10,9 +10,14 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type BigIntSchema = ReturnType<typeof zf.bigint>;
 
@@ -20,10 +25,11 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<BigIntSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
@@ -47,10 +53,11 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
     }
   }, [field.value]);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const tryCommit = useCallback(
     (raw: string) => {
       if (raw === "") {
-        field.onChange(undefined);
+        field.onChange(emptyValue);
         return;
       }
       if (/^-?\d+$/.test(raw)) {
@@ -59,20 +66,22 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       }
       field.onChange(undefined);
     },
-    [field],
+    [field, emptyValue],
   );
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const next = event.currentTarget.value;
+      // 先頭の「-」と数字だけを受け付ける。それ以外の文字は、打っても貼り付けても欄に入れない
+      if (!/^-?\d*$/.test(next)) return;
       setLocalValue(next);
       if (next === "") {
-        field.onChange(undefined);
+        field.onChange(emptyValue);
       } else if (/^-?\d+$/.test(next)) {
         field.onChange(BigInt(next));
       }
     },
-    [field],
+    [field, emptyValue],
   );
 
   const onBlur = useCallback(() => {
@@ -101,7 +110,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={required !== false}
+      required={!(optional || nullable)}
       disabled={readOnly || field.disabled}
       inputMode="numeric"
       pattern="-?\\d*"

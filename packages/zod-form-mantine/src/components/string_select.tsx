@@ -5,6 +5,8 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useSchemaValueAction,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -26,10 +28,11 @@ const StringSelectComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta, suggestions } =
       getMeta(schema, "string") ?? {};
@@ -51,11 +54,12 @@ const StringSelectComponent = wrapComponent(
       [data, value],
     );
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string | null) => {
-        field.onChange(next || undefined);
+        field.onChange(next || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {
@@ -88,7 +92,7 @@ const StringSelectComponent = wrapComponent(
           label={label || undefined}
           searchable={true}
           error={error?.message}
-          required={required !== false}
+          required={!(optional || nullable)}
           allowDeselect={true}
           clearable={true}
           style={inputWrapperStyle}

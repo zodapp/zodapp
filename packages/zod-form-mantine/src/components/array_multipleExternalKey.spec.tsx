@@ -23,7 +23,10 @@ import {
   ZodFormContextProvider,
   useZodForm,
 } from "@zodapp/zod-form-react/common";
-import { OptionalComponent } from "@zodapp/zod-form-mantine-lite/baseComponents";
+import {
+  NullableComponent,
+  OptionalComponent,
+} from "@zodapp/zod-form-mantine-lite/baseComponents";
 import { component as ArrayOfEnumComponent } from "./array_multipleEnum";
 import { component as ArrayOfExternalKeyComponent } from "./array_multipleExternalKey";
 import { component as ObjectComponent } from "./object";
@@ -59,6 +62,7 @@ const setupDomMocks = () => {
 
 const componentLibrary = {
   optional: () => ({ component: OptionalComponent }),
+  nullable: () => ({ component: NullableComponent }),
   object: () => ({ component: ObjectComponent }),
   array_multipleEnum: () => ({ component: ArrayOfEnumComponent }),
   array_multipleExternalKey: () => ({ component: ArrayOfExternalKeyComponent }),
@@ -502,5 +506,68 @@ describe("複数選択の enum（externalKey でない欄）の unlisted", () =>
     await expectPills(["赤", "（不正な値）"]);
     expect(screen.getByText(UNLISTED_ERROR)).toBeTruthy();
     expect(t.getForm().getFieldValue("colors")).toEqual(["red", "green"]);
+  });
+});
+
+describe("nullable だけの複数選択を空にする", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupDomMocks();
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const removePill = async (label: string) => {
+    const pill = [...document.querySelectorAll(".mantine-Pill-root")].find(
+      (element) => element.textContent?.includes(label),
+    );
+    const remove = pill?.querySelector(".mantine-Pill-remove");
+    expect(remove).toBeTruthy();
+    await act(async () => {
+      fireEvent.mouseDown(remove!);
+      fireEvent.click(remove!);
+    });
+  };
+
+  it("enum の複数選択は、全部外すと null を書き、送信できる", async () => {
+    const schema = z.object({
+      colors: zf
+        .array(
+          zf.enum([
+            zf.literal("red").register(zf.literal.registry, { label: "赤" }),
+            zf.literal("blue").register(zf.literal.registry, { label: "青" }),
+          ]),
+        )
+        .register(zf.array.registry, { label: "色", uiType: "multipleEnum" })
+        .nullable(),
+    });
+    const t = renderForm(schema, { colors: ["red"] }, []);
+    await expectPills(["赤"]);
+
+    await removePill("赤");
+    await waitFor(() => expect(t.getForm().getFieldValue("colors")).toBeNull());
+    await t.submit();
+    expect(t.onSubmit).toHaveBeenCalledWith({ colors: null });
+  });
+
+  it("externalKey の複数選択は、全部外すと null を書き、決まった schema の検証でも止まらない", async () => {
+    const r = makeResolvers();
+    r.prepare(everyone);
+    const t = renderForm(
+      z.object({ members: members().nullable() }),
+      { members: ["u1"] },
+      r.resolvers,
+    );
+    await expectPills(["利用者 A"]);
+
+    await removePill("利用者 A");
+    await waitFor(() =>
+      expect(t.getForm().getFieldValue("members")).toBeNull(),
+    );
+    await t.submit();
+    expect(t.onSubmit).toHaveBeenCalledWith({ members: null });
   });
 });

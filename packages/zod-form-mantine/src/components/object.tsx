@@ -1,5 +1,5 @@
 import React from "react";
-import { ActionIcon, Fieldset, InputWrapper } from "@mantine/core";
+import { ActionIcon, InputWrapper } from "@mantine/core";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -10,8 +10,10 @@ import {
   useZodField,
   useRunAsUserEdit,
   wrapComponent,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { FieldContainer, isFlatSchema } from "./container";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -49,23 +51,12 @@ function ObjectBodyImplement({
 
   const label = labelFromParent ?? meta?.label;
 
-  const isHorizontal =
-    meta?.uiType === "horizontal" || meta?.uiType === "horizontal-wrap";
-
-  const isHorizontalWrap = meta?.uiType === "horizontal-wrap";
-
-  const propertiesComponent = fields.map(
-    (
-      property: { propertyName: string; schema: z.ZodTypeAny },
-      index: number,
-    ) => {
-      return (
-        <div
-          key={index}
-          style={
-            isHorizontal ? { flex: "0 0 auto", minWidth: "150px" } : undefined
-          }
-        >
+  return (
+    <FieldContainer label={label} uiType={meta?.uiType} error={error?.message}>
+      {fields.map((property) => ({
+        key: property.propertyName,
+        flat: isFlatSchema(property.schema),
+        node: (
           <Switch
             fieldPath={joinFieldPath(fieldPath, property.propertyName)}
             schema={property.schema}
@@ -74,54 +65,13 @@ function ObjectBodyImplement({
                 ? defaultValue[property.propertyName]
                 : undefined
             }
-            required={undefined}
+            outer={undefined}
             readOnly={readOnly}
           />
-        </div>
-      );
-    },
+        ),
+      }))}
+    </FieldContainer>
   );
-
-  const wrappedPropertiesComponent = isHorizontal ? (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: isHorizontalWrap ? "wrap" : "nowrap",
-        gap: "0px 4px",
-        alignItems: "flex-end",
-      }}
-    >
-      {propertiesComponent}
-    </div>
-  ) : (
-    propertiesComponent
-  );
-
-  if (meta?.uiType === "box") {
-    return (
-      <Fieldset legend={label || undefined} mt={10}>
-        <InputWrapper
-          required={undefined}
-          error={error?.message}
-          labelElement="div" // disable auto biding of label to input
-        >
-          {wrappedPropertiesComponent}
-        </InputWrapper>
-      </Fieldset>
-    );
-  } else {
-    return (
-      <InputWrapper
-        label={label || undefined}
-        required={undefined}
-        error={error?.message}
-        labelElement="div" // disable auto biding of label to input
-        style={inputWrapperStyle}
-      >
-        {wrappedPropertiesComponent}
-      </InputWrapper>
-    );
-  }
 }
 
 const getObjectDefaultValue = (schema: z.ZodTypeAny): unknown => {
@@ -146,25 +96,36 @@ const actionIconStyle: React.CSSProperties = {
 };
 
 /**
- * optional（required === false）な object 用の 0..1 UI。
+ * optional（Boolean(optional || nullable)）な object・intersection 用の 0..1 UI。
+ * 中身は children で受け取る（object なら object の欄、intersection なら両側）。
  * array().max(1) と同じ操作感で、追加（+）で getDefaultValue から生成し、
- * 削除（-）で値を undefined に戻す。
+ * 削除（-）で値を空にする（optional なら undefined、nullable だけなら null）。
  */
-function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
-  const { fieldPath, schema, readOnly, label: labelFromParent, error } = props;
+export function OptionalContainer(
+  props: ZodFormInternalProps<z.ZodTypeAny> & { children: React.ReactNode },
+) {
+  const {
+    fieldPath,
+    schema,
+    readOnly,
+    label: labelFromParent,
+    error,
+    children,
+  } = props;
   const field = useZodField(fieldPath);
   const value = field.state.value;
   const meta = getMeta(schema);
   const label = labelFromParent ?? meta?.label;
-  const isSet = value !== undefined;
+  const isSet = value !== undefined && value !== null;
   const runAsUserEdit = useRunAsUserEdit();
+  const { emptyValue } = emptinessOf(props.outer);
 
   const handleAdd = () => {
     runAsUserEdit(() => field.handleChange(getObjectDefaultValue(schema)));
   };
 
   const handleRemove = () => {
-    runAsUserEdit(() => field.handleChange(undefined));
+    runAsUserEdit(() => field.handleChange(emptyValue));
     // 配下フィールドに残ったエラー meta を掃除する
     const prefix = `${fieldPath}.`;
     const fieldMeta = field.form.state.fieldMeta as Record<string, unknown>;
@@ -206,11 +167,7 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
               paddingBottom: 4,
             }}
           >
-            <ObjectBodyImplement
-              {...props}
-              required={undefined}
-              label={false}
-            />
+            {children}
           </div>
           {!readOnly && (
             <ActionIcon
@@ -249,8 +206,13 @@ function OptionalObjectImplement(props: ZodFormInternalProps<ObjectSchema>) {
 
 const ObjectComponent = wrapComponent(
   function ObjectComponentImplement(props: ZodFormInternalProps<ObjectSchema>) {
-    if (props.required === false && props.fieldPath !== "") {
-      return <OptionalObjectImplement {...props} />;
+    const { optional, nullable } = emptinessOf(props.outer);
+    if ((optional || nullable) && props.fieldPath !== "") {
+      return (
+        <OptionalContainer {...props}>
+          <ObjectBodyImplement {...props} outer={undefined} label={false} />
+        </OptionalContainer>
+      );
     }
     return <ObjectBodyImplement {...props} />;
   },

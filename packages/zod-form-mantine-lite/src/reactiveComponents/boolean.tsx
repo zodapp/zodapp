@@ -1,6 +1,7 @@
 import React from "react";
 import { Group, InputWrapper, Switch } from "@mantine/core";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import { emptinessOf } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
   useConfirmableState,
@@ -15,9 +16,10 @@ const BooleanComponent = React.memo(function BooleanComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<BooleanSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema);
   const uiType = meta?.uiType;
   const labelFromMeta = meta?.label;
@@ -35,7 +37,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
       onBlur={() => void onBlur()}
       disabled={readOnly}
       size="md"
-      required={required !== false}
+      required={!(optional || nullable)}
     />
   );
 
@@ -50,7 +52,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
             disabled={readOnly}
             label={label || undefined}
             labelPosition="left"
-            required={required !== false}
+            required={!(optional || nullable)}
           />
           {hasPendingChange && (
             <ConfirmableInputActions
@@ -66,7 +68,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
   return (
     <InputWrapper
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
     >

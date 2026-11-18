@@ -11,6 +11,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useZodFormContext,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import {
   DndContext,
@@ -125,12 +126,15 @@ function SortableItem({
 const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   fieldPath,
   schema,
-  required,
+  outer,
   readOnly,
   label: labelFromParent,
   field,
   defaultValue,
+  hideError,
+  errorToken,
 }: ZodFormInternalProps<ArraySchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { loadingComponent: LoadingComponent } = useZodFormContext();
 
   const value = field.value as unknown[] | undefined;
@@ -151,10 +155,17 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   const canRemove = value && value.length > (minLength?.minimum ?? 0);
   const label = labelFromParent ?? labelFromMeta;
 
-  const { items, insert, remove, append, move, error: arrayError } = useArray(
-    field.api,
-    discriminator,
-  );
+  const {
+    items,
+    insert,
+    remove,
+    append,
+    move,
+    error: arrayError,
+  } = useArray(field.api, discriminator, {
+    hideError,
+    errorToken,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -189,7 +200,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
       defaultValue: defaultValue?.[index],
       // 配列自体のoptional性は要素へ伝播させない。
       // 要素のoptional性はitemSchema（ZodOptional）だけで決まる。
-      required: undefined,
+      outer: undefined,
       readOnly,
       label: false as const,
     };
@@ -326,7 +337,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       error={arrayError?.message}
       labelElement="div"
       style={inputWrapperStyle}

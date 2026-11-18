@@ -13,6 +13,7 @@ import {
   extendString,
   extendTuple,
   extendUnion,
+  extendIntersection,
   extendCustom,
   getMeta as getZodExtendableMeta,
   MetaOf,
@@ -147,12 +148,7 @@ export type FnSourceMeta = {
 };
 
 // contextId の値で context の型を絞る
-type FnWithContextVariants<
-  TKey extends string,
-  TValue,
-  TParent,
-  TResult,
-> =
+type FnWithContextVariants<TKey extends string, TValue, TParent, TResult> =
   | ({ contextId?: undefined } & {
       [P in TKey]: (input: FnInput<TValue, TParent, undefined>) => TResult;
     })
@@ -189,11 +185,9 @@ export type FnMeta<TKey extends string, TValue, TParent, TResult> = {
  * computed の meta。値を持たない欄（z.never）に付ければ表示専用、
  * 値を持つ欄に付ければその値から表示を作る。
  */
-export type ComputedMetaDef<
-  TResult,
-  TValue = any,
-  TParent = any,
-> = z.infer<typeof zodExtendableCommonDefSchema> &
+export type ComputedMetaDef<TResult, TValue = any, TParent = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
   FnMeta<"compute", TValue, TParent, TResult>;
 
 /** dynamic の resolve が返す schema と、その schema を見分ける key */
@@ -308,9 +302,8 @@ export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
 
 export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
 
-export const asRegistryValue = <TValue,>(
-  value: TValue,
-): RegistryValue<TValue> => value as unknown as RegistryValue<TValue>;
+export const asRegistryValue = <TValue>(value: TValue): RegistryValue<TValue> =>
+  value as unknown as RegistryValue<TValue>;
 
 /**
  * resolve 関数を registry に渡せる型にする。Promise や購読を返す resolve は、
@@ -337,8 +330,7 @@ export const asRegistrySchemaResolver = <
  */
 export const defineDynamicMeta = <TValue = any, TParent = any>(
   meta: DynamicMetaDef<TValue, TParent>,
-): RegistryValue<DynamicMetaDef> =>
-  asRegistryValue(meta as DynamicMetaDef);
+): RegistryValue<DynamicMetaDef> => asRegistryValue(meta as DynamicMetaDef);
 
 // 値ごとの操作（選んだ値をリンクで開くなど）。実行時の resolver が解釈するため、core では構造だけ受ける
 const valueActionSchema = z.custom<RegisteredValueActionConfig>().optional();
@@ -525,8 +517,13 @@ const zf = {
       unselectedLabel: z.string().optional(),
       hideSelector: z.boolean().optional(),
       readOnlySelector: z.boolean().optional(),
+      // literal だけの union を uiType: "select"・"badge" で描くとき、値が選択肢に無いときの扱い
+      // （enum の unlisted と同じ）。既定 clear
+      unlisted: unlistedSchema,
     }),
   ),
+  // 両側を同じ path に並べる。入れ物の見せ方は object と同じ uiType（box・horizontal・horizontal-wrap）
+  intersection: extendIntersection(zodExtendableCommonDefSchema),
   common,
   hidden,
   externalKey,

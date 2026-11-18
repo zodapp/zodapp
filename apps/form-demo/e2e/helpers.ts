@@ -26,6 +26,7 @@ export type FormDemoState = {
   values: Record<string, unknown>;
   errors: { fields: Record<string, string[]>; form: string[] };
   isDirty: boolean;
+  isDefaultValue: boolean;
   submitted: { count: number; values: unknown };
   log: (Record<string, unknown> & { type: string; at: number })[];
 };

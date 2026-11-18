@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AnyFormApi, StandardSchemaV1 } from "@tanstack/react-form";
 import type { z } from "zod";
+import { getDefaultValue } from "@zodapp/zod-form";
+import { isEqualValue } from "../utils/equal";
 import {
   getValueAt,
   normalizeIssuePath,
@@ -33,6 +35,8 @@ type Issue = {
   message: string;
   path: PropertyKey[];
   code?: string;
+  /** zod の issue のほかの欄（invalid_union の errors など）は、そのまま残す */
+  [key: string]: unknown;
 };
 
 const isThenable = (value: unknown): value is PromiseLike<unknown> =>
@@ -45,6 +49,90 @@ export const isPendingIssue = (issue: unknown): boolean =>
   typeof issue === "object" &&
   issue !== null &&
   (issue as { code?: unknown }).code === PENDING_ISSUE_CODE;
+
+/**
+ * issue が invalid_union か。union の部品だけが読み、ほかの部品の欄のエラーとしては表示しない
+ * （union の部品が、選んだ腕のエラーを同じ欄に足す）。パッケージの外には出さない
+ */
+export const isUnionIssue = (issue: unknown): boolean =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as { code?: unknown }).code === "invalid_union";
+
+/** issue が unrecognized_keys か */
+export const isUnrecognizedKeysIssue = (issue: unknown): boolean =>
+  typeof issue === "object" &&
+  issue !== null &&
+  (issue as { code?: unknown }).code === "unrecognized_keys";
+
+/** union が同じ欄に書いた issue の、書いた union の writer（無ければ undefined） */
+export const writtenByOf = (issue: unknown): object | undefined => {
+  if (typeof issue !== "object" || issue === null) return undefined;
+  const writtenBy = (issue as { writtenBy?: unknown }).writtenBy;
+  return typeof writtenBy === "object" && writtenBy !== null
+    ? writtenBy
+    : undefined;
+};
+
+/**
+ * 欄の issue を、この部品が出すか。
+ *
+ * - union が解釈するもの（invalid_union と、union の腕の unrecognized_keys）：出さない
+ *   （union の部品が読む）。unrecognized_keys は、`errorToken` を受け取った部品（union の腕）のときだけ
+ * - それ以外（union が書いた `writtenBy` 付きのものを含む）：`hideError` でなければ出す
+ *   （同じ欄のいちばん外側の部品が出す）
+ *
+ * 読み込み中の印は出さない
+ */
+export const isDisplayedIssue = (
+  issue: unknown,
+  options: { hideError?: boolean; errorToken?: object },
+): boolean => {
+  if (isPendingIssue(issue) || isUnionIssue(issue)) return false;
+  if (
+    options.errorToken &&
+    isUnrecognizedKeysIssue(issue) &&
+    writtenByOf(issue) === undefined
+  ) {
+    return false;
+  }
+  return !options.hideError;
+};
+
+/** path ごとに覚えておく、補った結果の数 */
+const FILL_CACHE_SIZE = 4;
+
+/**
+ * value の segments の位置を fill で補った値を返す（元の値は変えない）。
+ * 途中の object・配列が無ければ（配列の範囲の外を含む）、value をそのまま返す
+ */
+const fillAt = (
+  value: unknown,
+  segments: readonly PathSegment[],
+  fill: (value: unknown) => unknown,
+): unknown => {
+  if (segments.length === 0) return fill(value);
+  if (typeof value !== "object" || value === null) return value;
+  const [head, ...rest] = segments as [PathSegment, ...PathSegment[]];
+  if (Array.isArray(value)) {
+    if (typeof head !== "number" || head < 0 || head >= value.length) {
+      return value;
+    }
+    const next = fillAt(value[head], rest, fill);
+    if (next === value[head]) return value;
+    const copy = value.slice();
+    copy[head] = next;
+    return copy;
+  }
+  const record = value as Record<PropertyKey, unknown>;
+  const child = record[head];
+  if (rest.length > 0 && (typeof child !== "object" || child === null)) {
+    return value;
+  }
+  const next = fillAt(child, rest, fill);
+  if (next === child) return value;
+  return { ...record, [head]: next };
+};
 
 /**
  * フォームごとの実行時の状態。
@@ -67,6 +155,13 @@ export class FormRuntime {
   private form: AnyFormApi | undefined;
   private detach: (() => void) | undefined;
   private validateScheduled = false;
+  private readonly defaultFills = new Map<string, z.ZodTypeAny>();
+  private readonly defaultFillListeners = new Set<() => void>();
+  private defaultFillsVersion = 0;
+  private readonly fillCache = new Map<
+    string,
+    { schema: z.ZodTypeAny; input: unknown; output: unknown }[]
+  >();
 
   /**
    * fn を同期で実行し、そのあいだに起きた値の変更を「利用者の編集」として記録する。
@@ -179,6 +274,86 @@ export class FormRuntime {
     return byDepth.get(Math.max(...byDepth.keys()));
   }
 
+  /**
+   * path の値を、schema の既定値で補うことを登録する（dynamic が、schema が最初に決まったときに置く）。
+   * AutoForm は {@link applyDefaultFills} で、フォームに渡す defaultValues にも同じ補いを入れる。
+   * そうすると、補った値も「初期値のまま」（isDefaultValue）とみなされ、reset でも残る
+   */
+  setDefaultFill(path: string, schema: z.ZodTypeAny): void {
+    if (this.defaultFills.get(path) === schema) return;
+    this.defaultFills.set(path, schema);
+    this.notifyDefaultFills();
+  }
+
+  /** {@link setDefaultFill} の登録を外す。schema を渡したら、同じ schema の登録のときだけ外す */
+  removeDefaultFill(path: string, schema?: z.ZodTypeAny): void {
+    const current = this.defaultFills.get(path);
+    if (current === undefined) return;
+    if (schema !== undefined && current !== schema) return;
+    this.defaultFills.delete(path);
+    this.fillCache.delete(path);
+    this.notifyDefaultFills();
+  }
+
+  /** 補いの登録が変わったら呼ぶ。外す関数を返す */
+  subscribeDefaultFills(listener: () => void): () => void {
+    this.defaultFillListeners.add(listener);
+    return () => {
+      this.defaultFillListeners.delete(listener);
+    };
+  }
+
+  /** 補いの登録の版。登録が変わるたびに進む */
+  getDefaultFillsVersion(): number {
+    return this.defaultFillsVersion;
+  }
+
+  /**
+   * defaults に、登録された補いを入れた値を返す。浅い path から順に入れる。
+   * path の親が defaults に無いとき（配列の範囲の外を含む）は、その補いを入れない
+   * （利用者が足した配列の要素などを、初期値の側に作らないため）。
+   * 何も変わらなければ defaults をそのまま返す
+   */
+  applyDefaultFills<T>(defaults: T): T {
+    if (this.defaultFills.size === 0) return defaults;
+    const fills = Array.from(this.defaultFills, ([path, schema]) => ({
+      path,
+      segments: parseFieldPath(path),
+      schema,
+    })).sort((a, b) => a.segments.length - b.segments.length);
+    let result: unknown = defaults;
+    for (const { path, segments, schema } of fills) {
+      result = fillAt(result, segments, (value) =>
+        this.fillValue(path, schema, value),
+      );
+    }
+    return isEqualValue(result, defaults) ? defaults : (result as T);
+  }
+
+  /**
+   * path の値 value を、schema の既定値で補った値（`getDefaultValue(schema, value)`）を返す。
+   * 同じ path・schema・値なら前に作った結果を返す。`.default(() => crypto.randomUUID())` のような
+   * 作るたびに変わる既定値を、今の値と defaultValues で同じにし、登録が変わって計算し直しても変えないため
+   */
+  fillValue(path: string, schema: z.ZodTypeAny, value: unknown): unknown {
+    const cached = this.fillCache.get(path) ?? [];
+    const hit = cached.find(
+      (entry) => entry.schema === schema && isEqualValue(entry.input, value),
+    );
+    if (hit) return hit.output;
+    const output = getDefaultValue(schema, value);
+    this.fillCache.set(path, [
+      { schema, input: value, output },
+      ...cached.slice(0, FILL_CACHE_SIZE - 1),
+    ]);
+    return output;
+  }
+
+  private notifyDefaultFills() {
+    this.defaultFillsVersion += 1;
+    for (const listener of Array.from(this.defaultFillListeners)) listener();
+  }
+
   // 登録が変わったら、フォーム全体の検証を走らせる（同じ tick の変更はまとめる）
   private scheduleValidate() {
     if (this.validateScheduled) return;
@@ -229,7 +404,9 @@ export class FormRuntime {
           ...normalizeIssuePath(issue.path),
         ];
         if (isCovered(sourceSegments, path)) continue;
-        issues.push({ message: issue.message, path, code: issue.code });
+        // 一番外の path だけを付け直し、ほかの欄は残す。invalid_union の errors
+        // （腕ごとの issue。path はその union の値からの相対）は書き換えない
+        issues.push({ ...issue, path });
       }
     };
 
@@ -257,7 +434,10 @@ export class FormRuntime {
         }
         continue;
       }
-      collect(segments, entry.schema.safeParse(getValueAt(value, segments)) as any);
+      collect(
+        segments,
+        entry.schema.safeParse(getValueAt(value, segments)) as any,
+      );
     }
     return issues;
   }

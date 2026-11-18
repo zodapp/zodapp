@@ -1,6 +1,10 @@
 import React from "react";
 import { InputWrapper, NumberInput } from "@mantine/core";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import {
+  emptinessOf,
+  emptyValueOf,
+  type ZodFormProps,
+} from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import {
@@ -16,9 +20,10 @@ const NumberComponent = React.memo(function NumberComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<NumberSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;
@@ -34,7 +39,9 @@ const NumberComponent = React.memo(function NumberComponent({
     onBlur,
     onCancel,
     onKeyDown,
-  } = useConfirmableState(rawValue, fieldPath);
+  } = useConfirmableState(rawValue, fieldPath, {
+    emptyValue: emptyValueOf({ optional, nullable }),
+  });
 
   if (readOnly) {
     return (
@@ -62,7 +69,7 @@ const NumberComponent = React.memo(function NumberComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}
       style={inputWrapperStyle}

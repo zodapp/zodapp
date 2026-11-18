@@ -4,10 +4,14 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
 import { $ZodCheckMultipleOfDef } from "zod/v4/core";
-import { ReadonlyText, inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -15,11 +19,12 @@ const NumberSliderComponent = wrapComponent(
   function NumberSliderComponentImplement({
     schema,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<NumberSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
@@ -45,7 +50,7 @@ const NumberSliderComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={required !== false}
+        required={!(optional || nullable)}
         error={error?.message}
         style={{ ...inputWrapperStyle, marginBottom: 10 }}
         labelElement="div"

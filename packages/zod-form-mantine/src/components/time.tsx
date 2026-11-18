@@ -11,6 +11,8 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -108,10 +110,11 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<SupportedTimeSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const meta = getMeta(schema) as
     | { label?: string; unit?: TimeUnit; encoding?: TimeEncoding }
@@ -138,14 +141,18 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
 
   const { version, markOwn } = useExternalChangeVersion(field.value);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   // 値を変えたときだけ、データの持ち方の形式で書く（開いただけでは値に触らない）
   const onChange = useCallback(
     (next: string | null) => {
-      const value = converter.fromPickerValue(next);
+      const value =
+        next === null || next === ""
+          ? emptyValue
+          : converter.fromPickerValue(next);
       markOwn(value);
       field.onChange(value);
     },
-    [converter, field, markOwn],
+    [converter, field, markOwn, emptyValue],
   );
 
   // ミリ秒の欄で確定した文字を書く。空なら値を消す。
@@ -196,7 +203,7 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
     onFocus,
     label: label || undefined,
     error: error?.message,
-    required: required !== false,
+    required: !(optional || nullable),
     style: inputWrapperStyle,
   };
 

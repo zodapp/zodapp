@@ -45,4 +45,21 @@ describe("getArrayFieldError", () => {
       message: "invalid array",
     });
   });
+
+  it("skips invalid_union (the union component reads it) and returns the arm's error a union added", () => {
+    const unionIssue = {
+      code: "invalid_union",
+      path: ["items"],
+      message: "Invalid input",
+      errors: [],
+    };
+    const armIssue = {
+      code: "too_small",
+      path: ["items"],
+      message: "at least one item is required",
+    };
+
+    expect(getArrayFieldError([unionIssue], "items")).toBeUndefined();
+    expect(getArrayFieldError([unionIssue, armIssue], "items")).toBe(armIssue);
+  });
 });

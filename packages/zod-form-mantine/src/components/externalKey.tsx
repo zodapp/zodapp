@@ -2,6 +2,8 @@ import React, { Suspense } from "react";
 import { Loader, Select } from "@mantine/core";
 import {
   Switch,
+  addOuter,
+  emptinessOf,
   DynamicDepthProvider,
   useDynamicDepth,
   useDynamicSchema,
@@ -24,19 +26,23 @@ type ExternalKeySchema = z.ZodString;
 const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   props: ZodFormProps<ExternalKeySchema>,
 ) {
-  const { fieldPath, schema, required, label: labelFromParent } = props;
+  const { fieldPath, schema, outer, label: labelFromParent } = props;
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema, "externalKey");
   const label = labelFromParent ?? meta?.label;
   const dynamicMeta = useExternalKeyDynamicMeta(schema);
   const depth = useDynamicDepth(fieldPath);
-  const state = useDynamicSchema(dynamicMeta, fieldPath, { required });
+  const state = useDynamicSchema(dynamicMeta, fieldPath, {
+    outer,
+    schema,
+  });
 
   const loadingView = (status?: "loading" | "pending") => (
     <Select
       value={null}
       data={[]}
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       disabled={true}
       rightSection={<Loader size="xs" />}
       placeholder="読み込み中"
@@ -50,19 +56,18 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
   }
 
   if (state.status === "error") {
-    return (
-      <DynamicErrorView
-        label={label || undefined}
-        retry={state.retry}
-      />
-    );
+    return <DynamicErrorView label={label || undefined} retry={state.retry} />;
   }
 
   // 子の部品を読み込むあいだは、この欄だけを読み込み中にする
   return (
     <Suspense fallback={loadingView()}>
       <DynamicDepthProvider path={fieldPath} depth={depth}>
-        <Switch {...props} schema={state.schema} />
+        <Switch
+          {...props}
+          schema={state.schema}
+          outer={addOuter(props.outer, props.schema)}
+        />
       </DynamicDepthProvider>
     </Suspense>
   );

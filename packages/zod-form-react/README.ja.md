@@ -162,6 +162,25 @@ Provider コンポーネント:
 - `LazyProvider`: `useLazyFactory` の実装を差し替える
 - `ValidatePrecedingFieldsProvider`: `useValidatePrecedingFields` を有効化する
 
+## 部品の props（`ZodFormProps`）
+
+部品（`componentLibrary` に入れる React コンポーネント）は、`ZodFormProps` を受け取ります。
+
+- `fieldPath` / `schema` / `defaultValue` / `readOnly` / `label`
+- `optional`: 外側の `.optional()`（と `.default()`）の中の部品なら `true`。書かないときは必須として扱う
+- `nullable`: 外側の `.nullable()` の中の部品なら `true`。`.optional().nullable()` のように重なると両方 `true`
+
+ラベルの必須の印（Mantine の `required`）は、`!(optional || nullable)` で決めます。
+値を空にするとき、部品は `optional` なら `undefined`、`nullable` だけなら `null` を書きます（両方なら `undefined`。どちらでもない必須の欄は `undefined` を書き、「必須」のエラーにする）。自作の部品は `emptyValueOf({ optional, nullable })` でこの値を得られます。
+
+> 以前の `required?: boolean`（`false` で optional）は `optional?: boolean` に置き換えました。自作の部品は `required !== false` を `!(optional || nullable)` に、`required={false}` を `optional={true}` に読み替えてください。
+
+### union の腕のエラーの置き場所
+
+zod の `invalid_union`（どの腕にも合わない値の issue）は、欄のエラーに残ります。`wrapComponent` と配列の欄は `invalid_union` を表示しません。zf.union の部品が `invalid_union` を読み、選んだ腕のエラーを同じ欄（と object の腕の子の欄）の errorMap の `onDynamic` に足します。
+
+`onDynamic` は、既定の検証の流れ（TanStack Form の `defaultValidationLogic`）では TanStack が読み書きしない枠です。`revalidateLogic` や欄ごとの `validators.onDynamic` を使うフォームでは、この枠がぶつかることがあります。
+
 ## `basicMediaResolvers`
 
 `basicMediaResolvers` は Mantine 非依存の最小セット（image/video/audio）です。`ZodFormContextProvider` に渡すか、`useMediaResolvers()` のデフォルトとして使われます。

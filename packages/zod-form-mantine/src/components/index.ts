@@ -34,6 +34,7 @@ export { component as StringPasswordComponent } from "./string_password.js";
 export { component as StringSelectComponent } from "./string_select.js";
 export { component as TupleComponent } from "./tuple.js";
 export { component as UnionComponent } from "./union.js";
+export { component as IntersectionComponent } from "./intersection.js";
 
 // Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
 export const componentLibrary: ComponentLibrary = {
@@ -75,4 +76,8 @@ export const componentLibrary: ComponentLibrary = {
   string_select: (() => import("./string_select.js")) as DynamicZodFormDef,
   tuple: (() => import("./tuple.js")) as DynamicZodFormDef,
   union: (() => import("./union.js")) as DynamicZodFormDef,
+  intersection: (() => import("./intersection.js")) as DynamicZodFormDef,
+  // literal だけの union を、enum と同じ部品で選ぶ（腕の番号で Select とやりとりする）
+  union_select: (() => import("./enum.js")) as DynamicZodFormDef,
+  union_badge: (() => import("./enum.js")) as DynamicZodFormDef,
 };

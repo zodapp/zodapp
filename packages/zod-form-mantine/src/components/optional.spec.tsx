@@ -81,7 +81,7 @@ describe("OptionalComponent integration", () => {
                 <OptionalComponent
                   fieldPath="opt"
                   schema={formSchema.shape.opt}
-                  required={false}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
                   readOnly={false}
                 />
               </FormProvider>
@@ -137,7 +137,7 @@ describe("OptionalComponent integration", () => {
                 <OptionalComponent
                   fieldPath="firstName"
                   schema={formSchema.shape.firstName}
-                  required={false}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
                   readOnly={false}
                 />
               </FormProvider>

@@ -5,6 +5,8 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useSchemaValueAction,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -22,31 +24,36 @@ const StringComponent = wrapComponent(function StringComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<StringSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta, formatter, suggestions } =
-    getMeta(schema, "string") ?? {};
+  const {
+    label: labelFromMeta,
+    formatter,
+    suggestions,
+  } = getMeta(schema, "string") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const suggestionData = normalizeStringSuggestions(suggestions);
 
   const value = typeof field.value === "string" ? field.value : "";
   const actionWrapper = useSchemaValueAction(schema, value);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      field.onChange(event.target.value || undefined);
+      field.onChange(event.target.value || emptyValue);
     },
-    [field],
+    [field, emptyValue],
   );
 
   const onAutocompleteChange = useCallback(
     (nextValue: string) => {
-      field.onChange(nextValue || undefined);
+      field.onChange(nextValue || emptyValue);
     },
-    [field],
+    [field, emptyValue],
   );
 
   if (readOnly || field.disabled) {
@@ -56,43 +63,50 @@ const StringComponent = wrapComponent(function StringComponentImplement({
         labelElement="div"
         style={inputWrapperStyle}
       >
-        <WithValueAction wrapper={actionWrapper} label={label || undefined} align="center">
-          {value && formatter
-            ? renderComputedValue(formatter(value), "readOnly")
-            : <ReadonlyText>{value}</ReadonlyText>}
+        <WithValueAction
+          wrapper={actionWrapper}
+          label={label || undefined}
+          align="center"
+        >
+          {value && formatter ? (
+            renderComputedValue(formatter(value), "readOnly")
+          ) : (
+            <ReadonlyText>{value}</ReadonlyText>
+          )}
         </WithValueAction>
       </InputWrapper>
     );
   }
 
-  const input = suggestionData.length > 0 ? (
-    <Autocomplete
-      ref={ref}
-      value={value}
-      data={suggestionData}
-      onChange={onAutocompleteChange}
-      onBlur={field.onBlur}
-      onFocus={onFocus}
-      label={label || undefined}
-      error={error?.message}
-      required={required !== false}
-      disabled={readOnly || field.disabled}
-      style={inputWrapperStyle}
-    />
-  ) : (
-    <TextInput
-      ref={ref}
-      value={value}
-      onChange={onChange}
-      onBlur={field.onBlur}
-      onFocus={onFocus}
-      label={label || undefined}
-      error={error?.message}
-      required={required !== false}
-      disabled={readOnly || field.disabled}
-      style={inputWrapperStyle}
-    />
-  );
+  const input =
+    suggestionData.length > 0 ? (
+      <Autocomplete
+        ref={ref}
+        value={value}
+        data={suggestionData}
+        onChange={onAutocompleteChange}
+        onBlur={field.onBlur}
+        onFocus={onFocus}
+        label={label || undefined}
+        error={error?.message}
+        required={!(optional || nullable)}
+        disabled={readOnly || field.disabled}
+        style={inputWrapperStyle}
+      />
+    ) : (
+      <TextInput
+        ref={ref}
+        value={value}
+        onChange={onChange}
+        onBlur={field.onBlur}
+        onFocus={onFocus}
+        label={label || undefined}
+        error={error?.message}
+        required={!(optional || nullable)}
+        disabled={readOnly || field.disabled}
+        style={inputWrapperStyle}
+      />
+    );
 
   return (
     <WithValueAction wrapper={actionWrapper} label={label || undefined}>

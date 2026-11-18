@@ -30,14 +30,14 @@ afterEach(() => {
   root = undefined;
 });
 
-const renderConfirmableState = async ({
-  onBlur,
-  onConfirm,
-}: ReactiveFormContextValue) => {
+const renderConfirmableState = async (
+  { onBlur, onConfirm }: ReactiveFormContextValue,
+  options?: { emptyValue?: undefined | null },
+) => {
   let state: ConfirmableState | undefined;
 
   const CaptureState = () => {
-    state = useConfirmableState("before", "name");
+    state = useConfirmableState("before", "name", options);
     return null;
   };
 
@@ -174,5 +174,50 @@ describe("useConfirmableState", () => {
       previousValue: "before",
     });
     expect(getState().hasPendingChange).toBe(false);
+  });
+
+  it("passes the empty value instead of an empty string when emptyValue is given", async () => {
+    const onBlur = vi.fn(() => true);
+    const onConfirm = vi.fn();
+    const getState = await renderConfirmableState(
+      { onBlur, onConfirm },
+      { emptyValue: null },
+    );
+
+    act(() => {
+      getState().onChange("");
+    });
+    await act(async () => {
+      await getState().onBlur();
+    });
+
+    expect(onBlur).toHaveBeenCalledWith({
+      fieldPath: "name",
+      value: null,
+      previousValue: "before",
+    });
+    expect(onConfirm).toHaveBeenCalledWith({
+      fieldPath: "name",
+      value: null,
+      previousValue: "before",
+    });
+  });
+
+  it("keeps an empty string when emptyValue is not given", async () => {
+    const onConfirm = vi.fn();
+    const getState = await renderConfirmableState({ onConfirm });
+
+    act(() => {
+      getState().onChange("");
+    });
+    await act(async () => {
+      await getState().onConfirm();
+    });
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      fieldPath: "name",
+      value: "",
+      previousValue: "before",
+    });
   });
 });

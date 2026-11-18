@@ -31,6 +31,8 @@ export type FormDemoState = {
   /** 欄ごとのエラー（エラーのある欄だけ）と、フォーム全体のエラー */
   errors: { fields: Record<string, string[]>; form: string[] };
   isDirty: boolean;
+  /** 今の値が defaultValues と同じか（保存ボタンの判定などに使う） */
+  isDefaultValue: boolean;
   submitted: { count: number; values: unknown };
   log: FormDemoLogEntry[];
 };
@@ -200,6 +202,7 @@ const E2eHarnessView = ({
     values: form.state.values,
     errors: errorsOf(form),
     isDirty: form.state.isDirty,
+    isDefaultValue: form.state.isDefaultValue,
     submitted: previous?.submitted ?? { count: 0, values: undefined },
     log: previous?.log ?? [],
     ...patch,
@@ -337,7 +340,8 @@ const E2eHarnessView = ({
             {toJson(state.values)}
           </Code>
           <Text size="xs" c="dimmed">
-            isDirty: {String(state.isDirty)}
+            isDirty: {String(state.isDirty)} ／ isDefaultValue:{" "}
+            {String(state.isDefaultValue)}
             {submit &&
               ` ／ 送信: ${state.submitted.count} 回${
                 state.submitted.count > 0

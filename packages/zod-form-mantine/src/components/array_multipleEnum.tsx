@@ -11,14 +11,14 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useRunAsUserEdit,
+  emptinessOf,
+  emptyValueOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
   renderBadge,
   renderSelectOption,
-  useEnumData,
-  toEnumOptionValue,
-  fromEnumOptionValue,
+  useChoices,
   normalizeStringSuggestions,
   ReadonlyText,
   UNLISTED_LABEL,
@@ -35,13 +35,13 @@ type ArrayOfEnumSchema = ReturnType<
 
 const EMPTY_SUGGESTIONS: never[] = [];
 
-// 要素が enum でないときに useEnumData へ渡す、選択肢 0 件の enum
+// 要素が enum・literal の union でないときに useChoices へ渡す、選択肢 0 件の enum
 const NO_ENUM_OPTIONS = zf.enum(
   [] as unknown as [z.ZodLiteral<string>],
 ) as unknown as EnumSchema;
 
 /**
- * 複数選択の欄。要素は enum。
+ * 複数選択の欄。要素は enum か、literal だけの union（腕の番号で MultiSelect とやりとりする）。
  * 要素が `uiType: "select"` の string（externalKey の allowUnlisted から作るもの）なら、
  * suggestions から選び、選択肢に無い値も値そのものの表示で残す（検証は string のまま）
  */
@@ -49,11 +49,12 @@ const ArrayOfEnumComponent = wrapComponent(
   function ArrayOfEnumComponentImplement({
     schema,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<ArrayOfEnumSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
     const elementSchema = schema.element as z.ZodTypeAny;
@@ -69,14 +70,19 @@ const ArrayOfEnumComponent = wrapComponent(
     const allowUnlisted =
       elementSchema.type === "string" && elementMeta?.uiType === "select";
 
-    if (elementSchema.type !== "enum" && !allowUnlisted) {
+    if (
+      elementSchema.type !== "enum" &&
+      elementSchema.type !== "union" &&
+      !allowUnlisted
+    ) {
       throw new Error(
-        `ArrayOfEnumComponent: Expected ZodEnum as internal type, but got ${elementSchema.type}`,
+        `ArrayOfEnumComponent: Expected ZodEnum or ZodUnion of literals as internal type, but got ${elementSchema.type}`,
       );
     }
-    const enumSchema = allowUnlisted
+    const choiceSchema = allowUnlisted
       ? NO_ENUM_OPTIONS
       : (elementSchema as EnumSchema);
+    const choices = useChoices(choiceSchema);
 
     // arrayスキーマ自体のメタからlabelを取得
     const arrayMeta = getMeta(schema);
@@ -86,24 +92,34 @@ const ArrayOfEnumComponent = wrapComponent(
     const label = labelFromParent ?? labelFromMeta;
     const { unlisted, emptyMessage } = elementMeta ?? {};
     // 数値の選択肢も扱えるよう、MultiSelect とは文字列でやりとりする
-    const value = useMemo(
-      () =>
-        Array.isArray(field.value)
-          ? field.value.flatMap((item: unknown) => {
-              const optionValue = toEnumOptionValue(item);
-              return optionValue === null ? [] : [optionValue];
-            })
-          : [],
-      [field.value],
-    );
+    // 今の値の要素を、選択肢の値ごとに引けるようにしておく（選択肢に無い値を keep で残すとき、
+    // 選択肢の値からは元の値に戻せないため）
+    const { value, currentByOption } = useMemo(() => {
+      const value: string[] = [];
+      const currentByOption = new Map<string, unknown>();
+      if (Array.isArray(field.value)) {
+        for (const item of field.value as unknown[]) {
+          const optionValue = choices.toOption(item);
+          if (optionValue === null) continue;
+          value.push(optionValue);
+          currentByOption.set(optionValue, item);
+        }
+      }
+      return { value, currentByOption };
+    }, [field.value, choices]);
+    const emptyValue = emptyValueOf({ optional, nullable });
     const fromOptionValues = useCallback(
       (next: string[]) =>
         next.length === 0
-          ? undefined
+          ? emptyValue
           : allowUnlisted
             ? next
-            : next.map((item) => fromEnumOptionValue(enumSchema, item)),
-      [allowUnlisted, enumSchema],
+            : next.map((item) =>
+                currentByOption.has(item)
+                  ? currentByOption.get(item)
+                  : choices.fromOption(item),
+              ),
+      [allowUnlisted, choices, currentByOption, emptyValue],
     );
     const onChange = useCallback(
       (next: string[] | null | undefined) => {
@@ -112,7 +128,7 @@ const ArrayOfEnumComponent = wrapComponent(
       [field, fromOptionValues],
     );
 
-    const enumData = useEnumData(enumSchema);
+    const enumData = choices.data;
     const suggestions = allowUnlisted
       ? elementMeta?.suggestions
       : EMPTY_SUGGESTIONS;
@@ -274,7 +290,7 @@ const ArrayOfEnumComponent = wrapComponent(
           label={label || undefined}
           placeholder={emptyMessage ?? "選択肢がありません"}
           error={error?.message}
-          required={required !== false}
+          required={!(optional || nullable)}
           disabled={true}
           style={inputWrapperStyle}
         />
@@ -294,7 +310,7 @@ const ArrayOfEnumComponent = wrapComponent(
         label={label || undefined}
         placeholder={data.length === 0 ? emptyMessage : undefined}
         error={errorMessage}
-        required={required !== false}
+        required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
         clearable={true}
         searchable={true}

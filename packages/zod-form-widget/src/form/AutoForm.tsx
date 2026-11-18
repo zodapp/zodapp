@@ -14,6 +14,7 @@ import {
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
   FormRuntime,
+  useDefaultValuesWithFills,
   useZodForm,
   componentLibrary as defaultComponentLibrary,
 } from "@zodapp/zod-form-mantine";
@@ -103,8 +104,14 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     [runtime, schema],
   );
 
+  // dynamic が補った既定値を defaultValues にも入れる（開いただけで「変更あり」にせず、reset でも残す）
+  const defaultValuesWithFills = useDefaultValuesWithFills(
+    runtime,
+    initialValues,
+  );
+
   const form = useZodForm({
-    defaultValues: initialValues,
+    defaultValues: defaultValuesWithFills,
     validators: {
       onChange: validator,
       onBlur: validator,

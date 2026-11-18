@@ -2,7 +2,7 @@ import React from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
 import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
-import { Switch } from "@zodapp/zod-form-react/common";
+import { Switch, emptinessOf } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "../utils/styles";
 
@@ -20,10 +20,11 @@ const ObjectComponent = React.memo(function ObjectComponent({
   fieldPath,
   schema,
   defaultValue,
-  required,
+  outer,
   readOnly: readOnlyProp,
   label: labelFromParent,
 }: ZodFormProps<ObjectSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema);
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
@@ -62,7 +63,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
             fieldPath={joinFieldPath(fieldPath, property.propertyName)}
             schema={property.schema}
             defaultValue={fieldDefaultValue}
-            required={undefined}
+            outer={undefined}
             readOnly={readOnly}
           />
         </div>

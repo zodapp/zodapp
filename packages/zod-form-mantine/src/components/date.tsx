@@ -8,6 +8,8 @@ import {
   wrapComponent,
   useValidatePrecedingFields,
   useZodFormContext,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
@@ -30,10 +32,11 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<DateSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema) as
@@ -68,12 +71,16 @@ const DateComponent = wrapComponent(function DateComponentImplement({
     return converter.toPickerValue(field.value);
   }, [converter, field.value]);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (next: string | null) => {
-      const value = converter.fromPickerValue(next);
+      const value =
+        next === null || next === ""
+          ? emptyValue
+          : converter.fromPickerValue(next);
       field.onChange(value);
     },
-    [converter, field],
+    [converter, field, emptyValue],
   );
 
   if (readOnly || field.disabled) {
@@ -101,7 +108,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
     onFocus,
     label: label || undefined,
     error: error?.message,
-    required: required !== false,
+    required: !(optional || nullable),
     disabled: readOnly || field.disabled,
     clearable: true,
     style: inputWrapperStyle,

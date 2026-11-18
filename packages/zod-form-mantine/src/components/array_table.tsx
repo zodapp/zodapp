@@ -12,6 +12,7 @@ import {
   ZodFormContextProvider,
   wrapComponent,
   useZodFormContext,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import {
   DndContext,
@@ -347,13 +348,14 @@ const ArrayTableComponent = wrapComponent(
   function ArrayTableComponentImplement({
     fieldPath,
     schema,
-    required,
+    outer,
     readOnly,
     label: labelFromParent,
     field,
     error,
     defaultValue,
   }: ZodFormInternalProps<ArraySchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { loadingComponent: LoadingComponent } = useZodFormContext();
     const [activeId, setActiveId] = useState<string | null>(null);
     const tableContainerRef = useRef<HTMLDivElement | null>(null);
@@ -454,7 +456,7 @@ const ArrayTableComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={required !== false}
+        required={!(optional || nullable)}
         error={error?.message}
         labelElement="div"
         style={inputWrapperStyle}
@@ -590,7 +592,7 @@ const ArrayTableComponent = wrapComponent(
                                       index,
                                       column.propertyName,
                                     ),
-                                    required: undefined,
+                                    outer: undefined,
                                     readOnly,
                                     label: false as const,
                                   };
