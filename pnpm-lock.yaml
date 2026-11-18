@@ -1308,6 +1308,15 @@ importers:
       '@zodapp/caching-utilities':
         specifier: workspace:*
         version: link:../caching-utilities
+      '@zodapp/i18n-messages':
+        specifier: workspace:*
+        version: link:../i18n-messages
+      '@zodapp/i18n-messages-react':
+        specifier: workspace:*
+        version: link:../i18n-messages-react
+      '@zodapp/i18n-messages-zod':
+        specifier: workspace:*
+        version: link:../i18n-messages-zod
       '@zodapp/zod-extendable':
         specifier: workspace:*
         version: link:../zod-extendable
