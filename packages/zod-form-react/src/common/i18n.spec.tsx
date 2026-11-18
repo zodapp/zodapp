@@ -34,7 +34,7 @@ describe("FormRuntime の検証", () => {
 
 describe("meta の文言", () => {
   const schema = z.string().register(zf.string.registry, {
-    label: msgKey("zodFormReact.dynamic.loading"),
+    label: msgKey("zodFormReact.dynamic.loading" /* 読み込み中 */),
   });
 
   it("resolveMeta はキーの label を訳し、ほかはそのまま", () => {
