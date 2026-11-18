@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useMemo } from "react";
 import { InputWrapper, PasswordInput } from "@mantine/core";
 import {
@@ -7,7 +8,6 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import {
   ReadonlyText,
   inputWrapperStyle,
@@ -27,7 +27,7 @@ const StringPasswordComponent = wrapComponent(
   }: ZodFormInternalProps<StringSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta } = getMeta(schema) ?? {};
+    const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const value = typeof field.value === "string" ? field.value : "";
 

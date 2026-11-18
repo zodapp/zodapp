@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { Suspense, useState } from "react";
@@ -217,13 +219,15 @@ const renderForm = (
     useState(() => null);
     return (
       <MantineProvider>
-        <ZodFormContextProvider componentLibrary={componentLibrary as any}>
-          <FormProvider form={f as any} runtime={runtime}>
-            <Suspense fallback={null}>
-              <Switch fieldPath="" schema={staticSchema} />
-            </Suspense>
-          </FormProvider>
-        </ZodFormContextProvider>
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <ZodFormContextProvider componentLibrary={componentLibrary as any}>
+            <FormProvider form={f as any} runtime={runtime}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={staticSchema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </I18nMessagesProvider>
       </MantineProvider>
     );
   };

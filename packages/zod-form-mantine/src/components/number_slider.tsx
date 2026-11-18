@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { Slider, InputWrapper } from "@mantine/core";
 import {
@@ -6,7 +7,7 @@ import {
   useValidatePrecedingFields,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
+import { zf, extractCheck } from "@zodapp/zod-form";
 import { $ZodCheckMultipleOfDef } from "zod/v4/core";
 import {
   ReadonlyText,
@@ -26,7 +27,7 @@ const NumberSliderComponent = wrapComponent(
   }: ZodFormInternalProps<NumberSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta } = getMeta(schema) ?? {};
+    const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const value =
       typeof field.value === "number" ? field.value : (schema.minValue ?? 0);

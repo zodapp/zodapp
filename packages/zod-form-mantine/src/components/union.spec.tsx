@@ -1,3 +1,11 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import {
+  createMsg,
+  lookupFromDictionaries,
+  type MessageDictionary,
+  type Messages,
+} from "@zodapp/i18n-messages";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 import React, { Suspense } from "react";
 import {
@@ -36,6 +44,18 @@ import { component as NumberComponent } from "./number";
 import { component as ObjectComponent } from "./object";
 import { component as StringComponent } from "./string";
 import { component as UnionComponent } from "./union";
+
+// 型ごとに見分けるため、必須の文言は zod の既定の文言と同じにする
+const testMessages: Messages[] = [
+  jaMessages,
+  {
+    "zod.required": (p?: { expected?: string }) =>
+      `Invalid input: expected ${p?.expected}, received undefined`,
+  },
+];
+const testMsg = createMsg(
+  lookupFromDictionaries(...(testMessages as MessageDictionary[])),
+);
 
 const setupDomMocks = () => {
   if (!window.matchMedia) {
@@ -150,21 +170,23 @@ describe("UnionComponent discriminatedUnion regression", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -254,22 +276,26 @@ describe("UnionComponent discriminatedUnion regression", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -361,21 +387,23 @@ describe("UnionComponent discriminatedUnion regression", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -457,22 +485,26 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={topLevelSchema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={topLevelSchema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -555,22 +587,26 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -673,25 +709,27 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch
-                  fieldPath="payload"
-                  schema={singleToolSchema}
-                  outer={{ optional: true, nullable: false, wraps: [] }}
-                />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch
+                    fieldPath="payload"
+                    schema={singleToolSchema}
+                    outer={{ optional: true, nullable: false, wraps: [] }}
+                  />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -752,25 +790,27 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch
-                  fieldPath="payload"
-                  schema={toolSchema}
-                  outer={{ optional: true, nullable: false, wraps: [] }}
-                />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch
+                    fieldPath="payload"
+                    schema={toolSchema}
+                    outer={{ optional: true, nullable: false, wraps: [] }}
+                  />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -836,21 +876,23 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="payload" schema={singleToolSchema} />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="payload" schema={singleToolSchema} />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -931,21 +973,23 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -1018,21 +1062,23 @@ describe("UnionComponent top-level discriminatedUnion", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -1122,22 +1168,26 @@ describe("UnionComponent union without discriminator", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -1364,25 +1414,29 @@ describe("UnionComponent union of primitive arms", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              boolean: () => ({ component: BooleanComponent }),
-              enum: () => ({ component: EnumComponent }),
-              hidden: () => ({ component: HiddenComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              number: () => ({ component: NumberComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form} runtime={runtime}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                boolean: () => ({ component: BooleanComponent }),
+                enum: () => ({ component: EnumComponent }),
+                hidden: () => ({ component: HiddenComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                number: () => ({ component: NumberComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form} runtime={runtime}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -1692,24 +1746,28 @@ describe("UnionComponent optional・nullable・required union without discrimina
       }
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              hidden: () => ({ component: HiddenComponent }),
-              nullable: () => ({ component: NullableComponent }),
-              number: () => ({ component: NumberComponent }),
-              object: () => ({ component: ObjectComponent }),
-              optional: () => ({ component: OptionalComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form} runtime={runtime}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                hidden: () => ({ component: HiddenComponent }),
+                nullable: () => ({ component: NullableComponent }),
+                number: () => ({ component: NumberComponent }),
+                object: () => ({ component: ObjectComponent }),
+                optional: () => ({ component: OptionalComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form} runtime={runtime}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -1821,22 +1879,24 @@ describe("UnionComponent optional・nullable・required union without discrimina
         formRef.current = form as unknown as AnyFormApi;
         return (
           <MantineProvider>
-            <ZodFormContextProvider
-              componentLibrary={{
-                nullable: () => ({ component: NullableComponent }),
-                number: () => ({ component: NumberComponent }),
-                object: () => ({ component: ObjectComponent }),
-                optional: () => ({ component: OptionalComponent }),
-                string: () => ({ component: StringComponent }),
-                union: () => ({ component: UnionComponent }),
-              }}
-            >
-              <FormProvider form={form} runtime={runtime}>
-                <Suspense fallback={null}>
-                  <Switch fieldPath="" schema={both} />
-                </Suspense>
-              </FormProvider>
-            </ZodFormContextProvider>
+            <I18nMessagesProvider locale="ja" messages={testMessages}>
+              <ZodFormContextProvider
+                componentLibrary={{
+                  nullable: () => ({ component: NullableComponent }),
+                  number: () => ({ component: NumberComponent }),
+                  object: () => ({ component: ObjectComponent }),
+                  optional: () => ({ component: OptionalComponent }),
+                  string: () => ({ component: StringComponent }),
+                  union: () => ({ component: UnionComponent }),
+                }}
+              >
+                <FormProvider form={form} runtime={runtime}>
+                  <Suspense fallback={null}>
+                    <Switch fieldPath="" schema={both} />
+                  </Suspense>
+                </FormProvider>
+              </ZodFormContextProvider>
+            </I18nMessagesProvider>
           </MantineProvider>
         );
       };
@@ -2042,25 +2102,29 @@ describe("UnionComponent arm errors written to the union's own field", () => {
       options.formRef.current = form as unknown as AnyFormApi;
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              boolean: () => ({ component: BooleanComponent }),
-              hidden: () => ({ component: HiddenComponent }),
-              lazy: () => ({ component: LazyComponent }),
-              literal: () => ({ component: LiteralComponent }),
-              number: () => ({ component: NumberComponent }),
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-            }}
-          >
-            <FormProvider form={form} runtime={runtime}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={schema} />
-                <button onClick={() => void form.handleSubmit()}>Submit</button>
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={testMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                boolean: () => ({ component: BooleanComponent }),
+                hidden: () => ({ component: HiddenComponent }),
+                lazy: () => ({ component: LazyComponent }),
+                literal: () => ({ component: LiteralComponent }),
+                number: () => ({ component: NumberComponent }),
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+              }}
+            >
+              <FormProvider form={form} runtime={runtime}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={schema} />
+                  <button onClick={() => void form.handleSubmit()}>
+                    Submit
+                  </button>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -2338,7 +2402,8 @@ describe("UnionComponent arm errors written to the union's own field", () => {
       )?.onDynamic;
       (Array.isArray(slot) ? slot : []).forEach((issue) => {
         const message = (issue as { message?: unknown } | undefined)?.message;
-        if (typeof message === "string") seen.add(message);
+        // 欄に入るのは辞書のキー。画面に出す文言にして記録する
+        if (typeof message === "string") seen.add(testMsg.resolve(message));
       });
     });
     return { seen, stop: () => subscription.unsubscribe() };

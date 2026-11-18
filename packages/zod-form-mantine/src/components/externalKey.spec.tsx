@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { Suspense } from "react";
@@ -158,16 +160,18 @@ const renderForm = (
     form = f as unknown as AnyFormApi;
     return (
       <MantineProvider>
-        <ZodFormContextProvider
-          componentLibrary={componentLibrary as any}
-          externalKeyResolvers={resolvers}
-        >
-          <FormProvider form={f as any} runtime={runtime}>
-            <Suspense fallback={null}>
-              <Switch fieldPath="" schema={schema} />
-            </Suspense>
-          </FormProvider>
-        </ZodFormContextProvider>
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <ZodFormContextProvider
+            componentLibrary={componentLibrary as any}
+            externalKeyResolvers={resolvers}
+          >
+            <FormProvider form={f as any} runtime={runtime}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </I18nMessagesProvider>
       </MantineProvider>
     );
   };
@@ -358,7 +362,7 @@ describe("externalKey（dynamic + ラッパー）", () => {
 
   describe("clear で消しても、欄を「触った」「変えた」にしない", () => {
     // このテストでは日本語のエラーマップを入れないので、値が無いときは zod の既定の文言になる
-    const REQUIRED = /Invalid input/;
+    const REQUIRED = /Invalid input|必ず入力してください/;
 
     it("開いたときに選択肢に無い保存値を消しても、isDirty は false のまま、必須のエラーも出さない", async () => {
       const r = makeResolvers();

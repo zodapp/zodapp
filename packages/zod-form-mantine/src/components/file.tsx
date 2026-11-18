@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, {
   useState,
   useEffect,
@@ -16,7 +17,6 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import type {
   BaseFileConfig,
   FileResolverResult,
@@ -25,6 +25,7 @@ import { parseMimeTypeFromUrl } from "@zodapp/zod-form/file";
 import { findMediaResolver } from "@zodapp/zod-form-react/media";
 import { DataBasedPreview } from "@zodapp/zod-form-mantine-lite";
 import type z from "zod";
+import { useMsg } from "../messages/useMsg";
 
 type FileSchema = z.ZodString;
 
@@ -50,7 +51,8 @@ const FileComponent = wrapComponent(function FileComponentImplement({
   error,
 }: ZodFormInternalProps<FileSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const meta = getMeta(schema, "file");
+  const meta = useResolvedMeta(schema, "file");
+  const msg = useMsg();
   const label = labelFromParent ?? meta?.label;
 
   // config はただのデータ（親や context で変えるときは zf.dynamic で包む）
@@ -167,7 +169,7 @@ const FileComponent = wrapComponent(function FileComponentImplement({
             disabled={readOnly || field.disabled}
             mt="xs"
           >
-            削除
+            {msg("zodFormMantine.file.remove" /* 削除 */)}
           </Button>
         </div>
       ) : (
@@ -209,10 +211,12 @@ const FileComponent = wrapComponent(function FileComponentImplement({
 
             <div>
               <Text size="lg" inline>
-                ここにファイルをドラッグ、またはクリックして選択
+                {msg(
+                  "zodFormMantine.file.dropzone" /* ここにファイルをドラッグ、またはクリックして選択 */,
+                )}
               </Text>
               <Text size="sm" c="dimmed" inline mt={7}>
-                最大ファイルサイズ:{" "}
+                {msg("zodFormMantine.file.maxSize" /* 最大ファイルサイズ: */)}{" "}
                 {formatFileSize(config.maxSize ?? DEFAULT_MAX_SIZE)}
               </Text>
             </div>

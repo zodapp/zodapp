@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 import React, { Suspense } from "react";
 import {
@@ -80,14 +82,16 @@ const renderForm = (schema: z.ZodTypeAny, defaultValues: unknown) => {
     formRef.current = form as unknown as AnyFormApi;
     return (
       <MantineProvider>
-        <ZodFormContextProvider componentLibrary={componentLibrary}>
-          <FormProvider form={form}>
-            <Suspense fallback={null}>
-              <Switch fieldPath="" schema={schema} />
-              <button onClick={() => void form.handleSubmit()}>送信</button>
-            </Suspense>
-          </FormProvider>
-        </ZodFormContextProvider>
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <ZodFormContextProvider componentLibrary={componentLibrary}>
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+                <button onClick={() => void form.handleSubmit()}>送信</button>
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </I18nMessagesProvider>
       </MantineProvider>
     );
   };

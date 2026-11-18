@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback } from "react";
 import { Autocomplete, InputWrapper, TextInput } from "@mantine/core";
 import {
@@ -8,7 +9,6 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
   ReadonlyText,
@@ -34,7 +34,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
     label: labelFromMeta,
     formatter,
     suggestions,
-  } = getMeta(schema, "string") ?? {};
+  } = useResolvedMeta(schema, "string") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const suggestionData = normalizeStringSuggestions(suggestions);
 

@@ -1147,6 +1147,15 @@ importers:
       '@tanstack/react-form':
         specifier: ^1.33.1
         version: 1.33.2(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@zodapp/i18n-messages':
+        specifier: workspace:*
+        version: link:../i18n-messages
+      '@zodapp/i18n-messages-react':
+        specifier: workspace:*
+        version: link:../i18n-messages-react
+      '@zodapp/i18n-messages-zod':
+        specifier: workspace:*
+        version: link:../i18n-messages-zod
       '@zodapp/zod-form':
         specifier: workspace:*
         version: link:../zod-form

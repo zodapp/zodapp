@@ -62,6 +62,16 @@
         "default": "./dist/components/*.cjs"
       }
     },
+    "./messages": {
+      "import": {
+        "types": "./dist/messages/index.d.mts",
+        "default": "./dist/messages/index.mjs"
+      },
+      "require": {
+        "types": "./dist/messages/index.d.ts",
+        "default": "./dist/messages/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -106,6 +116,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@tabler/icons-react": "^3.36.1",
+    "@zodapp/i18n-messages": "workspace:*",
+    "@zodapp/i18n-messages-react": "workspace:*",
+    "@zodapp/i18n-messages-zod": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-form-mantine-lite": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",

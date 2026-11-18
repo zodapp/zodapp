@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 import React, { Suspense } from "react";
 import {
@@ -88,26 +90,28 @@ describe("ArrayComponent integration (tanstack form)", () => {
       });
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              string: () => ({ component: StringComponent }),
-              object: () => ({ component: ObjectComponent }),
-              array: () => ({ component: ArrayComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch fieldPath="" schema={formSchema} />
-                {/* 
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                string: () => ({ component: StringComponent }),
+                object: () => ({ component: ObjectComponent }),
+                array: () => ({ component: ArrayComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch fieldPath="" schema={formSchema} />
+                  {/* 
               ArrayComponentを直接呼べばテストが通るが、Switchで呼ぶとテストが通らない 
               <ArrayComponent
                 fieldPath="items"
                 schema={formSchema.shape.items}
                 readOnly={false}
               /> */}
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -135,16 +139,18 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider componentLibrary={{}}>
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                readOnly={false}
-              />
-              <button onClick={() => form.handleSubmit()}>Submit</button>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider componentLibrary={{}}>
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  readOnly={false}
+                />
+                <button onClick={() => form.handleSubmit()}>Submit</button>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -201,22 +207,24 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              string: () => ({ component: StringComponent }),
-              union: () => ({ component: UnionComponent }),
-              object_testSelector: () => ({ component: TestSelector }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                readOnly={false}
-              />
-              <button onClick={() => form.handleSubmit()}>Submit</button>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                string: () => ({ component: StringComponent }),
+                union: () => ({ component: UnionComponent }),
+                object_testSelector: () => ({ component: TestSelector }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  readOnly={false}
+                />
+                <button onClick={() => form.handleSubmit()}>Submit</button>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -246,29 +254,31 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              string: () => ({ component: StringComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                readOnly={false}
-              />
-              <button
-                onClick={() =>
-                  form.setFieldValue("items", (prev: string[] | undefined) => [
-                    ...(prev ?? []),
-                    "test",
-                  ])
-                }
-              >
-                Add
-              </button>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                string: () => ({ component: StringComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  readOnly={false}
+                />
+                <button
+                  onClick={() =>
+                    form.setFieldValue(
+                      "items",
+                      (prev: string[] | undefined) => [...(prev ?? []), "test"],
+                    )
+                  }
+                >
+                  Add
+                </button>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -309,19 +319,21 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              string: () => ({ component: StringComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                readOnly={false}
-              />
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                string: () => ({ component: StringComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  readOnly={false}
+                />
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -363,22 +375,24 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              string: () => ({ component: StringComponent }),
-              object: () => ({ component: ObjectComponent }),
-              optional: () => ({ component: OptionalComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                outer={{ optional: true, nullable: false, wraps: [] }}
-                readOnly={false}
-              />
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                string: () => ({ component: StringComponent }),
+                object: () => ({ component: ObjectComponent }),
+                optional: () => ({ component: OptionalComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
+                  readOnly={false}
+                />
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -416,22 +430,24 @@ describe("ArrayComponent integration (tanstack form)", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              string: () => ({ component: StringComponent }),
-              object: () => ({ component: ObjectComponent }),
-              optional: () => ({ component: OptionalComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                outer={{ optional: true, nullable: false, wraps: [] }}
-                readOnly={false}
-              />
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                string: () => ({ component: StringComponent }),
+                object: () => ({ component: ObjectComponent }),
+                optional: () => ({ component: OptionalComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
+                  readOnly={false}
+                />
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -465,24 +481,26 @@ describe("ArrayComponent integration (tanstack form)", () => {
       const form = useZodForm({ defaultValues });
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              array: () => ({ component: ArrayComponent }),
-              lazy: () => ({ component: LazyComponent }),
-              object: () => ({ component: ObjectComponent }),
-              optional: () => ({ component: OptionalComponent }),
-              string: () => ({ component: StringComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items.unwrap()}
-                outer={{ optional: true, nullable: false, wraps: [] }}
-                readOnly={false}
-              />
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                array: () => ({ component: ArrayComponent }),
+                lazy: () => ({ component: LazyComponent }),
+                object: () => ({ component: ObjectComponent }),
+                optional: () => ({ component: OptionalComponent }),
+                string: () => ({ component: StringComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items.unwrap()}
+                  outer={{ optional: true, nullable: false, wraps: [] }}
+                  readOnly={false}
+                />
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -512,23 +530,25 @@ describe("ArrayComponent integration (tanstack form)", () => {
       const form = useZodForm({ defaultValues });
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              array: () => ({ component: ArrayComponent }),
-              lazy: () => ({ component: LazyComponent }),
-              object: () => ({ component: ObjectComponent }),
-              optional: () => ({ component: OptionalComponent }),
-              string: () => ({ component: StringComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayComponent
-                fieldPath="items"
-                schema={formSchema.shape.items}
-                readOnly={false}
-              />
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                array: () => ({ component: ArrayComponent }),
+                lazy: () => ({ component: LazyComponent }),
+                object: () => ({ component: ObjectComponent }),
+                optional: () => ({ component: OptionalComponent }),
+                string: () => ({ component: StringComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayComponent
+                  fieldPath="items"
+                  schema={formSchema.shape.items}
+                  readOnly={false}
+                />
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };

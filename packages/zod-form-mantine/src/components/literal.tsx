@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { Input, Text } from "@mantine/core";
 import {
@@ -6,7 +7,7 @@ import {
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { ZodForm } from "@zodapp/zod-form-react";
-import { zf, getMeta } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 
 type LiteralSchema = ReturnType<typeof zf.literal>;
@@ -20,7 +21,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = wrapComponent(
     error,
   }: ZodFormInternalProps<LiteralSchema>) {
     const { optional, nullable } = emptinessOf(outer);
-    const { label: labelFromMeta } = getMeta(schema) ?? {};
+    const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
     const displayValue = field.value;

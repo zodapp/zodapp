@@ -14,6 +14,8 @@ import { useExternalKeyDynamicMeta } from "@zodapp/zod-form-react/utils/external
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
 import { DynamicErrorView } from "./dynamic";
+import { useMsg } from "../messages/useMsg";
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -28,7 +30,8 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
 ) {
   const { fieldPath, schema, outer, label: labelFromParent } = props;
   const { optional, nullable } = emptinessOf(outer);
-  const meta = getMeta(schema, "externalKey");
+  const msg = useMsg();
+  const meta = useResolvedMeta(schema, "externalKey");
   const label = labelFromParent ?? meta?.label;
   const dynamicMeta = useExternalKeyDynamicMeta(schema);
   const depth = useDynamicDepth(fieldPath);
@@ -45,7 +48,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent(
       required={!(optional || nullable)}
       disabled={true}
       rightSection={<Loader size="xs" />}
-      placeholder="読み込み中"
+      placeholder={msg("zodFormReact.dynamic.loading" /* 読み込み中 */)}
       style={inputWrapperStyle}
       data-dynamic-status={status}
     />

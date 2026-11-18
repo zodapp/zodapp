@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { InputWrapper } from "@mantine/core";
 import z from "zod";
@@ -23,7 +24,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   field,
 }: ZodFormInternalProps<TupleSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const { label: labelFromMeta } = getMeta(schema) ?? {};
+  const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
 
   const baseItems = schema.def.items as z.ZodTypeAny[];

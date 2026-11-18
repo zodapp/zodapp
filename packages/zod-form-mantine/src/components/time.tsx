@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, {
   useCallback,
   useEffect,
@@ -14,7 +15,6 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import {
   ReadonlyText,
   inputWrapperStyle,
@@ -25,15 +25,12 @@ import {
   type TimeEncoding,
   type TimeUnit,
 } from "@zodapp/zod-form-react/utils/timeConverter";
+import { useMsg } from "../messages/useMsg";
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => {
   const value = `${String(h).padStart(2, "0")}:00`;
   return { value, label: value };
 });
-
-/** 打ち込んだ文字が読めない、または時刻として正しくないときの文言 */
-const millisecondFormatError = (format: string) =>
-  `${format} の形で、正しい時刻を入力してください`;
 
 /** 秒の小数の欄の書式。データが持てる桁数（3 桁まで）だけ S を並べる */
 const millisecondFormat = (fractionDigits: number | undefined) =>
@@ -81,6 +78,7 @@ const MillisecondInput = ({
   onCommit: (draft: string) => string | null;
 } & Omit<React.ComponentProps<typeof TextInput>, "value" | "onChange">) => {
   const [draft, setDraft] = useState(initialDraft);
+  const msg = useMsg();
   const [invalid, setInvalid] = useState(initialInvalid);
   const commit = () => {
     const normalized = onCommit(draft);
@@ -92,7 +90,14 @@ const MillisecondInput = ({
       {...props}
       placeholder={format}
       value={draft}
-      error={invalid ? millisecondFormatError(format) : error}
+      error={
+        invalid
+          ? msg(
+              "zodFormMantine.time.invalidFormat" /* ${format} の形で、正しい時刻を入力してください */,
+              { format },
+            )
+          : error
+      }
       onChange={(event) => setDraft(event.currentTarget.value)}
       onKeyDown={(event) => {
         if (event.key === "Enter" && !event.nativeEvent.isComposing) commit();
@@ -116,7 +121,7 @@ const TimeComponent = wrapComponent(function TimeComponentImplement({
 }: ZodFormInternalProps<SupportedTimeSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const meta = getMeta(schema) as
+  const meta = useResolvedMeta(schema) as
     | { label?: string; unit?: TimeUnit; encoding?: TimeEncoding }
     | undefined;
   const label = labelFromParent ?? meta?.label;

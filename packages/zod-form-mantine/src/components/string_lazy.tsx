@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, {
   useCallback,
   useEffect,
@@ -13,7 +14,6 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import {
   ReadonlyText,
   inputWrapperStyle,
@@ -34,7 +34,8 @@ const StringLazyComponent = wrapComponent(
   }: ZodFormInternalProps<StringSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
+    const { label: labelFromMeta, formatter } =
+      useResolvedMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
     const value = typeof field.value === "string" ? field.value : "";

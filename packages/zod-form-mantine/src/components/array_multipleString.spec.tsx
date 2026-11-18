@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -70,21 +72,23 @@ describe("ArrayOfStringComponent", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              array_multipleString: () => ({
-                component: ArrayOfStringComponent,
-              }),
-            }}
-          >
-            <FormProvider form={form}>
-              <ArrayOfStringComponent
-                fieldPath="tags"
-                schema={formSchema.shape.tags}
-                readOnly={false}
-              />
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                array_multipleString: () => ({
+                  component: ArrayOfStringComponent,
+                }),
+              }}
+            >
+              <FormProvider form={form}>
+                <ArrayOfStringComponent
+                  fieldPath="tags"
+                  schema={formSchema.shape.tags}
+                  readOnly={false}
+                />
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };

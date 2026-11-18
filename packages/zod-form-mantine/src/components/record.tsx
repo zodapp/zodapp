@@ -1,6 +1,6 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
-import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
   Switch,
@@ -27,7 +27,7 @@ const RecordComponent = wrapComponent(
     error,
     field,
   }: ZodFormInternalProps<RecordSchema>) {
-    const meta = getMeta(schema);
+    const meta = useResolvedMeta(schema);
     const valueSchema = schema.def.valueType;
 
     const value = field.value ?? defaultValue;

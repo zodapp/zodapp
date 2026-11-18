@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 // @vitest-environment jsdom
 import React, { Suspense } from "react";
 import {
@@ -106,23 +108,25 @@ describe("ObjectComponent optional (0..1) UI", () => {
 
       return (
         <MantineProvider>
-          <ZodFormContextProvider
-            componentLibrary={{
-              object: () => ({ component: ObjectComponent }),
-              string: () => ({ component: StringComponent }),
-              optional: () => ({ component: OptionalComponent }),
-            }}
-          >
-            <FormProvider form={form}>
-              <Suspense fallback={null}>
-                <Switch
-                  fieldPath=""
-                  schema={formSchema}
-                  readOnly={options?.readOnly}
-                />
-              </Suspense>
-            </FormProvider>
-          </ZodFormContextProvider>
+          <I18nMessagesProvider locale="ja" messages={jaMessages}>
+            <ZodFormContextProvider
+              componentLibrary={{
+                object: () => ({ component: ObjectComponent }),
+                string: () => ({ component: StringComponent }),
+                optional: () => ({ component: OptionalComponent }),
+              }}
+            >
+              <FormProvider form={form}>
+                <Suspense fallback={null}>
+                  <Switch
+                    fieldPath=""
+                    schema={formSchema}
+                    readOnly={options?.readOnly}
+                  />
+                </Suspense>
+              </FormProvider>
+            </ZodFormContextProvider>
+          </I18nMessagesProvider>
         </MantineProvider>
       );
     };
@@ -138,9 +142,7 @@ describe("ObjectComponent optional (0..1) UI", () => {
     const { FormUnderTest } = createFormUnderTest();
     render(<FormUnderTest />);
 
-    expect(
-      await screen.findByRole("button", { name: "追加" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "追加" })).toBeTruthy();
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
     expect(screen.queryByRole("button", { name: "削除" })).toBeNull();
   });

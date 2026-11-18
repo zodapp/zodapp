@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useMemo } from "react";
 import { InputWrapper, Pill, TagsInput } from "@mantine/core";
 import {
@@ -7,9 +8,9 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
+import { useMsg } from "../messages/useMsg";
 
 type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
 
@@ -24,9 +25,10 @@ const ArrayOfStringComponent = wrapComponent(
   }: ZodFormInternalProps<ArrayOfStringSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
+    const msg = useMsg();
 
     // arrayスキーマ自体のメタからlabelを取得
-    const arrayMeta = getMeta(schema);
+    const arrayMeta = useResolvedMeta(schema);
     const labelFromMeta = arrayMeta?.label;
     const label = labelFromParent ?? labelFromMeta;
 
@@ -91,7 +93,9 @@ const ArrayOfStringComponent = wrapComponent(
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
-        placeholder="入力してEnterで追加"
+        placeholder={msg(
+          "zodFormMantine.multipleString.placeholder" /* 入力してEnterで追加 */,
+        )}
         error={error?.message}
         required={!(optional || nullable)}
         disabled={readOnly || field.disabled}

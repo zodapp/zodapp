@@ -1,3 +1,5 @@
+import type { MsgFn } from "@zodapp/i18n-messages";
+import "../messages/types";
 import z from "zod";
 import { getMeta } from "@zodapp/zod-form";
 
@@ -40,11 +42,14 @@ const unwrap = (schema: z.ZodTypeAny): z.ZodTypeAny => {
 type FoundUnion = { schema: z.ZodTypeAny; name: string };
 
 /** union の名前（腕を選ぶ欄のラベルと同じ） */
-const unionName = (schema: z.ZodTypeAny): string => {
+const unionName = (schema: z.ZodTypeAny, msg: MsgFn): string => {
   const meta = getMeta(schema) as
     | { selectorLabel?: string; label?: string | false }
     | undefined;
-  return meta?.selectorLabel ?? (meta?.label || undefined) ?? "タイプ";
+  return (
+    msg.resolve(meta?.selectorLabel ?? (meta?.label || undefined)) ??
+    msg("zodFormMantine.union.selectorLabel" /* タイプ */)
+  );
 };
 
 /**
@@ -55,6 +60,7 @@ const unionName = (schema: z.ZodTypeAny): string => {
 const findOwner = (
   schema: z.ZodTypeAny,
   key: string,
+  msg: MsgFn,
   depth = 0,
 ): FoundUnion | undefined => {
   if (depth > MAX_DEPTH) return undefined;
@@ -68,8 +74,8 @@ const findOwner = (
   };
   if (def.type === "intersection" && def.left && def.right) {
     return (
-      findOwner(def.left, key, depth + 1) ??
-      findOwner(def.right, key, depth + 1)
+      findOwner(def.left, key, msg, depth + 1) ??
+      findOwner(def.right, key, msg, depth + 1)
     );
   }
   if (def.type === "union" && def.options) {
@@ -80,10 +86,10 @@ const findOwner = (
         arm.def.type === "object" &&
         key in (arm as z.ZodObject).shape
       ) {
-        return { schema: current, name: unionName(current) };
+        return { schema: current, name: unionName(current, msg) };
       }
       // 腕がまた union・intersection なら、その中を探す
-      const nested = findOwner(arm, key, depth + 1);
+      const nested = findOwner(arm, key, msg, depth + 1);
       if (nested) return nested;
     }
   }
@@ -98,14 +104,18 @@ const findOwner = (
 export const unrecognizedKeysMessage = (
   schema: z.ZodTypeAny,
   keys: readonly string[],
+  msg: MsgFn,
 ): string | undefined => {
   const found: FoundUnion[] = [];
   for (const key of keys) {
-    const owner = findOwner(schema, key);
+    const owner = findOwner(schema, key, msg);
     if (owner && !found.some((union) => union.schema === owner.schema)) {
       found.push(owner);
     }
   }
   if (found.length === 0) return undefined;
-  return `${found.map((union) => union.name).join("と")}を選択してください`;
+  return msg(
+    "zodFormMantine.union.selectOwners" /* ${names.join("と")}を選択してください */,
+    { names: found.map((union) => union.name) },
+  );
 };
