@@ -43,8 +43,15 @@ const FORMATS: Record<string, string> = {
   includes: "includes",
 };
 
+// bigint は JSON.stringify で投げるので、文字列にしてから詰める
 const formatValue = (value: unknown): string =>
-  typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
+  typeof value === "string"
+    ? value
+    : typeof value === "bigint"
+      ? value.toString()
+      : (JSON.stringify(value, (_key, v: unknown) =>
+          typeof v === "bigint" ? v.toString() : v,
+        ) ?? String(value));
 
 /** issue を `zod.*` のキーと params にする */
 export const zodIssueToMsgKey = (

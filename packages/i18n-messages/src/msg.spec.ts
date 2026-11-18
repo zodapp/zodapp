@@ -100,6 +100,12 @@ describe("msgKey / parseMsgKey", () => {
 describe("createMsg / resolveMsg", () => {
   const msg = createMsg(lookupFromDictionaries(testEn, testJa));
 
+  it("Object.prototype の名前（toString など）は辞書の項目として扱わない", () => {
+    expect(resolveMsg({}, "toString")).toBe("toString");
+    expect(resolveMsg({}, "hasOwnProperty")).toBe("hasOwnProperty");
+    expect(msg.resolve("constructor")).toBe("constructor");
+  });
+
   it("後ろの辞書が優先される", () => {
     expect(msg("test.title")).toBe("タイトル");
     expect(msg("test.rowCount", { count: 2 })).toBe("2 件");

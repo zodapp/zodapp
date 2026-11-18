@@ -31,7 +31,12 @@ export const lookupFromDictionaries =
   (...dictionaries: (MessageDictionary | undefined)[]): MessageLookup =>
   (key) => {
     for (let i = dictionaries.length - 1; i >= 0; i--) {
-      const value = dictionaries[i]?.[key];
+      const dictionary = dictionaries[i];
+      if (!dictionary) continue;
+      // Object.prototype から継いだもの（toString など）は辞書の項目にしない。
+      // messagesFromTranslator の Proxy は自分のキーを持たないので、継いだ名前でなければ引く
+      if (!Object.hasOwn(dictionary, key) && key in Object.prototype) continue;
+      const value = dictionary[key];
       if (value !== undefined) return value;
     }
     return undefined;

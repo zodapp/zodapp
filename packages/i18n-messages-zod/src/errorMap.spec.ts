@@ -11,6 +11,12 @@ const firstMessage = (schema: z.ZodType, value: unknown): string => {
 };
 
 describe("zodMsgKeyErrorMap", () => {
+  it("bigint の literal の invalid_value でも投げない", () => {
+    const result = z.literal(1n).safeParse(2n, { error: zodMsgKeyErrorMap });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe("zod.invalidValue?values=1");
+  });
+
   it.each([
     [
       "required（undefined）",
