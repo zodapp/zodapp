@@ -12,8 +12,20 @@ const firstMessage = (schema: z.ZodType, value: unknown): string => {
 
 describe("zodMsgKeyErrorMap", () => {
   it.each([
-    ["required（undefined）", z.string(), undefined, "zod.required", {}],
-    ["required（null）", z.number(), null, "zod.required", {}],
+    [
+      "required（undefined）",
+      z.string(),
+      undefined,
+      "zod.required",
+      { expected: "string" },
+    ],
+    [
+      "required（null）",
+      z.number(),
+      null,
+      "zod.required",
+      { expected: "number" },
+    ],
     [
       "invalidType",
       z.string(),

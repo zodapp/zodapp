@@ -18,7 +18,8 @@ const atMost = (p: Bound) => (p.inclusive === "true" ? "at most" : "less than");
 
 /** `zod.*` の英語の辞書（型の基準） */
 export const en = defineMessages({
-  "zod.required": "Required.",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  "zod.required": (p?: { expected?: string }) => "Required.",
   "zod.invalidType": (p: { expected: string; received: string }) =>
     `Expected ${p.expected}, received ${p.received}.`,
   "zod.invalidValue": (p: { values: string }) =>

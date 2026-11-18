@@ -39,11 +39,18 @@ export type MessagesOf<T> = { [K in keyof T]: T[K] };
 export type MessageParams<K extends MessageKey> =
   RegisteredMessages[K] extends (params: infer P) => string ? P : never;
 
-/** msg(key, ...args) の args。関数の項目なら params が必須、文字列の項目なら無し */
+/** params が省けるか（すべて省略できる項目なら省ける） */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type ParamsArgs<P> = {} extends P ? [params?: P] : [params: P];
+
+/**
+ * msg(key, ...args) の args。関数の項目なら params が必須（すべて省略できる params なら省ける）、
+ * 文字列の項目なら無し
+ */
 export type MessageArgs<K extends MessageKey> = RegisteredMessages[K] extends (
   params: infer P,
 ) => string
-  ? [params: P]
+  ? ParamsArgs<P>
   : [];
 
 /** msgKey に渡せる params の値。文字列に詰める */
@@ -53,5 +60,5 @@ export type MsgKeyParamValue = string | number | boolean | Date;
 export type MsgKeyArgs<K extends MessageKey> = RegisteredMessages[K] extends (
   params: infer P,
 ) => string
-  ? [params: { [P2 in keyof P]: MsgKeyParamValue }]
+  ? ParamsArgs<{ [P2 in keyof NonNullable<P>]: MsgKeyParamValue }>
   : [];

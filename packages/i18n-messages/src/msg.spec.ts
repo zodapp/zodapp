@@ -16,6 +16,8 @@ const testEn = defineMessages({
   "test.rowCount": ({ count }: { count: number }) => `${count} rows`,
   "test.tooShort": ({ length }: { length: string }) =>
     `At least ${length} characters`,
+  "test.required": (p?: { expected?: string }) =>
+    p?.expected ? `Required (${p.expected})` : "Required",
 });
 
 declare module "./types" {
@@ -27,6 +29,7 @@ const testJa = {
   "test.title": "タイトル",
   "test.rowCount": ({ count }) => `${count} 件`,
   "test.tooShort": ({ length }) => `${length}文字以上`,
+  "test.required": () => "必須",
 } satisfies MessagesOf<typeof testEn>;
 
 describe("msgKey / parseMsgKey", () => {
@@ -77,6 +80,20 @@ describe("msgKey / parseMsgKey", () => {
     // @ts-expect-error params の名前が違う
     msgKey("test.tooShort", { len: 3 });
     expectTypeOf(msgKey("test.rowCount", { count: 1 })).toBeString();
+  });
+
+  it("型: すべて省略できる params は省ける", () => {
+    expect(msgKey("test.required")).toBe("test.required");
+    expect(msgKey("test.required", { expected: "number" })).toBe(
+      "test.required?expected=number",
+    );
+    const msg = createMsg(lookupFromDictionaries(testEn));
+    expect(msg("test.required")).toBe("Required");
+    expect(msg.resolve("test.required?expected=number")).toBe(
+      "Required (number)",
+    );
+    // @ts-expect-error params の名前が違う
+    msgKey("test.required", { other: "x" });
   });
 });
 

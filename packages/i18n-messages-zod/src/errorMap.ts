@@ -54,7 +54,9 @@ export const zodIssueToMsgKey = (
     case "invalid_type":
     case "invalid_value":
       if (issue.input === undefined || issue.input === null) {
-        return ["zod.required"];
+        return issue.code === "invalid_type"
+          ? ["zod.required", { expected: String(issue.expected) }]
+          : ["zod.required"];
       }
       if (issue.code === "invalid_type") {
         return [

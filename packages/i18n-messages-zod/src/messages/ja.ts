@@ -5,7 +5,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleString("ja-JP");
 
 /** `zod.*` の日本語の辞書 */
 export const ja = {
-  "zod.required": "必ず入力してください。",
+  "zod.required": () => "必ず入力してください。",
   "zod.invalidType": () => "無効な値です。修正してください。",
   "zod.invalidValue": () => "無効な値です。修正してください。",
   "zod.tooSmall.string": (p) =>
