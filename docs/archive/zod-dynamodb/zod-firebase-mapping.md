@@ -1,5 +1,7 @@
 # zod-firebase → zod-dynamodb 対応表
 
+> **記録です。** zod-firebase から移ったときの対応表で、本文は直していません。今の仕様は各パッケージの docs/ と README にあります。
+
 - ステータス：zod-firebase から移るプロジェクトのための手引き（zod-firebase は zodapp から外した。最後の版はタグ `firebase-final`）
 - 対象：`@zodapp/zod-firebase`（`packages/zod-firebase`, `zod-firebase-node`）の概念を `zod-dynamodb` でどう扱うか
 - 関連：[design.md](./design.md)

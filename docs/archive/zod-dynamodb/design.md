@@ -1,5 +1,7 @@
 # zod-dynamodb 設計書
 
+> **事前の設計の記録です。** 実装の前に書いたもので、本文は直していません。今の仕様は各パッケージの docs/（[zod-dynamodb](../../../packages/zod-dynamodb/docs/)、[zod-dynamodb-node](../../../packages/zod-dynamodb-node/docs/)、[zod-dynamodb-client](../../../packages/zod-dynamodb-client/docs/)、[zod-dynamodb-realtime](../../../packages/zod-dynamodb-realtime/docs/)）と README にあります。
+
 **Zodベースの型安全なDynamoDBアクセス・リアルタイム同期ライブラリ群**
 
 - ステータス：設計検討版
