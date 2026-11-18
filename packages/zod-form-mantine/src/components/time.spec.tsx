@@ -1,6 +1,6 @@
+// @vitest-environment jsdom
 import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
 import { ja as jaMessages } from "../messages";
-// @vitest-environment jsdom
 import React, { Suspense } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

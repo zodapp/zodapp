@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
 import {
   createMsg,
@@ -6,7 +7,6 @@ import {
   type Messages,
 } from "@zodapp/i18n-messages";
 import { ja as jaMessages } from "../messages";
-// @vitest-environment jsdom
 import React, { Suspense } from "react";
 import {
   cleanup,

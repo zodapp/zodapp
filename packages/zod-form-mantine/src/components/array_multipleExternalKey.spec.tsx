@@ -1,6 +1,6 @@
+// @vitest-environment jsdom
 import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
 import { ja as jaMessages } from "../messages";
-// @vitest-environment jsdom
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { Suspense } from "react";
 import {

@@ -1,6 +1,6 @@
+// @vitest-environment jsdom
 import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
 import { ja as jaMessages } from "../messages";
-// @vitest-environment jsdom
 import React, { Suspense } from "react";
 import {
   cleanup,
@@ -89,6 +89,8 @@ describe("ObjectComponent optional (0..1) UI", () => {
   const createFormUnderTest = (options?: {
     defaultValues?: FormValues;
     readOnly?: boolean;
+    /** false なら I18nMessagesProvider で包まない（既定の英語） */
+    withJa?: boolean;
   }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formRef: { current: any } = { current: undefined };
@@ -106,27 +108,34 @@ describe("ObjectComponent optional (0..1) UI", () => {
         formRef.current = form;
       }, [form]);
 
+      const content = (
+        <ZodFormContextProvider
+          componentLibrary={{
+            object: () => ({ component: ObjectComponent }),
+            string: () => ({ component: StringComponent }),
+            optional: () => ({ component: OptionalComponent }),
+          }}
+        >
+          <FormProvider form={form}>
+            <Suspense fallback={null}>
+              <Switch
+                fieldPath=""
+                schema={formSchema}
+                readOnly={options?.readOnly}
+              />
+            </Suspense>
+          </FormProvider>
+        </ZodFormContextProvider>
+      );
       return (
         <MantineProvider>
-          <I18nMessagesProvider locale="ja" messages={jaMessages}>
-            <ZodFormContextProvider
-              componentLibrary={{
-                object: () => ({ component: ObjectComponent }),
-                string: () => ({ component: StringComponent }),
-                optional: () => ({ component: OptionalComponent }),
-              }}
-            >
-              <FormProvider form={form}>
-                <Suspense fallback={null}>
-                  <Switch
-                    fieldPath=""
-                    schema={formSchema}
-                    readOnly={options?.readOnly}
-                  />
-                </Suspense>
-              </FormProvider>
-            </ZodFormContextProvider>
-          </I18nMessagesProvider>
+          {options?.withJa === false ? (
+            content
+          ) : (
+            <I18nMessagesProvider locale="ja" messages={jaMessages}>
+              {content}
+            </I18nMessagesProvider>
+          )}
         </MantineProvider>
       );
     };
@@ -145,6 +154,14 @@ describe("ObjectComponent optional (0..1) UI", () => {
     expect(await screen.findByRole("button", { name: "追加" })).toBeTruthy();
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
     expect(screen.queryByRole("button", { name: "削除" })).toBeNull();
+  });
+
+  it("Provider が無ければ、部品の文言は英語", async () => {
+    const { FormUnderTest } = createFormUnderTest({ withJa: false });
+    render(<FormUnderTest />);
+
+    expect(await screen.findByRole("button", { name: "Add" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "追加" })).toBeNull();
   });
 
   it("adds object value with defaults and renders inner fields on add", async () => {
