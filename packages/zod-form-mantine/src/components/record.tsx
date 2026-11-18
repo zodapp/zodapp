@@ -4,10 +4,12 @@ import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
   Switch,
+  ContainerMarker,
   ZodFormInternalProps,
   wrapComponent,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { ownsContainerMarker } from "./container";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -26,6 +28,8 @@ const RecordComponent = wrapComponent(
     label: labelFromParent,
     error,
     field,
+    hideError,
+    errorToken,
   }: ZodFormInternalProps<RecordSchema>) {
     const meta = getMeta(schema);
     const valueSchema = schema.def.valueType;
@@ -46,6 +50,9 @@ const RecordComponent = wrapComponent(
         />
       </div>
     ));
+    const marker = ownsContainerMarker({ hideError, errorToken }) ? (
+      <ContainerMarker fieldPath={fieldPath} />
+    ) : null;
 
     if (meta?.uiType === "box") {
       return (
@@ -56,6 +63,7 @@ const RecordComponent = wrapComponent(
             labelElement="div"
           >
             {fieldsComponent}
+            {marker}
           </InputWrapper>
         </Fieldset>
       );
@@ -70,6 +78,7 @@ const RecordComponent = wrapComponent(
         style={inputWrapperStyle}
       >
         {fieldsComponent}
+        {marker}
       </InputWrapper>
     );
   },

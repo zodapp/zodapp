@@ -3,11 +3,12 @@ import z from "zod";
 import { getMeta } from "@zodapp/zod-form";
 import {
   Switch,
+  ContainerMarker,
   ZodFormInternalProps,
   wrapComponent,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { FieldContainer, isFlatSchema } from "./container";
+import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
 import { OptionalContainer } from "./object";
 import { unrecognizedKeysMessage } from "./unrecognizedKeys";
 
@@ -62,6 +63,8 @@ function IntersectionBody({
   readOnly,
   label: labelFromParent,
   error,
+  hideError,
+  errorToken,
 }: ZodFormInternalProps<IntersectionSchema>) {
   const meta = getMeta(schema);
   const label = labelFromParent ?? meta?.label;
@@ -79,7 +82,16 @@ function IntersectionBody({
     ["right", schema.def.right as z.ZodTypeAny],
   ] as const;
   return (
-    <FieldContainer label={label} uiType={meta?.uiType} error={errorMessage}>
+    <FieldContainer
+      label={label}
+      uiType={meta?.uiType}
+      error={errorMessage}
+      trailing={
+        ownsContainerMarker({ hideError, errorToken }) ? (
+          <ContainerMarker fieldPath={fieldPath} />
+        ) : undefined
+      }
+    >
       {sides.map(([key, side]) => ({
         key,
         flat: isFlatSchema(side),

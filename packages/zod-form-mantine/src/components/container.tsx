@@ -85,12 +85,15 @@ export const FieldContainer = ({
   uiType,
   error,
   children,
+  trailing,
 }: {
   label: string | false | undefined;
   uiType: string | undefined;
   /** 自分の path のエラー（hideError のときは渡ってこない） */
   error: React.ReactNode | undefined;
   children: readonly ContainerChild[];
+  /** 子の欄の後ろに置くもの（入れ物の目印 `ContainerMarker`）。並びの枠では包まない */
+  trailing?: React.ReactNode;
 }) => {
   const outerHorizontal = useContext(HorizontalContext);
   const isFlat = uiType === "flat";
@@ -118,6 +121,7 @@ export const FieldContainer = ({
     return (
       <>
         {items}
+        {trailing}
         {error ? (
           <FlatErrorBox message={error} horizontal={outerHorizontal} />
         ) : null}
@@ -139,9 +143,13 @@ export const FieldContainer = ({
           }}
         >
           {items}
+          {trailing}
         </div>
       ) : (
-        items
+        <>
+          {items}
+          {trailing}
+        </>
       )}
     </HorizontalContext.Provider>
   );
@@ -175,3 +183,13 @@ export const FieldContainer = ({
     </InputWrapper>
   );
 };
+
+/**
+ * 入れ物の目印（`ContainerMarker`）を置くか。同じ path の外側の部品（intersection・union）の
+ * 子として描かれるとき（`hideError`・`errorToken` を受け取ったとき）は置かず、外側が置く。
+ * 置くと、intersection の左側の最後の欄を離しただけで、同じ path の intersection を触ったことになる
+ */
+export const ownsContainerMarker = (props: {
+  hideError?: boolean;
+  errorToken?: object;
+}): boolean => !props.hideError && !props.errorToken;

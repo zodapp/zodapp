@@ -5,6 +5,7 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
   Switch,
+  ContainerMarker,
   ZodFormInternalProps,
   getDefaultValue,
   useZodField,
@@ -13,7 +14,7 @@ import {
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
-import { FieldContainer, isFlatSchema } from "./container";
+import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -32,6 +33,8 @@ function ObjectBodyImplement({
   readOnly,
   label: labelFromParent,
   error,
+  hideError,
+  errorToken,
 }: ZodFormInternalProps<ObjectSchema>) {
   const meta = getMeta(schema);
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
@@ -52,7 +55,16 @@ function ObjectBodyImplement({
   const label = labelFromParent ?? meta?.label;
 
   return (
-    <FieldContainer label={label} uiType={meta?.uiType} error={error?.message}>
+    <FieldContainer
+      label={label}
+      uiType={meta?.uiType}
+      error={error?.message}
+      trailing={
+        ownsContainerMarker({ hideError, errorToken }) ? (
+          <ContainerMarker fieldPath={fieldPath} />
+        ) : undefined
+      }
+    >
       {fields.map((property) => ({
         key: property.propertyName,
         flat: isFlatSchema(property.schema),
