@@ -65,6 +65,12 @@ importers:
       '@zodapp/caching-utilities':
         specifier: workspace:*
         version: link:../../packages/caching-utilities
+      '@zodapp/i18n-messages':
+        specifier: workspace:*
+        version: link:../../packages/i18n-messages
+      '@zodapp/i18n-messages-react':
+        specifier: workspace:*
+        version: link:../../packages/i18n-messages-react
       '@zodapp/react-storage':
         specifier: workspace:*
         version: link:../../packages/react-storage
@@ -168,6 +174,12 @@ importers:
       '@zodapp/caching-utilities':
         specifier: workspace:*
         version: link:../../packages/caching-utilities
+      '@zodapp/i18n-messages':
+        specifier: workspace:*
+        version: link:../../packages/i18n-messages
+      '@zodapp/i18n-messages-react':
+        specifier: workspace:*
+        version: link:../../packages/i18n-messages-react
       '@zodapp/react-storage':
         specifier: workspace:*
         version: link:../../packages/react-storage
@@ -352,6 +364,12 @@ importers:
       '@zodapp/caching-utilities':
         specifier: workspace:*
         version: link:../../packages/caching-utilities
+      '@zodapp/i18n-messages':
+        specifier: workspace:*
+        version: link:../../packages/i18n-messages
+      '@zodapp/i18n-messages-react':
+        specifier: workspace:*
+        version: link:../../packages/i18n-messages-react
       '@zodapp/react-storage':
         specifier: workspace:*
         version: link:../../packages/react-storage
