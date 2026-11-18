@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb-mqtt
 
-MQTT での配送です（設計は [docs/design.md](../../docs/zod-dynamodb/design.md) の §9.3、§9.4、§11）。接続先は、Mosquitto、AWS IoT Core など、[MQTT.js](https://github.com/mqttjs/MQTT.js) が接続できるものです。
+MQTT での配送です（仕様は [リアルタイムの配信](../zod-dynamodb/docs/realtime.ja.md)）。接続先は、Mosquitto、AWS IoT Core など、[MQTT.js](https://github.com/mqttjs/MQTT.js) が接続できるものです。
 
 ```ts
 import { mqttPublisher, mqttTransport } from "@zodapp/zod-dynamodb-mqtt";

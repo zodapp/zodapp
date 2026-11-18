@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb-client
 
-`@zodapp/zod-dynamodb` の登録簿（`defineEndpoints`）から、ブラウザの API を作ります（設計は [docs/design.md](../../docs/zod-dynamodb/design.md) の §7.8、§10）。関数の形はサーバーの API（`createServerApi`）と同じです。ブラウザでも Node.js でも動きます。
+`@zodapp/zod-dynamodb` の登録簿（`defineEndpoints`）から、ブラウザの API を作ります（仕様は [ブラウザの API](docs/client-api.ja.md) と [リアルタイムの同期](docs/live-sync.ja.md)）。関数の形はサーバーの API（`createServerApi`）と同じです。ブラウザでも Node.js でも動きます。
 
 ```ts
 import { createClient, isClientError } from "@zodapp/zod-dynamodb-client";

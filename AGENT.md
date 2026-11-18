@@ -332,7 +332,7 @@ export const endpoints = defineEndpoints({
 
 - onCreate の戻り値は入力より優先される（`{...input, ...onCreate, ...onWrite, ...key}`）。入力の値を使いたい項目は onCreate で上書きしない
 - DynamoDB はキー（Index）でしか絞り込めない。残りの条件は読んだ一覧をブラウザで絞る（サンプルは mingo）
-- 詳しくは `docs/zod-dynamodb/design.md` と `packages/zod-dynamodb/README.ja.md`
+- 詳しくは `packages/zod-dynamodb/README.ja.md` と `packages/zod-dynamodb*/docs/`
 
 ## テストガイドライン
 

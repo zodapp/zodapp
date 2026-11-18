@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb-express
 
-`@zodapp/zod-dynamodb` の登録簿（`defineEndpoints`）に書いた操作を、Express 5 のルートとして公開します（設計は [docs/design.md](../../docs/zod-dynamodb/design.md) の §7、§8）。
+`@zodapp/zod-dynamodb` の登録簿（`defineEndpoints`）に書いた操作を、Express 5 のルートとして公開します（仕様は [サーバーの API](../zod-dynamodb-node/docs/server-api.ja.md) と [通信の入出力とエラー](../zod-dynamodb/docs/protocol.ja.md)）。
 
 ```ts
 import type { IncomingMessage } from "node:http";

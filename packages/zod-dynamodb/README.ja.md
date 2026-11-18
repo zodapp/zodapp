@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb
 
-Zodで定義したTable定義を基点に、DynamoDBを型安全に扱うための共通定義です。ブラウザとサーバーの両方で使えます（設計は [docs/design.md](../../docs/zod-dynamodb/design.md)）。
+Zodで定義したTable定義を基点に、DynamoDBを型安全に扱うための共通定義です。ブラウザとサーバーの両方で使えます（仕様は [docs/](docs/) にあります）。
 
 - `physicalTable()`：単一テーブルの物理レイアウト（GSIとベクトルインデックスのスロット）
 - `tableConfig()`：item / create のSchemaをそのまま保持するTable定義。キーとIndexのフィールドを型と定義時に検査する。フック（`onCreate` / `onWrite`）と `generateKey` もここに書く
@@ -73,7 +73,7 @@ export const endpoints = defineEndpoints({
 });
 ```
 
-ブラウザに出したくない規則や、サーバー専用のモジュールを使う処理だけを、サーバーで上書きします（design.md の §5.8）。
+ブラウザに出したくない規則や、サーバー専用のモジュールを使う処理だけを、サーバーで上書きします（[共有の定義と、サーバーだけの上書き](docs/shared-definitions.ja.md)）。
 
 ```ts
 // サーバーだけ。createRepository({ overrides }) に渡す
@@ -86,7 +86,7 @@ export const overrides = [
 ```
 
 - 共有の定義の `authorize` は同期で `boolean` を返します（ブラウザの `can` でも使うため）。上書きの `authorize` も同期だけで（`Promise` を返すと `DefinitionError`）、最後の引数で共有の判定（`shared`）を受け取ります。認可に要るデータは、認証コンテキストを作るときに読んでおきます
-- `item`・`create`・操作の `params` の Schema は、出力をもう一度通しても通るものに限ります。`transform`・`pipe`・`preprocess` は定義時にエラーになります（`default`・`coerce` は使えます）。ライブラリは認可の前に 1 回だけ検証し、その値で認可と書き込みを行います（design.md §5.4）
+- `item`・`create`・操作の `params` の Schema は、出力をもう一度通しても通るものに限ります。`transform`・`pipe`・`preprocess` は定義時にエラーになります（`default`・`coerce` は使えます）。ライブラリは認可の前に 1 回だけ検証し、その値で認可と書き込みを行います（[Table定義](docs/table-definition.ja.md)）
 - `get`・`create`・`set` の `authorize` が見られるのは、キーと入力と認証コンテキストだけで、保存済みの Item は見られません。保存済みの値で判定したい書き込みは、ミューテーションや削除の `where`（DynamoDB の条件付き書き込み）を使います。`get` には条件を付けられないので、読み取りはキーに所有者やワークスペースを入れて `authorize` で判定するか、クエリにしてパラメーターで判定します
   - 例：キーが `noteId` だけのテーブルで `set` を公開すると、入力の `ownerId` を書き換えて他人のメモを上書きできます。`set` を公開せず、ミューテーションの `where: (_p, ctx) => ({ ownerId: ctx.userId })` で防ぎます
 - 共有のモジュールは Node.js 専用のモジュールに依存しないでください（このパッケージ自体も ESLint の `no-restricted-imports` とテストで確かめています）

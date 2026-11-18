@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb-realtime
 
-Realtime Gateway です。WebSocket で Client の購読を受け、配送基盤（MQTT など）のトピックを購読して、範囲の条件に合う変更だけを Client に送ります（設計は [docs/design.md](../../docs/zod-dynamodb/design.md) の §9.6、§10）。
+Realtime Gateway です。WebSocket で Client の購読を受け、配送基盤（MQTT など）のトピックを購読して、範囲の条件に合う変更だけを Client に送ります（仕様は [Realtime Gateway](docs/gateway.ja.md) と [リアルタイムの配信](../zod-dynamodb/docs/realtime.ja.md)）。
 
 公開する購読は、登録簿でクエリに `live` を付けたものです。購読の名前は「グループ名.操作の名前」（`tasks.byStatus`）になります。
 
@@ -101,6 +101,6 @@ const realtime = createRealtimeGateway({
 - Gateway は「購読」と「ページ」の 2 つの部品だけを持ちます。progressive か全体か、どこまで読み込んだかは Client（`@zodapp/zod-dynamodb-client`）が管理します
 - 同じトピックは接続をまたいで 1 回だけ配送基盤で購読し、参照を数えます
 - 生存確認の ping を 30 秒ごとに送り、応答のない接続を切ります（`pingInterval`）
-- メッセージの形式は design.md の §10.5 にあります
+- メッセージの形式は [リアルタイムの配信](../zod-dynamodb/docs/realtime.ja.md) にあります
 
 テストや 1 プロセスでの開発には、`@zodapp/zod-dynamodb` の `memoryTransport()` を書き込み側と Gateway で共有できます。

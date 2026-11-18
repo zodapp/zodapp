@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb-react
 
-`@zodapp/zod-dynamodb-client` の一覧と Item を読む React の hooks です（設計は [docs/design.md](../../docs/zod-dynamodb/design.md) の §7.8）。React 18 と 19 に対応します。
+`@zodapp/zod-dynamodb-client` の一覧と Item を読む React の hooks です（仕様は [ブラウザの API](../zod-dynamodb-client/docs/client-api.ja.md)）。React 18 と 19 に対応します。
 
 API の関数を部分適用した hook を、コンポーネントの外で作ります。
 

@@ -1,6 +1,6 @@
 # @zodapp/zod-dynamodb-node
 
-`@zodapp/zod-dynamodb` のTable定義から、DynamoDBを操作するRepositoryと、サーバーの API を作ります（設計は [docs/design.md](../../docs/zod-dynamodb/design.md) の §6、§8.2）。
+`@zodapp/zod-dynamodb` のTable定義から、DynamoDBを操作するRepositoryと、サーバーの API を作ります（仕様は [docs/](docs/) にあります）。
 
 ```ts
 const repository = createRepository({
