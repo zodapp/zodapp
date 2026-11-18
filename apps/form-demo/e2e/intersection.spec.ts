@@ -79,6 +79,51 @@ test("intersection 全体の .refine() のエラーは、1 回だけ出る", asy
   ).toHaveCount(1);
 });
 
+test("intersection 全体の .refine() のエラーは、最後の欄（終了）を離すと出て、開始を離しただけでは出ない", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const period = sectionOf(page, "期間（.refine()）");
+  const error = shownError(page, "開始と終了は別の値にしてください");
+  await period.getByLabel(/^開始/).focus();
+  await period.getByLabel(/^開始/).blur();
+  await period.getByLabel(/^終了/).focus();
+  await expect(error).toHaveCount(0);
+  await period.getByLabel(/^終了/).blur();
+  await expect(error).toHaveCount(1);
+});
+
+test("送信で出た intersection 全体の .refine() のエラーは、開始を直すと消える", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const error = shownError(page, "開始と終了は別の値にしてください");
+  await submit(page);
+  await waitSubmitSettled(page, 1);
+  await expect(error).toHaveCount(1);
+  await sectionOf(page, "期間（.refine()）").getByLabel(/^開始/).fill("5月");
+  await expect(error).toHaveCount(0);
+});
+
+test("子の object の .refine() のエラーは、同じ path の intersection の最後の欄を離すと出る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const section = sectionOf(page, "子の object の .refine()");
+  const error = shownError(
+    page,
+    "パスワードと確認が一致しません（子の refine）",
+  );
+  // 子の object（パスワードの枠）の最後の欄を離しても、intersection の中なので出ない
+  await section.getByLabel(/^確認/).focus();
+  await section.getByLabel(/^確認/).blur();
+  await expect(error).toHaveCount(0);
+  // intersection の最後の欄（名前の枠の「名」）を離すと出る
+  await section.getByLabel(/^名/).focus();
+  await section.getByLabel(/^名/).blur();
+  await expect(error).toHaveCount(1);
+});
+
 test("intersection の外の flat の object は、エラーがあるときだけエラーの Alert を出す", async ({
   page,
   pageErrors: _,

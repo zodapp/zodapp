@@ -1,6 +1,6 @@
 # 入れ物の欄を「触った」「変えた」にするプラン
 
-- ステータス: プラン
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-1axi7l`
 - 対象パッケージ: `@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`apps/form-demo`
 
@@ -41,7 +41,9 @@ zod-form-react の common に、部品 `ContainerMarker`（`{ fieldPath: string 
 - 入れ物の欄の FieldApi は、wrapComponent がもう作っているので、新しく `useZodField` は呼ばない。呼ぶときに `form.getFieldInfo(fieldPath)?.instance` から取る（object・intersection は `field` を受け取らないようにマスクしているため。マスクは、子の入力のたびに入れ物を描き直さないためのもの）
 - 根（`fieldPath === ""`）には置かない。根の `.refine()` のエラーはフォーム全体のエラーで、欄には出ないので、このプランでは扱わない
 
-置く部品：object（`ObjectBodyImplement`）、intersection、array、record（`record`・`record_entries`）。optional の object（`OptionalContainer`）は、中の `ObjectBodyImplement` が置くので足さない。union には置かない（腕の部品が同じ path の目印を置く）。
+置く部品：object（`ObjectBodyImplement`）、intersection、array、record（`record`・`record_entries`）、union。optional の object（`OptionalContainer`）は、中の `ObjectBodyImplement` が置くので足さない。
+
+同じ path の外側の部品の子として描かれるとき（`hideError` か `errorToken` を受け取ったとき。intersection の両側、union の腕）は置かず、外側が置く（`container.tsx` の `ownsContainerMarker`）。置くと、intersection の左側の最後の欄を離しただけで、同じ path の intersection を触ったことになる（「期間」の開始を離しただけで「開始と終了は別の値にしてください」が出る）。そのため union にも置く（プランの初めの版では「union には置かない（腕が置く）」としていたが、腕は `errorToken` を受け取るので置かない）
 
 ### 2.2 触った：前の欄を検証するしくみに乗せる
 
@@ -57,7 +59,9 @@ zod-form-react の common に、部品 `ContainerMarker`（`{ fieldPath: string 
 
 ### 2.3 変えた：入れ物の値が変わったら、入れ物の欄を検証する
 
-`ContainerMarker` は入れ物の欄の値を購読し（`useStore(form.store, …)`。描き直すのは目印だけで、入れ物は描き直さない）、初めて描いたとき以外で値が変わったら、入れ物の欄の `validate("change", { skipFormValidation: true })` を呼ぶ。
+`ContainerMarker` は入れ物の欄の値を購読し（`useStore(form.store, …)`。描き直すのは目印だけで、入れ物は描き直さない）、初めて描いたとき以外で値が変わったら、入れ物の欄の `validate("change", { skipFormValidation: true })` を呼び、onBlur のエラーを消す。
+
+- onBlur も、値が変わっても残る（1.2 の表で、終了を b に変えたあとも残っている）。欄の部品の onChange（`wrapper.tsx`）と同じく、自分で消す。まだ正しくない値なら、同じエラーがフォーム全体の onChange の検証で onChange に入っている
 
 - これで、入れ物の欄の onSubmit が消え、送り直せるようになる（1.2）
 - `validate` は欄が触っていないと何もしない（`if (!this.state.meta.isTouched) return []`）。onSubmit が入るのは送信のあとで、送信は入れ物の欄も含めてすべての欄を触ったことにするので、困らない
@@ -80,7 +84,7 @@ e2e（form-demo）：
 
 - intersection のデモの「期間（.refine()）」で、最後の欄（終了）を離すとエラーが出る
 - 「期間」を送信でエラーにしてから直すと、エラーが消える（ほかの欄のエラーがあるので、送信できるかは単体テストで確かめる）
-- 「子の object の .refine()」で、パスワードの枠の最後の欄（確認）を離すとエラーが出る
+- 「子の object の .refine()」で、パスワードの枠の最後の欄（確認）を離しても出ず、intersection の最後の欄（名前の枠の「名」）を離すと出る。子の object の `.refine()` のエラーは同じ path の intersection に出るので、intersection の最後の欄で出す（2.1）
 
 ## 4. 扱わないこと
 
