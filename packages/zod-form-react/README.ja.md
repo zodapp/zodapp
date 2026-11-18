@@ -201,6 +201,7 @@ zod の `invalid_union`（どの腕にも合わない値の issue）は、欄の
 - `@zodapp/zod-form-mantine`: Mantine UI 実装（`componentLibrary` 同梱）
 - `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
 - `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
+- 仕様の詳細：[欄のエラーの受け渡し](docs/errors.ja.md)、[zf.dynamic の値の扱い](docs/dynamic.ja.md)
 
 ## ライセンス
 
