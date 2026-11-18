@@ -1,7 +1,11 @@
 import React, { useMemo } from "react";
 import { ActionIcon, Group, InputWrapper, Loader, Select } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import {
+  emptinessOf,
+  emptyValueOf,
+  type ZodFormProps,
+} from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import {
   useExternalKeyAction,
@@ -14,6 +18,8 @@ import {
   confirmableRightSectionProps,
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../utils/styles";
+import { FetchErrorView } from "../utils/fetchErrorView";
+import { externalKeyDisplayLabel, withUnlistedOption } from "../utils/unlisted";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -22,26 +28,37 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<ExternalKeySchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema, "externalKey");
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;
+  const allowUnlisted = meta?.allowUnlisted === true;
 
-  const { options, isLoading } = useExternalKeyOptions(schema);
+  const { options, isLoading, retry } = useExternalKeyOptions(schema);
 
   const rawValue = (defaultValue as string | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
-    useConfirmableState(rawValue, fieldPath);
+    useConfirmableState(rawValue, fieldPath, {
+      emptyValue: emptyValueOf({ optional, nullable }),
+    });
   const actionWrapper = useExternalKeyAction(schema, value);
 
+  // 選択肢に無い値は、zod-form-mantine の欄や表のセルと同じく「（不正な値）」と出す（生の値は見せない）。
+  // allowUnlisted なら正しい値なので、値そのものを出す。選択肢が無い（取得に失敗した）ときも、生の値は見せない
   const displayLabel = useMemo(() => {
     if (isLoading) return "Loading...";
     if (!value) return "";
-    const option = options.find((o) => o.value === value);
-    return option?.label ?? String(value);
-  }, [isLoading, options, value]);
+    return externalKeyDisplayLabel(options ?? [], value, allowUnlisted);
+  }, [isLoading, options, value, allowUnlisted]);
+
+  // 編集できる欄では、選択肢に無い値を選べない選択肢として足す（足さないと Select は空欄に見せる）
+  const selectData = useMemo(
+    () => withUnlistedOption(options ?? [], value || null, displayLabel),
+    [options, value, displayLabel],
+  );
 
   const actionContent = actionWrapper
     ? actionWrapper(
@@ -58,6 +75,11 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         </ActionIcon>,
       )
     : null;
+
+  // 取得に失敗したら、再試行のボタンを出す（読み取り専用でも、選択肢が無いと表示名が出せないため）
+  if (retry) {
+    return <FetchErrorView label={label || undefined} retry={retry} />;
+  }
 
   if (readOnly) {
     return (
@@ -81,7 +103,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         data={[]}
         onChange={() => {}}
         label={label || undefined}
-        required={required !== false}
+        required={!(optional || nullable)}
         disabled
         rightSection={<Loader size="xs" />}
         placeholder="Loading..."
@@ -97,7 +119,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         data={[]}
         onChange={() => {}}
         label={label || undefined}
-        required={required !== false}
+        required={!(optional || nullable)}
         disabled
         placeholder="選択肢がありません"
         style={inputWrapperStyle}
@@ -108,12 +130,12 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   const select = (
     <Select
       value={value}
-      data={options}
+      data={selectData}
       onChange={(next) => onChange(next)}
       onBlur={() => void onBlur()}
       label={label || undefined}
       searchable
-      required={required !== false}
+      required={!(optional || nullable)}
       allowDeselect
       clearable
       style={inputWrapperStyle}

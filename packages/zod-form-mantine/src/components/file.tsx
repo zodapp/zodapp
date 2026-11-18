@@ -13,6 +13,8 @@ import {
   wrapComponent,
   useFileResolver,
   useMediaResolvers,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import type {
@@ -42,11 +44,12 @@ const formatFileSize = (bytes: number): string => {
 const FileComponent = wrapComponent(function FileComponentImplement({
   schema,
   label: labelFromParent,
-  required: _required,
+  outer,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<FileSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema, "file");
   const label = labelFromParent ?? meta?.label;
 
@@ -120,12 +123,13 @@ const FileComponent = wrapComponent(function FileComponentImplement({
     [field],
   );
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const handleDelete = useCallback(async () => {
     if (value && resolverResultRef.current.delete) {
       await resolverResultRef.current.delete(value);
     }
-    field.onChange(undefined);
-  }, [value, field]);
+    field.onChange(emptyValue);
+  }, [value, field, emptyValue]);
 
   // プレビュー表示
   const renderPreview = () => {

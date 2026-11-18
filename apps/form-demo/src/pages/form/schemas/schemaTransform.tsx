@@ -11,6 +11,7 @@ import { SegmentedControl, Stack, Tabs, Text } from "@mantine/core";
 import { IconTransform } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "schemaTransform";
 export const title = "スキーマ変形（ビュー派生）";
@@ -62,11 +63,13 @@ const viewDescriptions: Record<View, string> = {
   admin: "管理者ビュー: ベーススキーマそのまま（全項目編集可）",
   member:
     "一般ビュー: hideSchemaFields で管理者項目（rateLimit / internalMemo）を非表示",
-  viewer:
-    "閲覧ビュー: readOnlySchemaFieldsExcept([]) で全項目を読み取り専用に",
+  viewer: "閲覧ビュー: readOnlySchemaFieldsExcept([]) で全項目を読み取り専用に",
   partial:
     "一部編集ビュー: readOnlySchemaFields で name / email 以外を読み取り専用に",
 };
+
+// 見るための部品（値・エラー・送信・ログ）。上の切り替えのフォームに置く
+const harness = [createE2eHarness({ formId })];
 
 export const Component = () => {
   const [view, setView] = useState<View>("admin");
@@ -118,7 +121,7 @@ export const Component = () => {
           key={view}
           schema={viewSchema}
           defaultValues={defaultValues}
-          showPreview={true}
+          actionComponents={harness}
         />
       </div>
 
@@ -132,16 +135,10 @@ export const Component = () => {
             <Tabs.Tab value="admin">管理者設定</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="basic" pt="md">
-            <AutoForm
-              schema={tabSchemas.basic}
-              defaultValues={defaultValues}
-            />
+            <AutoForm schema={tabSchemas.basic} defaultValues={defaultValues} />
           </Tabs.Panel>
           <Tabs.Panel value="admin" pt="md">
-            <AutoForm
-              schema={tabSchemas.admin}
-              defaultValues={defaultValues}
-            />
+            <AutoForm schema={tabSchemas.admin} defaultValues={defaultValues} />
           </Tabs.Panel>
         </Tabs>
       </div>

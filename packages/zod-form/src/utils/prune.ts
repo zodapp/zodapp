@@ -63,7 +63,52 @@ const valuePreprocessors: PreprocessorDef = {
   set: (value) => (value instanceof Set ? value : remove()),
 };
 
+// $remove() の印の型（zod-transform は class を出していないので、作った印から取る）
+const REMOVE_MARKER_CLASS = (remove() as unknown as object).constructor;
+const isRemoved = (value: unknown) =>
+  typeof value === "object" &&
+  value !== null &&
+  value.constructor === REMOVE_MARKER_CLASS;
+
+/**
+ * intersection の両側を別々に削った結果をまとめる。片側でも残したキーは残す
+ * （object の削り方は shape に無いキーを消すので、両側は互いの欄を消し合う。
+ * zod-transform の既定のまとめ方は「片側が消したキー」を消すので使えない）。
+ * 両側が残したキーは、中も同じくまとめる。それ以外は、変えた側の結果を採る
+ */
+const mergePruned = (
+  original: unknown,
+  left: unknown,
+  right: unknown,
+): unknown => {
+  if (isPlainRecord(left) && isPlainRecord(right)) {
+    const merged: Record<string, unknown> = {};
+    for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
+      const inLeft = Object.hasOwn(left, key);
+      const inRight = Object.hasOwn(right, key);
+      merged[key] =
+        inLeft && inRight
+          ? mergePruned(
+              isPlainRecord(original) ? original[key] : undefined,
+              left[key],
+              right[key],
+            )
+          : inLeft
+            ? left[key]
+            : right[key];
+    }
+    return merged;
+  }
+  return Object.is(left, original) ? right : left;
+};
+
 const valueProcessors: ProcessorDef = {
+  intersection: (value, schema: any, context) => {
+    const left = context.transform(value, schema.def.left);
+    const right = context.transform(value, schema.def.right);
+    if (isRemoved(left) || isRemoved(right)) return remove();
+    return mergePruned(value, left, right);
+  },
   optional: (value, schema: any, context) =>
     value === undefined
       ? undefined
@@ -101,33 +146,12 @@ export const pruneValueToSchema = (
     processor: valueProcessors,
   });
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" &&
-  value !== null &&
-  !Array.isArray(value) &&
-  !(value instanceof Date);
-
-/**
- * value に無いキーだけ defaults で補う（入っている値は変えない）。
- */
-const fillMissing = (value: unknown, defaults: unknown): unknown => {
-  if (value === undefined) return defaults;
-  if (!isPlainObject(value) || !isPlainObject(defaults)) return value;
-  const next: Record<string, unknown> = { ...value };
-  for (const [key, defaultValue] of Object.entries(defaults)) {
-    if (defaultValue === undefined) continue;
-    next[key] = fillMissing(value[key], defaultValue);
-  }
-  return next;
-};
-
 /**
  * 値を新しい schema に合わせる。{@link pruneValueToSchema} で合わない値を消し、
- * 無いキーは既定値（{@link getDefaultValue}）で補う。新しい schema で必須になった
- * object を、フォームを開いたときと同じ形で用意する。
+ * 値が無いところを既定値（{@link getDefaultValue} に値を渡したもの）で補う。
+ * 配列の各要素・record の各値・union の腕の中も補う。
  */
 export const adaptValueToSchema = (
   value: unknown,
   schema: z.ZodTypeAny,
-): unknown =>
-  fillMissing(pruneValueToSchema(value, schema), getDefaultValue(schema));
+): unknown => getDefaultValue(schema, pruneValueToSchema(value, schema));

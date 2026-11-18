@@ -35,7 +35,60 @@ pnpm --filter form-demo e2e
 ```
 
 E2E は `e2e/` に、デモページ 1 つにつき spec を 1 つ置きます。spec の手順は、そのページを開いて試す手順と同じにします。
-`all-pages.spec.ts` は、サイドバーのすべてのページが開けて例外が起きないことを確かめます。
+`all-pages.spec.ts` は、サイドバーのすべてのページと、e2e 用のページがすべて開けて例外が起きないことを確かめます。
+
+- ポートは `E2E_PORT`（既定 3000）で変えられる。別の作業コピーの dev サーバーを相手にしないよう、作業コピーごとに分けるときに使う（例：`E2E_PORT=3100 pnpm --filter form-demo e2e`）
+
+### e2e のケースの置き場所
+
+e2e で確かめたいことは、重なるデモページ（メニューに出るデモ）に置き、それに対して e2e を書きます。e2e が失敗したら、同じ URL を開いて同じ手順を手で試せます。
+
+- 欄が足りなければ、そのデモに欄を足す
+- 遅延の分け方の選択・止めておいた取得の「届ける」「失敗させる」・選択肢を届け直すボタンなど、フォームの外から動きを起こす操作は、「動きを試す」の枠（`src/shared/demo/TryBehavior.tsx`）にまとめる。説明は人が読んで分かる日本語で書く
+- 人が開いたときの既定は、デモの見やすいふるまい（ms の遅延など）のままにする。テストは「動きを試す」で分け方を選んでから進める
+
+#### e2e 用のページ（デモに向かないものだけ）
+
+デモに向かないケース（わざと不正な値や古い形の初期値を持たせるなど）だけを、メニューに出ない e2e 用のページに置きます。今は `e2e-open-rewrite` だけです。
+
+- 置き場所：`src/pages/form/schemas/e2e/`。登録簿は `schemas/e2e/index.ts` の `e2eSchemas`（コードのタブは `e2eCodes`）
+- formId は `e2e-` で始める。`/form/detail?formId=e2e-…` で開ける（GitHub Pages のビルドにも含む）
+- サイドバー・一覧・トップは `formSchemas` だけを使うので、e2e のページはメニューに出ない
+- モジュールの形（`formId`・`title`・`description`・`schema`・`defaultValues`・`Component`）は、ほかのデモと同じ
+- ページの説明（`description`）に書く手順と、spec の手順をそろえる
+
+### 見るための部品（`E2eHarness`）と `window.__formDemo`
+
+すべてのデモページに、見るための部品を置きます（`src/components/E2eHarness.tsx`。AutoForm の `actionComponents` に `createE2eHarness({ formId })` を渡す）。詳細ページの汎用の描画は、自動で置きます。
+
+- 画面に、今の値・欄ごとのエラー・isDirty・送信した値と回数・ログ（開閉できる）を出す。「送信」のボタンも持つ
+- 同じ中身を `window.__formDemo` に置く（`formId`・`values`・`errors.fields`・`errors.form`・`isDirty`・`submitted.count`・`submitted.values`・`log`）
+- e2e は、値・エラー・回数・ログを `page.evaluate` で読む（`e2e/helpers.ts` の `formDemo`・`previewValue`・`logOf`）。変わるのを待つときは `expect.poll` を使う。プレビューの文字を JSON として読まない
+- 利用者が見るもの（欄の表示・選択肢・エラーの文言・読み込み中や再試行の表示）は、画面で確かめる
+
+部品を置かない（または一部だけの）ページと、その理由。e2e では、これらのページの値やエラーは画面で確かめる。
+
+- `reactiveBasicInput`・`reactiveEnumSelect`・`reactiveNestedObject`・`reactiveReadOnly`・`reactiveRecord`：`ReactiveAutoForm` で描く。`ReactiveAutoForm` には `actionComponents` が無いので、部品も `window.__formDemo` も無い（今のプレビューだけ。`ReactiveAutoForm` に `actionComponents` は足さないと決めた）
+- `tableView`：フォームではなく表（`AutoTable`）だけなので、部品も `window.__formDemo` も無い
+- `formActions`：部品は置くが `submit: false`（このページは actions のボタンが主題なので、部品の「送信」を出さない）。`window.__formDemo` はある
+
+ログ（`log`）の 1 件は `{ type, at, … }`（`at` はページを開いてからの ms）。
+
+- `value`：値の変更。`changes` に、変わった欄ごとの `path`・`before`・`after`
+- `fetch`：dynamic の取得。`kind`（`subscribe` は externalKey の購読、`load` は dynamic の load）・`field`・`key`・`result`（`called`・`delivered`・`failed`）。externalKey の resolver は欄を知らないので、`field` と `key` は topic
+- `dynamic-status`：DOM の `data-dynamic-status` の移り変わり。`statuses` に、読み込み中・失敗の欄の `label` と `status`
+- `submit`：送信。`result` は `attempted`・`passed`・`blocked`
+
+### 遅延の分け方
+
+デモページで取得の時機を作るときは、ms ではなく、何と競るかで分けます（`src/shared/demo/fetchControl.tsx`。`FetchControlPanel` を「動きを試す」の枠に置く。使っているページ：`dynamicAdvanced`・`externalKeyFilter`）。
+
+- すぐ届く：externalKey は値のある topic を購読する。load は解決済みの Promise を返す
+- 1 フレーム後・2 フレーム後：`requestAnimationFrame` を重ねてから届ける
+- 止めておく：「届ける」「失敗させる」のボタンを押すまで届けない。読み込み中の操作はこれで作る
+- 見やすい遅延：人が開いたときの既定（ms）。テストはこの数字に頼らない
+
+テストは時間を待たず、画面の状態と `window.__formDemo` を待ちます。
 
 ---
 

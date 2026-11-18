@@ -4,9 +4,15 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta, zf } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+  renderComputedValue,
+} from "@zodapp/zod-form-mantine-lite/utils";
 
 type NumberSchema = ReturnType<typeof zf.number>;
 
@@ -25,10 +31,11 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
   schema,
   field,
   label: labelFromParent,
-  required,
+  outer,
   readOnly,
   error,
 }: ZodFormInternalProps<NumberSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
   const { label: labelFromMeta, formatter } = getMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;
@@ -36,16 +43,17 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
 
   const value = toNumberValue(rawValue);
 
+  const emptyValue = emptyValueOf({ optional, nullable });
   const onChange = useCallback(
     (value: string | number | null | undefined) => {
       if (value === "" || value === null || value === undefined) {
-        field.onChange(undefined);
+        field.onChange(emptyValue);
         return;
       }
       const numeric = typeof value === "number" ? value : Number(value);
       field.onChange(Number.isNaN(numeric) ? undefined : numeric);
     },
-    [field],
+    [field, emptyValue],
   );
 
   if (readOnly || field.disabled) {
@@ -55,9 +63,11 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
         labelElement="div"
         style={inputWrapperStyle}
       >
-        {value !== undefined && formatter
-          ? renderComputedValue(formatter(value), "readOnly")
-          : <ReadonlyText>{value}</ReadonlyText>}
+        {value !== undefined && formatter ? (
+          renderComputedValue(formatter(value), "readOnly")
+        ) : (
+          <ReadonlyText>{value}</ReadonlyText>
+        )}
       </InputWrapper>
     );
   }
@@ -71,7 +81,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
       onFocus={onFocus}
       label={label || undefined}
       error={error?.message}
-      required={required !== false}
+      required={!(optional || nullable)}
       disabled={readOnly || field.disabled}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}

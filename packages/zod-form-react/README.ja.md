@@ -129,6 +129,8 @@ export const schema = z.object({
 - **コンテキスト**
   - `useZodFormContext()`: `componentLibrary` / resolvers / timezone などにアクセス
   - `useExternalKeyResolver(config)`: `externalKeyResolvers` から該当 resolver を取得して実行
+  - `useExternalKeyDynamicMeta(schema)` / `useArrayExternalKeyDynamicMeta(schema)`（`@zodapp/zod-form-react/utils/externalKey`）: externalKey の単一選択・複数選択（`z.array(zf.externalKey ...)`）の欄から dynamic の meta を作る。`useDynamicSchema` に渡すと、選択肢から作った schema（既定は enum、`allowUnlisted` なら string + 選択式。複数選択なら、元の配列の制約と meta を引き継いだその配列）が届く。取得の失敗は dynamic の error になり、送信は止まる
+  - `useExternalKeyOptions(schema)`（`@zodapp/zod-form-react/utils/externalKey`）: externalKey の選択肢を購読する。resolver が `onError` を呼ぶと `error` と `retry` を返す（zod-form-mantine-lite の欄は、これで「再試行」を出す）。同じ購読のまま選択肢が届けば戻り、`retry` は購読をやめて最初からやり直す
   - `useFileResolver(config)`: `fileResolvers` から該当 resolver を取得して実行
   - `useMediaResolvers()`: `mediaResolvers`（未指定なら `basicMediaResolvers`）を返す
 - **フォーム/フィールド**
@@ -136,12 +138,22 @@ export const schema = z.object({
   - `useZodField(...)`, `useFormValues(...)`: フィールド/値参照のヘルパー
   - `useArray(fieldApi, fieldPath, discriminator?)`: 配列フィールドの insert/remove/append/move を扱うラッパー
 - **実行時の schema / 編集の出どころ**
-  - `useRunAsUserEdit()`: 渡した関数の中の値の変更を「利用者の編集」として記録する（dynamic の prune の判断に使う）
+  - `useRunAsUserEdit()`: 渡した関数の中の値の変更を「利用者の編集」として記録する（下の「編集の出どころで変わること」を参照）
   - `useDynamicSchema(meta, fieldPath)`: dynamic の resolve を呼び、結果をフォームの登録先に登録する
   - `TableRowProvider` / `useTableRow()`: 表の行の値を渡す（表用の部品はここから `parent` を受け取る）
 - **遅延ロード/検証**
   - `useLazyFactory()`: Dynamic の lazy ロード戦略（デフォルトは `React.lazy`）
   - `useValidatePrecedingFields({ name, ref })`: フォーカス時に「前のフィールド」をまとめて検証（Providerが必要）
+
+### 編集の出どころで変わること（`useRunAsUserEdit`）
+
+値の変更は、利用者の編集か、外から（アプリのコードの書き込み・`reset` など）かを記録します。部品からの入力は利用者の編集です。アプリのコードから利用者の編集として書くときは `useRunAsUserEdit()` で包みます。
+
+出どころで変わるのは、dynamic が取り直した schema に**型が合わない値の prune** だけです。
+
+- 利用者の編集で dynamic の key が変わったときは、値を新しい schema に合わせて削る（新しい schema に無い項目を消す）
+- 外からの変更なら値に触らず、合わない値は検証のエラーとして残す
+- 選択肢に無い値の `unlisted: "clear"` は、出どころに関係なく消す（消すのは利用者の編集として書くので、下の dynamic へ連鎖する）
 
 Provider コンポーネント:
 
@@ -149,6 +161,25 @@ Provider コンポーネント:
 - `FormProvider`: `useZodForm` で作った form を供給
 - `LazyProvider`: `useLazyFactory` の実装を差し替える
 - `ValidatePrecedingFieldsProvider`: `useValidatePrecedingFields` を有効化する
+
+## 部品の props（`ZodFormProps`）
+
+部品（`componentLibrary` に入れる React コンポーネント）は、`ZodFormProps` を受け取ります。
+
+- `fieldPath` / `schema` / `defaultValue` / `readOnly` / `label`
+- `optional`: 外側の `.optional()`（と `.default()`）の中の部品なら `true`。書かないときは必須として扱う
+- `nullable`: 外側の `.nullable()` の中の部品なら `true`。`.optional().nullable()` のように重なると両方 `true`
+
+ラベルの必須の印（Mantine の `required`）は、`!(optional || nullable)` で決めます。
+値を空にするとき、部品は `optional` なら `undefined`、`nullable` だけなら `null` を書きます（両方なら `undefined`。どちらでもない必須の欄は `undefined` を書き、「必須」のエラーにする）。自作の部品は `emptyValueOf({ optional, nullable })` でこの値を得られます。
+
+> 以前の `required?: boolean`（`false` で optional）は `optional?: boolean` に置き換えました。自作の部品は `required !== false` を `!(optional || nullable)` に、`required={false}` を `optional={true}` に読み替えてください。
+
+### union の腕のエラーの置き場所
+
+zod の `invalid_union`（どの腕にも合わない値の issue）は、欄のエラーに残ります。`wrapComponent` と配列の欄は `invalid_union` を表示しません。zf.union の部品が `invalid_union` を読み、選んだ腕のエラーを同じ欄（と object の腕の子の欄）の errorMap の `onDynamic` に足します。
+
+`onDynamic` は、既定の検証の流れ（TanStack Form の `defaultValidationLogic`）では TanStack が読み書きしない枠です。`revalidateLogic` や欄ごとの `validators.onDynamic` を使うフォームでは、この枠がぶつかることがあります。
 
 ## `basicMediaResolvers`
 
@@ -168,7 +199,8 @@ Provider コンポーネント:
 
 - `@zodapp/zod-form`: React 非依存の `zf`
 - `@zodapp/zod-form-mantine`: Mantine UI 実装（`componentLibrary` 同梱）
-- `@zodapp/zod-form-firebase`: Firestore / Storage resolver
+- `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
+- `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
 
 ## ライセンス
 

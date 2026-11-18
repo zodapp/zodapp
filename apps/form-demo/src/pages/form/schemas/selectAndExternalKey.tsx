@@ -5,6 +5,7 @@ import { Button, Group, Stack, Switch, Text } from "@mantine/core";
 import { IconListSearch } from "@tabler/icons-react";
 
 import { AutoForm } from "../../../components/AutoForm";
+import { createE2eHarness } from "../../../components/E2eHarness";
 import {
   demoExternalKeyResolvers,
   demoTopics,
@@ -93,7 +94,7 @@ export const schema = z
         },
       }),
     // ============================================================
-    // externalKey：選択肢は resolver から届く（モックは 0.4 秒待つ）
+    // externalKey：選択肢は resolver から届く（デモでは 0.4 秒待たせる）
     // ============================================================
     assignee: zf.string().register(zf.externalKey.registry, {
       label: "externalKey（既定：選択肢に無い値は誤り）+ valueAction",
@@ -108,7 +109,7 @@ export const schema = z
     slowAssignee: zf.string().register(zf.externalKey.registry, {
       label:
         "externalKey（取得に 3 秒かかる。読み込み中は選べず、送信も止まる）",
-      externalKeyConfig: { type: "mock", topic: "users", delayMs: 3000 },
+      externalKeyConfig: { type: "mock", topic: "users", demoDelayMs: 3000 },
     }),
     // ============================================================
     // 同じ購読のまま選択肢が届き直す externalKey（フォームの上のボタンで topic を変える）
@@ -156,6 +157,9 @@ export type SchemaType = z.infer<typeof schema>;
 const deliverOnDuty = (without?: string) =>
   demoTopics.onDuty.set(users.filter((user) => user.value !== without));
 
+// 見るための部品（値・エラー・送信・ログ）
+const harness = [createE2eHarness({ formId })];
+
 export const Component = () => {
   const [rotating, setRotating] = useState(false);
 
@@ -199,7 +203,7 @@ export const Component = () => {
         defaultValues={defaultValues}
         externalKeyResolvers={demoExternalKeyResolvers}
         valueActionResolver={demoValueActionResolver}
-        showPreview={true}
+        actionComponents={harness}
       />
     </Stack>
   );

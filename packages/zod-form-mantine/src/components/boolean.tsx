@@ -4,6 +4,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -13,11 +14,12 @@ type BooleanSchema = ReturnType<typeof zf.boolean>;
 const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   schema,
   label: labelFromParent,
-  required,
+  outer,
   readOnly,
   field,
   error,
 }: ZodFormInternalProps<BooleanSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { uiType, label: labelFromMeta } = getMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
@@ -33,7 +35,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
     onBlur: field.onBlur,
     onChange: onChange,
     onFocus: onFocus,
-    required: required !== false,
+    required: !(optional || nullable),
     disabled: readOnly || field.disabled,
   };
 
@@ -53,7 +55,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   return (
     <InputWrapper
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       error={error?.message}
       style={{ ...inputWrapperStyle, marginBottom: 3, marginTop: 3 }}
       labelElement="div"
@@ -63,7 +65,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
           size="md"
           ref={ref}
           {...commonSwitchProps}
-          required={required !== false}
+          required={!(optional || nullable)}
         />
       </div>
     </InputWrapper>

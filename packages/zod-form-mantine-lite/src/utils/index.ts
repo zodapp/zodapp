@@ -11,7 +11,15 @@ export {
   parseCssColor,
 } from "./badgeColor";
 export { BadgeSelect, type BadgeSelectProps } from "./badgeSelect";
-export { useEnumData, toEnumOptionValue, fromEnumOptionValue } from "./enum";
+export {
+  useEnumData,
+  toEnumOptionValue,
+  fromEnumOptionValue,
+  choicesOf,
+  isEmptyOption,
+  useChoices,
+  type Choices,
+} from "./enum";
 export {
   renderComputedValue,
   renderComputedFieldValue,
@@ -23,3 +31,11 @@ export {
   type NormalizedStringSuggestion,
 } from "./stringSuggestions";
 export { ValueActionIcon, WithValueAction } from "./valueAction";
+export {
+  UNLISTED_LABEL,
+  isEnumValueListed,
+  externalKeyDisplayLabel,
+  withUnlistedOption,
+  type UnlistedSelectOption,
+} from "./unlisted";
+export { FetchErrorView } from "./fetchErrorView";

@@ -5,7 +5,7 @@ import { IconBolt } from "@tabler/icons-react";
 export const formId = "dynamicSchema";
 export const title = "zf.dynamic";
 export const description =
-  "入力内容でスキーマを切り替える（通知方法ごとの設定項目）";
+  "入力内容でスキーマを切り替える（通知方法ごとの設定項目）。決まったスキーマの既定値（.default()）は、値が無いところに補う（開いたときの「本文の形式」、Webhook に切り替えたときの「再試行の回数」）";
 export const icon = IconBolt;
 export const category = "Advanced";
 
@@ -30,6 +30,16 @@ const notificationSchemas = {
         .string()
         .register(zf.string.registry, { label: "宛先", uiType: "email" }),
       subject: zf.string().register(zf.string.registry, { label: "件名" }),
+      // 初期値（defaultValues）には無い欄。開いてスキーマが決まると、既定値で補う
+      format: zf
+        .enum([
+          zf
+            .literal("text")
+            .register(zf.literal.registry, { label: "テキスト" }),
+          zf.literal("html").register(zf.literal.registry, { label: "HTML" }),
+        ])
+        .register(zf.enum.registry, { label: "本文の形式" })
+        .default("text"),
     })
     .register(zf.object.registry, { uiType: "box" }),
   slack: z
@@ -48,6 +58,13 @@ const notificationSchemas = {
     .object({
       type: typeField,
       url: zf.string().register(zf.string.registry, { label: "URL" }),
+      // Webhook に切り替えると、既定値で補う
+      retries: zf
+        .number()
+        .int()
+        .min(0)
+        .register(zf.number.registry, { label: "再試行の回数" })
+        .default(3),
       secret: zf
         .string()
         .register(zf.string.registry, {
@@ -75,8 +92,7 @@ export const schema = z
       .register(zf.dynamic.registry, {
         label: "通知設定",
         resolve: asRegistrySchemaResolver(({ value }) => {
-          const type = (value as { type?: NotificationType } | undefined)
-            ?.type;
+          const type = (value as { type?: NotificationType } | undefined)?.type;
           return type
             ? { schema: notificationSchemas[type], key: type }
             : { schema: fallbackSchema, key: "" };

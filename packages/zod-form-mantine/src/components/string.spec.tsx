@@ -78,7 +78,6 @@ describe("StringComponent sanity", () => {
               <StringComponent
                 fieldPath="name"
                 schema={formSchema.shape.name}
-                required
                 readOnly={false}
               />
             </FormProvider>
@@ -125,7 +124,6 @@ describe("StringComponent sanity", () => {
               <StringComponent
                 fieldPath="name"
                 schema={formSchema.shape.name}
-                required
                 readOnly={false}
               />
             </FormProvider>
@@ -179,7 +177,6 @@ describe("StringComponent sanity", () => {
               <StringMultilineComponent
                 fieldPath="enabled"
                 schema={formSchema.shape.enabled}
-                required
                 readOnly={false}
               />
             </FormProvider>

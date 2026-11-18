@@ -10,9 +10,15 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
-import { ReadonlyText, inputWrapperStyle, renderComputedValue } from "@zodapp/zod-form-mantine-lite/utils";
+import {
+  ReadonlyText,
+  inputWrapperStyle,
+  renderComputedValue,
+} from "@zodapp/zod-form-mantine-lite/utils";
 import z from "zod";
 
 type StringSchema = z.ZodString;
@@ -22,13 +28,13 @@ const StringLazyComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter } =
-      getMeta(schema, "string") ?? {};
+    const { label: labelFromMeta, formatter } = getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
     const value = typeof field.value === "string" ? field.value : "";
@@ -52,10 +58,11 @@ const StringLazyComponent = wrapComponent(
       [],
     );
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onBlur = useCallback(() => {
-      field.onChange(localValue || undefined);
+      field.onChange(localValue || emptyValue);
       field.onBlur();
-    }, [field, localValue]);
+    }, [field, localValue, emptyValue]);
 
     const disabled = useMemo(
       () => readOnly || field.disabled,
@@ -69,9 +76,11 @@ const StringLazyComponent = wrapComponent(
           labelElement="div"
           style={inputWrapperStyle}
         >
-          {value && formatter
-            ? renderComputedValue(formatter(value), "readOnly")
-            : <ReadonlyText>{value}</ReadonlyText>}
+          {value && formatter ? (
+            renderComputedValue(formatter(value), "readOnly")
+          ) : (
+            <ReadonlyText>{value}</ReadonlyText>
+          )}
         </InputWrapper>
       );
     }
@@ -85,7 +94,7 @@ const StringLazyComponent = wrapComponent(
         onFocus={onFocus}
         label={label || undefined}
         error={error?.message}
-        required={required !== false}
+        required={!(optional || nullable)}
         disabled={disabled}
         style={inputWrapperStyle}
       />

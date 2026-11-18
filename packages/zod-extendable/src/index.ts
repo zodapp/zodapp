@@ -177,6 +177,13 @@ export const extendUnion = <TMeta extends object>(
 ) => extendCustom(z.union, "union", metaSchema);
 
 /**
+ * `z.intersection()` をメタ付きに拡張します。
+ */
+export const extendIntersection = <TMeta extends object>(
+  metaSchema?: z.ZodType<TMeta>,
+) => extendCustom(z.intersection, "intersection", metaSchema);
+
+/**
  * `z.enum()` をメタ付きに拡張します。
  *
  * `z.literal(\"A\")` の配列から enum を生成し、各 literal schema もメタに保持します。

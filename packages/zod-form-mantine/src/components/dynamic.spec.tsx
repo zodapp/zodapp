@@ -14,6 +14,7 @@ import {
   FormRuntime,
   ZodFormContextProvider,
   useArray,
+  useDefaultValuesWithFills,
   useZodField,
   useZodForm,
   wrapComponent,
@@ -195,14 +196,20 @@ const makeRowSchema = () =>
     .object({ pref: z.string(), city: makeCitySchema() })
     .register(zf.object.registry, { properties: ["pref", "city"] });
 
-const renderForm = (staticSchema: z.ZodTypeAny, defaultValues: unknown) => {
+const renderForm = (
+  staticSchema: z.ZodTypeAny,
+  defaultValues: unknown,
+  options: { withFills?: boolean } = {},
+) => {
   const runtime = new FormRuntime();
   const validator = runtime.wrapValidator<any>(staticSchema);
   const onSubmit = vi.fn();
   let form: AnyFormApi | undefined;
   const FormUnderTest = () => {
+    // AutoForm と同じく、dynamic が補った既定値を defaultValues にも入れる
+    const withFills = useDefaultValuesWithFills(runtime, defaultValues);
     const f = useZodForm({
-      defaultValues: defaultValues as any,
+      defaultValues: (options.withFills ? withFills : defaultValues) as any,
       validators: { onChange: validator, onSubmit: validator },
       onSubmit: ({ value }) => onSubmit(value),
     });
@@ -442,6 +449,113 @@ describe("dynamic", () => {
     await ctl.flush("osaka");
     await screen.findByTestId("value-city");
     expect(t.getForm().getFieldValue("city")).toBe("shinjuku");
+  });
+
+  it("利用者の編集で prune しても、削った欄を「触った」「変えた」にしない", async () => {
+    const detail = z.unknown().register(
+      zf.dynamic.registry,
+      defineDynamicMeta<unknown, { kind?: string }>({
+        dependsOnValue: false,
+        dependsOnParent: true,
+        resolve: ({ parent }) => ({
+          key: parent?.kind ?? "",
+          schema:
+            parent?.kind === "short"
+              ? z.object({ x: z.string() })
+              : z.object({ x: z.string(), y: z.string() }),
+        }),
+      }),
+    );
+    const root = z
+      .object({ kind: z.string(), detail })
+      .register(zf.object.registry, { properties: ["kind", "detail"] });
+    const t = renderForm(root, { kind: "long", detail: { x: "1", y: "2" } });
+    await screen.findByTestId("value-detail.y");
+    await t.edit("kind", "short");
+    await waitFor(() =>
+      expect(t.getForm().getFieldValue("detail")).toEqual({ x: "1" }),
+    );
+    expect(t.getForm().getFieldMeta("detail")?.isTouched).toBe(false);
+    expect(t.getForm().getFieldMeta("detail")?.isDirty).toBe(false);
+  });
+
+  describe("最初に決まったときに既定値を補う", () => {
+    const makeRoot = (optional = false) => {
+      const base = z.unknown().register(
+        zf.dynamic.registry,
+        defineDynamicMeta({
+          dependsOnValue: false,
+          resolve: () => ({
+            key: "fixed",
+            schema: z.object({
+              x: z.string().default("a"),
+              items: z.array(
+                z.object({ name: z.string(), qty: z.number().default(1) }),
+              ),
+            }),
+          }),
+        }),
+      );
+      return z
+        .object({ detail: optional ? base.optional() : base })
+        .register(zf.object.registry, { properties: ["detail"] });
+    };
+
+    it("値が無ければ、決まった schema の既定値を入れる", async () => {
+      const t = renderForm(makeRoot(), {});
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("detail")).toEqual({
+          x: "a",
+          items: [],
+        }),
+      );
+    });
+
+    it("保存済みの値は変えず、配列の要素の中も含めて無いところだけを補う。「触った」「変えた」にしない", async () => {
+      const t = renderForm(makeRoot(), {
+        detail: { x: "keep", items: [{ name: "n" }], extra: 1 },
+      });
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("detail")).toEqual({
+          x: "keep",
+          items: [{ name: "n", qty: 1 }],
+          extra: 1,
+        }),
+      );
+      expect(t.getForm().getFieldMeta("detail")?.isTouched).toBe(false);
+      expect(t.getForm().getFieldMeta("detail")?.isDirty).toBe(false);
+    });
+
+    it("AutoForm と同じく defaultValues にも補いを入れると、開いただけでは isDefaultValue のままで、reset でも補いが残る", async () => {
+      const t = renderForm(
+        makeRoot(),
+        { detail: { x: "keep", items: [{ name: "n" }] } },
+        { withFills: true },
+      );
+      const filled = { x: "keep", items: [{ name: "n", qty: 1 }] };
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("detail")).toEqual(filled),
+      );
+      await waitFor(() => expect(t.getForm().state.isDefaultValue).toBe(true));
+
+      await act(async () => {
+        t.getForm().setFieldValue("detail.x" as never, "changed" as never);
+      });
+      expect(t.getForm().state.isDefaultValue).toBe(false);
+
+      await act(async () => {
+        t.getForm().reset();
+      });
+      expect(t.getForm().getFieldValue("detail")).toEqual(filled);
+      expect(t.getForm().state.isDefaultValue).toBe(true);
+    });
+
+    it("optional で値が無ければ補わない", async () => {
+      const t = renderForm(makeRoot(true), {});
+      await screen.findAllByTestId(/value-/).catch(() => undefined);
+      await act(async () => {});
+      expect(t.getForm().getFieldValue("detail")).toBeUndefined();
+    });
   });
 
   it("runAsUserEdit は Promise を返す関数を受け付けない", () => {

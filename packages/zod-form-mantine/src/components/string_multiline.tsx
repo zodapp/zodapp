@@ -4,6 +4,8 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
@@ -22,30 +24,35 @@ const StringMultilineComponent = wrapComponent(
     schema,
     field,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     error,
   }: ZodFormInternalProps<StringSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter, suggestions } =
-      getMeta(schema, "string") ?? {};
+    const {
+      label: labelFromMeta,
+      formatter,
+      suggestions,
+    } = getMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const suggestionData = normalizeStringSuggestions(suggestions);
 
     const value = typeof field.value === "string" ? field.value : "";
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        field.onChange(event.target.value || undefined);
+        field.onChange(event.target.value || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     const setSuggestionValue = useCallback(
       (nextValue: string) => {
-        field.onChange(nextValue || undefined);
+        field.onChange(nextValue || emptyValue);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {
@@ -76,7 +83,7 @@ const StringMultilineComponent = wrapComponent(
           onFocus={onFocus}
           label={label || undefined}
           error={error?.message}
-          required={required !== false}
+          required={!(optional || nullable)}
           disabled={readOnly || field.disabled}
           style={inputWrapperStyle}
           autosize

@@ -8,6 +8,7 @@ import {
   ZodFormInternalProps,
   getDefaultValue,
   wrapComponent,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 
@@ -48,12 +49,13 @@ const RecordEntriesComponent = wrapComponent(
     fieldPath,
     schema,
     defaultValue,
-    required,
+    outer,
     readOnly,
     label: labelFromParent,
     error,
     field,
   }: ZodFormInternalProps<RecordSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const meta = getMeta(schema);
     const valueSchema = schema.def.valueType;
     const keySchema = schema.def.keyType;
@@ -172,7 +174,7 @@ const RecordEntriesComponent = wrapComponent(
                   fieldPath={joinFieldPath(fieldPath, row.key)}
                   schema={valueSchema}
                   defaultValue={value[row.key]}
-                  required={undefined}
+                  outer={undefined}
                   readOnly={readOnly}
                   label="値"
                 />
@@ -212,7 +214,7 @@ const RecordEntriesComponent = wrapComponent(
     return (
       <InputWrapper
         label={label || undefined}
-        required={required !== false}
+        required={!(optional || nullable)}
         error={error?.message}
         labelElement="div"
         style={inputWrapperStyle}

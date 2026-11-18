@@ -4,6 +4,7 @@ import {
   type QueryFunction,
 } from "@zodapp/zod-dynamodb-client";
 import type {
+  ExternalKeyErrorHandler,
   ExternalKeyOptionsHandler,
   ExternalKeyResolverEntry,
 } from "@zodapp/zod-form/externalKey/types";
@@ -59,6 +60,7 @@ export type DynamoExternalKeyResolverOptions<TType extends string> = {
 /**
  * 外部キーの選択肢の Resolver。登録簿のクエリを読み、`live` があれば購読し続ける
  * （メンバーが増えれば選択肢も増える）。`live` がなければ、全体を 1 回だけ読む。
+ * store が error になったら onError を呼ぶ（欄は error になり、再試行が出る）。
  *
  * ```ts
  * const resolvers = [createDynamoExternalKeyResolver(api)];
@@ -77,11 +79,18 @@ export const createDynamoExternalKeyResolver = <TType extends string = "dynamodb
     );
     const params = core.params(context);
     return {
-      subscribe: (callback: ExternalKeyOptionsHandler) => {
+      subscribe: (
+        callback: ExternalKeyOptionsHandler,
+        onError?: ExternalKeyErrorHandler,
+      ) => {
         const fn = resolveQuery(api, core.query);
         const store = fn.live ? fn.live(params) : onceListStore(fn, params);
         const emit = () => {
           const state = store.getState();
+          if (state.status === "error") {
+            onError?.(state.error ?? new Error(`query failed: "${core.query}"`));
+            return;
+          }
           if (state.status !== "ready") return;
           const { filter } = core;
           const items = filter ? state.items.filter((item) => filter(item, context)) : state.items;

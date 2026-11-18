@@ -3,17 +3,22 @@
  *
  * - externalKey: 下のデータを topic（createMockTopic）に入れ、createMockExternalKeyResolver で選択肢として届ける。
  *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする。
- *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う
+ *   親が空のとき（`cities/`・`towns/`）は、空の topic で 0 件の選択肢を届ける（無い topic は失敗になるため）。
+ *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う。
+ *   モックは待たずに届けるので、読み込み中を見せるためにデモの側で包んで遅らせる（withDemoDelay）
  * - valueAction: getActionParams が返す href をリンクにする
  */
 import { Anchor } from "@mantine/core";
 import {
   createMockExternalKeyResolver,
   createMockTopic,
+  type ExternalKeyResolverEntry,
   type ExternalKeyResolvers,
   type MockExternalKeyOption,
 } from "@zodapp/zod-form";
 import type { ValueActionResolver } from "@zodapp/zod-form-react/common";
+import type { WebExternalKeyConfig } from "../types/externalKeyConfig";
+import { withFetchLog } from "./formDemoLog";
 
 export const users: MockExternalKeyOption[] = [
   { label: "山田 太郎", value: "u-001" },
@@ -95,11 +100,40 @@ export const demoTopics = {
   onDuty: createMockTopic(users),
   ...topicsOf("cities", cities),
   ...topicsOf("towns", towns),
+  // 親が空のときの topic。0 件の選択肢を届け、欄に「選択肢がありません」（emptyMessage）を出す
+  "cities/": createMockTopic<MockExternalKeyOption[]>([]),
+  "towns/": createMockTopic<MockExternalKeyOption[]>([]),
 };
 
-export const demoExternalKeyResolvers: ExternalKeyResolvers = [
-  createMockExternalKeyResolver({ delayMs: 400, topics: demoTopics }),
-];
+/**
+ * resolver を包み、購読を始めるまで待たせる。人が読み込み中を見られるようにするためのもので、
+ * 待つ時間は config の `demoDelayMs`（無ければ defaultMs）。テストはこの時間に頼らない
+ */
+export const withDemoDelay = (
+  entry: ExternalKeyResolverEntry<"mock", WebExternalKeyConfig>,
+  defaultMs: number,
+): ExternalKeyResolverEntry<"mock", WebExternalKeyConfig> => ({
+  type: entry.type,
+  resolver: (config, resolverContext) => ({
+    subscribe: (callback, onError) => {
+      let unsubscribe: (() => void) | undefined;
+      const timer = setTimeout(() => {
+        unsubscribe = entry
+          .resolver(config, resolverContext)
+          .subscribe(callback, onError);
+      }, config.demoDelayMs ?? defaultMs);
+      return () => {
+        clearTimeout(timer);
+        unsubscribe?.();
+      };
+    },
+  }),
+});
+
+// 購読・届いた選択肢・失敗は、見るための部品のログに書く
+export const demoExternalKeyResolvers: ExternalKeyResolvers = withFetchLog([
+  withDemoDelay(createMockExternalKeyResolver({ topics: demoTopics }), 400),
+]);
 
 /** 値を、getActionParams が返した href へのリンクで包む */
 export const demoValueActionResolver: ValueActionResolver = ({

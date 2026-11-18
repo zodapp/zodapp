@@ -87,9 +87,9 @@ export const MyForm = () => {
 
 ## 外部キー / ファイルResolver
 
-外部キー（Firestore）やファイルアップロード（Firebase Storage）を使う場合は、`ZodFormContextProvider` に `externalKeyResolvers` / `fileResolvers` を渡します。
+外部キーやファイルアップロードを使う場合は、`ZodFormContextProvider` に `externalKeyResolvers` / `fileResolvers` を渡します。
 
-具体例は `@zodapp/zod-form-firebase` を参照してください。
+具体例は、外部キーは `@zodapp/zod-form-dynamodb`（DynamoDB から選択肢を読む）、ファイルは `@zodapp/zod-form-s3`（S3 に保存する）を参照してください。
 
 ## サブパス export
 
@@ -117,7 +117,8 @@ export const MyForm = () => {
 
 - `@zodapp/zod-form`: `zf`（スキーマ拡張）
 - `@zodapp/zod-form-react`: React 基盤（自前UIの場合）
-- `@zodapp/zod-form-firebase`: Firestore / Storage resolver
+- `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
+- `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
 
 ## ライセンス
 

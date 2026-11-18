@@ -99,6 +99,31 @@ export const useFormApi = <TForm extends AnyFormApi = AnyFormApi>() => {
 
 export const useZodForm = useTanstackForm;
 
+/**
+ * defaults に、runtime に登録された既定値の補い（{@link FormRuntime.setDefaultFill}）を入れた値を返す。
+ * `useZodForm` の defaultValues に渡すと、dynamic が補った値も「初期値のまま」
+ * （isDefaultValue）とみなされ、reset でも残る。登録が変わると描画し直す
+ */
+export const useDefaultValuesWithFills = <T,>(
+  runtime: FormRuntime,
+  defaults: T,
+): T => {
+  const version = useSyncExternalStore(
+    useCallback(
+      (onChange: () => void) => runtime.subscribeDefaultFills(onChange),
+      [runtime],
+    ),
+    () => runtime.getDefaultFillsVersion(),
+    () => runtime.getDefaultFillsVersion(),
+  );
+  return useMemo(
+    () => runtime.applyDefaultFills(defaults),
+    // version は登録が変わったときに計算し直すため
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [runtime, defaults, version],
+  );
+};
+
 type UseFieldOpts = Parameters<typeof useTanstackField>[0];
 
 /**

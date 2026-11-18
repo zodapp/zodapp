@@ -13,6 +13,7 @@ import {
   extendString,
   extendTuple,
   extendUnion,
+  extendIntersection,
   extendCustom,
   getMeta as getZodExtendableMeta,
   MetaOf,
@@ -147,12 +148,7 @@ export type FnSourceMeta = {
 };
 
 // contextId の値で context の型を絞る
-type FnWithContextVariants<
-  TKey extends string,
-  TValue,
-  TParent,
-  TResult,
-> =
+type FnWithContextVariants<TKey extends string, TValue, TParent, TResult> =
   | ({ contextId?: undefined } & {
       [P in TKey]: (input: FnInput<TValue, TParent, undefined>) => TResult;
     })
@@ -189,11 +185,9 @@ export type FnMeta<TKey extends string, TValue, TParent, TResult> = {
  * computed の meta。値を持たない欄（z.never）に付ければ表示専用、
  * 値を持つ欄に付ければその値から表示を作る。
  */
-export type ComputedMetaDef<
-  TResult,
-  TValue = any,
-  TParent = any,
-> = z.infer<typeof zodExtendableCommonDefSchema> &
+export type ComputedMetaDef<TResult, TValue = any, TParent = any> = z.infer<
+  typeof zodExtendableCommonDefSchema
+> &
   FnMeta<"compute", TValue, TParent, TResult>;
 
 /** dynamic の resolve が返す schema と、その schema を見分ける key */
@@ -277,18 +271,26 @@ export type ExternalKeyMetaDef = z.infer<
   /** 選んだ値に対する操作（リンクで開くなど） */
   valueAction?: RegisteredValueActionConfig;
   /**
-   * 選択肢に無い値も通す（string + 選択式にする）。
-   * 既定 false（enum で厳しく検証する）
+   * 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」）。
+   * 必須の欄では、0件のあいだこの文言を欄のエラーにする（「必ず入力してください」の代わり。送信は止まる）。
+   * optional の欄は、無効にして文言を出すだけでエラーにしない
    */
-  allowUnlisted?: boolean;
-  /**
-   * 値が選択肢に無いときの扱い（選択肢の enum に渡す）。
-   * clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
-   */
-  unlisted?: UnlistedPolicy;
-  /** 選択肢が0件のときに出す文言（選択肢の enum に渡す。既定「選択肢がありません」） */
   emptyMessage?: string;
-};
+} & ExternalKeyUnlistedOptions;
+
+/**
+ * externalKey の、選択肢に無い値の扱い。
+ *
+ * - `allowUnlisted`：選択肢に無い値も正しい値として通す（string + 選択式にする）。既定 false（enum で厳しく検証する）
+ * - `unlisted`：選択肢に無い値を誤りとするときの扱い（選択肢の enum に渡す）。
+ *   clear：消す（既定）。keep：残して「（不正な値）」と出し、エラーにする
+ *
+ * `allowUnlisted: true` のときは選択肢に無い値も正しい値なので、`unlisted` は効かない。
+ * 両方を同時に書けないよう、型で止める
+ */
+export type ExternalKeyUnlistedOptions =
+  | { allowUnlisted?: false; unlisted?: UnlistedPolicy }
+  | { allowUnlisted: true; unlisted?: never };
 
 export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
   /**
@@ -300,9 +302,8 @@ export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
 
 export type RegistryValue<TValue> = z.core.$replace<TValue, z.ZodTypeAny>;
 
-export const asRegistryValue = <TValue,>(
-  value: TValue,
-): RegistryValue<TValue> => value as unknown as RegistryValue<TValue>;
+export const asRegistryValue = <TValue>(value: TValue): RegistryValue<TValue> =>
+  value as unknown as RegistryValue<TValue>;
 
 /**
  * resolve 関数を registry に渡せる型にする。Promise や購読を返す resolve は、
@@ -329,8 +330,7 @@ export const asRegistrySchemaResolver = <
  */
 export const defineDynamicMeta = <TValue = any, TParent = any>(
   meta: DynamicMetaDef<TValue, TParent>,
-): RegistryValue<DynamicMetaDef> =>
-  asRegistryValue(meta as DynamicMetaDef);
+): RegistryValue<DynamicMetaDef> => asRegistryValue(meta as DynamicMetaDef);
 
 // 値ごとの操作（選んだ値をリンクで開くなど）。実行時の resolver が解釈するため、core では構造だけ受ける
 const valueActionSchema = z.custom<RegisteredValueActionConfig>().optional();
@@ -501,7 +501,9 @@ const zf = {
       unlisted: unlistedSchema,
       /**
        * 選択肢が0件のときに出す文言（既定「選択肢がありません」）。
-       * 0件のあいだは欄を無効にし、必須エラーは出さない（ここでは直せないため）
+       * 0件のあいだは欄を無効にする。必須の欄では、schema のエラー（必須のエラー）をこの欄に出す。
+       * externalKey の選択肢から作る enum は、0件のときこの文言を schema のエラーにするので、
+       * 「必ず入力してください」の代わりにこの文言が出る（送信は止まる）。optional の欄はエラーにしない
        */
       emptyMessage: z.string().optional(),
     }),
@@ -515,8 +517,13 @@ const zf = {
       unselectedLabel: z.string().optional(),
       hideSelector: z.boolean().optional(),
       readOnlySelector: z.boolean().optional(),
+      // literal だけの union を uiType: "select"・"badge" で描くとき、値が選択肢に無いときの扱い
+      // （enum の unlisted と同じ）。既定 clear
+      unlisted: unlistedSchema,
     }),
   ),
+  // 両側を同じ path に並べる。入れ物の見せ方は object と同じ uiType（box・horizontal・horizontal-wrap）
+  intersection: extendIntersection(zodExtendableCommonDefSchema),
   common,
   hidden,
   externalKey,

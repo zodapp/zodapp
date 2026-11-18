@@ -19,10 +19,14 @@ import * as date from "./date";
 import * as time from "./time";
 import * as enumSelect from "./enumSelect";
 import * as union from "./union";
+import * as unionArms from "./unionArms";
 import * as discriminatedUnion from "./discriminatedUnion";
 import * as discriminatedUnionAsTopLevel from "./discriminatedUnionAsTopLevel";
 import * as arrayFields from "./arrayFields";
 import * as nestedObject from "./nestedObject";
+import * as nullableFields from "./nullableFields";
+import * as literalUnionSelect from "./literalUnionSelect";
+import * as intersection from "./intersection";
 import * as refineValidation from "./refineValidation";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
@@ -54,10 +58,14 @@ import dateCode from "./date.ts?raw";
 import timeCode from "./time.ts?raw";
 import enumSelectCode from "./enumSelect.ts?raw";
 import unionCode from "./union.ts?raw";
-import discriminatedUnionCode from "./discriminatedUnion.ts?raw";
+import unionArmsCode from "./unionArms.tsx?raw";
+import discriminatedUnionCode from "./discriminatedUnion.tsx?raw";
 import discriminatedUnionAsTopLevelCode from "./discriminatedUnionAsTopLevel.ts?raw";
 import arrayFieldsCode from "./arrayFields.ts?raw";
 import nestedObjectCode from "./nestedObject.ts?raw";
+import nullableFieldsCode from "./nullableFields.ts?raw";
+import literalUnionSelectCode from "./literalUnionSelect.ts?raw";
+import intersectionCode from "./intersection.ts?raw";
 import refineValidationCode from "./refineValidation.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
@@ -77,9 +85,13 @@ export const formSchemas = {
   [enumSelect.formId]: enumSelect,
   [arrayFields.formId]: arrayFields,
   [nestedObject.formId]: nestedObject,
+  [nullableFields.formId]: nullableFields,
+  [literalUnionSelect.formId]: literalUnionSelect,
+  [intersection.formId]: intersection,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
   [union.formId]: union,
+  [unionArms.formId]: unionArms,
   [discriminatedUnion.formId]: discriminatedUnion,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
   [recursiveData.formId]: recursiveData,
@@ -114,9 +126,13 @@ export const formCodes = {
   [enumSelect.formId]: enumSelectCode,
   [arrayFields.formId]: arrayFieldsCode,
   [nestedObject.formId]: nestedObjectCode,
+  [nullableFields.formId]: nullableFieldsCode,
+  [literalUnionSelect.formId]: literalUnionSelectCode,
+  [intersection.formId]: intersectionCode,
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
   [union.formId]: unionCode,
+  [unionArms.formId]: unionArmsCode,
   [discriminatedUnion.formId]: discriminatedUnionCode,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevelCode,
   [recursiveData.formId]: recursiveDataCode,

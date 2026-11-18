@@ -21,6 +21,8 @@ import type { AnyFormApi } from "@tanstack/react-form";
 import { useFormApi, useFormRuntime } from "./form";
 import { useFnInput } from "./fnInput";
 import type { EditCause } from "./schemaRegistry";
+import { rewrapWithOuter, type Outer } from "./outer";
+import { isEqualValue } from "../utils/equal";
 
 /**
  * dynamic の状態。
@@ -118,31 +120,6 @@ const startAsync = (
   };
 };
 
-const isEqualValue = (a: unknown, b: unknown): boolean => {
-  if (Object.is(a, b)) return true;
-  if (a instanceof Date && b instanceof Date) {
-    return a.getTime() === b.getTime();
-  }
-  if (
-    typeof a !== "object" ||
-    typeof b !== "object" ||
-    a === null ||
-    b === null ||
-    Array.isArray(a) !== Array.isArray(b)
-  ) {
-    return false;
-  }
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  if (keysA.length !== keysB.length) return false;
-  return keysA.every((key) =>
-    isEqualValue(
-      (a as Record<string, unknown>)[key],
-      (b as Record<string, unknown>)[key],
-    ),
-  );
-};
-
 const readValue = (form: AnyFormApi, fieldPath: string) =>
   fieldPath === "" ? form.state.values : form.getFieldValue(fieldPath);
 
@@ -152,7 +129,11 @@ const writeValue = (form: AnyFormApi, fieldPath: string, value: unknown) => {
     form.baseStore.setState((state: any) => ({ ...state, values: value }));
     return;
   }
-  form.setFieldValue(fieldPath, value as never, { dontValidate: true });
+  // prune は利用者が触った欄ではないので、「触った」「変えた」にしない
+  form.setFieldValue(fieldPath, value as never, {
+    dontValidate: true,
+    dontUpdateMeta: true,
+  });
 };
 
 type ResolveOutcome =
@@ -204,13 +185,18 @@ export const useDynamicSchema = (
   fieldPath: string,
   options: {
     /**
-     * false なら（optional の中にあるなら）、登録する schema を optional にする。
-     * 値が無いときに、決まった schema の「必須」で止めないため
+     * 同じ path の外側の包みの情報（props の outer）。登録する schema をこれで包み直す
+     * （optional・nullable・default と、包みに付いた検査）
      */
-    required?: boolean;
+    outer?: Outer;
+    /**
+     * 欄の schema（dynamic・externalKey の土台）。付いた検査（`.refine()` など）を、
+     * 登録する schema に付け直す
+     */
+    schema?: z.ZodTypeAny;
   } = {},
 ): DynamicSchemaState => {
-  const optional = options.required === false;
+  const { outer, schema: fieldSchema } = options;
   const form = useFormApi();
   const runtime = useFormRuntime();
   const depth = useDynamicDepth(fieldPath);
@@ -239,11 +225,13 @@ export const useDynamicSchema = (
         schema: z.ZodTypeAny;
         path: string;
         depth: number;
-        optional: boolean;
+        outer: Outer | undefined;
+        fieldSchema: z.ZodTypeAny | undefined;
       }
     | undefined
   >(undefined);
   const requestRef = useRef(0);
+  const defaultFillRef = useRef<z.ZodTypeAny | undefined>(undefined);
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
   const subscriptionKeyRef = useRef<string | undefined>(undefined);
 
@@ -256,6 +244,10 @@ export const useDynamicSchema = (
       subscriptionKeyRef.current = undefined;
       appliedRef.current = undefined;
       runtime.remove(fieldPath, depth);
+      if (defaultFillRef.current) {
+        runtime.removeDefaultFill(fieldPath, defaultFillRef.current);
+        defaultFillRef.current = undefined;
+      }
     };
   }, [runtime, fieldPath, depth]);
 
@@ -279,16 +271,19 @@ export const useDynamicSchema = (
         previous.schema === resolved.schema &&
         previous.path === fieldPath &&
         previous.depth === depth &&
-        previous.optional === optional
+        previous.outer === outer &&
+        previous.fieldSchema === fieldSchema
       ) {
         return;
       }
+      const wrapped = rewrapWithOuter(resolved.schema, fieldSchema, outer);
       appliedRef.current = {
         key: resolved.key,
         schema: resolved.schema,
         path: fieldPath,
         depth,
-        optional,
+        outer,
+        fieldSchema,
       };
       if (
         applyCause === "user" &&
@@ -302,10 +297,23 @@ export const useDynamicSchema = (
           runtime.runAsUserEdit(() => writeValue(form, fieldPath, next));
         }
         seenRevRef.current = runtime.currentRev();
+      } else if (previous === undefined) {
+        // 最初に決まったとき：値が無いところだけを既定値で補う（削らない。保存済みのデータかもしれない）。
+        // 外側の包み（optional・nullable・default）ごと歩くので、optional で値が無ければ補わない。
+        // 利用者の編集ではないので runAsUserEdit で包まず、「触った」「変えた」にもしない。
+        // AutoForm が defaultValues にも同じ補いを入れられるよう、runtime に登録する
+        defaultFillRef.current = wrapped;
+        runtime.setDefaultFill(fieldPath, wrapped);
+        const current = readValue(form, fieldPath);
+        const next = runtime.fillValue(fieldPath, wrapped, current);
+        if (!isEqualValue(current, next)) {
+          writeValue(form, fieldPath, next);
+        }
+        seenRevRef.current = runtime.currentRev();
       }
       runtime.set(fieldPath, depth, {
         status: "resolved",
-        schema: optional ? resolved.schema.optional() : resolved.schema,
+        schema: wrapped,
       });
     };
 
@@ -369,7 +377,7 @@ export const useDynamicSchema = (
     subscriptionKeyRef.current = result.key;
     unsubscribeRef.current = startAsync(result, deliver, fail);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outcome, fieldPath, depth, optional]);
+  }, [outcome, fieldPath, depth, outer, fieldSchema]);
 
   if (outcome.kind === "thrown") {
     return {

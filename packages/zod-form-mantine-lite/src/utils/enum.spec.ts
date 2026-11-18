@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
-import { toEnumOptionValue, fromEnumOptionValue } from "./enum";
+import { choicesOf, toEnumOptionValue, fromEnumOptionValue } from "./enum";
 
 describe("enum option value", () => {
   const numberEnum = zf.enum([z.literal(0), z.literal(0.5)]);
@@ -22,5 +22,108 @@ describe("enum option value", () => {
     expect(fromEnumOptionValue(stringEnum, "b")).toBe("b");
     expect(fromEnumOptionValue(numberEnum, null)).toBeUndefined();
     expect(fromEnumOptionValue(numberEnum, "")).toBeUndefined();
+  });
+});
+
+describe("choicesOf（literal だけの union）", () => {
+  const union = zf.union([
+    zf
+      .literal(10)
+      .register(zf.literal.registry, { label: "十", color: "blue" }),
+    zf.literal("10").register(zf.literal.registry, { label: "文字の十" }),
+    zf.literal("abc"),
+  ]);
+
+  it("選択肢は腕の番号を値にし、literal のラベルと色を使う（ラベルが無ければ値）", () => {
+    expect(choicesOf(union).data).toEqual([
+      { value: "0", label: "十", color: "blue" },
+      { value: "1", label: "文字の十", color: "gray" },
+      { value: "2", label: "abc", color: "gray" },
+    ]);
+  });
+
+  it('literal(10) と literal("10") を区別して行き来する', () => {
+    const choices = choicesOf(union);
+    expect(choices.toOption(10)).toBe("0");
+    expect(choices.toOption("10")).toBe("1");
+    expect(choices.fromOption("0")).toBe(10);
+    expect(choices.fromOption("1")).toBe("10");
+  });
+
+  it("未選択は null・undefined、選択肢に無い値は番号と重ならない文字列にする", () => {
+    const choices = choicesOf(union);
+    expect(choices.toOption(undefined)).toBeNull();
+    expect(choices.toOption(null)).toBeNull();
+    expect(choices.fromOption(null)).toBeUndefined();
+    const unlisted = choices.toOption(99);
+    expect(unlisted).not.toBeNull();
+    expect(choices.data.some((d) => d.value === unlisted)).toBe(false);
+    expect(choices.fromOption(unlisted)).toBeUndefined();
+  });
+
+  it("literal でない腕は選択肢に出さず、警告を出す", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const mixed = zf.union([zf.literal("a"), zf.string()]);
+    expect(choicesOf(mixed).data.map((d) => d.value)).toEqual(["0"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+});
+
+describe("choicesOf（literal に入るすべての値と、null・undefined の腕）", () => {
+  const union = zf.union([
+    zf.literal(true),
+    zf.literal(false),
+    zf.literal(10n),
+    z.null(),
+    z.undefined().register(zf.common.registry, { label: "未定" }),
+    zf.literal(["a", "b"]),
+  ]);
+
+  it("ラベルが無ければ値を文字にし、bigint は n を付ける。複数の値の literal は値ごとに出す", () => {
+    expect(
+      choicesOf(union).data.map(({ value, label }) => [value, label]),
+    ).toEqual([
+      ["0", "true"],
+      ["1", "false"],
+      ["2", "10n"],
+      ["3", "null"],
+      ["4", "未定"],
+      ["5.0", "a"],
+      ["5.1", "b"],
+    ]);
+  });
+
+  it("null・undefined・false・bigint の値を、選択肢と行き来する", () => {
+    const choices = choicesOf(union);
+    for (const value of [true, false, 10n, null, undefined, "a", "b"]) {
+      const option = choices.toOption(value);
+      expect(option).not.toBeNull();
+      expect(choices.fromOption(option)).toBe(value);
+    }
+    expect(choices.toOption(10)).not.toBe(choices.toOption(10n));
+  });
+
+  it("null・undefined の腕があるかを返す", () => {
+    expect(choicesOf(union)).toMatchObject({
+      hasNull: true,
+      hasUndefined: true,
+    });
+    expect(choicesOf(zf.union([zf.literal("a"), z.null()]))).toMatchObject({
+      hasNull: true,
+      hasUndefined: false,
+    });
+    expect(
+      choicesOf(zf.union([zf.literal("a"), z.literal(undefined)])),
+    ).toMatchObject({ hasNull: false, hasUndefined: true });
+  });
+});
+
+describe("choicesOf（enum）", () => {
+  it("今の enum と同じく、値を文字にしたものでやりとりする", () => {
+    const choices = choicesOf(zf.enum([z.literal(0), z.literal("a")]));
+    expect(choices.data.map((d) => d.value)).toEqual(["0", "a"]);
+    expect(choices.toOption(0)).toBe("0");
+    expect(choices.fromOption("0")).toBe(0);
   });
 });

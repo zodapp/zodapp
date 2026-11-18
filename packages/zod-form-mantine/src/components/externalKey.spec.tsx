@@ -7,7 +7,11 @@ import { MantineProvider } from "@mantine/core";
 import type { AnyFormApi } from "@tanstack/react-form";
 import { z } from "zod";
 
-import { zf, defineDynamicMeta } from "@zodapp/zod-form";
+import {
+  zf,
+  defineDynamicMeta,
+  type ExternalKeyUnlistedOptions,
+} from "@zodapp/zod-form";
 import type { ExternalKeyResolvers } from "@zodapp/zod-form/externalKey/types";
 import {
   Switch,
@@ -68,20 +72,30 @@ type Option = { label: string; value: string };
 /** 選択肢をテストから流せる resolver */
 const makeResolvers = () => {
   const listeners = new Map<string, Set<(options: Option[]) => void>>();
+  const errorListeners = new Map<string, Set<(error: unknown) => void>>();
   const latest = new Map<string, Option[]>();
   const subscribeCount = vi.fn();
   const resolvers: ExternalKeyResolvers = [
     {
       type: "list",
       resolver: (config: { type: string; list: string }) => ({
-        subscribe: (callback: (options: Option[]) => void) => {
+        subscribe: (
+          callback: (options: Option[]) => void,
+          onError?: (error: unknown) => void,
+        ) => {
           subscribeCount(config.list);
           const set = listeners.get(config.list) ?? new Set();
           set.add(callback);
           listeners.set(config.list, set);
+          const errors = errorListeners.get(config.list) ?? new Set();
+          if (onError) errors.add(onError);
+          errorListeners.set(config.list, errors);
           const options = latest.get(config.list);
           if (options) callback(options);
-          return () => set.delete(callback);
+          return () => {
+            set.delete(callback);
+            if (onError) errors.delete(onError);
+          };
         },
       }),
     },
@@ -113,7 +127,17 @@ const makeResolvers = () => {
       listeners.get(list)?.forEach((callback) => callback(options));
     });
   };
-  return { resolvers, publish, subscribeCount };
+  /** 購読中の欄に、取得の失敗を届ける */
+  const fail = async (list: string, error: unknown) => {
+    await act(async () => {
+      errorListeners.get(list)?.forEach((onError) => onError(error));
+    });
+  };
+  /** 購読中の欄には届けず、次に購読した欄にその場で届く選択肢を用意する */
+  const prepare = (list: string, options: Option[]) => {
+    latest.set(list, options);
+  };
+  return { resolvers, publish, prepare, fail, subscribeCount };
 };
 
 const renderForm = (
@@ -156,15 +180,15 @@ const renderForm = (
   };
   const edit = async (path: string, value: unknown) => {
     await act(async () => {
-      runtime.runAsUserEdit(() => getForm().setFieldValue(path, value as never));
+      runtime.runAsUserEdit(() =>
+        getForm().setFieldValue(path, value as never),
+      );
     });
   };
   return { getForm, runtime, onSubmit, submit, edit };
 };
 
-const owner = (
-  options: { allowUnlisted?: boolean; unlisted?: "keep" | "clear" } = {},
-) =>
+const owner = (options: ExternalKeyUnlistedOptions = {}) =>
   zf.string().register(zf.externalKey.registry, {
     label: "担当者",
     externalKeyConfig: { type: "list", list: "members" },
@@ -184,9 +208,15 @@ describe("externalKey（dynamic + ラッパー）", () => {
 
   it("選択肢が届くまでは読み込み中で送信できず、届いたら選んだ値のラベルを出す", async () => {
     const r = makeResolvers();
-    const t = renderForm(z.object({ owner: owner() }), { owner: "u1" }, r.resolvers);
+    const t = renderForm(
+      z.object({ owner: owner() }),
+      { owner: "u1" },
+      r.resolvers,
+    );
     await waitFor(() =>
-      expect(document.querySelector('[data-dynamic-status="loading"]')).toBeTruthy(),
+      expect(
+        document.querySelector('[data-dynamic-status="loading"]'),
+      ).toBeTruthy(),
     );
     await t.submit();
     expect(t.onSubmit).not.toHaveBeenCalled();
@@ -200,11 +230,37 @@ describe("externalKey（dynamic + ラッパー）", () => {
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
   });
 
+  it("外側の .refine() のエラーが、externalKey の欄に出て送信が止まる", async () => {
+    const r = makeResolvers();
+    const t = renderForm(
+      z.object({
+        owner: owner().refine((v) => v !== "u2", "佐藤さんは選べません"),
+      }),
+      { owner: "u2" },
+      r.resolvers,
+    );
+    await r.publish("members", [
+      { label: "山田", value: "u1" },
+      { label: "佐藤", value: "u2" },
+    ]);
+    await waitFor(() =>
+      expect(t.runtime.get("owner")?.status).toBe("resolved"),
+    );
+    await t.submit();
+    expect(t.onSubmit).not.toHaveBeenCalled();
+  });
+
   it("既定（unlisted: clear）では、選択肢に無い保存値を消す", async () => {
     const r = makeResolvers();
-    const t = renderForm(z.object({ owner: owner() }), { owner: "gone" }, r.resolvers);
+    const t = renderForm(
+      z.object({ owner: owner() }),
+      { owner: "gone" },
+      r.resolvers,
+    );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
-    await waitFor(() => expect(t.getForm().getFieldValue("owner")).toBeUndefined());
+    await waitFor(() =>
+      expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+    );
   });
 
   it("unlisted: keep なら、選択肢に無い保存値を残し、「（不正な値）」と出して送信を止める", async () => {
@@ -215,7 +271,9 @@ describe("externalKey（dynamic + ラッパー）", () => {
       r.resolvers,
     );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
-    await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("resolved"));
+    await waitFor(() =>
+      expect(t.runtime.get("owner")?.status).toBe("resolved"),
+    );
     await screen.findByDisplayValue("（不正な値）");
     expect(
       screen.getByText("選択肢に無い値です。選び直してください。"),
@@ -233,28 +291,55 @@ describe("externalKey（dynamic + ラッパー）", () => {
       r.resolvers,
     );
     await r.publish("members", [{ label: "山田", value: "u1" }]);
-    await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("resolved"));
+    await waitFor(() =>
+      expect(t.runtime.get("owner")?.status).toBe("resolved"),
+    );
     await t.submit();
     expect(t.onSubmit).toHaveBeenCalledWith({ owner: "gone" });
   });
 
-  it("選択肢が0件なら欄を無効にして emptyMessage を出し、必須エラーは出さない", async () => {
+  const emptyOwner = () =>
+    zf.string().register(zf.externalKey.registry, {
+      label: "担当者",
+      externalKeyConfig: { type: "list", list: "members" },
+      emptyMessage: "先にチームを選んでください",
+    });
+
+  it("必須の欄で選択肢が0件なら、欄を無効にし、emptyMessage を欄のエラーにする（送信すると出る）", async () => {
     const r = makeResolvers();
-    renderForm(
-      z.object({
-        owner: zf.string().register(zf.externalKey.registry, {
-          label: "担当者",
-          externalKeyConfig: { type: "list", list: "members" },
-          emptyMessage: "先にチームを選んでください",
-        }),
-      }),
+    const t = renderForm(z.object({ owner: emptyOwner() }), {}, r.resolvers);
+    await r.publish("members", []);
+    const input =
+      await screen.findByPlaceholderText("先にチームを選んでください");
+    expect((input as HTMLInputElement).disabled).toBe(true);
+    // 触る前・送信する前は、ほかの必須の欄と同じく出さない
+    expect(screen.queryByText("先にチームを選んでください")).toBeNull();
+
+    await t.submit();
+    expect(t.onSubmit).not.toHaveBeenCalled();
+    // フォームのエラーは、必須のエラーではなく emptyMessage
+    const errors = t.getForm().getAllErrors().fields.owner?.errors ?? [];
+    expect(
+      errors.map((error: any) => error?.message ?? String(error)),
+    ).toContain("先にチームを選んでください");
+    expect(await screen.findByText("先にチームを選んでください")).toBeTruthy();
+    expect(screen.queryByText(/Invalid input|必ず入力してください/)).toBeNull();
+  });
+
+  it("optional の欄で選択肢が0件なら、無効にして emptyMessage を出すだけで、エラーにしない", async () => {
+    const r = makeResolvers();
+    const t = renderForm(
+      z.object({ owner: emptyOwner().optional() }),
       {},
       r.resolvers,
     );
     await r.publish("members", []);
-    const input = await screen.findByPlaceholderText("先にチームを選んでください");
+    const input =
+      await screen.findByPlaceholderText("先にチームを選んでください");
     expect((input as HTMLInputElement).disabled).toBe(true);
-    expect(screen.queryByText("必ず入力してください。")).toBeNull();
+    await t.submit();
+    expect(t.onSubmit).toHaveBeenCalledWith({});
+    expect(screen.queryByText("先にチームを選んでください")).toBeNull();
   });
 
   it("選択肢だけが更新されても購読を張り直さない。unlisted: keep なら値を消さない", async () => {
@@ -269,6 +354,147 @@ describe("externalKey（dynamic + ラッパー）", () => {
     await r.publish("members", [{ label: "佐藤", value: "u2" }]);
     expect(t.getForm().getFieldValue("owner")).toBe("u1");
     expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+  });
+
+  describe("clear で消しても、欄を「触った」「変えた」にしない", () => {
+    // このテストでは日本語のエラーマップを入れないので、値が無いときは zod の既定の文言になる
+    const REQUIRED = /Invalid input/;
+
+    it("開いたときに選択肢に無い保存値を消しても、isDirty は false のまま、必須のエラーも出さない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "gone" },
+        r.resolvers,
+      );
+      await r.publish("members", [{ label: "利用者 A", value: "u1" }]);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+      );
+      expect(t.getForm().state.isDirty).toBe(false);
+      expect(t.getForm().getFieldMeta("owner")?.isTouched).toBe(false);
+      expect(screen.queryByText(REQUIRED)).toBeNull();
+
+      // 送信すると、ほかの必須の欄と同じくエラーが出る
+      await t.submit();
+      expect(t.onSubmit).not.toHaveBeenCalled();
+      expect(await screen.findByText(REQUIRED)).toBeTruthy();
+    });
+
+    it("同じ購読のまま選択肢から外れて消えても、触る前は必須のエラーを出さない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.publish("members", [{ label: "利用者 A", value: "u1" }]);
+      await screen.findByDisplayValue("利用者 A");
+      await r.publish("members", [{ label: "利用者 B", value: "u2" }]);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("owner")).toBeUndefined(),
+      );
+      expect(t.getForm().state.isDirty).toBe(false);
+      expect(screen.queryByText(REQUIRED)).toBeNull();
+    });
+
+    it("利用者が上の欄を変えて下の欄が消えたときは、上の欄の編集で isDirty が true になる", async () => {
+      const r = makeResolvers();
+      const member = z.string().register(
+        zf.dynamic.registry,
+        defineDynamicMeta<unknown, { team?: string }>({
+          dependsOnValue: false,
+          dependsOnParent: true,
+          resolve: ({ parent }) => ({
+            key: parent?.team ?? "",
+            schema: zf.string().register(zf.externalKey.registry, {
+              label: "メンバー",
+              externalKeyConfig: { type: "list", list: parent?.team ?? "" },
+            }),
+          }),
+        }),
+      );
+      const t = renderForm(
+        z.object({ team: z.string(), member }),
+        { team: "a", member: "x" },
+        r.resolvers,
+      );
+      await r.publish("a", [{ label: "X", value: "x" }]);
+      await screen.findByDisplayValue("X");
+      expect(t.getForm().state.isDirty).toBe(false);
+
+      await t.edit("team", "b");
+      await r.publish("b", [{ label: "Y", value: "y" }]);
+      await waitFor(() =>
+        expect(t.getForm().getFieldValue("member")).toBeUndefined(),
+      );
+      expect(t.getForm().state.isDirty).toBe(true);
+      expect(t.getForm().getFieldMeta("member")?.isTouched).toBe(false);
+    });
+  });
+
+  describe("取得の失敗（resolver の onError）", () => {
+    const everyone: Option[] = [
+      { label: "利用者 A", value: "u1" },
+      { label: "利用者 B", value: "u2" },
+    ];
+
+    it("onError で error になり、再試行が出て送信が止まる。値は消さない", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("利用者 A");
+
+      await r.fail("members", new Error("取得に失敗しました"));
+      await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("error"));
+      expect(
+        document.querySelector('[data-dynamic-status="error"]'),
+      ).toBeTruthy();
+      expect(screen.getByRole("button", { name: "再試行" })).toBeTruthy();
+      await t.submit();
+      expect(t.onSubmit).not.toHaveBeenCalled();
+      expect(t.getForm().getFieldValue("owner")).toBe("u1");
+    });
+
+    it("同じ購読のまま選択肢が届けば、再試行を押さなくても戻る", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.fail("members", new Error("取得に失敗しました"));
+      await waitFor(() => expect(t.runtime.get("owner")?.status).toBe("error"));
+      await r.publish("members", everyone);
+      await screen.findByDisplayValue("利用者 A");
+      expect(t.runtime.get("owner")?.status).toBe("resolved");
+      await t.submit();
+      expect(t.onSubmit).toHaveBeenCalledWith({ owner: "u1" });
+      expect(r.subscribeCount).toHaveBeenCalledTimes(1);
+    });
+
+    it("再試行を押すと、購読をやめて最初からやり直す", async () => {
+      const r = makeResolvers();
+      const t = renderForm(
+        z.object({ owner: owner() }),
+        { owner: "u1" },
+        r.resolvers,
+      );
+      await r.fail("members", new Error("取得に失敗しました"));
+      await screen.findByRole("button", { name: "再試行" });
+      // 失敗のあいだに選択肢を用意しておくと、やり直した購読にその場で届く
+      r.prepare("members", everyone);
+      await act(async () => {
+        screen.getByRole("button", { name: "再試行" }).click();
+      });
+      await screen.findByDisplayValue("利用者 A");
+      expect(r.subscribeCount).toHaveBeenCalledTimes(2);
+      expect(t.getForm().getFieldValue("owner")).toBe("u1");
+    });
   });
 
   describe("同じ購読のまま選択肢が届き直す", () => {
@@ -406,7 +632,10 @@ describe("externalKey（dynamic + ラッパー）", () => {
     it("key を書かないと、関数だけが違う config は同じ config とみなして取り直さない", async () => {
       const r = makeResolvers();
       await r.publish("all", options);
-      const schema = z.object({ team: z.string(), member: memberSchema(false) });
+      const schema = z.object({
+        team: z.string(),
+        member: memberSchema(false),
+      });
       const t = renderForm(schema, { team: "x", member: "x" }, r.resolvers);
       await screen.findByDisplayValue("X");
 

@@ -7,13 +7,14 @@ import {
   useCallback,
   useRef,
 } from "react";
-import { Code, Group, Loader } from "@mantine/core";
+import { Alert, Code, Group, Loader, Stack, Text } from "@mantine/core";
 import {
   Switch,
   FormProvider,
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
   FormRuntime,
+  useDefaultValuesWithFills,
   useZodForm,
   componentLibrary as defaultComponentLibrary,
 } from "@zodapp/zod-form-mantine";
@@ -26,6 +27,7 @@ import type {
   ComponentLibrary,
 } from "@zodapp/zod-form-react";
 import type { z } from "zod";
+import { submitBlockedReasons } from "./submitBlocked";
 import {
   type AutoFormAction,
   type AutoFormActionComponent,
@@ -102,8 +104,14 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     [runtime, schema],
   );
 
+  // dynamic が補った既定値を defaultValues にも入れる（開いただけで「変更あり」にせず、reset でも残す）
+  const defaultValuesWithFills = useDefaultValuesWithFills(
+    runtime,
+    initialValues,
+  );
+
   const form = useZodForm({
-    defaultValues: initialValues,
+    defaultValues: defaultValuesWithFills,
     validators: {
       onChange: validator,
       onBlur: validator,
@@ -144,9 +152,13 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     [actionComponents, actions, cancelLabel, onCancel, onSubmit, submitLabel],
   );
 
+  // 送信が止まった理由。次に送信を押すまで出したままにし、送信が通れば消す
+  const [blockedReasons, setBlockedReasons] = useState<string[]>([]);
+
   const handleSubmit = useCallback(() => {
     return new Promise<z.output<T> | undefined>((resolve, reject) => {
       pendingSubmitHandlerRef.current = (data: z.output<T>) => {
+        setBlockedReasons([]);
         resolve(data);
       };
 
@@ -155,10 +167,9 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         .then(() => {
           if (!form.state.isValid) {
             // 登録された schema（読み込み中・取得失敗を含む）でも通るときだけ送る
-            const hasIssues =
-              runtime.validate(schema, form.state.values).length > 0;
+            const issues = runtime.validate(schema, form.state.values);
             const parsed = schema.safeParse(form.state.values);
-            if (!hasIssues && parsed.success) {
+            if (issues.length === 0 && parsed.success) {
               const handler = pendingSubmitHandlerRef.current;
               pendingSubmitHandlerRef.current = undefined;
               handler?.(parsed.data as z.output<T>);
@@ -166,6 +177,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
               return;
             }
             console.warn("[AutoForm] Validation errors:", form.getAllErrors());
+            setBlockedReasons(submitBlockedReasons(issues));
             pendingSubmitHandlerRef.current = undefined;
             resolve(undefined);
           }
@@ -174,19 +186,34 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     });
   }, [form, schema, runtime]);
 
+  const submitBlocked = blockedReasons.length > 0 && (
+    <Alert color="red" mt="xs" data-testid="form-submit-blocked">
+      <Stack gap={2}>
+        {blockedReasons.map((reason) => (
+          <Text key={reason} size="sm">
+            {reason}
+          </Text>
+        ))}
+      </Stack>
+    </Alert>
+  );
+
   const actionsGroup = normalizedActionComponents.length > 0 && (
-    <Group justify="flex-end" mt="md">
-      {normalizedActionComponents.map((ActionComponent, index) => {
-        return (
-          <ActionComponent
-            key={index}
-            form={form}
-            handleSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
-        );
-      })}
-    </Group>
+    <>
+      <Group justify="flex-end" mt="md">
+        {normalizedActionComponents.map((ActionComponent, index) => {
+          return (
+            <ActionComponent
+              key={index}
+              form={form}
+              handleSubmit={handleSubmit}
+              isLoading={isLoading}
+            />
+          );
+        })}
+      </Group>
+      {submitBlocked}
+    </>
   );
 
   return (

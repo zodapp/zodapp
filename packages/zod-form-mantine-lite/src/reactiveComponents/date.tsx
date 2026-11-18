@@ -2,7 +2,11 @@ import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import "dayjs/locale/ja.js";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import {
+  emptinessOf,
+  emptyValueOf,
+  type ZodFormProps,
+} from "@zodapp/zod-form-react/common";
 import { useZodFormContext } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
@@ -36,9 +40,10 @@ const DateComponent = React.memo(function DateComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<DateSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema, "date");
   const readOnly = meta?.readOnly ?? readOnlyProp;
@@ -64,7 +69,13 @@ const DateComponent = React.memo(function DateComponent({
   }, [converter, defaultValue]);
 
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
-    useConfirmableState(pickerDefault, fieldPath);
+    useConfirmableState(pickerDefault, fieldPath, {
+      emptyValue: emptyValueOf({ optional, nullable }),
+      // ピッカーの文字列を、保存の形式（Date・数値・文字列）に直して渡す。
+      // 元の値から変えていなければ、元の値をそのまま渡す（ピッカーの粒度で丸めない）
+      toValue: (raw) =>
+        raw === pickerDefault ? defaultValue : converter.fromPickerValue(raw),
+    });
 
   if (readOnly) {
     return (
@@ -86,7 +97,7 @@ const DateComponent = React.memo(function DateComponent({
       valueFormat={valueFormat}
       locale="ja"
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       clearable
       style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel, {

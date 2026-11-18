@@ -4,7 +4,11 @@ import type { AnyFieldApi } from "@tanstack/react-form";
 import type { ZodForm, ZodFormProps } from "../utils/type";
 import { getMeta } from "@zodapp/zod-form";
 import { useRunAsUserEdit, useZodField } from "./form";
-import { isPendingIssue } from "./schemaRegistry";
+import {
+  isDisplayedIssue,
+  isPendingIssue,
+  isUnionIssue,
+} from "./schemaRegistry";
 
 type AdaptedError =
   | {
@@ -89,10 +93,16 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
     const runAsUserEdit = useRunAsUserEdit();
     const rawErrors = fieldApi.state.meta.errors;
 
-    // 取り直し中（読み込み中）の issue は、欄のエラーとしては表示しない
-    const error = rawErrors.flat().find((candidate) => !isPendingIssue(candidate)) as
-      | AdaptedError
-      | undefined;
+    const issues = rawErrors.flat();
+    // 取り直し中（読み込み中）の issue と invalid_union は、欄のエラーではない
+    // （invalid_union は union の部品が読み、選んだ腕のエラーを同じ欄に書く）
+    const hasError = issues.some(
+      (candidate) => !isPendingIssue(candidate) && !isUnionIssue(candidate),
+    );
+    // この部品が出すエラー（isDisplayedIssue：hideError・errorToken で選ぶ）
+    const error = issues.find((candidate) =>
+      isDisplayedIssue(candidate, props),
+    ) as AdaptedError | undefined;
 
     const showError =
       fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted;
@@ -101,7 +111,7 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
       error: showError ? error : undefined,
       isTouched: fieldApi.state.meta.isTouched,
       isDirty: fieldApi.state.meta.isDirty,
-      invalid: !!error,
+      invalid: hasError,
       isValidating: fieldApi.state.meta.isValidating,
     };
 

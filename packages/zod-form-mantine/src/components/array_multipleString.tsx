@@ -4,6 +4,8 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
@@ -15,11 +17,12 @@ const ArrayOfStringComponent = wrapComponent(
   function ArrayOfStringComponentImplement({
     schema,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<ArrayOfStringSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
     // arrayスキーマ自体のメタからlabelを取得
@@ -37,11 +40,12 @@ const ArrayOfStringComponent = wrapComponent(
       [field.value],
     );
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string[]) => {
-        field.onChange(next.length === 0 ? undefined : next);
+        field.onChange(next.length === 0 ? emptyValue : next);
       },
-      [field],
+      [field, emptyValue],
     );
 
     if (readOnly || field.disabled) {
@@ -89,7 +93,7 @@ const ArrayOfStringComponent = wrapComponent(
         label={label || undefined}
         placeholder="入力してEnterで追加"
         error={error?.message}
-        required={required !== false}
+        required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
         clearable={true}
         splitChars={[",", " ", "|"]}

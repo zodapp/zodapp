@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import type { AnyFieldApi } from "@tanstack/react-form";
 import { useRunAsUserEdit } from "./form";
-import { isPendingIssue } from "./schemaRegistry";
+import { isDisplayedIssue } from "./schemaRegistry";
 import {
   normalizeIssuePath,
   parseFieldPath,
@@ -23,25 +23,32 @@ type ArrayFieldError = {
 };
 
 const getIssuePath = (error: unknown): PathSegment[] | undefined => {
-  if (!error || typeof error !== "object" || !("path" in error)) return undefined;
+  if (!error || typeof error !== "object" || !("path" in error))
+    return undefined;
   const path = (error as { path?: unknown }).path;
   if (!Array.isArray(path)) return undefined;
   return normalizeIssuePath(path);
 };
 
-const pathsEqual = (left: readonly PathSegment[], right: readonly PathSegment[]) =>
-  left.length === right.length && left.every((segment, index) => segment === right[index]);
+const pathsEqual = (
+  left: readonly PathSegment[],
+  right: readonly PathSegment[],
+) =>
+  left.length === right.length &&
+  left.every((segment, index) => segment === right[index]);
 
 export const getArrayFieldError = (
   errors: unknown,
   fieldPath: string,
+  options: { hideError?: boolean; errorToken?: object } = {},
 ): ArrayFieldError | undefined => {
   if (!Array.isArray(errors)) return undefined;
   const ownPath = parseFieldPath(fieldPath);
   const error = errors.flat(Number.POSITIVE_INFINITY).find((candidate) => {
-    if (typeof candidate === "string") return true;
+    if (typeof candidate === "string") return !options.hideError;
     if (!candidate || typeof candidate !== "object") return false;
-    if (isPendingIssue(candidate)) return false;
+    // この部品が出すものだけ（読み込み中の印と invalid_union は出さない。hideError・errorToken で選ぶ）
+    if (!isDisplayedIssue(candidate, options)) return false;
     const issuePath = getIssuePath(candidate);
     return issuePath === undefined || pathsEqual(issuePath, ownPath);
   });
@@ -63,6 +70,12 @@ export const getArrayFieldError = (
 export const useArray = (
   fieldApi: AnyFieldApi,
   discriminator: string | undefined,
+  options?: {
+    /** 配列の欄のエラーを返さない（同じ path の祖先が出す。部品の props の hideError） */
+    hideError?: boolean;
+    /** すぐ外側の、同じ path の union の writer（部品の props の errorToken） */
+    errorToken?: object;
+  },
 ) => {
   const keysRef = useRef<string[]>([]);
   const runAsUserEdit = useRunAsUserEdit();
@@ -160,7 +173,10 @@ export const useArray = (
     items,
     error:
       fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted
-        ? getArrayFieldError(fieldApi.state.meta.errors, fieldApi.name)
+        ? getArrayFieldError(fieldApi.state.meta.errors, fieldApi.name, {
+            hideError: options?.hideError,
+            errorToken: options?.errorToken,
+          })
         : undefined,
     ...ops,
   };

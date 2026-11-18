@@ -4,6 +4,8 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   useValidatePrecedingFields,
+  emptyValueOf,
+  emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -20,11 +22,12 @@ const BooleanSelectComponent = wrapComponent(
   function BooleanSelectComponentImplement({
     schema,
     label: labelFromParent,
-    required,
+    outer,
     readOnly,
     field,
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
     const {
       label: labelFromMeta,
       trueLabel = "はい",
@@ -32,7 +35,7 @@ const BooleanSelectComponent = wrapComponent(
     } = getMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const isOptional = required === false;
+    const isOptional = Boolean(optional || nullable);
 
     const data = useMemo(
       () => [
@@ -49,6 +52,7 @@ const BooleanSelectComponent = wrapComponent(
           ? FALSE_VALUE
           : null;
 
+    const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string | null | undefined) => {
         if (next === TRUE_VALUE) {
@@ -60,14 +64,18 @@ const BooleanSelectComponent = wrapComponent(
           return;
         }
         if (isOptional) {
-          field.onChange(undefined);
+          field.onChange(emptyValue);
         }
       },
-      [field, isOptional],
+      [field, isOptional, emptyValue],
     );
 
     const displayLabel =
-      field.value === true ? trueLabel : field.value === false ? falseLabel : "";
+      field.value === true
+        ? trueLabel
+        : field.value === false
+          ? falseLabel
+          : "";
 
     if (readOnly || field.disabled) {
       return (

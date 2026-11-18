@@ -1,6 +1,10 @@
 import React from "react";
 import { InputWrapper, TextInput } from "@mantine/core";
-import type { ZodFormProps } from "@zodapp/zod-form-react/common";
+import {
+  emptinessOf,
+  emptyValueOf,
+  type ZodFormProps,
+} from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { ReadonlyText } from "../utils/text";
@@ -17,9 +21,10 @@ const StringComponent = React.memo(function StringComponent({
   fieldPath,
   defaultValue,
   label: labelFromParent,
-  required,
+  outer,
   readOnly: readOnlyProp,
 }: ZodFormProps<StringSchema>) {
+  const { optional, nullable } = emptinessOf(outer);
   const meta = getMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;
@@ -34,7 +39,9 @@ const StringComponent = React.memo(function StringComponent({
     onBlur,
     onCancel,
     onKeyDown,
-  } = useConfirmableState(rawValue, fieldPath);
+  } = useConfirmableState(rawValue, fieldPath, {
+    emptyValue: emptyValueOf({ optional, nullable }),
+  });
 
   if (readOnly) {
     return (
@@ -55,7 +62,7 @@ const StringComponent = React.memo(function StringComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
-      required={required !== false}
+      required={!(optional || nullable)}
       style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}
     />
