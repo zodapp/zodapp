@@ -25,7 +25,10 @@ export type I18nMessagesProviderProps = {
    * 辞書。外側の Provider の辞書にマージされ、こちらが優先される。
    * 配列で渡すと、後ろが優先される。
    */
-  messages?: Messages | MessageDictionary | readonly (Messages | MessageDictionary)[];
+  messages?:
+    | Messages
+    | MessageDictionary
+    | readonly (Messages | MessageDictionary)[];
   children?: React.ReactNode;
 };
 
@@ -45,7 +48,11 @@ export const I18nMessagesProvider = ({
   const parent = useContext(I18nMessagesContext);
   const value = useMemo<I18nMessagesContextValue>(() => {
     const own = (
-      messages === undefined ? [] : Array.isArray(messages) ? messages : [messages]
+      messages === undefined
+        ? []
+        : Array.isArray(messages)
+          ? messages
+          : [messages]
     ) as MessageDictionary[];
     return {
       locale: locale ?? parent.locale,
@@ -62,19 +69,22 @@ export const I18nMessagesProvider = ({
 /**
  * 既定の辞書を持つ `useMsg` を作る。
  *
- * パッケージは自分の英語の辞書を渡して hook を作り、Provider の外でも英語で出せるようにする。
- * 引く順は Provider の辞書（内側が優先）→ 既定の辞書 → キーそのもの。
+ * パッケージは自分の英語の辞書（と、引く必要のあるほかのパッケージの英語の辞書）を渡して hook を作り、
+ * Provider の外でも英語で出せるようにする。
+ * 引く順は Provider の辞書（内側が優先）→ 既定の辞書（後ろが優先）→ キーそのもの。
  *
  * @example
  * export const useMsg = createUseMsg(en);
  */
-export const createUseMsg = (defaults?: MessageDictionary) => (): MsgFn => {
-  const { dictionaries } = useContext(I18nMessagesContext);
-  return useMemo(
-    () => createMsg(lookupFromDictionaries(defaults, ...dictionaries)),
-    [dictionaries],
-  );
-};
+export const createUseMsg =
+  (...defaults: MessageDictionary[]) =>
+  (): MsgFn => {
+    const { dictionaries } = useContext(I18nMessagesContext);
+    return useMemo(
+      () => createMsg(lookupFromDictionaries(...defaults, ...dictionaries)),
+      [dictionaries],
+    );
+  };
 
 /**
  * 文言を引く関数を返す hook（既定の辞書なし）。アプリが自分のキーに使う。

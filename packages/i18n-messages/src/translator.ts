@@ -1,7 +1,10 @@
 import type { MessageDictionary, MessageValue } from "./types";
 
 /** i18next の `t` などの形 */
-export type Translator = (key: string, params?: Record<string, unknown>) => string;
+export type Translator = (
+  key: string,
+  params?: Record<string, unknown>,
+) => string;
 
 export type MessagesFromTranslatorOptions = {
   /**
@@ -27,8 +30,7 @@ export const messagesFromTranslator = (
   options: MessagesFromTranslatorOptions = {},
 ): MessageDictionary => {
   const prefix = options.keyPrefix ?? "";
-  const exists =
-    options.exists ?? ((key: string) => t(key) !== key);
+  const exists = options.exists ?? ((key: string) => t(key) !== key);
   const cache = new Map<string, MessageValue | undefined>();
   return new Proxy({} as Record<string, MessageValue | undefined>, {
     get(_target, property) {

@@ -9,7 +9,8 @@ const receivedType = (input: unknown): string => {
   if (input === null) return "null";
   if (input === undefined) return "undefined";
   if (Array.isArray(input)) return "array";
-  if (input instanceof Date) return Number.isNaN(input.getTime()) ? "invalid_date" : "date";
+  if (input instanceof Date)
+    return Number.isNaN(input.getTime()) ? "invalid_date" : "date";
   if (typeof input === "number" && Number.isNaN(input)) return "nan";
   return typeof input;
 };
@@ -43,10 +44,12 @@ const FORMATS: Record<string, string> = {
 };
 
 const formatValue = (value: unknown): string =>
-  typeof value === "string" ? value : JSON.stringify(value) ?? String(value);
+  typeof value === "string" ? value : (JSON.stringify(value) ?? String(value));
 
 /** issue を `zod.*` のキーと params にする */
-export const zodIssueToMsgKey = (issue: RawIssue): [key: string, params?: Params] => {
+export const zodIssueToMsgKey = (
+  issue: RawIssue,
+): [key: string, params?: Params] => {
   switch (issue.code) {
     case "invalid_type":
     case "invalid_value":
@@ -56,22 +59,34 @@ export const zodIssueToMsgKey = (issue: RawIssue): [key: string, params?: Params
       if (issue.code === "invalid_type") {
         return [
           "zod.invalidType",
-          { expected: String(issue.expected), received: receivedType(issue.input) },
+          {
+            expected: String(issue.expected),
+            received: receivedType(issue.input),
+          },
         ];
       }
-      return ["zod.invalidValue", { values: issue.values.map(formatValue).join(", ") }];
+      return [
+        "zod.invalidValue",
+        { values: issue.values.map(formatValue).join(", ") },
+      ];
     case "too_small": {
       const origin = SIZE_ORIGINS[issue.origin] ?? "other";
       return [
         `zod.tooSmall.${origin}`,
-        { minimum: sizeValue(origin, issue.minimum), inclusive: issue.inclusive ?? false },
+        {
+          minimum: sizeValue(origin, issue.minimum),
+          inclusive: issue.inclusive ?? false,
+        },
       ];
     }
     case "too_big": {
       const origin = SIZE_ORIGINS[issue.origin] ?? "other";
       return [
         `zod.tooBig.${origin}`,
-        { maximum: sizeValue(origin, issue.maximum), inclusive: issue.inclusive ?? false },
+        {
+          maximum: sizeValue(origin, issue.maximum),
+          inclusive: issue.inclusive ?? false,
+        },
       ];
     }
     case "invalid_format": {

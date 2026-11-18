@@ -15,7 +15,11 @@ pnpm add @zodapp/i18n-messages @zodapp/i18n-messages-react
 ## 使い方
 
 ```tsx
-import { I18nMessagesProvider, useMsg, useLocale } from "@zodapp/i18n-messages-react";
+import {
+  I18nMessagesProvider,
+  useMsg,
+  useLocale,
+} from "@zodapp/i18n-messages-react";
 
 <I18nMessagesProvider locale="ja" messages={[formMantineJa, widgetJa, myAppJa]}>
   <App />
@@ -37,7 +41,7 @@ const Title = () => {
 
 ```ts
 import { createUseMsg } from "@zodapp/i18n-messages-react";
-export const useMsg = createUseMsg(en);
+export const useMsg = createUseMsg(zodEn, en);
 ```
 
 ## API

@@ -2,12 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { defineMessages, type MessagesOf } from "@zodapp/i18n-messages";
-import {
-  I18nMessagesProvider,
-  createUseMsg,
-  useLocale,
-  useMsg,
-} from "./index";
+import { I18nMessagesProvider, createUseMsg, useLocale, useMsg } from "./index";
 
 const pkgEn = defineMessages({
   "reactTest.title": "Title",

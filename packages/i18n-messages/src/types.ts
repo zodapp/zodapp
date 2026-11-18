@@ -40,16 +40,18 @@ export type MessageParams<K extends MessageKey> =
   RegisteredMessages[K] extends (params: infer P) => string ? P : never;
 
 /** msg(key, ...args) の args。関数の項目なら params が必須、文字列の項目なら無し */
-export type MessageArgs<K extends MessageKey> =
-  RegisteredMessages[K] extends (params: infer P) => string
-    ? [params: P]
-    : [];
+export type MessageArgs<K extends MessageKey> = RegisteredMessages[K] extends (
+  params: infer P,
+) => string
+  ? [params: P]
+  : [];
 
 /** msgKey に渡せる params の値。文字列に詰める */
 export type MsgKeyParamValue = string | number | boolean | Date;
 
 /** msgKey(key, ...args) の args。params の各値は {@link MsgKeyParamValue} で受け取る */
-export type MsgKeyArgs<K extends MessageKey> =
-  RegisteredMessages[K] extends (params: infer P) => string
-    ? [params: { [P2 in keyof P]: MsgKeyParamValue }]
-    : [];
+export type MsgKeyArgs<K extends MessageKey> = RegisteredMessages[K] extends (
+  params: infer P,
+) => string
+  ? [params: { [P2 in keyof P]: MsgKeyParamValue }]
+  : [];

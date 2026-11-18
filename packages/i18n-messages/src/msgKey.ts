@@ -1,8 +1,4 @@
-import type {
-  MessageKey,
-  MsgKeyArgs,
-  MsgKeyParamValue,
-} from "./types";
+import type { MessageKey, MsgKeyArgs, MsgKeyParamValue } from "./types";
 
 /** キーとして扱う文字列の形 */
 const KEY_PATTERN = /^[A-Za-z0-9_.-]+$/;

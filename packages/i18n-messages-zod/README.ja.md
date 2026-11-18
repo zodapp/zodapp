@@ -33,16 +33,16 @@ const result = schema.safeParse(value, { error: zodMsgKeyErrorMap });
 
 ## キー
 
-| キー | params |
-| --- | --- |
-| `zod.required` | なし（値が `undefined`/`null`） |
-| `zod.invalidType` | `expected`、`received` |
-| `zod.invalidValue` | `values`（`, ` 区切り） |
-| `zod.tooSmall.{string,number,bigint,array,set,file,date,other}` | `minimum`（date は ISO 文字列）、`inclusive`（`"true"`/`"false"`） |
-| `zod.tooBig.{…}` | `maximum`、`inclusive` |
-| `zod.invalidFormat.{email,url,uuid,datetime,date,time,regex,startsWith,endsWith,includes,other}` | `format`、`pattern`、`prefix`、`suffix`、`includes` |
-| `zod.notMultipleOf` | `divisor` |
-| `zod.unrecognizedKeys` | `keys`（`, ` 区切り） |
-| `zod.invalidKey`・`zod.invalidElement` | `origin` |
-| `zod.invalidUnion` | なし（既定の辞書では空文字。union の欄は腕の欄にエラーを出すため） |
-| `zod.invalid` | なし（`custom` など） |
+| キー                                                                                             | params                                                             |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `zod.required`                                                                                   | なし（値が `undefined`/`null`）                                    |
+| `zod.invalidType`                                                                                | `expected`、`received`                                             |
+| `zod.invalidValue`                                                                               | `values`（`, ` 区切り）                                            |
+| `zod.tooSmall.{string,number,bigint,array,set,file,date,other}`                                  | `minimum`（date は ISO 文字列）、`inclusive`（`"true"`/`"false"`） |
+| `zod.tooBig.{…}`                                                                                 | `maximum`、`inclusive`                                             |
+| `zod.invalidFormat.{email,url,uuid,datetime,date,time,regex,startsWith,endsWith,includes,other}` | `format`、`pattern`、`prefix`、`suffix`、`includes`                |
+| `zod.notMultipleOf`                                                                              | `divisor`                                                          |
+| `zod.unrecognizedKeys`                                                                           | `keys`（`, ` 区切り）                                              |
+| `zod.invalidKey`・`zod.invalidElement`                                                           | `origin`                                                           |
+| `zod.invalidUnion`                                                                               | なし（既定の辞書では空文字。union の欄は腕の欄にエラーを出すため） |
+| `zod.invalid`                                                                                    | なし（`custom` など）                                              |

@@ -51,7 +51,10 @@ export const ja = {
 ```ts
 import { msgKey } from "@zodapp/i18n-messages";
 
-z.string().min(3, msgKey("myApp.nameTooShort" /* {length}文字以上で入力 */, { length: 3 }));
+z.string().min(
+  3,
+  msgKey("myApp.nameTooShort" /* {length}文字以上で入力 */, { length: 3 }),
+);
 // → "myApp.nameTooShort?length=3"
 ```
 
