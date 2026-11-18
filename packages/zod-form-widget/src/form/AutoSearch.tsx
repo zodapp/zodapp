@@ -6,6 +6,7 @@ import {
   FormProvider,
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
+  FormRuntime,
   useZodForm
 } from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
@@ -15,7 +16,6 @@ import type {
   ValueActionResolver,
   CollectionReferenceActionEntry
 } from '@zodapp/zod-form-react';
-import type { StandardSchemaV1 } from '@tanstack/react-form';
 import type { z } from 'zod';
 // Node の ESM から読めるように拡張子まで書く（lodash は exports を持たない）
 import debounce from 'lodash/debounce.js';
@@ -49,13 +49,12 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
 }: AutoSearchProps<T>) => {
   const initialValues = useMemo(() => (defaultValues ?? {}) as z.input<T>, [defaultValues]);
 
-  // TanStack Form 1.33 以降の validators は `RejectPromiseValidator<T>` を要求する。
-  // これは naked type parameter に対する conditional type なので、`T` が未解決の
-  // ジェネリックのままでは TS が解決できず assignable にならない。zod schema は
-  // 関数型ではないため実体としては常に許容される。validators が受け取れるもう一方の形
-  // (standard schema) へ明示的に落として渡す。`StandardSchemaV1` は 1.28 系にも
-  // 同じ形で存在するため、この書き方は両バージョンで通る。
-  const validator = schema as StandardSchemaV1<z.input<T>, unknown>;
+  // validator は FormRuntime で包む。zod の文言を辞書のキー（zod.*）にし、
+  // 実行時に決まる schema（zf.dynamic）の登録先でも検証する。
+  // 包んだ validator は standard schema の形なので、TanStack Form 1.33 以降の
+  // validators の型（RejectPromiseValidator<T>）にもそのまま渡せる。
+  const [runtime] = useState(() => new FormRuntime());
+  const validator = useMemo(() => runtime.wrapValidator<z.input<T>>(schema), [runtime, schema]);
 
   const form = useZodForm({
     defaultValues: initialValues,
@@ -106,7 +105,7 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
         resolverContext={resolverContext}
         collectionReferenceActions={collectionReferenceActions}
       >
-        <FormProvider form={form}>
+        <FormProvider form={form} runtime={runtime}>
           <ValidatePrecedingFieldsProvider>
             <Stack gap="md">
               <Switch fieldPath="" schema={schema} />

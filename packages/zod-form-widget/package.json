@@ -85,18 +85,18 @@
         "default": "./dist/feedback/index.cjs"
       }
     },
-    "./i18n/ja": {
-      "import": {
-        "types": "./dist/i18n/ja.d.mts",
-        "default": "./dist/i18n/ja.mjs"
-      },
-      "require": {
-        "types": "./dist/i18n/ja.d.ts",
-        "default": "./dist/i18n/ja.cjs"
-      }
-    },
     "./styles.css": "./dist/styles.css",
     "./styles.layer.css": "./dist/styles.layer.css",
+    "./messages": {
+      "import": {
+        "types": "./dist/messages/index.d.mts",
+        "default": "./dist/messages/index.mjs"
+      },
+      "require": {
+        "types": "./dist/messages/index.d.ts",
+        "default": "./dist/messages/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -121,6 +121,9 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-virtual": "^3.14.26",
+    "@zodapp/i18n-messages": "workspace:*",
+    "@zodapp/i18n-messages-react": "workspace:*",
+    "@zodapp/i18n-messages-zod": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-form-mantine": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",

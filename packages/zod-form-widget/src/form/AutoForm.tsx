@@ -33,6 +33,7 @@ import {
   type AutoFormActionComponent,
   normalizeAutoFormActionComponents,
 } from "./autoFormActions";
+import { useMsg } from "../messages/useMsg";
 
 type AutoFormProps<T extends z.ZodTypeAny> = {
   schema: T;
@@ -72,8 +73,8 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   onSubmit,
   onCancel,
   isLoading = false,
-  submitLabel = "保存",
-  cancelLabel = "キャンセル",
+  submitLabel: submitLabelFromProps,
+  cancelLabel: cancelLabelFromProps,
   showPreview = false,
   actionsPosition = "top",
   componentLibrary = defaultComponentLibrary,
@@ -85,6 +86,11 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   collectionReferenceActions,
   readOnly = false,
 }: AutoFormProps<T>) => {
+  const msg = useMsg();
+  const submitLabel =
+    submitLabelFromProps ?? msg("zodFormWidget.autoForm.submit" /* 保存 */);
+  const cancelLabel =
+    cancelLabelFromProps ?? msg("zodFormWidget.common.cancel" /* キャンセル */);
   const initialValues = useMemo(
     () => (defaultValues ?? {}) as z.input<T>,
     [defaultValues],
@@ -191,7 +197,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
       <Stack gap={2}>
         {blockedReasons.map((reason) => (
           <Text key={reason} size="sm">
-            {reason}
+            {msg.resolve(reason)}
           </Text>
         ))}
       </Stack>
