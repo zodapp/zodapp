@@ -8,6 +8,7 @@ import { zfReact as zf, getMetaReact } from "@zodapp/zod-form-react";
 import type { ComputedMetaDef, FnInput } from "@zodapp/zod-form";
 import { renderComputedFieldValue } from "../utils/renderComputedValue";
 import { inputWrapperStyle } from "../utils/styles";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type ComputedSchema = ReturnType<typeof zf.computed>;
 
@@ -25,14 +26,13 @@ const ComputedComponent = React.memo(function ComputedComponent({
   label: labelFromParent,
 }: ZodFormProps<ComputedSchema>) {
   const meta = getMetaReact(schema, "computed") as ComputedMeta | undefined;
-  const label = labelFromParent ?? meta?.label;
+  const resolveText = useResolveText();
+  const label = labelFromParent ?? resolveText(meta?.label);
   const input = useTableFnInput(meta, fieldPath, defaultValue);
 
   const content = useMemo(
     () =>
-      meta
-        ? (meta.compute as (input: FnInput) => unknown)(input)
-        : undefined,
+      meta ? (meta.compute as (input: FnInput) => unknown)(input) : undefined,
     [meta, input],
   );
 

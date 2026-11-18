@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MantineProvider } from "@mantine/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,12 +32,14 @@ const render = (
 ) =>
   renderToStaticMarkup(
     <MantineProvider>
-      <ExternalKeyComponent
-        fieldPath="owner"
-        schema={makeSchema(allowUnlisted) as never}
-        defaultValue={value as never}
-        readOnly={readOnly}
-      />
+      <I18nMessagesProvider locale="ja" messages={jaMessages}>
+        <ExternalKeyComponent
+          fieldPath="owner"
+          schema={makeSchema(allowUnlisted) as never}
+          defaultValue={value as never}
+          readOnly={readOnly}
+        />
+      </I18nMessagesProvider>
     </MantineProvider>,
   );
 

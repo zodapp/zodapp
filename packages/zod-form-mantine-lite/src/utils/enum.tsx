@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { z } from "zod";
 import { getMeta } from "@zodapp/zod-form";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 import { type OptionDataType } from "./selectOption";
 
 // 文字列の enum も数値の enum も受け付ける
@@ -12,6 +13,7 @@ type EnumValue = string | number;
  * Select の値は文字列なので、数値の選択肢も文字列にして渡す ({@link fromEnumOptionValue} で戻す)
  */
 export function useEnumData(enumSchema: EnumSchema): OptionDataType[] {
+  const resolveText = useResolveText();
   return useMemo(() => {
     const { schemas } = getMeta(enumSchema) ?? {};
     return (enumSchema.options as readonly EnumValue[]).map((value) => {
@@ -19,11 +21,11 @@ export function useEnumData(enumSchema: EnumSchema): OptionDataType[] {
       const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
       return {
         value: key,
-        label: literalMeta?.label ?? key,
+        label: resolveText(literalMeta?.label) ?? key,
         color: literalMeta?.color ?? "gray",
       } satisfies OptionDataType;
     });
-  }, [enumSchema]);
+  }, [enumSchema, resolveText]);
 }
 
 /** フォームの値を Select の値 (文字列) にする。未選択 (undefined / null / 空文字) は null */
@@ -116,7 +118,7 @@ const literalUnionChoices = (unionSchema: z.ZodUnion): Choices => {
               : undefined;
       if (values === undefined) {
         console.warn(
-          `literal の union の選択肢：${index + 1} 番目の腕は literal ではないので、選択肢に出しません（type: ${arm.type}）`,
+          `literal union choices: arm #${index + 1} is not a literal, so it is not listed (type: ${arm.type})`,
         );
         return [];
       }
@@ -156,5 +158,16 @@ export const choicesOf = (schema: z.ZodTypeAny): Choices =>
 
 /** {@link choicesOf} を schema ごとに一度だけ作る hook */
 export function useChoices(schema: z.ZodTypeAny): Choices {
-  return useMemo(() => choicesOf(schema), [schema]);
+  const resolveText = useResolveText();
+  return useMemo(() => {
+    const choices = choicesOf(schema);
+    // 選択肢のラベル（meta の label）を辞書で引き直す
+    return {
+      ...choices,
+      data: choices.data.map((option) => ({
+        ...option,
+        label: resolveText(option.label),
+      })),
+    };
+  }, [schema, resolveText]);
 }

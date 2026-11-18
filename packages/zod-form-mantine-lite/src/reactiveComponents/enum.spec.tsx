@@ -1,3 +1,5 @@
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MantineProvider } from "@mantine/core";
 import { describe, expect, it } from "vitest";
@@ -15,12 +17,14 @@ const schema = zf
 const render = (value: unknown, readOnly = false) =>
   renderToStaticMarkup(
     <MantineProvider>
-      <EnumComponent
-        fieldPath="kind"
-        schema={schema as never}
-        defaultValue={value as never}
-        readOnly={readOnly}
-      />
+      <I18nMessagesProvider locale="ja" messages={jaMessages}>
+        <EnumComponent
+          fieldPath="kind"
+          schema={schema as never}
+          defaultValue={value as never}
+          readOnly={readOnly}
+        />
+      </I18nMessagesProvider>
     </MantineProvider>,
   );
 

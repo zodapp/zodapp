@@ -7,6 +7,8 @@ import {
 } from "@zodapp/zod-form-react/utils/externalKey";
 import { externalKeyDisplayLabel } from "../utils/unlisted";
 import type z from "zod";
+import { useMsg } from "../messages/useMsg";
+import { useUnlistedLabel } from "../utils/unlistedLabel";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -17,6 +19,8 @@ const ExternalKeyComponent = ({
   const value = typeof defaultValue === "string" ? defaultValue : null;
   const { options, isLoading, retry } = useExternalKeyOptions(schema);
   const actionWrapper = useExternalKeyAction(schema, value, false);
+  const msg = useMsg();
+  const unlistedLabel = useUnlistedLabel();
 
   if (isLoading) {
     return <Loader size="xs" />;
@@ -27,7 +31,7 @@ const ExternalKeyComponent = ({
     return (
       <Group gap={4} wrap="nowrap" data-dynamic-status="error">
         <Text size="sm" c="dimmed">
-          取得できませんでした
+          {msg("zodFormMantineLite.fetchFailed" /* 取得できませんでした */)}
         </Text>
         <Button
           size="compact-xs"
@@ -38,7 +42,7 @@ const ExternalKeyComponent = ({
             retry();
           }}
         >
-          再試行
+          {msg("zodFormMantineLite.retry" /* 再試行 */)}
         </Button>
       </Group>
     );
@@ -54,7 +58,12 @@ const ExternalKeyComponent = ({
 
   // 選択肢に無い値は、フォームの欄と同じく「（不正な値）」と出す（allowUnlisted なら値のまま）
   const allowUnlisted = getMeta(schema, "externalKey")?.allowUnlisted === true;
-  const label = externalKeyDisplayLabel(options, value, allowUnlisted);
+  const label = externalKeyDisplayLabel(
+    options,
+    value,
+    allowUnlisted,
+    unlistedLabel,
+  );
   const content = (
     <Text size="sm" lineClamp={1}>
       {label}

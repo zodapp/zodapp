@@ -1238,6 +1238,12 @@ importers:
       '@tabler/icons-react':
         specifier: ^3.36.1
         version: 3.37.1(react@19.3.1)
+      '@zodapp/i18n-messages':
+        specifier: workspace:*
+        version: link:../i18n-messages
+      '@zodapp/i18n-messages-react':
+        specifier: workspace:*
+        version: link:../i18n-messages-react
       '@zodapp/zod-form':
         specifier: workspace:*
         version: link:../zod-form

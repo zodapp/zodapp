@@ -2,7 +2,9 @@ import { Badge } from "@mantine/core";
 import { ZodFormProps } from "@zodapp/zod-form-react";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { useSchemaValueAction } from "@zodapp/zod-form-react/common";
-import { UNLISTED_LABEL, isEnumValueListed } from "../utils/unlisted";
+import { isEnumValueListed } from "../utils/unlisted";
+import { useUnlistedLabel } from "../utils/unlistedLabel";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -14,6 +16,8 @@ const EnumComponent = ({ schema, defaultValue }: ZodFormProps<EnumSchema>) => {
     value === undefined || value === null ? null : String(value),
     false,
   );
+  const unlistedLabel = useUnlistedLabel();
+  const resolveText = useResolveText();
 
   if (value === undefined || value === null) {
     return null;
@@ -23,14 +27,14 @@ const EnumComponent = ({ schema, defaultValue }: ZodFormProps<EnumSchema>) => {
   if (!isEnumValueListed(schema, value)) {
     return (
       <Badge color="red" variant="light">
-        {UNLISTED_LABEL}
+        {unlistedLabel}
       </Badge>
     );
   }
 
   const key = String(value);
   const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
-  const label = literalMeta?.label ?? key;
+  const label = resolveText(literalMeta?.label) ?? key;
   const color = literalMeta?.color ?? "gray";
 
   const content = (

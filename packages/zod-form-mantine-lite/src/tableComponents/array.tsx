@@ -2,6 +2,7 @@ import { Badge, Group, Text } from "@mantine/core";
 import { ZodFormProps } from "@zodapp/zod-form-react";
 import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type ArraySchema = z.ZodArray<z.ZodTypeAny>;
 
@@ -10,6 +11,7 @@ const ArrayComponent = ({
   defaultValue,
 }: ZodFormProps<ArraySchema>) => {
   const items = Array.isArray(defaultValue) ? defaultValue : [];
+  const resolveText = useResolveText();
   const elementSchema = schema.element;
 
   if (items.length === 0) {
@@ -29,7 +31,7 @@ const ArrayComponent = ({
           const literalMeta = schemas?.[itemKey]
             ? getMeta(schemas[itemKey])
             : null;
-          const label = literalMeta?.label ?? itemKey;
+          const label = resolveText(literalMeta?.label) ?? itemKey;
           const color = literalMeta?.color ?? "gray";
           return (
             <Badge key={index} color={color} variant="light">
