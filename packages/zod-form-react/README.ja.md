@@ -187,6 +187,23 @@ zod の `invalid_union`（どの腕にも合わない値の issue）は、欄の
 
 > Mantine 版のフォールバック（汎用プレビュー等）は `@zodapp/zod-form-mantine` で提供します。
 
+## 文言の言語（i18n）
+
+部品の文言（「読み込み中」など）は `@zodapp/i18n-messages` の辞書のキー（`zodFormReact.*`）で書いています。Provider が無いときは英語です。日本語にするときは、`@zodapp/i18n-messages-react` の `I18nMessagesProvider` に `./messages` の `ja` を渡します（zod のエラーの辞書 `zod.*` も含みます）。
+
+```tsx
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja } from "@zodapp/zod-form-react/messages";
+
+<I18nMessagesProvider locale="ja" messages={ja}>
+  <App />
+</I18nMessagesProvider>;
+```
+
+- `FormRuntime`（`wrapValidator`・`validate`）は、zod のエラーを辞書のキーにして検証します。schema に書いた文言（`.min(3, "…")`）はそのまま出し、辞書のキーなら訳します。schema を validator に直接渡したときは zod の既定の文言のままです。
+- meta の文言（`label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`）が辞書のキーなら、部品で訳します（`useResolvedMeta`・`useResolveText`）。
+- 部品を作るときは、`createUseMsg` で自分の辞書を既定にした `useMsg` を作ります。
+
 ## API（抜粋）
 
 - 描画/コンテキスト: `Dynamic`, `ZodFormContextProvider`

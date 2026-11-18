@@ -1,6 +1,6 @@
 # UI 文言を差し替え可能にする（i18n-messages）プラン
 
-- ステータス: プラン（未実装）
+- ステータス: 実装済み（このブランチ）。プランから変えたところは 14 章
 - 対象ブランチ: `claude/project-thread-fmjain`（main から。このプランと同じブランチに実装を積む）
 - 対象パッケージ: 新設 4 個（`@zodapp/i18n-messages`、`@zodapp/i18n-messages-react`、`@zodapp/i18n-messages-zod`、`@zodapp/eslint-plugin-i18n-messages`）と、文言を持つ既存 4 個（zod-form-react、zod-form-mantine、zod-form-mantine-lite、zod-form-widget）、apps 3 個（form-demo、survey、taskmanager）
 - 範囲: 仕組みの新設と、既存 4 個の日本語固定の文言・ロケールをすべて置き換えること。apps は動き続けるようにし、言語の切り替えで確かめられるようにする（最小限）。zod-form-widget の公開準備とは別の PR にする
@@ -405,3 +405,40 @@ msgKey("myapp.nameTooShort" /* {length}文字以上で入力 */, { length: 3 })
 - 文言の翻訳の品質の見直し（ja は今の文言を引き継ぐ。en は新しく書く）。
 - ja・en 以外の言語。
 - 数値の書式（桁区切り）の切り替え。今は数値を書式化している箇所が無い。
+
+---
+
+## 14. 実装で決めたこと（プランからの差分）
+
+### 本体・React
+
+- `defineMessages` は `<T extends Record<string, MessageValue>>` で受け、型をそのまま返す。型の基準は **en** の辞書にし（`interface RegisteredMessages extends MessagesOf<typeof en> {}`）、ほかの言語は `satisfies MessagesOf<typeof en>` で確かめる。`defineMessages` に `const` の型引数は付けない（文字列がリテラル型になり、ja の `satisfies` が通らなくなるため）。
+- params をすべて省略できる項目（`(p?: { expected?: string }) => …`）は、`msg("key")`・`msgKey("key")` のように params を省ける。
+- `createUseMsg(...defaults)` は既定の辞書を複数受け取る（後ろが勝つ）。各パッケージは依存するパッケージの en 辞書を前に並べる（例：mantine は `createUseMsg(liteEn, en)`）。
+- `I18nMessagesProvider` の `messages` は辞書 1 つか配列を受け取る。入れ子の Provider は辞書を鎖のように重ね（スプレッドしない。`messagesFromTranslator` の Proxy は自分のキーを持たないため）、内側が勝つ。
+- 各パッケージの `./messages` の `ja`・`en` は、依存するパッケージの辞書も含む（widget の `ja` に mantine・lite・react・zod の辞書が入る）。アプリは 1 つ渡せば足りる。
+
+### zod
+
+- `zod.required` は、`invalid_type` のときに `expected` を params で渡す（省略できる）。日本語・英語の辞書は使わないが、型ごとに文言を変えたいときに使える。
+
+### 既存パッケージ
+
+- meta の文言は、zod-form-react の `useResolvedMeta(schema, typeName?)`・`useResolveText()` で訳す（対象は `label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`）。選択肢のラベル（enum・literal・suggestions）、表の列の見出し、表の設定の保存先の名前も `msg.resolve` に通す。`description`・`placeholder` は今の部品が表示していないので対象にしていない。
+- mantine-lite の `UNLISTED_LABEL` は `useUnlistedLabel()` にした（破壊的変更）。
+- `wrapComponent` の外で issue の message を出す箇所（union の unrecognized_keys、配列の欄のエラー、record のキーの検証）も `msg.resolve` に通す。record のキーの `safeParse` にも error map を渡す。
+- `TabularImportError` の `message` は辞書のキー（`msgKey`）にし、取り込みのモーダルは `msg.resolve(e.message)` で出す。ほかの `e.message` も `msg.resolve` に通す。
+- AutoSearch は `FormRuntime` で検証する（AutoForm と同じ）。survey の SurveyBuilder（`useZodForm` を直接使う）も `FormRuntime` で検証するようにした。schema を validator に直接渡すと、zod の既定の英語のまま。
+- `submitBlockedReasons` は辞書のキーを返し、AutoForm が `msg.resolve` で出す。
+
+### ESLint
+
+- プラグインのソースは JS（JSDoc で型を書き、`checkJs`）。CI の `pnpm lint` はビルドの前に動くので、リポジトリの中では `@repo/eslint-config/i18n-messages` が src を直接読む。公開用には tsup で dist（ESM・CJS・型）を出す。
+- 辞書の解析は `@typescript-eslint/typescript-estree` の `parse`。辞書のファイルの中で `referenceLocale` と同じ名前の変数を辞書にし、無ければ最初のオブジェクトリテラルにする。本体が `return` 1 つだけの関数も、テンプレートの中身を書く。
+- `@repo/eslint-config/i18n-messages` の `i18nMessagesConfig(extra)` が、リポジトリのパッケージの名前空間（`zod.`・`zodFormReact.`・`zodFormMantineLite.`・`zodFormMantine.`・`zodFormWidget.`）と ja の辞書を対応づける。form-demo は `formDemo.` を足す。
+
+### apps
+
+- 言語は `useLocalStorage`（キー `app-locale`、既定 ja）に置き、`LanguageProvider`・`LanguageSwitcher`（`components/Language.tsx`）をアプリごとに置いた。
+- form-demo の多言語化のデモページは `i18nMessages`（Advanced）。e2e は `e2e/i18n-messages.spec.ts`。
+

@@ -53,10 +53,12 @@ import { msgKey } from "@zodapp/i18n-messages";
 
 z.string().min(
   3,
-  msgKey("myApp.nameTooShort" /* {length}文字以上で入力 */, { length: 3 }),
+  msgKey("myApp.nameTooShort" /* ${length}文字以上で入力 */, { length: 3 }),
 );
 // → "myApp.nameTooShort?length=3"
 ```
+
+params をすべて省略できる項目（`(p?: { expected?: string }) => …`）は、params を省いて `msgKey("key")`・`msg("key")` と書けます。
 
 ### 運用ルール
 

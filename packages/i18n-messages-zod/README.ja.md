@@ -35,7 +35,7 @@ const result = schema.safeParse(value, { error: zodMsgKeyErrorMap });
 
 | キー                                                                                             | params                                                             |
 | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `zod.required`                                                                                   | なし（値が `undefined`/`null`）                                    |
+| `zod.required`                                                                                   | `expected`（`invalid_type` のときだけ。省略できる）                |
 | `zod.invalidType`                                                                                | `expected`、`received`                                             |
 | `zod.invalidValue`                                                                               | `values`（`, ` 区切り）                                            |
 | `zod.tooSmall.{string,number,bigint,array,set,file,date,other}`                                  | `minimum`（date は ISO 文字列）、`inclusive`（`"true"`/`"false"`） |
