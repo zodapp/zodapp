@@ -164,3 +164,83 @@ describe("AutoForm の onSubmit は parse した値を受け取る", () => {
     );
   });
 });
+
+describe("AutoForm は開くときに、値が無いところを schema の既定値で補う（#10）", () => {
+  beforeEach(() => {
+    setupDomMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const schema = z.object({
+    kind: z.literal("article"),
+    nothing: z.undefined(),
+    tag: z.string().default("d"),
+    items: z.array(z.string()),
+    meta: z.object({ note: z.string().optional() }),
+  });
+
+  it("defaultValues が無くても、補った値で送信できる", async () => {
+    const { onSubmit, onCancel, submit, cancel } = renderAutoForm(schema);
+    await cancel();
+    await waitFor(() => expect(onCancel).toHaveBeenCalled());
+    const opened = onCancel.mock.calls[0]![0];
+    expect(opened).toEqual({
+      kind: "article",
+      nothing: undefined,
+      tag: "d",
+      items: [],
+      meta: {},
+    });
+    expect(Object.hasOwn(opened, "nothing")).toBe(true);
+    await submit();
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        kind: "article",
+        nothing: undefined,
+        tag: "d",
+        items: [],
+        meta: {},
+      }),
+    );
+  });
+
+  it("渡された値は変えず、無いキーだけを補う（保存されていた古い値）", async () => {
+    const { onSubmit, submit } = renderAutoForm(schema, {
+      tag: "saved",
+      items: ["a"],
+    } as unknown as z.input<typeof schema>);
+    await submit();
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({
+        kind: "article",
+        nothing: undefined,
+        tag: "saved",
+        items: ["a"],
+        meta: {},
+      }),
+    );
+  });
+
+  it("補えない schema（optional の付かない z.lazy）でも落ちず、console.error を出す", async () => {
+    type Node = { child: Node };
+    const node: z.ZodType<Node> = z.lazy(() => z.object({ child: node }));
+    // 描画は hidden で止める（optional の付かない再帰は、描いても終わらないため）。
+    // getDefaultValue は hidden でも schema を歩くので、無限に再帰する
+    renderAutoForm(
+      z.object({
+        name: z.string().optional(),
+        node: node.register(zf.common.registry, { hidden: true }),
+      }),
+    );
+    expect(await screen.findByRole("button", { name: "Save" })).toBeTruthy();
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("[AutoForm] Could not fill the default values"),
+      expect.anything(),
+    );
+  });
+});

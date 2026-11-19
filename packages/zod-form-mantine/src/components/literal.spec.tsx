@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 /**
  * literal 系（#3）：固定値（値が 1 つの literal・null・undefined・void）は既定で出さず、
- * 値が無ければ書き込む。値を複数持つ literal は enum と同じに選ぶ
+ * 値は getDefaultValue が入れる（部品は書き込まない）。値を複数持つ literal は enum と同じに選ぶ
  */
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { zf } from "@zodapp/zod-form";
+import { zf, getDefaultValue } from "@zodapp/zod-form";
 import { renderForm, setupDomMocks, SUBMIT_LABEL } from "../testing/renderForm";
 
 const text = (label: string) =>
@@ -32,10 +32,11 @@ describe("literal 系", () => {
         () => zf.literal("v1").register(zf.literal.registry, { label: "版" }),
       ],
     ] as const) {
-      it(`${name}.literal：出さず、値が無ければ書き込み、送信できる`, async () => {
+      it(`${name}.literal：出さず、getDefaultValue が入れた値で送信できる`, async () => {
+        const schema = z.object({ name: text("名前"), version: make() });
         const { values, submit, onSubmit } = renderForm(
-          z.object({ name: text("名前"), version: make() }),
-          { name: "a" },
+          schema,
+          getDefaultValue(schema, { name: "a" }) as Record<string, unknown>,
         );
         await ready();
         expect(screen.queryByText("v1")).toBeNull();
@@ -75,6 +76,19 @@ describe("literal 系", () => {
       expect(onSubmit).not.toHaveBeenCalled();
     });
 
+    it("部品は値を書き込まない（値が無ければ、送信でエラーだけを出す）", async () => {
+      const { values, submit, onSubmit } = renderForm(
+        z.object({ version: z.literal("v1") }),
+        {},
+      );
+      await ready();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(values().version).toBeUndefined();
+      submit();
+      expect(await screen.findByText("Required.")).toBeTruthy();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
     it("optional の literal は、値が無くても書き込まない", async () => {
       const { values } = renderForm(
         z.object({ version: z.literal("v1").optional() }),
@@ -91,9 +105,13 @@ describe("literal 系", () => {
       ["void", z.void(), undefined],
     ] as const) {
       it(`z.${name}()：Not found を出さず、何も出さない`, async () => {
+        const objectSchema = z.object({ name: text("名前"), x: schema });
         const { submit, onSubmit } = renderForm(
-          z.object({ name: text("名前"), x: schema }),
-          { name: "a" },
+          objectSchema,
+          getDefaultValue(objectSchema, { name: "a" }) as Record<
+            string,
+            unknown
+          >,
         );
         await ready();
         expect(screen.queryByText(/not found/i)).toBeNull();

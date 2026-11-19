@@ -1,11 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Input, Text } from "@mantine/core";
 import type { z } from "zod";
 import {
   type ZodFormInternalProps,
   wrapComponent,
-  emptinessOf,
-  useFormApi,
   useResolvedMeta,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
@@ -58,37 +56,18 @@ const displayOf = (value: unknown) =>
  *
  * - 既定では出さない（ラベルも出さない）。meta で `hidden: false` のときだけ、readOnly と同じ表示で
  *   スキーマの値を出す（必須の印は付けない）
- * - フォームの値が無ければ、その値を書き込む（触った扱いにせず、検証もしない）。
- *   undefined・void は、object のキーを置くために undefined を書く。
- *   optional（空が正しい値）のときは書き込まない
+ * - 値は書き込まない。値は `getDefaultValue` が入れる（AutoForm は開くときに通す）
  * - 入力できないので、前の欄を検証するしくみ（`useValidatePrecedingFields`）には登録しない
  * - 値が固定値と違うなど、この欄にエラーが出たときは、隠していてもエラーだけは出す
  */
 export const FixedValueComponent = wrapComponent(
   function FixedValueComponentImplement({
-    fieldPath,
     schema,
-    field,
-    outer,
     label: labelFromParent,
     error,
   }: ZodFormInternalProps<z.ZodTypeAny>) {
-    const form = useFormApi();
     const meta = useResolvedMeta(schema);
     const fixed = fixedValueOf(schema);
-    const { optional } = emptinessOf(outer);
-    const current = field.value;
-    const fixedValue = fixed?.value;
-
-    useEffect(() => {
-      if (fieldPath === "" || current !== undefined || optional) return;
-      // undefined・void も書く：zod 4 の object は、キーが無いと「expected nonoptional」になるため、
-      // undefined の値でキーを置く（キーがあれば何も変わらない）
-      form.setFieldValue(fieldPath, fixedValue as never, {
-        dontUpdateMeta: true,
-        dontValidate: true,
-      });
-    }, [form, fieldPath, fixedValue, current, optional]);
 
     if (!fixed || !isShownFixedValue(schema)) {
       return error?.message ? (
