@@ -192,6 +192,7 @@ const fileResolvers = [createMockFileResolver()];
 - `@zodapp/zod-form-mantine`: Mantine UI の componentLibrary 実装
 - `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
 - `@zodapp/zod-form-s3`: ファイル（`zf.externalFile`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
+- 仕様の詳細：[既定値と値の調整](docs/default-value.ja.md)
 
 ## ライセンス
 

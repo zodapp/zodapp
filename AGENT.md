@@ -64,7 +64,7 @@ zodapp/
 │   ├── react-storage/            # ブラウザのストレージに保存する state
 │   ├── eslint-config/            # ESLint設定
 │   └── typescript-config/        # TypeScript設定
-├── docs/zod-dynamodb/  # zod-dynamodb の設計
+├── docs/               # 公開の手順（releasing.md）、実装前のプラン（plans/）、経緯（archive/）
 ├── turbo.json          # Turborepo設定
 ├── pnpm-workspace.yaml
 └── vitest.config.ts
@@ -332,7 +332,7 @@ export const endpoints = defineEndpoints({
 
 - onCreate の戻り値は入力より優先される（`{...input, ...onCreate, ...onWrite, ...key}`）。入力の値を使いたい項目は onCreate で上書きしない
 - DynamoDB はキー（Index）でしか絞り込めない。残りの条件は読んだ一覧をブラウザで絞る（サンプルは mingo）
-- 詳しくは `docs/zod-dynamodb/design.md` と `packages/zod-dynamodb/README.ja.md`
+- 詳しくは `packages/zod-dynamodb/README.ja.md` と `packages/zod-dynamodb*/docs/`
 
 ## テストガイドライン
 
@@ -357,6 +357,19 @@ describe("myFunction", () => {
 - 画面の振る舞いを変えたら、その振る舞いを E2E で確かめる（単体テストでわかる部分は単体テストで）
 - 新しいアプリは `.github/workflows/e2e.yml` の matrix に加える
 - `apps/form-demo` は、1 つのデモページを 1 つの spec にする。spec の手順は、そのページを開いて試す手順と同じにし、ユーザーテストの台本としても読めるようにする
+
+## 文書の置き場所
+
+| 書くもの | 置き場所 |
+| --- | --- |
+| 使い方 | 各パッケージ・アプリの `README.ja.md` |
+| 動きの決まり（仕様） | `packages/<名前>/docs/<テーマ>.ja.md`。README から節ごとにリンクする |
+| 実装前のプラン | `docs/plans/`。実装したら、仕様を README か `docs/` に移し、プランは意図だけに絞って `docs/archive/` に移す |
+| 経緯（決めたことと理由） | `docs/archive/`。コードに合わせて直さない |
+| 公開の手順 | `docs/releasing.md` |
+
+- 仕様は「〜である／〜する」で今の動きだけを書く。理由は、ないと誤った変更をしそうなものだけ添える
+- `packages/*/docs/api/` は typedoc の生成物（git に入らない）。手書きの文書は置かない
 
 ## 新規パッケージ追加
 

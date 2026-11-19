@@ -78,6 +78,10 @@ const messages = messagesFromTranslator(i18n.t);
 
 訳が無いキーは、各パッケージの既定の文言に落ちます。
 
+### ライブラリが文言を持つときの決まり
+
+`@zodapp/*` のパッケージがキー・辞書・優先順位をどう決めているかは [docs/library-messages.ja.md](docs/library-messages.ja.md) にあります。
+
 ## API
 
 - `msgKey(key, params?)` / `encodeMsgKey(key, params?)`（型を確かめない版） / `parseMsgKey(text)`

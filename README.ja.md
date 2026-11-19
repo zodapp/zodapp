@@ -101,7 +101,7 @@ const api = createClient(endpoints, { baseUrl: "/api" });
 const useTasks = createUseList(api.tasks.byStatus, { live: true });
 ```
 
-設計は [docs/zod-dynamodb/design.md](docs/zod-dynamodb/design.md) にあります。
+仕様は各パッケージの docs/（[packages/zod-dynamodb/docs](packages/zod-dynamodb/docs/) など）にあります。
 
 ### 4. アーキテクチャ非依存のモジュラー設計
 

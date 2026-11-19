@@ -144,6 +144,7 @@ import { ja } from "@zodapp/zod-form-mantine/messages";
 - `@zodapp/zod-form-react`: React 基盤（自前UIの場合）
 - `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
 - `@zodapp/zod-form-s3`: ファイル（`zf.externalFile`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
+- 仕様の詳細：[object の入れ物](docs/object.ja.md)、[zf.intersection](docs/intersection.ja.md)、[zf.union](docs/union.ja.md)、[バッジで出す選択](docs/badge.ja.md)、[zod の型ごとの描き方](docs/schema-types.ja.md)
 
 ## ライセンス
 

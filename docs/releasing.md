@@ -25,6 +25,30 @@
 
 ---
 
+## 公開するパッケージの形
+
+23個は同じ形にそろえます。新しいパッケージを足すときも、この形にします。
+
+- **バージョン**：23個は同じバージョンです（changesets の `fixed`）。`@repo/*` と apps は公開しません
+- **中身**：`files` は `dist`、`README.md`、`README.ja.md`、`LICENSE` です。`src`、テスト、設定ファイル、`docs/`（手書きの仕様と typedoc の出力）は入れません。`LICENSE` は直下のものを各パッケージにコピーして置きます（npm は親ディレクトリのファイルを入れられないため）
+- **ビルド**：tsup で、ESM は `.mjs` / `.d.mts`、CJS は `.cjs` / `.d.ts` に出し、exports の `import` / `require` でそれぞれの型を指します。`"type": "module"` にしないのは、ソースの相対 import に拡張子が要らないようにするためです。ワークスペースの中でも dist を使います（apps の dev の前に `^build`、パッケージの変更は `watch` で追う）
+- **メタデータ**：`repository`（`directory` 付き）、`homepage`、`bugs`、`publishConfig.access: "public"`、`license: "MIT"`、`engines.node: ">=22"` をそろえます。trusted publishing は `repository.url` の完全一致を見るので、公開先を変えたら `tools/set-repository.mjs` でまとめて直します
+- **CSS**：JS から CSS を import しません（利用者のバンドラーに CSS の扱いを求めないため）。見た目は Mantine の `styles` prop とテーマの変数で書きます。CSS が要るパッケージ（`@zodapp/zod-form-widget`）は、ビルド済みの `dist/styles.css` と、`@layer zodapp` で包んだ `dist/styles.layer.css` を出し、利用者が自分で import します。クラス名は公開の API にしません
+- **副作用**：import しただけでグローバルな設定を変えません。たとえば日本語のエラーメッセージは `jaErrorMap` を export するだけで、`z.config()` は利用者が呼びます
+
+`pnpm check:pack`（`tools/check-pack.mjs`）は、`pnpm pack` の結果について次を確かめます。
+
+1. `package.json`、`LICENSE`、`dist/` が入っている
+2. `src/`、テスト、`tsconfig*.json`・`eslint.config.*`・`tsup.config.*`、`docs/`、`.turbo/`、`dist/` の外の CSS が入っていない
+3. `main` / `module` / `types` / exports の行き先がすべて tarball の中にある（ワイルドカードは少なくとも 1 つ一致する）
+4. packed の `package.json` に `workspace:` が残っていない
+5. `repository` / `publishConfig` / `version` がそろっている
+6. `LICENSE` が直下のものと同じ
+7. publint と attw（`@arethetypeswrong/cli`）で、package.json の書き方と ESM・CJS それぞれの型の解決に誤りがない
+8. tarball を一時ディレクトリに入れ、各入口を Node の `import()` と `require()` で読める（peer も入れる。CSS の入口は tarball にあることだけを見る）
+
+---
+
 ## 公開を始めるときの手順
 
 ### 0. 前提をそろえる
