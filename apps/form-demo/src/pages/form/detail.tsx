@@ -8,7 +8,10 @@ import { ReactiveAutoForm } from "../../components/ReactiveAutoForm";
 import { formDetailRoute } from "./detail.route";
 import { formSchemas, formCodes, defaultFormId, type FormId } from "./schemas";
 import { e2eSchemas, e2eCodes, type E2eFormId } from "./schemas/e2e";
-import { createE2eHarness } from "../../components/E2eHarness";
+import {
+  createE2eHarness,
+  type HarnessWrite,
+} from "../../components/E2eHarness";
 
 import "@mantine/code-highlight/styles.css";
 import { createMockFileResolver } from "@zodapp/zod-form";
@@ -37,6 +40,14 @@ const getCustomComponent = (formDef: FormDef): ComponentType | undefined =>
     ? (formDef.Component as ComponentType)
     : undefined;
 
+// スキーマモジュールが harnessWrites を export している場合は、値を外から書き込むボタンを出す
+const getHarnessWrites = (
+  formDef: FormDef,
+): readonly HarnessWrite[] | undefined =>
+  "harnessWrites" in formDef && Array.isArray(formDef.harnessWrites)
+    ? (formDef.harnessWrites as readonly HarnessWrite[])
+    : undefined;
+
 const FormPage = () => {
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -58,7 +69,11 @@ const FormPageInner = () => {
   const fileResolvers = useMemo(() => [createMockFileResolver()], []);
 
   // 見るための部品（値・エラー・送信・ログ）。window.__formDemo にも同じ中身を置く
-  const harness = useMemo(() => [createE2eHarness({ formId })], [formId]);
+  const harnessWrites = getHarnessWrites(formDef);
+  const harness = useMemo(
+    () => [createE2eHarness({ formId, writes: harnessWrites })],
+    [formId, harnessWrites],
+  );
 
   // 「表示 / コード」のタブ。メモリに置くので、別のデモに移っても選んだタブのまま開く
   // （ページを読み込み直すと既定の「表示」に戻る）

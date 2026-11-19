@@ -231,6 +231,12 @@ test("必須の intersection が空なら、「必ず入力してください。
   page,
   pageErrors: _,
 }) => {
+  // 開くときは {} で補われるので、値を外から消す
+  await page
+    .getByRole("button", {
+      name: "外から書き込む（必須の intersection を空にする）",
+    })
+    .click();
   await submit(page);
   await waitSubmitSettled(page, 1);
   const section = page.locator("fieldset").filter({
