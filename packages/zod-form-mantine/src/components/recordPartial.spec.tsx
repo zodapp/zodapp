@@ -105,3 +105,128 @@ describe("partialRecord（既定：固定のキー＋optional）", () => {
     expect(screen.getByText("large")).toBeTruthy();
   });
 });
+
+describe("partialRecord（uiType entries：下でキーを足す）", () => {
+  beforeEach(() => {
+    setupDomMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const entriesSchema = (keyOrder?: "definition" | "value") =>
+    z.object({
+      nicknames: z
+        .partialRecord(people, z.string().default("x"))
+        .register(zf.record.registry, {
+          label: "あだ名",
+          uiType: "entries",
+          ...(keyOrder ? { keyOrder } : {}),
+        }),
+    });
+
+  const rowLabels = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("label"))
+      .map((label) => label.textContent ?? "")
+      .filter((text) => ["アリス", "ボブ", "キャロル"].includes(text));
+
+  /** 下の選択を開く（Mantine の Select は、jsdom では選択肢を隠したまま出す） */
+  const openAddKey = () => {
+    const input = screen.getByRole("combobox", {
+      name: /キーを追加|Add a key/,
+    });
+    fireEvent.click(input);
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+  };
+
+  const addKey = async (name: string) => {
+    openAddKey();
+    fireEvent.click(await screen.findByRole("option", { name, hidden: true }));
+  };
+
+  it("値にあるキーだけを並べ、下の選択の候補はまだ無いキーだけ。選ぶと既定値で足す", async () => {
+    const { values, container } = renderForm(entriesSchema(), {
+      nicknames: { bob: "ボビー" },
+    });
+    await ready();
+    expect(rowLabels(container)).toEqual(["ボブ"]);
+    openAddKey();
+    const options = await screen.findAllByRole("option", { hidden: true });
+    expect(options.map((o) => o.textContent)).toEqual(["アリス", "キャロル"]);
+    fireEvent.click(options[1]!);
+    await waitFor(() =>
+      expect(values().nicknames).toEqual({ bob: "ボビー", carol: "x" }),
+    );
+    expect(rowLabels(container)).toEqual(["ボブ", "キャロル"]);
+  });
+
+  it("削除するとキーごと値から消え、選択の候補に戻る。使い切ると選択を出さない", async () => {
+    const { values } = renderForm(entriesSchema(), {
+      nicknames: { alice: "a", bob: "b" },
+    });
+    await ready();
+    await addKey("キャロル");
+    await waitFor(() =>
+      expect(Object.keys(values().nicknames as object)).toHaveLength(3),
+    );
+    expect(
+      screen.queryByRole("combobox", { name: /キーを追加|Add a key/ }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: /ボブを削除|Remove ボブ/ }),
+    );
+    await waitFor(() =>
+      expect(values().nicknames).toEqual({ alice: "a", carol: "x" }),
+    );
+    expect(
+      screen.getByRole("combobox", { name: /キーを追加|Add a key/ }),
+    ).toBeTruthy();
+  });
+
+  it("keyOrder：既定は定義順、value は値の順（足したキーは末尾）", async () => {
+    const initial = { nicknames: { carol: "c", alice: "a" } };
+    const first = renderForm(entriesSchema(), initial);
+    await ready();
+    expect(rowLabels(first.container)).toEqual(["アリス", "キャロル"]);
+    cleanup();
+
+    const second = renderForm(entriesSchema("value"), initial);
+    await ready();
+    expect(rowLabels(second.container)).toEqual(["キャロル", "アリス"]);
+    await addKey("ボブ");
+    await waitFor(() =>
+      expect(rowLabels(second.container)).toEqual([
+        "キャロル",
+        "アリス",
+        "ボブ",
+      ]),
+    );
+  });
+
+  it("readOnly では、選択も削除のボタンも出さない", async () => {
+    renderForm(
+      entriesSchema(),
+      { nicknames: { alice: "a" } },
+      { readOnly: true },
+    );
+    await ready();
+    expect(
+      screen.queryByRole("combobox", { name: /キーを追加|Add a key/ }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /削除|Remove/ })).toBeNull();
+  });
+
+  it("足したキーのまま送信できる", async () => {
+    const { submit, onSubmit } = renderForm(entriesSchema(), {
+      nicknames: {},
+    });
+    await ready();
+    await addKey("アリス");
+    submit();
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith({ nicknames: { alice: "x" } }),
+    );
+  });
+});
