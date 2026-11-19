@@ -5,4 +5,4 @@ import { useMsg } from "../messages/useMsg";
  * フォームの欄と表のセルで同じ文言にする
  */
 export const useUnlistedLabel = (): string =>
-  useMsg()("zodFormMantineLite.unlisted" /* （不正な値） */);
+  useMsg()("zodFormMantineLite.unlisted" /* i18n: （不正な値） */);

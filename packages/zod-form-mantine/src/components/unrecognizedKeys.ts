@@ -48,7 +48,7 @@ const unionName = (schema: z.ZodTypeAny, msg: MsgFn): string => {
     | undefined;
   return (
     msg.resolve(meta?.selectorLabel ?? (meta?.label || undefined)) ??
-    msg("zodFormMantine.union.selectorLabel" /* タイプ */)
+    msg("zodFormMantine.union.selectorLabel" /* i18n: タイプ */)
   );
 };
 
@@ -115,7 +115,7 @@ export const unrecognizedKeysMessage = (
   }
   if (found.length === 0) return undefined;
   return msg(
-    "zodFormMantine.union.selectOwners" /* ${names.join("と")}を選択してください */,
+    "zodFormMantine.union.selectOwners" /* i18n: ${names.join("と")}を選択してください */,
     { names: found.map((union) => union.name) },
   );
 };

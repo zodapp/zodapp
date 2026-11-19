@@ -11,7 +11,7 @@ function AudioPreview({ url, mimeType: _mimeType }: UrlPreviewProps) {
   return (
     <audio src={url} controls style={{ width: "100%" }}>
       {msg(
-        "zodFormReact.media.audioUnsupported" /* お使いのブラウザは音声の再生に対応していません。 */,
+        "zodFormReact.media.audioUnsupported" /* i18n: お使いのブラウザは音声の再生に対応していません。 */,
       )}
     </audio>
   );

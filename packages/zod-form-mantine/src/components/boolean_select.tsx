@@ -33,8 +33,8 @@ const BooleanSelectComponent = wrapComponent(
     const msg = useMsg();
     const {
       label: labelFromMeta,
-      trueLabel = msg("zodFormMantineLite.yes" /* はい */),
-      falseLabel = msg("zodFormMantineLite.no" /* いいえ */),
+      trueLabel = msg("zodFormMantineLite.yes" /* i18n: はい */),
+      falseLabel = msg("zodFormMantineLite.no" /* i18n: いいえ */),
     } = useResolvedMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);

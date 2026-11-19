@@ -31,7 +31,7 @@ function GenericFilePreview({ url, mimeType }: UrlPreviewProps) {
           variant="light"
           leftSection={<IconDownload size={14} />}
         >
-          {msg("zodFormMantineLite.download" /* ダウンロード */)}
+          {msg("zodFormMantineLite.download" /* i18n: ダウンロード */)}
         </Button>
       </div>
     </Group>

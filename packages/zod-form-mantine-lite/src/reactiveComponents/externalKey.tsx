@@ -75,11 +75,14 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
           component="span"
           size="md"
           variant="subtle"
-          aria-label={msg("zodFormMantineLite.open" /* ${label}を開く */, {
-            label:
-              label ||
-              msg("zodFormMantineLite.selectedItem" /* 選択済み項目 */),
-          })}
+          aria-label={msg(
+            "zodFormMantineLite.open" /* i18n: ${label}を開く */,
+            {
+              label:
+                label ||
+                msg("zodFormMantineLite.selectedItem" /* i18n: 選択済み項目 */),
+            },
+          )}
           style={{
             color: "var(--mantine-primary-color-filled)",
           }}
@@ -135,7 +138,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         required={!(optional || nullable)}
         disabled
         placeholder={msg(
-          "zodFormMantineLite.noOptions" /* 選択肢がありません */,
+          "zodFormMantineLite.noOptions" /* i18n: 選択肢がありません */,
         )}
         style={inputWrapperStyle}
       />

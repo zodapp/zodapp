@@ -110,9 +110,12 @@ function ReadonlyLink({ label, href }: LinkComputedValue) {
           component="span"
           size="md"
           variant="subtle"
-          aria-label={msg("zodFormMantineLite.open" /* ${label}を開く */, {
-            label,
-          })}
+          aria-label={msg(
+            "zodFormMantineLite.open" /* i18n: ${label}を開く */,
+            {
+              label,
+            },
+          )}
         >
           <IconExternalLink size={16} />
         </ActionIcon>

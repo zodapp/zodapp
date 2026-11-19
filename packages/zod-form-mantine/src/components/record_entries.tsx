@@ -141,15 +141,17 @@ const RecordEntriesComponent = wrapComponent(
       // キーの schema の文言を先に出す。通っても、フィールドパスに使えないキーは値に入れない（重複と同じ扱い）
       const keyError = duplicate
         ? msg(
-            "zodFormMantine.record.duplicateKey" /* 同じキーが既に存在します */,
+            "zodFormMantine.record.duplicateKey" /* i18n: 同じキーが既に存在します */,
           )
         : !parsedKey.success
           ? msg.resolve(parsedKey.error.issues[0]?.message)
           : draftKey === ""
-            ? msg("zodFormMantine.record.emptyKey" /* キーを入力してください */)
+            ? msg(
+                "zodFormMantine.record.emptyKey" /* i18n: キーを入力してください */,
+              )
             : isUnsafeFieldKey(draftKey)
               ? msg(
-                  "zodFormMantine.record.unsafeKey" /* キーに . [ ] は使えません */,
+                  "zodFormMantine.record.unsafeKey" /* i18n: キーに . [ ] は使えません */,
                 )
               : undefined;
 
@@ -238,7 +240,7 @@ const RecordEntriesComponent = wrapComponent(
           >
             <Group align="flex-start" wrap="nowrap">
               <TextInput
-                label={msg("zodFormMantine.record.key" /* キー */)}
+                label={msg("zodFormMantine.record.key" /* i18n: キー */)}
                 value={row.draftKey}
                 error={
                   row.keyError ??
@@ -264,18 +266,18 @@ const RecordEntriesComponent = wrapComponent(
                     defaultValue={value[row.key]}
                     outer={undefined}
                     readOnly={readOnly}
-                    label={msg("zodFormMantine.record.value" /* 値 */)}
+                    label={msg("zodFormMantine.record.value" /* i18n: 値 */)}
                   />
                 ) : (
                   <TextInput
-                    label={msg("zodFormMantine.record.value" /* 値 */)}
+                    label={msg("zodFormMantine.record.value" /* i18n: 値 */)}
                     placeholder={
                       row.held
                         ? msg(
-                            "zodFormMantine.record.keyHeld" /* キーを直すと、値が戻ります */,
+                            "zodFormMantine.record.keyHeld" /* i18n: キーを直すと、値が戻ります */,
                           )
                         : msg(
-                            "zodFormMantine.record.keyFirst" /* 先にキーを入力してください */,
+                            "zodFormMantine.record.keyFirst" /* i18n: 先にキーを入力してください */,
                           )
                     }
                     disabled
@@ -287,12 +289,12 @@ const RecordEntriesComponent = wrapComponent(
           {!readOnly && (
             <ActionIcon
               aria-label={msg(
-                "zodFormMantine.record.removeRow" /* ${label}を削除 */,
+                "zodFormMantine.record.removeRow" /* i18n: ${label}を削除 */,
                 {
                   label:
                     row.draftKey ||
                     row.key ||
-                    msg("zodFormMantine.record.emptyRow" /* 空の行 */),
+                    msg("zodFormMantine.record.emptyRow" /* i18n: 空の行 */),
                 },
               )}
               size={20}
@@ -339,7 +341,7 @@ const RecordEntriesComponent = wrapComponent(
             <div style={{ position: "relative" }}>
               <ActionIcon
                 aria-label={msg(
-                  "zodFormMantine.record.append" /* 末尾に追加 */,
+                  "zodFormMantine.record.append" /* i18n: 末尾に追加 */,
                 )}
                 size={20}
                 variant="light"

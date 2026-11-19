@@ -23,11 +23,14 @@ export const ValueActionIcon = ({
           component="span"
           size="md"
           variant="subtle"
-          aria-label={msg("zodFormMantineLite.open" /* ${label}を開く */, {
-            label:
-              label ||
-              msg("zodFormMantineLite.selectedItem" /* 選択済み項目 */),
-          })}
+          aria-label={msg(
+            "zodFormMantineLite.open" /* i18n: ${label}を開く */,
+            {
+              label:
+                label ||
+                msg("zodFormMantineLite.selectedItem" /* i18n: 選択済み項目 */),
+            },
+          )}
           style={
             {
               "--ai-color":

@@ -27,7 +27,9 @@ describe("submitBlockedReasons", () => {
   it("非同期の検証の印だけなら、非同期の検証を理由にする", () => {
     expect(
       submitBlockedReasons([{ code: ASYNC_VALIDATION_ISSUE_CODE }]),
-    ).toEqual(["zodFormWidget.autoForm.blocked.async"]);
+    ).toEqual([
+      "zodFormWidget.autoForm.blocked.async" /* i18n: このフォームでは非同期の検証を扱えないため、送信できませんでした */,
+    ]);
   });
 
   it("入力の誤りだけなら、入力の誤りを理由にする", () => {

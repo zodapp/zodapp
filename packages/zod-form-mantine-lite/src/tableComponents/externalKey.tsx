@@ -31,7 +31,9 @@ const ExternalKeyComponent = ({
     return (
       <Group gap={4} wrap="nowrap" data-dynamic-status="error">
         <Text size="sm" c="dimmed">
-          {msg("zodFormMantineLite.fetchFailed" /* 取得できませんでした */)}
+          {msg(
+            "zodFormMantineLite.fetchFailed" /* i18n: 取得できませんでした */,
+          )}
         </Text>
         <Button
           size="compact-xs"
@@ -42,7 +44,7 @@ const ExternalKeyComponent = ({
             retry();
           }}
         >
-          {msg("zodFormMantineLite.retry" /* 再試行 */)}
+          {msg("zodFormMantineLite.retry" /* i18n: 再試行 */)}
         </Button>
       </Group>
     );

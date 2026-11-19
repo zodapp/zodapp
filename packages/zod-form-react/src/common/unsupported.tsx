@@ -44,7 +44,7 @@ export const UnsupportedSchema = ({ schema, fieldPath }: ZodFormProps) => {
   return (
     <div data-zod-form-unsupported="" style={{ color: "red" }}>
       {msg(
-        "zodFormReact.unsupportedSchema" /* このスキーマは、このフォームでは扱えません */,
+        "zodFormReact.unsupportedSchema" /* i18n: このスキーマは、このフォームでは扱えません */,
       )}
     </div>
   );

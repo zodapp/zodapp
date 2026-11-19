@@ -17,10 +17,10 @@ const UnsupportedText = ({ kind }: { kind: "combination" | "schema" }) => {
     <Text c="red" size="sm" data-zod-form-unsupported="">
       {kind === "schema"
         ? msg(
-            "zodFormMantine.unsupportedSchema" /* このスキーマは、このフォームでは扱えません */,
+            "zodFormMantine.unsupportedSchema" /* i18n: このスキーマは、このフォームでは扱えません */,
           )
         : msg(
-            "zodFormMantine.unsupported" /* このスキーマの組み合わせは、このフォームでは扱えません */,
+            "zodFormMantine.unsupported" /* i18n: このスキーマの組み合わせは、このフォームでは扱えません */,
           )}
     </Text>
   );

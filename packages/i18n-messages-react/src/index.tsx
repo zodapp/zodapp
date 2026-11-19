@@ -91,7 +91,7 @@ export const createUseMsg =
  *
  * @example
  * const msg = useMsg();
- * msg("myApp.submit" /* 送信 *\/);
+ * msg("myApp.submit" /* i18n: 送信 *\/);
  */
 export const useMsg = createUseMsg();
 

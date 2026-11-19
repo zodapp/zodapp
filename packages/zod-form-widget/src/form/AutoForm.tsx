@@ -110,9 +110,11 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
 }: AutoFormProps<T>) => {
   const msg = useMsg();
   const submitLabel =
-    submitLabelFromProps ?? msg("zodFormWidget.autoForm.submit" /* 保存 */);
+    submitLabelFromProps ??
+    msg("zodFormWidget.autoForm.submit" /* i18n: 保存 */);
   const cancelLabel =
-    cancelLabelFromProps ?? msg("zodFormWidget.common.cancel" /* キャンセル */);
+    cancelLabelFromProps ??
+    msg("zodFormWidget.common.cancel" /* i18n: キャンセル */);
   // 開くときに、値が無いところを schema の既定値で補う（`.default()`・空の配列・値が 1 つの literal など）。
   // 補った値は既定値に入るので、開いただけでは「変更あり」にならない
   const initialValues = useMemo(

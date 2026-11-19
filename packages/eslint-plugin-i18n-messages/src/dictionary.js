@@ -41,7 +41,7 @@ const unwrapObject = (node) => {
  * - 文字列リテラル → その値
  * - 式を持たないテンプレートリテラル → その値
  * - 本体がテンプレートリテラルか文字列リテラルだけの関数 → テンプレートの中身・文字列の値
- * - それ以外 → 本体（関数でなければ値）のソースそのまま
+ * - それ以外 → 本体（関数でなければ値）のソース。空白の続き（改行を含む）は空白 1 つにする
  *
  * @param {Node} value
  * @param {string} source
@@ -57,7 +57,8 @@ export const messageTextOf = (value, source) => {
       // テンプレートの中身（`${count} 件` のように ${} も含めて）をそのまま
       return source.slice(node.range[0] + 1, node.range[1] - 1);
     }
-    return source.slice(node.range[0], node.range[1]);
+    // 式のソースは、改行とインデントを空白 1 つにまとめる（コメントは 1 行で書くので）
+    return source.slice(node.range[0], node.range[1]).replace(/\s+/g, " ");
   };
   if (
     value.type === "ArrowFunctionExpression" ||

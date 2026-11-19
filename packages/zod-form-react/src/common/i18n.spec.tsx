@@ -16,7 +16,7 @@ describe("FormRuntime の検証", () => {
       name: "a",
     });
     expect(issues[0]?.message).toBe(
-      "zod.tooSmall.string?minimum=3&inclusive=true",
+      "zod.tooSmall.string?minimum=3&inclusive=true" /* i18n: p.inclusive === "true" ? `${p.minimum}文字以上で入力してください。` : `${p.minimum}文字より多く入力してください。` */,
     );
   });
 
@@ -34,7 +34,7 @@ describe("FormRuntime の検証", () => {
 
 describe("meta の文言", () => {
   const schema = z.string().register(zf.string.registry, {
-    label: msgKey("zodFormReact.dynamic.loading" /* 読み込み中 */),
+    label: msgKey("zodFormReact.dynamic.loading" /* i18n: 読み込み中 */),
   });
 
   it("resolveMeta はキーの label を訳し、ほかはそのまま", () => {

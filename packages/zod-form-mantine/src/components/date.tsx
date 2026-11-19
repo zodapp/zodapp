@@ -105,7 +105,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
     locale,
     firstDayOfWeek: 0 as const,
     monthLabelFormat: msg(
-      "zodFormMantine.date.monthLabelFormat" /* YYYY年M月 */,
+      "zodFormMantine.date.monthLabelFormat" /* i18n: YYYY年M月 */,
     ),
     defaultDate: new Date(),
     onChange,

@@ -869,7 +869,7 @@ function HeaderCellInner({
             data-sorted={isSorted || undefined}
             onClick={handleSortClick}
             aria-label={msg(
-              "zodFormWidget.table.sort" /* ${label}を並び替え */,
+              "zodFormWidget.table.sort" /* i18n: ${label}を並び替え */,
               { label: field.label },
             )}
           >

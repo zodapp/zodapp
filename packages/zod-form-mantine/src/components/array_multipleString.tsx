@@ -108,7 +108,7 @@ export const createMultipleStringComponent = (collection: Collection) =>
         onFocus={onFocus}
         label={label || undefined}
         placeholder={msg(
-          "zodFormMantine.multipleString.placeholder" /* 入力してEnterで追加 */,
+          "zodFormMantine.multipleString.placeholder" /* i18n: 入力してEnterで追加 */,
         )}
         error={error?.message}
         required={!(optional || nullable)}

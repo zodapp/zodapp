@@ -44,7 +44,7 @@ const RecursionLimitNotice = ({
     >
       <Text c="red" size="sm" data-zod-form-unsupported="">
         {msg(
-          "zodFormMantineLite.recursionLimit" /* これより深い階層は表示できません。schema の meta の maxDepth で上限を変えられます */,
+          "zodFormMantineLite.recursionLimit" /* i18n: これより深い階層は表示できません。schema の meta の maxDepth で上限を変えられます */,
         )}
       </Text>
     </InputWrapper>

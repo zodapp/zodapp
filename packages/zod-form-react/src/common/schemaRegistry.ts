@@ -67,7 +67,8 @@ const containsPromise = (
   }
   return children.some(
     (child) =>
-      child instanceof z.ZodType && containsPromise(child as z.ZodTypeAny, seen),
+      child instanceof z.ZodType &&
+      containsPromise(child as z.ZodTypeAny, seen),
   );
 };
 
@@ -451,7 +452,7 @@ export class FormRuntime {
               code: ASYNC_VALIDATION_ISSUE_CODE,
               path: [],
               message: msgKey(
-                "zodFormReact.asyncValidation" /* このフォームでは非同期の検証を扱えません */,
+                "zodFormReact.asyncValidation" /* i18n: このフォームでは非同期の検証を扱えません */,
               ),
             } as unknown as z.core.$ZodIssue,
           ],
@@ -511,7 +512,9 @@ export class FormRuntime {
       if (entry.status === "pending") {
         if (!isCovered(segments, segments)) {
           issues.push({
-            message: msgKey("zodFormReact.dynamic.loading" /* 読み込み中 */),
+            message: msgKey(
+              "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
+            ),
             path: segments,
             code: PENDING_ISSUE_CODE,
           });
@@ -522,7 +525,7 @@ export class FormRuntime {
         if (!isCovered(segments, segments)) {
           issues.push({
             message: msgKey(
-              "zodFormReact.dynamic.failed" /* 取得できませんでした */,
+              "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
             ),
             path: segments,
             code: RESOLVE_ERROR_ISSUE_CODE,
@@ -569,14 +572,14 @@ export class FormRuntime {
             entry.status === "pending"
               ? {
                   message: msgKey(
-                    "zodFormReact.dynamic.loading" /* 読み込み中 */,
+                    "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
                   ),
                   path: segments,
                   code: PENDING_ISSUE_CODE,
                 }
               : {
                   message: msgKey(
-                    "zodFormReact.dynamic.failed" /* 取得できませんでした */,
+                    "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
                   ),
                   path: segments,
                   code: RESOLVE_ERROR_ISSUE_CODE,

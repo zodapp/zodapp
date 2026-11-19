@@ -56,7 +56,7 @@ function useImportState<S extends z.ZodType>({
           setPreviewTable(table.slice(0, 1));
           setError(
             msg(
-              "zodFormWidget.import.csvNoRows" /* CSVにデータ行がありません。 */,
+              "zodFormWidget.import.csvNoRows" /* i18n: CSVにデータ行がありません。 */,
             ),
           );
           return;
@@ -70,7 +70,7 @@ function useImportState<S extends z.ZodType>({
           setPreviewTable(table.slice(0, 1));
           setError(
             msg(
-              "zodFormWidget.import.csvNothingToImport" /* CSVから取り込めるデータがありません。 */,
+              "zodFormWidget.import.csvNothingToImport" /* i18n: CSVから取り込めるデータがありません。 */,
             ),
           );
           return;
@@ -86,14 +86,14 @@ function useImportState<S extends z.ZodType>({
         console.error("CSV import parse failed", e);
         setError(
           msg(
-            "zodFormWidget.import.csvParseError" /* CSV解析エラー: ${message} */,
+            "zodFormWidget.import.csvParseError" /* i18n: CSV解析エラー: ${message} */,
             {
               message:
                 e instanceof Error
                   ? msg.resolve(e.message)
                   : String(e) ||
                     msg(
-                      "zodFormWidget.import.csvParseFailed" /* CSVの解析に失敗しました。 */,
+                      "zodFormWidget.import.csvParseFailed" /* i18n: CSVの解析に失敗しました。 */,
                     ),
             },
           ),
@@ -109,7 +109,7 @@ function useImportState<S extends z.ZodType>({
     setFilename(null);
     setError(
       msg(
-        "zodFormWidget.import.csvSelectFile" /* CSVファイルを選択してください。 */,
+        "zodFormWidget.import.csvSelectFile" /* i18n: CSVファイルを選択してください。 */,
       ),
     );
   }, [msg]);
@@ -125,13 +125,13 @@ function useImportState<S extends z.ZodType>({
       setError(
         e instanceof Error
           ? msg(
-              "zodFormWidget.import.importError" /* インポートエラー: ${message} */,
+              "zodFormWidget.import.importError" /* i18n: インポートエラー: ${message} */,
               {
                 message: msg.resolve(e.message),
               },
             )
           : msg(
-              "zodFormWidget.import.importFailed" /* インポートに失敗しました。 */,
+              "zodFormWidget.import.importFailed" /* i18n: インポートに失敗しました。 */,
             ),
       );
     } finally {
@@ -192,7 +192,7 @@ function ImportContent<S extends z.ZodType>({
     <>
       <Text size="sm" c="dimmed" mb="sm">
         {msg(
-          "zodFormWidget.import.csvDescription" /* CSVファイルを選択して内容を確認後に取り込みます。 */,
+          "zodFormWidget.import.csvDescription" /* i18n: CSVファイルを選択して内容を確認後に取り込みます。 */,
         )}
       </Text>
 
@@ -234,12 +234,12 @@ function ImportContent<S extends z.ZodType>({
           <div>
             <Text size="lg" inline>
               {msg(
-                "zodFormWidget.import.csvDropzone" /* ここにCSVファイルをドラッグ、またはクリックして選択 */,
+                "zodFormWidget.import.csvDropzone" /* i18n: ここにCSVファイルをドラッグ、またはクリックして選択 */,
               )}
             </Text>
             <Text size="sm" c="dimmed" inline mt={7}>
               {msg(
-                "zodFormWidget.import.csvDropzoneHint" /* CSV形式のファイルを1つ選択してください */,
+                "zodFormWidget.import.csvDropzoneHint" /* i18n: CSV形式のファイルを1つ選択してください */,
               )}
             </Text>
           </div>
@@ -248,7 +248,7 @@ function ImportContent<S extends z.ZodType>({
 
       {filename && (
         <Text size="sm" mb="sm">
-          {msg("zodFormWidget.import.selected" /* 選択中: ${name} */, {
+          {msg("zodFormWidget.import.selected" /* i18n: 選択中: ${name} */, {
             name: filename,
           })}
         </Text>
@@ -265,11 +265,11 @@ function ImportContent<S extends z.ZodType>({
           <Text size="sm" mb="xs">
             {rows.length <= PREVIEW_LIMIT
               ? msg(
-                  "zodFormWidget.import.plannedAll" /* ${count} 件を取り込み予定です（全${count}件を表示中）。 */,
+                  "zodFormWidget.import.plannedAll" /* i18n: ${count} 件を取り込み予定です（全${count}件を表示中）。 */,
                   { count: rows.length },
                 )
               : msg(
-                  "zodFormWidget.import.plannedHead" /* ${count} 件を取り込み予定です（先頭 ${limit} 件を表示）。 */,
+                  "zodFormWidget.import.plannedHead" /* i18n: ${count} 件を取り込み予定です（先頭 ${limit} 件を表示）。 */,
                   { count: rows.length, limit: PREVIEW_LIMIT },
                 )}
           </Text>
@@ -278,7 +278,7 @@ function ImportContent<S extends z.ZodType>({
       ) : (
         <Text size="sm" c="dimmed" mb="md">
           {msg(
-            "zodFormWidget.import.csvEmpty" /* まだCSVが選択されていません。 */,
+            "zodFormWidget.import.csvEmpty" /* i18n: まだCSVが選択されていません。 */,
           )}
         </Text>
       )}
@@ -289,7 +289,7 @@ function ImportContent<S extends z.ZodType>({
         <Group justify="flex-end">
           {showCancel && onCancel && (
             <Button variant="default" onClick={onCancel}>
-              {msg("zodFormWidget.common.cancel" /* キャンセル */)}
+              {msg("zodFormWidget.common.cancel" /* i18n: キャンセル */)}
             </Button>
           )}
           <Button
@@ -299,7 +299,7 @@ function ImportContent<S extends z.ZodType>({
             disabled={rows.length === 0}
           >
             {submitLabel ??
-              msg("zodFormWidget.import.csvSubmit" /* CSVをインポート */)}
+              msg("zodFormWidget.import.csvSubmit" /* i18n: CSVをインポート */)}
           </Button>
         </Group>
       )}
@@ -316,7 +316,8 @@ export function useImportModal<S extends z.ZodType>({
 }) {
   const msg = useMsg();
   const title =
-    titleFromProps ?? msg("zodFormWidget.import.title" /* データインポート */);
+    titleFromProps ??
+    msg("zodFormWidget.import.title" /* i18n: データインポート */);
   const [opened, { open, close }] = useDisclosure(false);
   const state = useImportState(props);
   const { reset } = state;
