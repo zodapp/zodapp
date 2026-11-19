@@ -30,28 +30,41 @@ const ruleTester = new RuleTester({
 
 ruleTester.run("comment", rule, {
   valid: [
-    { code: 'msg("test.title" /* タイトル */);', options },
+    { code: 'msg("test.title" /* i18n: タイトル */);', options },
     {
-      code: 'msgKey("test.rowCount" /* ${count} 件 */, { count: 1 });',
+      code: 'msgKey("test.rowCount" /* i18n: ${count} 件 */, { count: 1 });',
       options,
     },
     // msgKey の書式（key?params）でも、キーで引く
-    { code: 'f(msgKey("test.rowCount?count=1" /* ${count} 件 */));', options },
-    { code: 'msg("test.block" /* 全${count}件 */, { count: 1 });', options },
-    // 空白の違いは無視する
     {
-      code: 'msg("test.conditional" /* p.inclusive === "true" ? `${p.minimum}以上` : `${p.minimum}より大きい` */, p);',
+      code: 'f(msgKey("test.rowCount?count=1" /* i18n: ${count} 件 */));',
       options,
     },
-    { code: 'msg("test.multiline" /* 1行目\\n2行目 */);', options },
-    { code: 'msg("test.special" /* a *\\/ b \\\\ c */);', options },
-    { code: 'msg("other.ok" /* OK */);', options },
+    {
+      code: 'msg("test.block" /* i18n: 全${count}件 */, { count: 1 });',
+      options,
+    },
+    // 空白の違いは無視する
+    {
+      code: 'msg("test.conditional" /* i18n: p.inclusive === "true" ? `${p.minimum}以上` : `${p.minimum}より大きい` */, p);',
+      options,
+    },
+    { code: 'msg("test.multiline" /* i18n: 1行目\\n2行目 */);', options },
+    { code: 'msg("test.special" /* i18n: a *\\/ b \\\\ c */);', options },
+    { code: 'msg("other.ok" /* i18n: OK */);', options },
     // 関数の名前は見ない。キーの形の文字列なら、どこにあっても確かめる
-    { code: 't("test.title" /* タイトル */);', options },
-    { code: 'const pair = ["test.title" /* タイトル */, {}];', options },
-    { code: "const k = `test.title` /* タイトル */;", options },
-    { code: 'useMsg()("test.title" /* タイトル */);', options },
-    { code: 'const el = <A label={"test.title" /* タイトル */} />;', options },
+    { code: 't("test.title" /* i18n: タイトル */);', options },
+    { code: 'const pair = ["test.title" /* i18n: タイトル */, {}];', options },
+    { code: "const k = `test.title` /* i18n: タイトル */;", options },
+    { code: 'useMsg()("test.title" /* i18n: タイトル */);', options },
+    {
+      code: 'const el = <A label={"test.title" /* i18n: タイトル */} />;',
+      options,
+    },
+    // 目印の無いコメント・行コメントには触らない
+    { code: 'msg("test.title" /* i18n: タイトル */ /* メモ */);', options },
+    { code: 'msg("test.title" /* i18n: タイトル */); // メモ', options },
+    { code: 'const s = "hello" /* タイトル */; // i18n: x', options },
     // 対象の外：名前空間が無い・キーの形でない・キーがリテラルでない・${} を含む
     { code: 'msg("unknownNamespace.key");', options },
     { code: 'const url = "test.dev/docs";', options },
@@ -80,52 +93,91 @@ ruleTester.run("comment", rule, {
       code: 'msg("test.title");',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'msg("test.title" /* タイトル */);',
+      output: 'msg("test.title" /* i18n: タイトル */);',
     },
     {
-      code: 'msg("test.title" /* 古い文言 */);',
+      code: 'msg("test.title" /* i18n: 古い文言 */);',
       options,
       errors: [{ messageId: "mismatch" }],
-      output: 'msg("test.title" /* タイトル */);',
+      output: 'msg("test.title" /* i18n: タイトル */);',
     },
     {
       code: 'msg("test.rowCount", { count: 1 });',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'msg("test.rowCount" /* ${count} 件 */, { count: 1 });',
+      output: 'msg("test.rowCount" /* i18n: ${count} 件 */, { count: 1 });',
     },
     {
-      code: 'msg("test.title" /* タイ */ /* トル */);',
+      code: 'msg("test.title" /* i18n: タイ */ /* i18n: トル */);',
       options,
       errors: [{ messageId: "malformed" }],
-      output: 'msg("test.title" /* タイトル */);',
+      output: 'msg("test.title" /* i18n: タイトル */);',
     },
     {
-      code: 'msg("test.title" /* タイ\n トル */);',
+      code: 'msg("test.title" /* i18n: タイ\n トル */);',
       options,
       errors: [{ messageId: "malformed" }],
-      output: 'msg("test.title" /* タイトル */);',
+      output: 'msg("test.title" /* i18n: タイトル */);',
     },
+    // 行コメント・普通のブロックコメントは残し、目印付きのコメントをキーのすぐ後ろに書く
     {
       code: 'msg(\n  "test.title" // タイトル\n);',
       options,
+      errors: [{ messageId: "missing" }],
+      output: 'msg(\n  "test.title" /* i18n: タイトル */ // タイトル\n);',
+    },
+    {
+      code: 'msg("test.title" /* あとで直す */);',
+      options,
+      errors: [{ messageId: "missing" }],
+      output: 'msg("test.title" /* i18n: タイトル */ /* あとで直す */);',
+    },
+    // 目印付きのコメントだけを置き換える
+    {
+      code: 'msg("test.title" /* あとで直す */ /* i18n: 古い */);',
+      options,
+      errors: [{ messageId: "mismatch" }],
+      output: 'msg("test.title" /* あとで直す */ /* i18n: タイトル */);',
+    },
+    {
+      code: 'msg("test.title" /* i18n: タイ */ /* メモ */ /* i18n: トル */);',
+      options,
       errors: [{ messageId: "malformed" }],
-      output: 'msg(\n  "test.title" /* タイトル */\n);',
+      output: 'msg("test.title" /* i18n: タイトル */ /* メモ */);',
+    },
+    // キーのすぐ後ろ以外にある目印付きのコメントは消す
+    {
+      code: 'const s = "hello" /* i18n: タイトル */;',
+      options,
+      errors: [{ messageId: "orphan" }],
+      output: 'const s = "hello";',
+    },
+    {
+      code: "msg(key /* i18n: タイトル */);",
+      options,
+      errors: [{ messageId: "orphan" }],
+      output: "msg(key);",
+    },
+    {
+      code: 'const dict = { "test.title" /* i18n: タイトル */: "x" };',
+      options,
+      errors: [{ messageId: "orphan" }],
+      output: 'const dict = { "test.title": "x" };',
     },
     {
       code: 'msg("test.multiline");',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'msg("test.multiline" /* 1行目\\n2行目 */);',
+      output: 'msg("test.multiline" /* i18n: 1行目\\n2行目 */);',
     },
     {
       code: 'msg("test.special");',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'msg("test.special" /* a *\\/ b \\\\ c */);',
+      output: 'msg("test.special" /* i18n: a *\\/ b \\\\ c */);',
     },
     {
-      code: 'msg("test.title" /* \\t */);',
+      code: 'msg("test.title" /* i18n: \\t */);',
       options,
       errors: [{ messageId: "invalidEscape" }],
       output: null,
@@ -141,39 +193,39 @@ ruleTester.run("comment", rule, {
       code: 'translate("test.title");',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'translate("test.title" /* タイトル */);',
+      output: 'translate("test.title" /* i18n: タイトル */);',
     },
     {
       code: 'const pair = ["test.rowCount", { count: "1" }];',
       options,
       errors: [{ messageId: "missing" }],
       output:
-        'const pair = ["test.rowCount" /* ${count} 件 */, { count: "1" }];',
+        'const pair = ["test.rowCount" /* i18n: ${count} 件 */, { count: "1" }];',
     },
     {
       code: 'const keys = ["test.title", "other.ok"];',
       options,
       errors: [{ messageId: "missing" }, { messageId: "missing" }],
       output:
-        'const keys = ["test.title" /* タイトル */, "other.ok" /* OK */];',
+        'const keys = ["test.title" /* i18n: タイトル */, "other.ok" /* i18n: OK */];',
     },
     {
       code: 'useMsg()("test.title");',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'useMsg()("test.title" /* タイトル */);',
+      output: 'useMsg()("test.title" /* i18n: タイトル */);',
     },
     {
       code: "const k = `test.title`;",
       options,
       errors: [{ messageId: "missing" }],
-      output: "const k = `test.title` /* タイトル */;",
+      output: "const k = `test.title` /* i18n: タイトル */;",
     },
     {
       code: 'const label = "test.rowCount?count=1";',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'const label = "test.rowCount?count=1" /* ${count} 件 */;',
+      output: 'const label = "test.rowCount?count=1" /* i18n: ${count} 件 */;',
     },
     {
       code: 'const v = { label: "test.nothing" };',
@@ -186,7 +238,7 @@ ruleTester.run("comment", rule, {
       code: 'const el = <A label="test.title" />;',
       options,
       errors: [{ messageId: "missing" }],
-      output: 'const el = <A label={"test.title" /* タイトル */} />;',
+      output: 'const el = <A label={"test.title" /* i18n: タイトル */} />;',
     },
     // 型の位置でない TS の文字列は確かめる
     {
@@ -194,7 +246,7 @@ ruleTester.run("comment", rule, {
       options,
       languageOptions: { parser: tsParser },
       errors: [{ messageId: "missing" }],
-      output: 'const k = "test.title" /* タイトル */ as const;',
+      output: 'const k = "test.title" /* i18n: タイトル */ as const;',
     },
   ],
 });
