@@ -35,8 +35,13 @@ const VALUE_TYPES = new Set(["string", "number", "boolean", "enum"]);
 
 type EntryRow = {
   id: number;
-  /** 値に入っているキー。まだ値に入れていない行は undefined */
+  /** 値に入っているキー。まだ値に入れていない行・キーが書きかけの行は undefined */
   key: MapKey | undefined;
+  /**
+   * キーを不正な書きかけにしたときに、値から外した組の値と、元の位置。
+   * キーを直したら、この値で組を元の位置に戻す（書きかけのあいだは、その組を送らない）
+   */
+  held?: { value: unknown; index: number };
   draftKey: string;
   keyError?: string;
 };
@@ -161,14 +166,15 @@ const MapEntriesComponent = wrapComponent(function MapEntriesComponentImplement(
     // reset や外からの書き換えで、Map のキーが変わったときに行をそろえる（書きかけのキーは残す）
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRows((currentRows) => {
-      const currentByKey = new Map(
-        currentRows
-          .filter((row) => row.key !== undefined)
-          .map((row) => [row.key, row]),
+      // 今の行の並びを保ち、値から消えたキーの行を外し、新しいキーの行を後ろに足す
+      const keySet = new Set<unknown>(keys);
+      const kept = currentRows.filter(
+        (row) => row.key === undefined || keySet.has(row.key),
       );
+      const known = new Set<unknown>(kept.map((row) => row.key));
       return [
-        ...keys.map((key) => currentByKey.get(key) ?? createEntryRow(key)),
-        ...currentRows.filter((row) => row.key === undefined),
+        ...kept,
+        ...keys.filter((key) => !known.has(key)).map(createEntryRow),
       ];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -233,29 +239,50 @@ const MapEntriesComponent = wrapComponent(function MapEntriesComponentImplement(
               )
             : undefined;
     if (keyError) {
+      // 値に入っている組のキーを不正な書きかけにしたら、その組を値から外し、値と位置を行に持っておく
+      // （画面と違う古いキーのまま送らない。書きかけのあいだは、その組が無いまま送る）
+      let held = row.held;
+      if (row.key !== undefined) {
+        const entries = Array.from(value);
+        const index = entries.findIndex(([itemKey]) =>
+          Object.is(itemKey, row.key),
+        );
+        held = { value: value.get(row.key), index };
+        write(new Map(entries.filter((_, i) => i !== index)));
+      }
       setRows((currentRows) =>
         currentRows.map((item) =>
-          item.id === row.id ? { ...item, draftKey, keyError } : item,
+          item.id === row.id
+            ? { ...item, key: undefined, held, draftKey, keyError }
+            : item,
         ),
       );
       return;
     }
-    // キーの順を保ったまま、キーだけを差し替える。新しい行は末尾に値の無い組を足す
+    // キーの順を保ったまま、キーだけを差し替える。書きかけで外した組は、持っておいた値で元の位置に戻す。
+    // 新しい行は末尾に値の無い組を足す
+    const entries = Array.from(value);
     const next =
       row.key !== undefined
         ? new Map(
-            Array.from(value, ([itemKey, itemValue]) =>
+            entries.map(([itemKey, itemValue]) =>
               Object.is(itemKey, row.key)
                 ? [key, itemValue]
                 : [itemKey, itemValue],
             ),
           )
-        : new Map([...value, [key, undefined]]);
+        : row.held
+          ? new Map([
+              ...entries.slice(0, row.held.index),
+              [key, row.held.value],
+              ...entries.slice(row.held.index),
+            ])
+          : new Map([...entries, [key, undefined]]);
     write(next);
     setRows((currentRows) =>
       currentRows.map((item) =>
         item.id === row.id
-          ? { ...item, key, draftKey, keyError: undefined }
+          ? { ...item, key, held: undefined, draftKey, keyError: undefined }
           : item,
       ),
     );
@@ -334,9 +361,15 @@ const MapEntriesComponent = wrapComponent(function MapEntriesComponentImplement(
                     ) : (
                       <TextInput
                         label={msg("zodFormMantine.record.value" /* 値 */)}
-                        placeholder={msg(
-                          "zodFormMantine.record.keyFirst" /* 先にキーを入力してください */,
-                        )}
+                        placeholder={
+                          row.held
+                            ? msg(
+                                "zodFormMantine.record.keyHeld" /* キーを直すと、値が戻ります */,
+                              )
+                            : msg(
+                                "zodFormMantine.record.keyFirst" /* 先にキーを入力してください */,
+                              )
+                        }
                         disabled
                       />
                     )}

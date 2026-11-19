@@ -17,3 +17,4 @@
 - 部品の無い型は、「Component not found」の代わりに、辞書の文言の「扱えない」注記と console.error（型の名前を入れる）を出す。zod-form-mantine に `UnsupportedSchemaNotice` を足し、AutoForm・ReactiveAutoForm・AutoSearch で使う
 - `FormRuntime` は、`z.promise()`・async の refine で zod が投げる例外を握り、送信が止まった理由として出す（`ASYNC_VALIDATION_ISSUE_CODE`）
 - optional の付かない再帰（`z.lazy`）は、lazy の入れ子の深さの上限（既定 10、`zf.common.registry` の meta の `maxDepth` で変える）で止め、注記を出す
+- record の entries と Map で、値に入っている組のキーを不正な書きかけ（空・重複・キーの schema に通らない）にしたら、直すまでその組を値から外す（画面と違う古いキーのまま送らない）。キーを直すと、持っておいた値で元の位置に戻す

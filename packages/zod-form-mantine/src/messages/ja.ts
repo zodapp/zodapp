@@ -27,6 +27,7 @@ export const ja = {
   "zodFormMantine.record.key": "キー",
   "zodFormMantine.record.value": "値",
   "zodFormMantine.record.keyFirst": "先にキーを入力してください",
+  "zodFormMantine.record.keyHeld": "キーを直すと、値が戻ります",
   "zodFormMantine.record.emptyRow": "空の行",
   "zodFormMantine.record.removeRow": ({ label }) => `${label}を削除`,
   "zodFormMantine.record.append": "末尾に追加",

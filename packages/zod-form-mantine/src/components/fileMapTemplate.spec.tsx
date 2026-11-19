@@ -155,6 +155,35 @@ describe("z.map()", () => {
     );
   });
 
+  it("キーを不正な書きかけにすると、その組を値から外し、直すと元の位置に戻す", async () => {
+    const schema = z.object({
+      m: labeled(z.map(z.string(), z.number()), "マップ"),
+    });
+    const { values } = renderForm(schema, {
+      m: new Map([
+        ["a", 1],
+        ["b", 2],
+      ]),
+    });
+    fireEvent.change(await screen.findByDisplayValue("a"), {
+      target: { value: "b" },
+    });
+    expect(await screen.findByText("This key already exists.")).toBeTruthy();
+    await waitFor(() => expect(values().m).toEqual(new Map([["b", 2]])));
+    expect(
+      screen.getByPlaceholderText("Fix the key to restore the value"),
+    ).toBeTruthy();
+    fireEvent.change(screen.getAllByLabelText("Key")[0]!, {
+      target: { value: "c" },
+    });
+    await waitFor(() =>
+      expect(Array.from(values().m as Map<string, number>)).toEqual([
+        ["c", 1],
+        ["b", 2],
+      ]),
+    );
+  });
+
   it("値のエラーを、その行の値の欄に出す", async () => {
     const schema = z.object({
       m: labeled(z.map(z.string(), z.string().min(3, "3文字以上")), "マップ"),

@@ -28,6 +28,7 @@ export const en = defineMessages({
   "zodFormMantine.record.key": "Key",
   "zodFormMantine.record.value": "Value",
   "zodFormMantine.record.keyFirst": "Enter a key first",
+  "zodFormMantine.record.keyHeld": "Fix the key to restore the value",
   "zodFormMantine.record.emptyRow": "empty row",
   "zodFormMantine.record.removeRow": ({ label }: { label: string }) =>
     `Remove ${label}`,
