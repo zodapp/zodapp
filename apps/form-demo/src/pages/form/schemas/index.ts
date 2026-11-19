@@ -33,6 +33,7 @@ import * as i18nMessages from "./i18nMessages";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
 import * as readOnly from "./readOnly";
+import * as fixedValues from "./fixedValues";
 import * as reactiveBasicInput from "./reactiveBasicInput";
 import * as reactiveEnumSelect from "./reactiveEnumSelect";
 import * as reactiveNestedObject from "./reactiveNestedObject";
@@ -74,6 +75,7 @@ import i18nMessagesCode from "./i18nMessages.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
 import readOnlyCode from "./readOnly.ts?raw";
+import fixedValuesCode from "./fixedValues.ts?raw";
 import reactiveBasicInputCode from "./reactiveBasicInput.ts?raw";
 import reactiveEnumSelectCode from "./reactiveEnumSelect.ts?raw";
 import reactiveNestedObjectCode from "./reactiveNestedObject.ts?raw";
@@ -111,6 +113,7 @@ export const formSchemas = {
   [selectAndExternalKey.formId]: selectAndExternalKey,
   [externalKeyFilter.formId]: externalKeyFilter,
   [readOnly.formId]: readOnly,
+  [fixedValues.formId]: fixedValues,
   [schemaTransform.formId]: schemaTransform,
   [validatePreceding.formId]: validatePreceding,
   [formActions.formId]: formActions,
@@ -154,6 +157,7 @@ export const formCodes = {
   [selectAndExternalKey.formId]: selectAndExternalKeyCode,
   [externalKeyFilter.formId]: externalKeyFilterCode,
   [readOnly.formId]: readOnlyCode,
+  [fixedValues.formId]: fixedValuesCode,
   [schemaTransform.formId]: schemaTransformCode,
   [validatePreceding.formId]: validatePrecedingCode,
   [formActions.formId]: formActionsCode,

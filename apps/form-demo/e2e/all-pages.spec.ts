@@ -1,27 +1,28 @@
 import { expect, test } from "./helpers";
 
-// サイドバーのすべてのデモページが開け、見出しが出て、例外が起きない
+// サイドバーのすべてのデモページが開け、見出しが出て、例外が起きない。
+// 2 ページ目からはサイドバーのリンクで移る（利用者と同じ手順）。
+// page.goto で毎回読み直すと、ページが増えるにつれてテストの上限の時間に届くため
 test("すべてのデモページが開ける", async ({ page }) => {
   await page.goto("/form/detail?formId=basicInput");
   const links = page.locator('a[href*="formId="]');
   await expect(links.first()).toBeVisible();
-  const hrefs = [
-    ...new Set(
-      await links.evaluateAll((as) =>
-        as.map((a) => a.getAttribute("href") ?? ""),
-      ),
-    ),
-  ];
-  expect(hrefs.length).toBeGreaterThan(30);
+  const entries = await links.evaluateAll((as) =>
+    as.map((a) => ({
+      href: a.getAttribute("href") ?? "",
+      title: (a.textContent ?? "").trim(),
+    })),
+  );
+  const pages = [...new Map(entries.map((e) => [e.href, e])).values()];
+  expect(pages.length).toBeGreaterThan(30);
 
-  for (const href of hrefs) {
+  for (const { href, title } of pages) {
     await test.step(href, async () => {
-      await page.goto(href);
+      await page.locator(`a[href="${href}"]`).first().click();
+      await expect(page).toHaveURL(href);
+      // 移った先のページの見出し（リンクと同じ名前）が出る
       await expect(
-        page
-          .getByRole("heading", { level: 2 })
-          .or(page.getByRole("heading", { level: 1 }))
-          .first(),
+        page.getByRole("heading", { name: title, exact: true }),
       ).toBeVisible();
     });
   }

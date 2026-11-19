@@ -4,9 +4,7 @@ import {
   openDemo,
   optionsOf,
   choose,
-  submit,
   test,
-  waitSubmitSettled,
 } from "./helpers";
 
 // zod の型をそのまま使う：zf を使わずに書いた型の表示
@@ -77,21 +75,17 @@ test("readonly な object の中の欄を描き、入力できる", async ({
     .toBe("佐藤");
 });
 
-test("再帰は maxDepth（3）で止まり、注記を出す。その先の値は消さずに送る", async ({
+test("optional な再帰は、深くしても上限の注記を出さずに全部描く", async ({
   page,
   pageErrors: _,
 }) => {
-  await expect(inputWithValue(page, "第1項")).toBeVisible();
-  await expect(inputWithValue(page, "第1目")).toHaveCount(0);
-  await expect(
-    page.getByText("これより深い階層は表示できません", { exact: false }),
-  ).toBeVisible();
-  await submit(page);
-  await waitSubmitSettled(page, 1);
-  expect(
-    await readValue<string>(
-      page,
-      "return values.outline.child.child.child.name",
-    ),
-  ).toBe("第1目");
+  await expect(inputWithValue(page, "第1目")).toBeVisible();
+  await expect(inputWithValue(page, "その1")).toBeVisible();
+  await expect(page.locator("[data-zod-form-unsupported]")).toHaveCount(0);
+  await inputWithValue(page, "その1").fill("その2");
+  await expect
+    .poll(() =>
+      readValue<string>(page, "return values.outline.child.child.child.child.name"),
+    )
+    .toBe("その2");
 });

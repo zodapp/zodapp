@@ -49,7 +49,12 @@ e2e で確かめたいことは、重なるデモページ（メニューに出�
 
 #### e2e 用のページ（デモに向かないものだけ）
 
-デモに向かないケース（わざと不正な値や古い形の初期値を持たせるなど）だけを、メニューに出ない e2e 用のページに置きます。今は `e2e-open-rewrite` だけです。
+デモに向かないケースだけを、メニューに出ない e2e 用のページに置きます。
+
+- わざと不正な値や古い形の初期値を持たせるもの：`e2e-open-rewrite`
+- 利用者が画面で触らない機能（デモを細かく作らず、e2e だけで確かめる）：`e2e-parsed-submit`（送信する値の変換）・`e2e-passthrough`（欄を出さずにそのまま送る型）・`e2e-unsupported`（扱えない型の注記）・`e2e-container-refine`（入れ物の refine）・`e2e-lazy-limit`（再帰の上限）・`e2e-misc`（そのほかの型の書き方）
+
+利用者が画面で触る UI（欄の見た目・選び方など）は、メニューに出るデモに置きます。
 
 - 置き場所：`src/pages/form/schemas/e2e/`。登録簿は `schemas/e2e/index.ts` の `e2eSchemas`（コードのタブは `e2eCodes`）
 - formId は `e2e-` で始める。`/form/detail?formId=e2e-…` で開ける（GitHub Pages のビルドにも含む）

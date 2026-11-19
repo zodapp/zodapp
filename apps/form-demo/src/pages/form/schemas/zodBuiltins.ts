@@ -5,7 +5,7 @@ import { IconBraces } from "@tabler/icons-react";
 export const formId = "zodBuiltins";
 export const title = "zod の型をそのまま使う";
 export const description =
-  "pipe・transform・set・map・file・readonly・数値の enum・キーの決まった record・literal・再帰の上限を、zf を使わずに書いたときの表示";
+  "pipe・transform・set・map・file・readonly・数値の enum・キーの決まった record・literal・optional な再帰を、zf を使わずに書いたときの表示";
 export const icon = IconBraces;
 export const category = "Standard";
 
@@ -16,7 +16,7 @@ enum Priority {
   High = 3,
 }
 
-// optional な再帰の木。maxDepth で、描く深さの上限を 3 にする（その先の値は消さずに送る）
+// optional な再帰の木。値のある所まで描く（入れ子の深さの上限はかからない）
 type Tree = { name: string; child?: Tree };
 const treeNode = (): z.ZodType<Tree> =>
   z.object({
@@ -83,11 +83,10 @@ export const schema = z
       })
       .readonly()
       .register(zf.common.registry, { label: "著者（readonly）" }),
-    // 再帰の上限：lazy の入れ子の深さが maxDepth（3）を超えた所は描かず、注記を出す。
-    // 中の lazy は、外の lazy の上限を引き継ぐ
+    // optional な再帰：値のある所まで描く。optional を通るたびに、入れ子の深さの数え直しになるので、
+    // 深くしても上限（既定 10）の注記は出ない
     outline: z.lazy(() => treeNode()).register(zf.common.registry, {
-      label: "目次（再帰。maxDepth: 3）",
-      maxDepth: 3,
+      label: "目次（optional な再帰）",
     }),
   })
   .register(zf.object.registry, {});
@@ -107,7 +106,10 @@ export const defaultValues: z.input<typeof schema> = {
   author: { name: "山田" },
   outline: {
     name: "第1章",
-    child: { name: "第1節", child: { name: "第1項", child: { name: "第1目" } } },
+    child: {
+      name: "第1節",
+      child: { name: "第1項", child: { name: "第1目", child: { name: "その1" } } },
+    },
   },
 };
 

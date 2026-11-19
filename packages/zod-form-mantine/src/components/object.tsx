@@ -19,6 +19,7 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
 import { useMsg } from "../messages/useMsg";
 import { UnsafeKeyNameNotice } from "../utils/unsafeKey";
+import { ResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -192,7 +193,8 @@ export function OptionalContainer(
               paddingBottom: 4,
             }}
           >
-            {children}
+            {/* 値があるときだけ中を描く（無ければ ＋ だけ）ので、lazy の数を数え直す */}
+            <ResetLazyDepth>{children}</ResetLazyDepth>
           </div>
           {!readOnly && (
             <ActionIcon
