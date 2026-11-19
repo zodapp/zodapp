@@ -18,6 +18,16 @@ describe("partialRecordKeys", () => {
     expect(partialRecordKeys(schema)).toEqual(["s", "l"]);
   });
 
+  it("数値・混在の TS enum は、逆引きの名前をキーにしない", () => {
+    enum Mixed {
+      Zero = 0,
+      Other = "other",
+    }
+    expect(
+      partialRecordKeys(z.partialRecord(z.enum(Mixed), z.string())),
+    ).toEqual(["0", "other"]);
+  });
+
   it("値が複数の literal・literal の union・数値の literal も扱う", () => {
     expect(
       partialRecordKeys(z.partialRecord(z.literal(["x", "y"]), z.string())),

@@ -382,7 +382,15 @@ const keysFromKeySchema = (keyType: z.ZodTypeAny): unknown[] | undefined => {
     values?: unknown[];
     options?: z.ZodTypeAny[];
   };
-  if (def.type === "enum" && def.entries) return Object.values(def.entries);
+  if (def.type === "enum" && def.entries) {
+    // 数値の TS enum の逆引き（{ 0: "Zero" }）は値ではないので除く（zod の getEnumValues と同じ）
+    const numericValues = Object.values(def.entries).filter(
+      (value) => typeof value === "number",
+    );
+    return Object.entries(def.entries)
+      .filter(([key]) => !numericValues.includes(+key))
+      .map(([, value]) => value);
+  }
   if (def.type === "literal" && def.values) return [...def.values];
   if (def.type === "union" && def.options) {
     const keys: unknown[] = [];
