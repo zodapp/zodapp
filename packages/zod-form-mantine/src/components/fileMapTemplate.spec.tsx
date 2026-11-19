@@ -8,8 +8,8 @@ import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { renderForm, setupDomMocks } from "../testing/renderForm";
 
-const labeled = <T extends z.ZodTypeAny>(schema: T, label: string) =>
-  schema.register(zf.common.registry, { label });
+const labeled = <T extends z.ZodTypeAny>(schema: T, label: string): T =>
+  (schema as z.ZodTypeAny).register(zf.common.registry, { label }) as T;
 
 beforeEach(() => {
   setupDomMocks();
