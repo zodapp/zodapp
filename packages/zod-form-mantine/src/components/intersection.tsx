@@ -15,7 +15,15 @@ import { useMsg } from "../messages/useMsg";
 
 type IntersectionSchema = z.ZodIntersection<z.ZodTypeAny, z.ZodTypeAny>;
 
-const WRAPPER_TYPES = new Set(["optional", "nullable", "default", "prefault"]);
+const WRAPPER_TYPES = new Set([
+  "optional",
+  "nullable",
+  "default",
+  "prefault",
+  "readonly",
+  "catch",
+  "nonoptional",
+]);
 
 /** 包み（optional など）を外した schema */
 const unwrap = (schema: z.ZodTypeAny): z.ZodTypeAny => {

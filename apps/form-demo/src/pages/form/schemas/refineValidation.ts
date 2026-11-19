@@ -38,8 +38,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "refineを使用すると、複数フィールドにまたがるカスタムバリデーション（パスワード一致確認など）を実装できます。whenオプションでバリデーション条件の指定も可能です。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {})
   .refine((data) => data.password === data.confirmPassword, {

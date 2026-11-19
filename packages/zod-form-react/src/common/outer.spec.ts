@@ -15,7 +15,18 @@ const relay = (schema: z.ZodTypeAny) => {
   let current = schema;
   for (;;) {
     const type = current.def.type;
-    if (!["optional", "nullable", "default", "prefault"].includes(type)) break;
+    if (
+      ![
+        "optional",
+        "nullable",
+        "default",
+        "prefault",
+        "nonoptional",
+        "readonly",
+        "catch",
+      ].includes(type)
+    )
+      break;
     const next = addOuter(outer, current);
     defaultValue = innerDefaultValue(defaultValue, current, next);
     outer = next;
@@ -73,5 +84,37 @@ describe("outer", () => {
     expect(messages("own")).toEqual(["own"]);
     expect(messages("wrap")).toEqual(["wrap"]);
     expect(messages("ok")).toBeUndefined();
+  });
+
+  describe("nonoptional・readonly・catch", () => {
+    it("nonoptional は外側の optional を打ち消し、内側の optional も効かせない", () => {
+      expect(relay(z.string().optional().nonoptional()).outer?.optional).toBe(
+        false,
+      );
+      expect(
+        relay(z.string().optional().nonoptional().optional()).outer?.optional,
+      ).toBe(true);
+    });
+
+    it("nonoptional は nullable を残す", () => {
+      const { outer } = relay(z.string().nullable().optional().nonoptional());
+      expect(outer?.optional).toBe(false);
+      expect(outer?.nullable).toBe(true);
+    });
+
+    it("dynamic が包み直すとき、nonoptional・readonly・catch も包み直す", () => {
+      const { outer } = relay(
+        z.string().optional().nonoptional().readonly().catch("c"),
+      );
+      const rewrapped = rewrapWithOuter(z.number(), undefined, outer);
+      expect(rewrapped.parse("x")).toBe("c");
+      expect(rewrapped.parse(1)).toBe(1);
+      const nonoptional = rewrapWithOuter(
+        z.number(),
+        undefined,
+        relay(z.string().optional().nonoptional()).outer,
+      );
+      expect(nonoptional.safeParse(undefined).success).toBe(false);
+    });
   });
 });

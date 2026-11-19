@@ -9,4 +9,6 @@ export const ja = {
     "お使いのブラウザは動画の再生に対応していません。",
   "zodFormReact.media.audioUnsupported":
     "お使いのブラウザは音声の再生に対応していません。",
+  "zodFormReact.unsupportedSchema": "このスキーマは、このフォームでは扱えません",
+  "zodFormReact.asyncValidation": "このフォームでは非同期の検証を扱えません",
 } satisfies MessagesOf<typeof en>;

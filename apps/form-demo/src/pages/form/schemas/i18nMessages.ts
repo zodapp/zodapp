@@ -92,8 +92,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "ラベル・選択肢・エラーは辞書のキーで書いています。ヘッダーで English に切り替えると、英語の辞書で表示します（アプリの見出しや説明は日本語のままです）。送信すると、名前（params 付きのキー）とメールアドレス（zod の既定のエラー）のエラーが出ます。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

@@ -8,24 +8,75 @@ import { type OptionDataType } from "./selectOption";
 type EnumSchema = z.ZodEnum<z.core.util.EnumLike>;
 type EnumValue = string | number;
 
+/** enum の選択肢 1 つ。value：値。name：label が無いときの名前 */
+export type EnumOption = { value: EnumValue; name: string };
+
+/**
+ * enum の選択肢と、label が無いときの名前。
+ *
+ * - object の形で書いた enum（`z.enum({ A: 1 })`・TS enum）は、キーを名前にする。
+ *   配列で書いた enum はキーと値が同じなので、名前は値になる
+ * - 数値の TS enum の逆引きのキー（`"0": "Red"` の組）は外す。zod が検証に使う値の求め方
+ *   （`util.getEnumValues`）と同じく、数の値と同じ数字のキーの組を外す。
+ *   検証（safeParse）は使わない（async の refine が付いた enum で、描画中に例外になるため）
+ */
+export const enumOptionsOf = (enumSchema: EnumSchema): EnumOption[] => {
+  const entries = Object.entries(
+    (enumSchema.def as { entries?: Record<string, EnumValue> }).entries ?? {},
+  );
+  const numericValues = entries
+    .map(([, value]) => value)
+    .filter((value): value is number => typeof value === "number");
+  const options: EnumOption[] = [];
+  for (const [key, value] of entries) {
+    if (numericValues.includes(Number(key))) continue;
+    // 同じ値を持つキーが複数あれば、先のキーを名前にする
+    if (options.some((option) => option.value === value)) continue;
+    options.push({ value, name: key });
+  }
+  return options;
+};
+
+/** enum の選択肢の名前（literal の label。無ければ {@link enumOptionsOf} の名前）と色 */
+const enumOptionData = (
+  enumSchema: EnumSchema,
+  { value, name }: EnumOption,
+): OptionDataType => {
+  const { schemas } = getMeta(enumSchema) ?? {};
+  const key = String(value);
+  const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
+  return {
+    value: key,
+    label: literalMeta?.label ?? name,
+    color: literalMeta?.color ?? "gray",
+  };
+};
+
+/** enum の値の表示名と色。選択肢に無い値は undefined */
+export const enumOptionDataOf = (
+  enumSchema: EnumSchema,
+  value: unknown,
+): OptionDataType | undefined => {
+  const option = enumOptionsOf(enumSchema).find(
+    (candidate) => String(candidate.value) === String(value),
+  );
+  return option ? enumOptionData(enumSchema, option) : undefined;
+};
+
 /**
  * enumスキーマのオプションからSelect/MultiSelect用のdata配列を生成するフック。
  * Select の値は文字列なので、数値の選択肢も文字列にして渡す ({@link fromEnumOptionValue} で戻す)
  */
 export function useEnumData(enumSchema: EnumSchema): OptionDataType[] {
   const resolveText = useResolveText();
-  return useMemo(() => {
-    const { schemas } = getMeta(enumSchema) ?? {};
-    return (enumSchema.options as readonly EnumValue[]).map((value) => {
-      const key = String(value);
-      const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
-      return {
-        value: key,
-        label: resolveText(literalMeta?.label) ?? key,
-        color: literalMeta?.color ?? "gray",
-      } satisfies OptionDataType;
-    });
-  }, [enumSchema, resolveText]);
+  return useMemo(
+    () =>
+      enumOptionsOf(enumSchema).map((option) => {
+        const data = enumOptionData(enumSchema, option);
+        return { ...data, label: resolveText(data.label) ?? data.label };
+      }),
+    [enumSchema, resolveText],
+  );
 }
 
 /** フォームの値を Select の値 (文字列) にする。未選択 (undefined / null / 空文字) は null */
@@ -40,9 +91,9 @@ export const fromEnumOptionValue = (
   if (optionValue === null || optionValue === undefined || optionValue === "")
     return undefined;
   return (
-    (enumSchema.options as readonly EnumValue[]).find(
-      (value) => String(value) === optionValue,
-    ) ?? optionValue
+    enumOptionsOf(enumSchema).find(
+      (option) => String(option.value) === optionValue,
+    )?.value ?? optionValue
   );
 };
 
@@ -71,23 +122,23 @@ export const isEmptyOption = (option: string | null | undefined) =>
   option === null || option === undefined || option === "";
 
 const enumChoices = (enumSchema: EnumSchema): Choices => {
-  const { schemas } = getMeta(enumSchema) ?? {};
   return {
-    data: (enumSchema.options as readonly EnumValue[]).map((value) => {
-      const key = String(value);
-      const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
-      return {
-        value: key,
-        label: literalMeta?.label ?? key,
-        color: literalMeta?.color ?? "gray",
-      } satisfies OptionDataType;
-    }),
+    data: enumOptionsOf(enumSchema).map((option) =>
+      enumOptionData(enumSchema, option),
+    ),
     toOption: toEnumOptionValue,
     fromOption: (option) => fromEnumOptionValue(enumSchema, option),
     hasUndefined: false,
     hasNull: false,
   };
 };
+
+/**
+ * 選択肢の値を探すときの比べ方。NaN の腕（`z.literal(NaN)`）も選べるよう、NaN 同士を等しいとする
+ * （0 と -0 は等しいままにする。zod の literal の検証と同じ）
+ */
+const sameValueZero = (a: unknown, b: unknown) =>
+  a === b || (Number.isNaN(a) && Number.isNaN(b));
 
 /** 選択肢に無い値の Select の値（腕の番号と重ならないよう、数字だけにしない） */
 const UNLISTED_OPTION_PREFIX = "unlisted:";
@@ -136,7 +187,9 @@ const literalUnionChoices = (unionSchema: z.ZodUnion): Choices => {
       color: meta?.color ?? "gray",
     })),
     toOption: (value) => {
-      const option = options.find((candidate) => candidate.value === value);
+      const option = options.find((candidate) =>
+        sameValueZero(candidate.value, value),
+      );
       if (option) return option.key;
       if (value === undefined || value === null || value === "") return null;
       return `${UNLISTED_OPTION_PREFIX}${defaultLabelOf(value)}`;
@@ -165,7 +218,9 @@ const literalChoices = (literalSchema: z.ZodLiteral): Choices => {
       color: "gray",
     })),
     toOption: (value) => {
-      const option = options.find((candidate) => candidate.value === value);
+      const option = options.find((candidate) =>
+        sameValueZero(candidate.value, value),
+      );
       if (option) return option.key;
       if (value === undefined || value === null || value === "") return null;
       return `${UNLISTED_OPTION_PREFIX}${defaultLabelOf(value)}`;

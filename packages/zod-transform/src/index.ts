@@ -114,6 +114,8 @@ type SchemaMap = {
   nullable: z.ZodNullable<z.ZodTypeAny>;
   optional: z.ZodOptional<z.ZodTypeAny>;
   default: z.ZodDefault<z.ZodTypeAny>;
+  prefault: z.ZodPrefault<z.ZodTypeAny>;
+  nonoptional: z.ZodNonOptional<z.ZodTypeAny>;
   catch: z.ZodCatch<z.ZodTypeAny>;
   readonly: z.ZodReadonly<z.ZodTypeAny>;
   pipe: z.ZodPipe<z.ZodTypeAny, z.ZodTypeAny>;
@@ -148,6 +150,8 @@ type TypeMap = {
   nullable: any;
   optional: any;
   default: any;
+  prefault: any;
+  nonoptional: any;
   catch: any;
   readonly: any;
   pipe: any;
@@ -699,6 +703,16 @@ const intrinsicProcessorDef: ProcessorDef = {
     } else {
       return context.transform(obj, innerType);
     }
+  },
+  // prefault は default と同じく、preprocess で値が無ければ中を歩かない（既定の値を入れるのは preprocessor の役目）
+  prefault: (obj, schema, context) => {
+    const innerType = schema.def.innerType;
+    if (context.mode === "preprocess" && obj === undefined) return obj;
+    return context.transform(obj, innerType);
+  },
+  nonoptional: (obj, schema, context) => {
+    const innerType = schema.def.innerType;
+    return context.transform(obj, innerType);
   },
   // transformer内のunion等で、parseErrorになった場合、catchValueが呼ばれるが、その際のエラー情報は、
   // 本来のzodのエラー情報とは異なる場合があるので注意。

@@ -18,6 +18,7 @@ import {
   useDefaultValuesWithFills,
   useZodForm,
   componentLibrary as defaultComponentLibrary,
+  UnsupportedSchemaNotice,
 } from "@zodapp/zod-form-mantine";
 import {
   getDefaultValue,
@@ -279,6 +280,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   return (
     <Suspense fallback={<Loader />}>
       <ZodFormContextProvider
+        notFoundComponent={UnsupportedSchemaNotice}
         merge
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}

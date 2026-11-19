@@ -287,3 +287,25 @@ describe("zod-form def/index", () => {
     );
   });
 });
+
+describe("zf.computed は初めから optional", () => {
+  const total = zf.computed().register(zf.computed.registry, {
+    compute: () => "合計",
+  });
+  const schema = z.object({ name: z.string(), total });
+
+  it("キーが無くても検証を通す", () => {
+    expect(schema.safeParse({ name: "a" }).success).toBe(true);
+  });
+
+  it("meta は登録した schema から読める", () => {
+    expect(getMeta(total)?.typeName).toBe("computed");
+  });
+
+  it("object の型で optional なキーになる", () => {
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<{
+      name: string;
+      total?: undefined;
+    }>();
+  });
+});

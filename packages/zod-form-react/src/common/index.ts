@@ -46,6 +46,7 @@ export {
   isPendingIssue,
   PENDING_ISSUE_CODE,
   RESOLVE_ERROR_ISSUE_CODE,
+  ASYNC_VALIDATION_ISSUE_CODE,
   type RegisteredSchema,
   type EditCause,
 } from "./schemaRegistry";
@@ -78,3 +79,8 @@ export {
   TEXT_META_KEYS,
 } from "./i18n";
 export { ContainerMarker } from "./containerMarker";
+export {
+  UnsupportedSchema,
+  unsupportedSchemaReason,
+  useReportUnsupported,
+} from "./unsupported";

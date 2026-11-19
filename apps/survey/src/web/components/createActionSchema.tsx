@@ -43,6 +43,5 @@ export const createActionSchema = <Row,>({
           </Link>
         );
       },
-    })
-    .optional();
+    });
 };

@@ -244,3 +244,43 @@ describe("AutoForm は開くときに、値が無いところを schema の既�
     );
   });
 });
+
+describe("AutoForm と非同期の検証", () => {
+  beforeEach(() => {
+    setupDomMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it("z.promise() の欄は扱えない注記を出し、送信が止まった理由を出す", async () => {
+    const schema = z.object({
+      name: z.string().optional(),
+      p: z.promise(z.number()),
+    });
+    const { submit, onSubmit } = renderAutoForm(schema, {
+      p: Promise.resolve(1),
+    } as z.input<typeof schema>);
+    expect(
+      await screen.findByText("This form cannot handle this schema."),
+    ).toBeTruthy();
+    await submit();
+    const blocked = await screen.findByTestId("form-submit-blocked");
+    expect(blocked.textContent).toContain("asynchronous validation");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("async の refine でも落ちず、送信が止まった理由を出す", async () => {
+    const schema = z
+      .object({ name: z.string().optional() })
+      .refine(async () => true);
+    const { submit, onSubmit } = renderAutoForm(schema, {});
+    await submit();
+    const blocked = await screen.findByTestId("form-submit-blocked");
+    expect(blocked.textContent).toContain("asynchronous validation");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});

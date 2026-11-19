@@ -157,8 +157,7 @@ const TasksPage = () => {
                   aria-label="行を選択"
                 />
               ),
-            })
-            .optional(),
+            }),
         },
         { mode: "head" },
       ),
@@ -206,8 +205,7 @@ const TasksPage = () => {
                 </ActionIcon>
               </Tooltip>
             ),
-          })
-          .optional(),
+          }),
       }),
     [handleRestore],
   );

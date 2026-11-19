@@ -12,6 +12,8 @@ export const ja = {
     "取得できなかった欄があるため、送信できませんでした",
   "zodFormWidget.autoForm.blocked.input":
     "入力に誤りがあるため、送信できませんでした",
+  "zodFormWidget.autoForm.blocked.async":
+    "このフォームでは非同期の検証を扱えないため、送信できませんでした",
 
   "zodFormWidget.delete.title": "削除確認",
   "zodFormWidget.delete.confirm": "削除する",

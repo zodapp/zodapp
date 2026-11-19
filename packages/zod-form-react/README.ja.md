@@ -119,8 +119,7 @@ export const schema = z.object({
         const quantity = parent?.quantity ?? 0;
         return `¥${(unitPrice * quantity).toLocaleString()}`;
       },
-    })
-    .optional(),
+    }),
 });
 ```
 

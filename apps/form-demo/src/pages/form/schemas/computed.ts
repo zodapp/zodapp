@@ -26,8 +26,7 @@ export const schema = z.object({
         const quantity = parent?.quantity ?? 0;
         return `¥${(unitPrice * quantity).toLocaleString()}`;
       },
-    })
-    .optional(),
+    }),
   other: z
     .object({
       unitPrice: zf
@@ -48,8 +47,7 @@ export const schema = z.object({
             const quantity = parent?.quantity ?? 0;
             return `¥${(unitPrice * quantity).toLocaleString()}`;
           },
-        })
-        .optional(),
+        }),
     })
     .register(zf.object.registry, { label: "入れ子の場合", uiType: "box" }),
 });

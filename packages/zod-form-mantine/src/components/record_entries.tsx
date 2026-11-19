@@ -25,7 +25,13 @@ type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
 type EntryRow = {
   id: number;
+  /** 値に入っているキー。まだ値に入れていない行・キーが書きかけの行は "" */
   key: string;
+  /**
+   * キーを不正な書きかけにしたときに、値から外した組の値と、元の位置。
+   * キーを直したら、この値で組を元の位置に戻す（書きかけのあいだは、その組を送らない）
+   */
+  held?: { value: unknown; index: number };
   draftKey: string;
   keyError?: string;
 };
@@ -82,11 +88,18 @@ const RecordEntriesComponent = wrapComponent(
     useEffect(() => {
       // Record values can also be replaced by form reset or external state updates.
       // eslint-disable-next-line react-hooks/set-state-in-effect
+      // 今の行の並びを保ち、値から消えたキーの行を外し、新しいキーの行を後ろに足す
+      // （キーを入れる前の行・キーが書きかけの行は残す）
       setRows((currentRows) => {
-        const currentByKey = new Map(currentRows.map((row) => [row.key, row]));
-        return valueKeys.map(
-          (key) => currentByKey.get(key) ?? createEntryRow(key),
+        const keySet = new Set(valueKeys);
+        const kept = currentRows.filter(
+          (row) => row.key === "" || keySet.has(row.key),
         );
+        const known = new Set(kept.map((row) => row.key));
+        return [
+          ...kept,
+          ...valueKeys.filter((key) => !known.has(key)).map(createEntryRow),
+        ];
       });
       // valueKeysSignature intentionally tracks key additions, removals, and ordering
       // without resetting draft key text when only a record value changes.
@@ -143,26 +156,53 @@ const RecordEntriesComponent = wrapComponent(
               : undefined;
 
       if (keyError) {
+        // 値に入っている組のキーを不正な書きかけにしたら、その組を値から外し、値と位置を行に持っておく
+        // （画面と違う古いキーのまま送らない。書きかけのあいだは、その組が無いまま送る）
+        let held = row.held;
+        if (row.key) {
+          const entries = Object.entries(value);
+          const index = entries.findIndex(([key]) => key === row.key);
+          held = { value: value[row.key], index };
+          field.onChange(
+            Object.fromEntries(entries.filter((_, i) => i !== index)),
+          );
+        }
         setRows((currentRows) =>
           currentRows.map((item) =>
-            item.id === row.id ? { ...item, draftKey, keyError } : item,
+            item.id === row.id
+              ? { ...item, key: "", held, draftKey, keyError }
+              : item,
           ),
         );
         return;
       }
 
+      // キーの順を保ったまま、キーだけを差し替える。書きかけで外した組は、持っておいた値で元の位置に戻す
+      const entries = Object.entries(value);
       const nextValue = row.key
         ? Object.fromEntries(
-            Object.entries(value).map(([key, itemValue]) =>
+            entries.map(([key, itemValue]) =>
               key === row.key ? [draftKey, itemValue] : [key, itemValue],
             ),
           )
-        : { ...value, [draftKey]: getValueDefault(valueSchema) };
+        : row.held
+          ? Object.fromEntries([
+              ...entries.slice(0, row.held.index),
+              [draftKey, row.held.value],
+              ...entries.slice(row.held.index),
+            ])
+          : { ...value, [draftKey]: getValueDefault(valueSchema) };
       field.onChange(nextValue);
       setRows((currentRows) =>
         currentRows.map((item) =>
           item.id === row.id
-            ? { ...item, key: draftKey, draftKey, keyError: undefined }
+            ? {
+                ...item,
+                key: draftKey,
+                held: undefined,
+                draftKey,
+                keyError: undefined,
+              }
             : item,
         ),
       );
@@ -231,9 +271,15 @@ const RecordEntriesComponent = wrapComponent(
                 ) : (
                   <TextInput
                     label={msg("zodFormMantine.record.value" /* i18n: 値 */)}
-                    placeholder={msg(
-                      "zodFormMantine.record.keyFirst" /* i18n: 先にキーを入力してください */,
-                    )}
+                    placeholder={
+                      row.held
+                        ? msg(
+                            "zodFormMantine.record.keyHeld" /* i18n: キーを直すと、値が戻ります */,
+                          )
+                        : msg(
+                            "zodFormMantine.record.keyFirst" /* i18n: 先にキーを入力してください */,
+                          )
+                    }
                     disabled
                   />
                 )}
