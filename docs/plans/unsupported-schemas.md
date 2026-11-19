@@ -2,6 +2,7 @@
 
 - ステータス: プラン（レビュー中）
 - 対象ブランチ: `claude/project-thread-e4chhv`
+- 前提の main: dfb39e1（入れ物の目印 PR #31・UI 文言の差し替え PR #30 を取り込み済み。§1.3）
 - 対象パッケージ: `@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`@zodapp/zod-form-mantine-lite`、`@zodapp/zod-form-widget`、`apps/form-demo`（ほか `zf.file` を使っている所）
 
 ---
@@ -31,7 +32,7 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 - `z.promise` の検証が例外を投げて送信が終わらない件
 - tuple の rest を足すボタン（#9 で、開発中のエラーにする）、`z.templateLiteral`、数値の enum の選択肢の名前、discriminatedUnion の腕の名前
 - AutoTable・hideSchemaFields での各型の扱い
-- 入れ物（object・intersection）の path なし refine のエラーの件（別スレッドで対応中）
+- 入れ物の path なし refine のエラーの件（PR #31 で main に入った）。tuple には入れ物の目印が置かれていないが、このプランでは足さない
 - `zf.computed()` の土台（`z.never()`）。表示専用の欄の扱いは別に考える（#8 とは分ける）
 
 ### 1.2 `z.*` と `zf.*` の扱い
@@ -53,6 +54,28 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
   今ある独自の名前（`time`・`externalKey`・`hidden`・`common`・`computed`・`dynamic`）は zod の型の名前と重なっていないことを確かめた。
   `file` は同じ名前の `z.file()` を受け付けないので、この決まりに反している。#7 で直す。この決まりは zod-form の README（zf の拡張の説明）に書く
 
+### 1.3 main で入ったものに合わせること
+
+調べたあとに main に入った 2 つの変更（PR #31・PR #30）に、新しく作る部品・文言を合わせる。
+
+**入れ物の目印（PR #31、`docs/plans/container-touch.md`）**
+
+入れ物の部品（object・intersection・array・record・record_entries・union）は、子の欄の後ろに `ContainerMarker` を置く。
+目印は、入れ物の最後の欄を離したとき・入れ物の値が変わったときに、入れ物の欄のエラーを出し直す。
+
+- 入れ物として描く新しい見た目には、目印を置く（`ownsContainerMarker` で判定）。#5 のキーの決まった record が当たる
+- 入力欄は `useValidatePrecedingFields(field)` に登録する。登録しないと、その欄が入れ物の最後の欄のとき、離しても入れ物のエラーが出ない。#4 の set が当たる
+- 入力できない表示（readOnly で出す固定値など）は登録しない。登録すると、その手前の欄が「最後の欄」でなくなり、入れ物のエラーが離しても出なくなる。#3 の固定値が当たる
+- 固定値を書き込むと、入れ物の目印が入れ物の欄を検証するが、エラーは触ったか送信したあとにしか出ないので、開いた時点では出ない
+
+**UI 文言の差し替え（PR #30、`docs/plans/i18n-messages.md`）**
+
+- 画面に出す文言は `msg("zodFormMantine.…" /* 日本語 */)` で書き、そのパッケージの en（基準）と ja の辞書に足す。
+  このプランに書いた日本語の文言は ja の訳として使い、en の文言は実装のときに決める
+- 開発者向けの文言（`console.error` など）は辞書に入れず、英語で書く
+- meta の文言（label など）は `getMeta` ではなく `useResolvedMeta`・`useResolveText` を通す（`msgKey` で書いた label を訳すため）
+- 部品の中で `safeParse` してエラーを出すときは `{ error: zodMsgKeyErrorMap }` を渡し、表示の前に `msg.resolve` で訳す（`record_entries` のキーの検査と同じ）
+
 ---
 
 ## 2. onSubmit に parse した値を渡す（#1）
@@ -72,6 +95,8 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 2. それぞれ、今の値のその path を、その path の一番深い登録の schema で parse する。失敗したら送信しない（読み込み中・取得の失敗も失敗として扱う）
 3. その path に output を差し込む（既定値の補いで使っている `fillAt`。配列の添字も扱える）
 4. 最後に、差し込んだ値を静的な schema で parse し、その output を onSubmit に渡す
+
+- 2・4 の parse には、検証（`validate`）と同じく `{ error: zodMsgKeyErrorMap }` を渡す（§1.3）
 
 - 外側の transform・refine は、dynamic を parse した後の値を受け取る。zod で親が子の output を受け取るのと同じ
 - 差し込み先は入力の値の path なので、外側に transform があっても必ずある（後から差し込む形だと、output の形が変わって差し込み先が無くなる）
@@ -161,6 +186,10 @@ literal 系の中身は 1 か所にまとめ、部品のファイルは型ごと
     （`literal_select`・`literal_badge` も同じファイルで受ける）
   - `null.tsx`・`undefined.tsx`・`void.tsx`：固定値の共通の部品をそのまま使う
 - `z.*`・`zf.*` のどちらでも同じに動く（§1.2）
+- §1.3 に合わせる
+  - meta は `useResolvedMeta` で読む
+  - 固定値を `hidden: false` で出すときも、`useValidatePrecedingFields` に登録しない
+  - 値が複数の literal の選択は、enum の部品の作り（`useUnlistedLabel`・`resolveText` を渡す `normalizeStringSuggestions` など）をそのまま使う
 
 ## 5. set を描く（#4）
 
@@ -175,12 +204,13 @@ set は順序の無い集合として扱う。並べ替えや、位置を指定�
 | ---------------------------------------------- | ------------------------------------------------------------------ |
 | enum・literal の union・複数の値を持つ literal | MultiSelect（`array_multipleEnum` と同じ見た目。書き込むのは Set） |
 | string・number                                 | TagsInput（`array_multipleString` と同じ見た目。重複は入らない）   |
-| それ以外（object など）                        | 非対応。その場所に「この set は非対応」と出す                      |
+| それ以外（object など）                        | 非対応。その場所に「この set は非対応」と出す（辞書に足す。§1.3）  |
 
 - `array_multipleEnum`・`array_multipleString` の中身を、配列と Set の両方で使えるように分ける
 - 空のとき：必須なら空の Set、optional なら undefined、nullable だけなら null（`emptyValueOf` にそろえる）
 - 読み取り専用：選んだ値を Pill で並べる（配列と同じ）
 - エラー：set の下の issue（要素の検査のエラーを含む）を、すべて set の欄に出す
+- 入力欄は `useValidatePrecedingFields(field)` に登録する（`array_multipleEnum` と同じ。§1.3）
 
 ### 5.2 合わせて直す所
 
@@ -206,10 +236,13 @@ zod と同じ基準（`keyType._zod.values` があるか）で分ける。
   - 欄の名前はキーそのもの（数値の値は文字にする。zod と同じ）。キーの schema が `zf.enum`（または zf.literal の union）で、選択肢に label があれば、その label を欄の名前にする
   - `uiType` が `entries` でも同じ（キーの追加・名前の変更はできないので、entries の見た目は使わない）
   - 値にあって、列挙に無いキーは、今どおり zod の unrecognized_keys として record の欄に出る
+  - 欄の名前に使う選択肢の label は `useResolveText` で訳す（§1.3）
+  - 子の欄の後ろに入れ物の目印（`ContainerMarker`）を置く。`record.tsx` の中で分ける作りにすれば、今ある目印をそのまま使える（§1.3）
 - `getDefaultValue` は、キーの決まった record の値が無いとき、列挙したキーごとに値の schema の初期値を入れる
   （初期値が undefined なら、そのキーは置かない。object と同じ扱い）
 - `_zod.values` が無い record は、今の見た目のまま。ただし、キーの検査のエラー（`invalid_key`）が値の欄に出ているのを、
-  キーの側に出す（entries ならそのキーの欄、既定の見た目なら record の欄）
+  キーの側に出す（entries ならそのキーの欄、既定の見た目なら record の欄）。
+  キーの検査は `{ error: zodMsgKeyErrorMap }` を渡して行い、`msg.resolve` で訳して出す（今の entries のキーの検査と同じ。§1.3）
 
 ---
 
@@ -244,6 +277,7 @@ TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープ�
   - 注意：値が object の record で、キー `a` と `a.b` が同時にあると、エラーの名前が重なり、持ち主を見分けられない（ドキュメントに書く）
 - **object の shape のキー・キーの決まった record の列挙のキー**：スキーマを書く人が決めるので、その欄の場所に「このキー名は使えません」と出し、`console.error` も出す
 - looseObject・catchall の shape に無いキーは、object の部品が描かないので、対象にしない
+- 「キーに . [ ] は使えません」「このフォームでは編集できません」「このキー名は使えません」は辞書に足す。`console.error` の文言は英語にする（§1.3）
 - 数字だけのキー（`"1"`）は、TanStack が数として扱うが、object の上ではそのまま動くので対象にしない
 
 ---
@@ -266,7 +300,9 @@ TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープ�
 - `zf.file` は `z.string()` に meta を付けたものなので、値・検証は変わらず、変わるのは名前だけ
 - 改名のあと、`z.file()` は部品の無い型の 1 つになる（Not found。§1.1 の落ち方の整理で扱う）
 - `zf.file` を互換の別名としては残さない
-- CHANGELOG に破壊的変更として書く
+- 部品の文言のキー `zodFormMantine.file.*`（`remove`・`dropzone`・`maxSize`）も `zodFormMantine.externalFile.*` に変える。
+  辞書のキーは公開 API だが、改名がもともと破壊的変更で、全パッケージがまだ npm に出ていない（0.0.0）ため、合わせて変える
+- CHANGELOG に破壊的変更として書く（文言のキーの変更も含める）
 
 ---
 
@@ -325,7 +361,8 @@ zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を�
 ### 10.2 方針
 
 - 型で縛るのが難しいもの（tuple の rest、array の uiType と要素の組み合わせ）は、開発中のはっきりしたエラーにする。
-  その欄の場所に「この組み合わせは非対応」と出し、`console.error` も出す。例外で描画ごと落とさない
+  その欄の場所に「この組み合わせは非対応」と出し、`console.error` も出す。例外で描画ごと落とさない。
+  画面の文言は辞書に足し、`console.error` は英語にする（§1.3）
 - 型の約束が狭いものは広げる：`zf.date.registry` に `z.coerce.date()`、`zf.externalKey.registry`・`zf.externalFile.registry`（#7）に書式付きの文字列（`zf.string` と同じ `z.ZodString | z.ZodStringFormat`）
 - registry ごとに、受け付ける型と描ける型が合っていることを確かめる型のテスト（`expectTypeOf`・`@ts-expect-error`）と、描画のテストを足す
 
@@ -345,3 +382,4 @@ zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を�
 - #1：dynamic の output を先に差し込んでから、静的な schema で parse する（§2.2）
 - #7：`zf.file` を互換の別名として残さない
 - #6：保存されていた値に使えないキーがあっても、送信は止めない。エラーと消すボタンを出す（§7.2）
+- #7：文言のキー `zodFormMantine.file.*` も `zodFormMantine.externalFile.*` に変える（§8.2）
