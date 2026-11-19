@@ -340,12 +340,19 @@ export const checkChoiceElement = (
   uiTypeName: string,
 ): string | undefined => {
   const elementMeta = getMeta(elementSchema) as { uiType?: string } | undefined;
-  if (
-    elementSchema.type === "enum" ||
-    elementSchema.type === "union" ||
-    elementSchema.type === "literal"
-  )
-    return;
+  if (elementSchema.type === "enum" || elementSchema.type === "literal") return;
+  // union は、腕がすべて literal・null・undefined のときだけ選択肢にできる
+  // （ほかの腕は選択肢に出せず、値がすべて「選択肢に無い値」になって消えてしまうため）
+  if (elementSchema.type === "union") {
+    const options = (elementSchema as z.ZodUnion).def.options as z.ZodTypeAny[];
+    if (
+      options.every((option) =>
+        ["literal", "null", "undefined"].includes(option.type),
+      )
+    )
+      return;
+    return `${uiTypeName} expects a union of literals, but the union has an arm that is not a literal`;
+  }
   if (elementSchema.type === "string" && elementMeta?.uiType === "select")
     return;
   return `${uiTypeName} expects elements of enum, literal, or union of literals, but the element is ${elementSchema.type}`;

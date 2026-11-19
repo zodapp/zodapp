@@ -68,6 +68,17 @@ describe("set", () => {
     expect(screen.queryByText(/cannot handle/)).toBeNull();
   });
 
+  it("literal 以外の腕を持つ union の要素は、扱えない注記を出し、値は消さない", async () => {
+    const { values } = renderForm(
+      z.object({ mixed: z.set(z.union([z.string(), z.number()])) }),
+      { mixed: new Set(["a", 1]) },
+    );
+    await ready();
+    expect(screen.getByText(/cannot handle/)).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(values().mixed).toEqual(new Set(["a", 1]));
+  });
+
   it("set(string)：タグ入力。重複は入らない", async () => {
     const { values } = renderForm(z.object({ tags: z.set(z.string()) }), {
       tags: new Set(["a"]),

@@ -33,6 +33,12 @@ describe("扱えない組み合わせ", () => {
       'uiType "multipleEnum"',
     ],
     [
+      "multipleEnum に literal 以外の腕を持つ union の要素",
+      arrayWith(z.union([z.string(), z.number()]), "multipleEnum"),
+      ["a", 1],
+      'uiType "multipleEnum"',
+    ],
+    [
       "multipleString に number の要素",
       arrayWith(z.number(), "multipleString"),
       [1],
