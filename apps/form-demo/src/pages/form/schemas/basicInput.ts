@@ -62,8 +62,7 @@ export const schema = z
       .computed()
       .register(zf.computed.registry, {
         compute: () => "これは基本入力フォームのサンプルです",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

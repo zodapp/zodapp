@@ -68,8 +68,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "Reactive版ではネストオブジェクトの各フィールドに確認UIが付きます。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, { uiType: "box", label: "会員" });
 

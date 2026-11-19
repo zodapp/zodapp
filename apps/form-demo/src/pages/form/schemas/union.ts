@@ -59,8 +59,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

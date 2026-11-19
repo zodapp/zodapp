@@ -70,8 +70,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "ネストしたオブジェクトをそのままフォームとして表現できます。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, { uiType: "box", label: "会員" });
 

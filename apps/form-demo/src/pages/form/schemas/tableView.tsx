@@ -102,8 +102,7 @@ export const schema = z
         }: {
           parent: { unitPrice: number; quantity: number };
         }) => `¥${(parent.unitPrice * parent.quantity).toLocaleString()}`,
-      })
-      .optional(),
+      }),
     currency: zf
       .enum([
         zf.literal("JPY").register(zf.literal.registry, { label: "円" }),

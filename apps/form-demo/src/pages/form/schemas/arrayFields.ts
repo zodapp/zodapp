@@ -163,8 +163,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "配列フィールドでは、動的にアイテムの追加・削除ができます。タグは単純な文字列配列、友人はオブジェクト配列です。uiType: table を指定すると、object 配列を表形式で編集できます。配列のIDは { hidden: true } 使って非表示にしています。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

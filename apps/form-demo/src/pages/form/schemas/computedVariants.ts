@@ -31,8 +31,7 @@ export const schema = z
           label: "ComputedValue の表示型デモ",
           level: "h3",
         }),
-      })
-      .optional(),
+      }),
     // 値を持つ欄の computed: 「そのフィールドの値」を受け取って表示を変換する。
     // 値の保存形式（"active" 等）と表示（バッジ）を分離できる。
     // フォームでは表示専用（保存済みの値をテーブルセルや詳細表示で
@@ -65,8 +64,7 @@ export const schema = z
         dependsOnParent: true,
         compute: ({ parent }) =>
           `${parent?.lastName ?? ""} ${parent?.firstName ?? ""}`,
-      })
-      .optional(),
+      }),
     homepage: zf.string().register(zf.string.registry, { label: "URL" }),
     homepageLink: zf
       .string()
@@ -87,8 +85,7 @@ export const schema = z
           label: "高",
           color: "red",
         }),
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

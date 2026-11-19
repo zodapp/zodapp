@@ -113,8 +113,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "zf.enumで1つの選択肢を、zf.array(zf.enum())で複数選択を表現します",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

@@ -35,8 +35,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "z.lazyを使って、ネストした構造を表現できます。オブジェクト内にさらに任意の値を持つことができます。ただし、z.lazyはoptional()をともに使わないと無限再帰で落ちます。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

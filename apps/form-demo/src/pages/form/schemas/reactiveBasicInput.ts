@@ -50,8 +50,7 @@ export const schema = z
       .computed()
       .register(zf.computed.registry, {
         compute: () => "これはReactive版の基本入力フォームサンプルです",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

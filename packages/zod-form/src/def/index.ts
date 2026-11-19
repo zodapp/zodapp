@@ -452,7 +452,8 @@ export const fnSourceMetaSchema = z.object({
 // computed: { value, parent, context } を受け取り ComputedValue を返す
 // 値を持たない欄（z.never）に付ければ表示専用、値を持つ欄に付ければその値の表示になる
 const computed = extendCustom(
-  z.never,
+  // 値を持たない表示専用の欄なので、初めから optional にする（キーが無くても検証を通す）
+  () => z.never().optional(),
   "computed",
   zodExtendableCommonDefSchema.extend({
     ...fnSourceMetaSchema.shape,
