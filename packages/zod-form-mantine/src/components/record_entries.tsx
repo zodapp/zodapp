@@ -13,11 +13,13 @@ import {
   getDefaultValue,
   wrapComponent,
   emptinessOf,
+  isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { ownsContainerMarker } from "./container";
 import { FixedKeysRecordComponent } from "./record";
 import { enumeratedRecordKeys } from "@zodapp/zod-form";
+import { UnsafeRecordEntry } from "../utils/unsafeKey";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -123,13 +125,20 @@ const RecordEntriesComponent = wrapComponent(
         error: zodMsgKeyErrorMap,
       });
       const duplicate = draftKey !== row.key && usedKeys.has(draftKey);
+      // キーの schema の文言を先に出す。通っても、フィールドパスに使えないキーは値に入れない（重複と同じ扱い）
       const keyError = duplicate
         ? msg(
             "zodFormMantine.record.duplicateKey" /* 同じキーが既に存在します */,
           )
-        : parsedKey.success
-          ? undefined
-          : msg.resolve(parsedKey.error.issues[0]?.message);
+        : !parsedKey.success
+          ? msg.resolve(parsedKey.error.issues[0]?.message)
+          : draftKey === ""
+            ? msg("zodFormMantine.record.emptyKey" /* キーを入力してください */)
+            : isUnsafeFieldKey(draftKey)
+              ? msg(
+                  "zodFormMantine.record.unsafeKey" /* キーに . [ ] は使えません */,
+                )
+              : undefined;
 
       if (keyError) {
         setRows((currentRows) =>
@@ -157,98 +166,109 @@ const RecordEntriesComponent = wrapComponent(
       );
     };
 
-    const rowComponents = rows.map((row) => (
-      <div
-        key={`item-${row.id}`}
-        style={{
-          position: "relative",
-          paddingLeft: readOnly ? 15 : 37,
-          marginTop: 5,
-          marginBottom: 5,
-        }}
-      >
+    const rowComponents = rows.map((row) =>
+      // 保存されていた値の、フィールドパスに使えないキー。編集せず、消すだけにする
+      row.key !== "" && isUnsafeFieldKey(row.key) ? (
+        <UnsafeRecordEntry
+          key={`item-${row.id}`}
+          recordPath={fieldPath}
+          entryKey={row.key}
+          readOnly={readOnly}
+          onRemove={() => handleRemove(row)}
+        />
+      ) : (
         <div
+          key={`item-${row.id}`}
           style={{
-            border: "1px solid var(--mantine-color-gray-3)",
-            borderRadius: 4,
-            paddingLeft: 12,
-            paddingRight: 12,
-            paddingTop: 4,
-            paddingBottom: 4,
+            position: "relative",
+            paddingLeft: readOnly ? 15 : 37,
+            marginTop: 5,
+            marginBottom: 5,
           }}
         >
-          <Group align="flex-start" wrap="nowrap">
-            <TextInput
-              label={msg("zodFormMantine.record.key" /* キー */)}
-              value={row.draftKey}
-              error={
-                row.keyError ??
-                (invalidKey !== undefined && row.key === invalidKey
-                  ? error?.message
-                  : undefined)
-              }
-              readOnly={readOnly}
-              onChange={(event) =>
-                handleKeyChange(row, event.currentTarget.value)
-              }
-              onBlur={() => {
-                handleKeyChange(row, row.draftKey);
-                field.onBlur();
-              }}
-              style={{ flex: 1 }}
-            />
-            <div style={{ flex: 1 }}>
-              {row.key ? (
-                <Switch
-                  fieldPath={joinFieldPath(fieldPath, row.key)}
-                  schema={valueSchema}
-                  defaultValue={value[row.key]}
-                  outer={undefined}
-                  readOnly={readOnly}
-                  label={msg("zodFormMantine.record.value" /* 値 */)}
-                />
-              ) : (
-                <TextInput
-                  label={msg("zodFormMantine.record.value" /* 値 */)}
-                  placeholder={msg(
-                    "zodFormMantine.record.keyFirst" /* 先にキーを入力してください */,
-                  )}
-                  disabled
-                />
-              )}
-            </div>
-          </Group>
-        </div>
-        {!readOnly && (
-          <ActionIcon
-            aria-label={msg(
-              "zodFormMantine.record.removeRow" /* ${label}を削除 */,
-              {
-                label:
-                  row.draftKey ||
-                  row.key ||
-                  msg("zodFormMantine.record.emptyRow" /* 空の行 */),
-              },
-            )}
-            size={20}
-            variant="light"
-            color="#63687C"
+          <div
             style={{
-              position: "absolute",
-              left: 0,
-              top: "50%",
-              transform: "translateY(-50%)",
-              backgroundColor: "white",
-              zIndex: 2,
-              outline: "none",
+              border: "1px solid var(--mantine-color-gray-3)",
+              borderRadius: 4,
+              paddingLeft: 12,
+              paddingRight: 12,
+              paddingTop: 4,
+              paddingBottom: 4,
             }}
-            onClick={() => handleRemove(row)}
           >
-            <IconCircleMinus />
-          </ActionIcon>
-        )}
-      </div>
-    ));
+            <Group align="flex-start" wrap="nowrap">
+              <TextInput
+                label={msg("zodFormMantine.record.key" /* キー */)}
+                value={row.draftKey}
+                error={
+                  row.keyError ??
+                  (invalidKey !== undefined && row.key === invalidKey
+                    ? error?.message
+                    : undefined)
+                }
+                readOnly={readOnly}
+                onChange={(event) =>
+                  handleKeyChange(row, event.currentTarget.value)
+                }
+                onBlur={() => {
+                  handleKeyChange(row, row.draftKey);
+                  field.onBlur();
+                }}
+                style={{ flex: 1 }}
+              />
+              <div style={{ flex: 1 }}>
+                {row.key ? (
+                  <Switch
+                    fieldPath={joinFieldPath(fieldPath, row.key)}
+                    schema={valueSchema}
+                    defaultValue={value[row.key]}
+                    outer={undefined}
+                    readOnly={readOnly}
+                    label={msg("zodFormMantine.record.value" /* 値 */)}
+                  />
+                ) : (
+                  <TextInput
+                    label={msg("zodFormMantine.record.value" /* 値 */)}
+                    placeholder={msg(
+                      "zodFormMantine.record.keyFirst" /* 先にキーを入力してください */,
+                    )}
+                    disabled
+                  />
+                )}
+              </div>
+            </Group>
+          </div>
+          {!readOnly && (
+            <ActionIcon
+              aria-label={msg(
+                "zodFormMantine.record.removeRow" /* ${label}を削除 */,
+                {
+                  label:
+                    row.draftKey ||
+                    row.key ||
+                    msg("zodFormMantine.record.emptyRow" /* 空の行 */),
+                },
+              )}
+              size={20}
+              variant="light"
+              color="#63687C"
+              style={{
+                position: "absolute",
+                left: 0,
+                top: "50%",
+                transform: "translateY(-50%)",
+                backgroundColor: "white",
+                zIndex: 2,
+                outline: "none",
+              }}
+              onClick={() => handleRemove(row)}
+            >
+              <IconCircleMinus />
+            </ActionIcon>
+          )}
+        </div>
+      ),
+    );
 
     return (
       <InputWrapper

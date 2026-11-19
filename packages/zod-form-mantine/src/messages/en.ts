@@ -32,6 +32,11 @@ export const en = defineMessages({
   "zodFormMantine.record.removeRow": ({ label }: { label: string }) =>
     `Remove ${label}`,
   "zodFormMantine.record.append": "Add to the end",
+  "zodFormMantine.record.unsafeKey": 'Keys cannot contain ".", "[" or "]".',
+  "zodFormMantine.record.emptyKey": "Enter a key.",
+  "zodFormMantine.record.uneditable":
+    "This entry cannot be edited in this form.",
+  "zodFormMantine.unsafeKeyName": "This key name cannot be used.",
   "zodFormMantine.unsupported":
     "This form cannot handle this combination of schemas.",
 });

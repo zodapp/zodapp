@@ -8,11 +8,13 @@ import {
   ZodFormInternalProps,
   type ZodFormProps,
   wrapComponent,
+  isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { enumeratedRecordKeys, getMeta } from "@zodapp/zod-form";
 import { useResolveText } from "@zodapp/zod-form-react/common";
 import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
+import { UnsafeKeyNameNotice, UnsafeRecordEntry } from "../utils/unsafeKey";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -82,8 +84,14 @@ const FixedKeysRecordBody = ({
     >
       {keys.map((key) => ({
         key,
-        flat: isFlatSchema(valueSchema),
-        node: (
+        flat: isFlatSchema(valueSchema) && !isUnsafeFieldKey(key),
+        node: isUnsafeFieldKey(key) ? (
+          <UnsafeKeyNameNotice
+            parentPath={fieldPath}
+            propertyKey={key}
+            label={labels.get(key)}
+          />
+        ) : (
           <Switch
             fieldPath={joinFieldPath(fieldPath, key)}
             schema={valueSchema}
@@ -141,16 +149,31 @@ const RecordComponent = wrapComponent(
     const keys = value ? Object.keys(value) : [];
     const label = labelFromParent ?? meta?.label;
 
+    const handleRemoveUnsafe = (key: string) => {
+      const nextValue = { ...(value as Record<string, unknown>) };
+      delete nextValue[key];
+      field.onChange(nextValue);
+    };
+
     const fieldsComponent = keys.map((key: string) => (
       <div key={key}>
-        <Switch
-          fieldPath={joinFieldPath(fieldPath, key)}
-          schema={valueSchema}
-          defaultValue={value?.[key]}
-          outer={undefined}
-          readOnly={readOnly}
-          label={key}
-        />
+        {isUnsafeFieldKey(key) ? (
+          <UnsafeRecordEntry
+            recordPath={fieldPath}
+            entryKey={key}
+            readOnly={readOnly}
+            onRemove={() => handleRemoveUnsafe(key)}
+          />
+        ) : (
+          <Switch
+            fieldPath={joinFieldPath(fieldPath, key)}
+            schema={valueSchema}
+            defaultValue={value?.[key]}
+            outer={undefined}
+            readOnly={readOnly}
+            label={key}
+          />
+        )}
       </div>
     ));
     const marker = ownsContainerMarker({ hideError, errorToken }) ? (

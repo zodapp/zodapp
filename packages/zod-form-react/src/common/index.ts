@@ -20,6 +20,7 @@ export {
 } from "./context";
 export { useExternalKeyAction } from "../utils/externalKey";
 export { emptyValueOf } from "../utils/emptyValue";
+export { isUnsafeFieldKey } from "../utils/path";
 export {
   addOuter,
   emptinessOf,

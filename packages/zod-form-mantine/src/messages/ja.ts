@@ -30,6 +30,10 @@ export const ja = {
   "zodFormMantine.record.emptyRow": "空の行",
   "zodFormMantine.record.removeRow": ({ label }) => `${label}を削除`,
   "zodFormMantine.record.append": "末尾に追加",
+  "zodFormMantine.record.unsafeKey": "キーに . [ ] は使えません",
+  "zodFormMantine.record.emptyKey": "キーを入力してください",
+  "zodFormMantine.record.uneditable": "このフォームでは編集できません",
+  "zodFormMantine.unsafeKeyName": "このキー名は使えません",
   "zodFormMantine.unsupported":
     "このスキーマの組み合わせは、このフォームでは扱えません",
 } satisfies MessagesOf<typeof en>;
