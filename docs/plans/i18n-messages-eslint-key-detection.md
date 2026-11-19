@@ -1,6 +1,6 @@
 # ESLint ルール `comment` のキーを文字列の形で見つける（i18n-messages）プラン
 
-- ステータス: 実装中（このブランチ）
+- ステータス: 実装済み（このブランチ）。プランから変えたところは 12 章
 - 対象ブランチ: `claude/project-thread-fmjain`（main から作り直す。このプランと同じブランチに実装を積む）
 - 対象パッケージ: `@zodapp/eslint-plugin-i18n-messages`、`@repo/eslint-config`。`--fix` でコメントを書き込むファイル（各パッケージ・apps）
 - 前提: [i18n-messages](./i18n-messages.md)（PR #30）でルール `comment` を足した
@@ -90,3 +90,9 @@ RuleTester に足すケース:
 ## 11. 進め方
 
 PR #30 はマージ済みなので、ブランチ `claude/project-thread-fmjain` を main から作り直し、新しい PR にする。
+
+## 12. プランから変えたところ
+
+- 辞書の項目が式（三項演算子など）のときの文言は、改行とインデントを空白 1 つにまとめて書く。今までは `\n` と空白のまま書いていた
+- 辞書の文言が空の文字列のときは、`/* i18n: */` と書く
+- ルールのテストで型の位置を確かめるため、プラグインの devDependencies に `@typescript-eslint/parser` を足した
