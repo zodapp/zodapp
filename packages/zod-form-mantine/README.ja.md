@@ -98,6 +98,7 @@ export const MyForm = () => {
 - `@zodapp/zod-form-mantine/componentLibrary`
 - `@zodapp/zod-form-mantine/tableComponentsLibrary`
 - `@zodapp/zod-form-mantine/mediaResolvers`
+- `@zodapp/zod-form-mantine/messages`（文言の辞書 `ja`・`en`）
 
 ## apps/form-demo での使用例
 
@@ -105,6 +106,21 @@ export const MyForm = () => {
 
 - `apps/form-demo/src/components/AutoForm.tsx`: `componentLibrary` + `useZodForm` + `FormProvider` + `ValidatePrecedingFieldsProvider`
 - `apps/form-demo/src/components/AutoTable.tsx`: `tableComponentLibrary` + `Dynamic`（行の値は `TableRowProvider` で渡し、computed / dynamic はそこから `parent` を受け取る）
+
+## 文言の言語（i18n）
+
+部品の文言は辞書のキー（`zodFormMantine.*`・`zodFormMantineLite.*`）で書いています。Provider が無いときは英語です。日本語にするときは、`@zodapp/i18n-messages-react` の `I18nMessagesProvider` に `./messages` の `ja` を渡します。`ja` には zod-form-mantine-lite・zod-form-react と zod のエラーの辞書も含まれ、import すると dayjs の ja ロケールも読み込みます。日付の欄のロケールは `I18nMessagesProvider` の `locale` に従います。
+
+```tsx
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja } from "@zodapp/zod-form-mantine/messages";
+
+<I18nMessagesProvider locale="ja" messages={ja}>
+  <App />
+</I18nMessagesProvider>;
+```
+
+一部だけ変えるときは、辞書を配列で重ねて渡します（後ろが勝ちます）。
 
 ## API（抜粋）
 

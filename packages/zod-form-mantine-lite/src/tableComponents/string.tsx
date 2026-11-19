@@ -5,6 +5,7 @@ import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { renderComputedValue } from "../utils/renderComputedValue";
 import { normalizeStringSuggestions } from "../utils/stringSuggestions";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type StringSchema = z.ZodString;
 
@@ -15,6 +16,7 @@ const StringComponent = ({
   const { formatter, uiType, suggestions } = getMeta(schema, "string") ?? {};
   const raw = typeof defaultValue === "string" ? defaultValue : null;
   const actionWrapper = useSchemaValueAction(schema, raw, false);
+  const resolveText = useResolveText();
 
   if (raw && formatter) {
     return <>{renderComputedValue(formatter(raw), "table")}</>;
@@ -23,7 +25,7 @@ const StringComponent = ({
   // uiType: "select" は suggestions のラベルで表示する（無ければ値のまま）
   const label =
     raw && uiType === "select"
-      ? (normalizeStringSuggestions(suggestions).find(
+      ? (normalizeStringSuggestions(suggestions, resolveText).find(
           (option) => option.value === raw,
         )?.label ?? raw)
       : raw;

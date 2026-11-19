@@ -10,6 +10,7 @@ import {
   type DynamicTabularRow
 } from './dynamicTabular';
 import { TabularPreviewTable } from './TabularPreviewTable';
+import { useMsg } from '../messages/useMsg';
 
 const PREVIEW_LIMIT = 20;
 
@@ -42,6 +43,7 @@ function useDynamicImportState({
   validateParsed,
   accept
 }: DynamicImportProps) {
+  const msg = useMsg();
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [internalValue, setInternalValue] = useState<DynamicImportValue | null>(null);
@@ -76,15 +78,18 @@ function useDynamicImportState({
         setInternalValue(null);
         onChange?.(null);
         console.error('Dynamic tabular import parse failed', e);
-        const message =
-          e instanceof Error
-            ? `解析エラー: ${e.message}`
-            : `解析エラー: ${String(e) || 'ファイルの解析に失敗しました。'}`;
+        const message = msg('zodFormWidget.import.parseError' /* 解析エラー: ${message} */, {
+          message:
+            e instanceof Error
+              ? msg.resolve(e.message)
+              : String(e) ||
+                msg('zodFormWidget.import.parseFailed' /* ファイルの解析に失敗しました。 */)
+        });
         setError(message);
         onError?.(message);
       }
     },
-    [onChange, onError, validateParsed]
+    [msg, onChange, onError, validateParsed]
   );
 
   const executeImport = useCallback(async () => {
@@ -96,13 +101,17 @@ function useDynamicImportState({
       reset();
     } catch (e) {
       const message =
-        e instanceof Error ? `インポートエラー: ${e.message}` : 'インポートに失敗しました。';
+        e instanceof Error
+          ? msg('zodFormWidget.import.importError' /* インポートエラー: ${message} */, {
+              message: msg.resolve(e.message)
+            })
+          : msg('zodFormWidget.import.importFailed' /* インポートに失敗しました。 */);
       setError(message);
       onError?.(message);
     } finally {
       setIsImporting(false);
     }
-  }, [onError, onImport, reset, value]);
+  }, [msg, onError, onImport, reset, value]);
 
   const previewHeaders = value?.parsed.headers ?? [];
   const previewTableRows = useMemo(
@@ -135,8 +144,8 @@ function DynamicImportContent({
   state,
   showCancel,
   onCancel,
-  submitLabel = 'データをインポート',
-  emptyStateText = 'まだファイルが選択されていません。',
+  submitLabel,
+  emptyStateText,
   renderFooter
 }: {
   state: ReturnType<typeof useDynamicImportState>;
@@ -157,17 +166,20 @@ function DynamicImportContent({
     executeImport
   } = state;
   const rowCount = value?.parsed.rows.length ?? 0;
+  const msg = useMsg();
 
   return (
     <>
       <Group justify="space-between" mb="sm">
         <Text size="sm" c="dimmed">
-          ファイルを選択して内容を確認後に取り込みます。
+          {msg(
+            'zodFormWidget.import.fileDescription' /* ファイルを選択して内容を確認後に取り込みます。 */
+          )}
         </Text>
         <FileButton onChange={handleSelectFile} accept={acceptedFileTypes}>
           {(props) => (
             <Button {...props} leftSection={<IconUpload size={16} />} variant="default">
-              ファイルを選択
+              {msg('zodFormWidget.import.selectFile' /* ファイルを選択 */)}
             </Button>
           )}
         </FileButton>
@@ -175,7 +187,7 @@ function DynamicImportContent({
 
       {value && (
         <Text size="sm" mb="sm">
-          選択中: {value.fileName}
+          {msg('zodFormWidget.import.selected' /* 選択中: ${name} */, { name: value.fileName })}
         </Text>
       )}
 
@@ -188,17 +200,22 @@ function DynamicImportContent({
       {value ? (
         <>
           <Text size="sm" mb="xs">
-            {rowCount} 件を取り込み予定です（
             {rowCount <= PREVIEW_LIMIT
-              ? `全${rowCount}件を表示中`
-              : `先頭 ${PREVIEW_LIMIT} 件を表示`}
-            ）。
+              ? msg(
+                  'zodFormWidget.import.plannedAll' /* ${count} 件を取り込み予定です（全${count}件を表示中）。 */,
+                  { count: rowCount }
+                )
+              : msg(
+                  'zodFormWidget.import.plannedHead' /* ${count} 件を取り込み予定です（先頭 ${limit} 件を表示）。 */,
+                  { count: rowCount, limit: PREVIEW_LIMIT }
+                )}
           </Text>
           <TabularPreviewTable headers={previewHeaders} rows={previewTableRows} />
         </>
       ) : (
         <Text size="sm" c="dimmed" mb="md">
-          {emptyStateText}
+          {emptyStateText ??
+            msg('zodFormWidget.import.fileEmpty' /* まだファイルが選択されていません。 */)}
         </Text>
       )}
 
@@ -208,7 +225,7 @@ function DynamicImportContent({
         <Group justify="flex-end">
           {showCancel && onCancel && (
             <Button variant="default" onClick={onCancel}>
-              キャンセル
+              {msg('zodFormWidget.common.cancel' /* キャンセル */)}
             </Button>
           )}
           <Button
@@ -217,7 +234,7 @@ function DynamicImportContent({
             loading={isImporting}
             disabled={!value || !state.canImport}
           >
-            {submitLabel}
+            {submitLabel ?? msg('zodFormWidget.import.fileSubmit' /* データをインポート */)}
           </Button>
         </Group>
       )}
@@ -226,12 +243,14 @@ function DynamicImportContent({
 }
 
 export function useDynamicImportModal({
-  title = 'データインポート',
+  title: titleFromProps,
   ...props
 }: DynamicImportProps & {
   /** モーダルのタイトル。文字のほかに部品（ガイドを開くボタンなど）も置ける */
   title?: React.ReactNode;
 }) {
+  const msg = useMsg();
+  const title = titleFromProps ?? msg('zodFormWidget.import.title' /* データインポート */);
   const [opened, { open, close }] = useDisclosure(false);
   const state = useDynamicImportState(props);
 

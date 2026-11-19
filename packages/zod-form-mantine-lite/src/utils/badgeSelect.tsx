@@ -12,6 +12,7 @@ import {
   renderSelectOption,
   type OptionDataType,
 } from "./selectOption";
+import { useMsg } from "../messages/useMsg";
 
 export type BadgeSelectProps = {
   /** 選択中の値（toEnumOptionValue 済み）。未選択は null */
@@ -77,6 +78,7 @@ export const BadgeSelect = ({
   style,
   inputRef,
 }: BadgeSelectProps) => {
+  const msg = useMsg();
   const [search, setSearch] = useState("");
   const combobox = useCombobox({
     onDropdownClose: () => {
@@ -114,7 +116,7 @@ export const BadgeSelect = ({
       {showClear ? (
         <CloseButton
           size="sm"
-          aria-label="クリア"
+          aria-label={msg("zodFormMantineLite.clear" /* クリア */)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             onChange(null);
@@ -207,7 +209,9 @@ export const BadgeSelect = ({
               </Combobox.Option>
             ))
           ) : (
-            <Combobox.Empty>見つかりません</Combobox.Empty>
+            <Combobox.Empty>
+              {msg("zodFormMantineLite.nothingFound" /* 見つかりません */)}
+            </Combobox.Empty>
           )}
         </Combobox.Options>
       </Combobox.Dropdown>

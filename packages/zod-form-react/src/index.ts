@@ -9,6 +9,10 @@ export * from "./def";
 // Re-export from media (MediaResolver types)
 export * from "./media";
 
+// i18n（RegisteredMessages への zodFormReact.* の登録）
+import "./messages/types";
+export { useMsg as useZodFormReactMsg } from "./messages/useMsg";
+
 // Re-export from common (Context, Hooks, Form utilities)
 export * from "./common";
 

@@ -121,6 +121,16 @@
         "default": "./dist/utils/externalKey.cjs"
       }
     },
+    "./messages": {
+      "import": {
+        "types": "./dist/messages/index.d.mts",
+        "default": "./dist/messages/index.mjs"
+      },
+      "require": {
+        "types": "./dist/messages/index.d.ts",
+        "default": "./dist/messages/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -156,6 +166,9 @@
   },
   "dependencies": {
     "@zodapp/caching-utilities": "workspace:*",
+    "@zodapp/i18n-messages": "workspace:*",
+    "@zodapp/i18n-messages-react": "workspace:*",
+    "@zodapp/i18n-messages-zod": "workspace:*",
     "@zodapp/zod-extendable": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-propagating-registry": "workspace:*",

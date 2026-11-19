@@ -122,6 +122,16 @@
         "default": "./dist/utils/index.cjs"
       }
     },
+    "./messages": {
+      "import": {
+        "types": "./dist/messages/index.d.mts",
+        "default": "./dist/messages/index.mjs"
+      },
+      "require": {
+        "types": "./dist/messages/index.d.ts",
+        "default": "./dist/messages/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -159,6 +169,8 @@
   },
   "dependencies": {
     "@tabler/icons-react": "^3.36.1",
+    "@zodapp/i18n-messages": "workspace:*",
+    "@zodapp/i18n-messages-react": "workspace:*",
     "@zodapp/zod-form": "workspace:*",
     "@zodapp/zod-form-react": "workspace:*",
     "dayjs": "^1.11.19",

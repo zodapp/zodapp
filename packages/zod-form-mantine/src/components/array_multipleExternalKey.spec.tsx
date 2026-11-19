@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { Suspense } from "react";
 import {
@@ -132,16 +134,18 @@ const renderForm = (
     form = f as unknown as AnyFormApi;
     return (
       <MantineProvider>
-        <ZodFormContextProvider
-          componentLibrary={componentLibrary as any}
-          externalKeyResolvers={resolvers}
-        >
-          <FormProvider form={f as any} runtime={runtime}>
-            <Suspense fallback={null}>
-              <Switch fieldPath="" schema={schema} />
-            </Suspense>
-          </FormProvider>
-        </ZodFormContextProvider>
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <ZodFormContextProvider
+            componentLibrary={componentLibrary as any}
+            externalKeyResolvers={resolvers}
+          >
+            <FormProvider form={f as any} runtime={runtime}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </I18nMessagesProvider>
       </MantineProvider>
     );
   };

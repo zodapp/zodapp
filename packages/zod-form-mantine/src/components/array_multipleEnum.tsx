@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useEffect, useMemo } from "react";
 import {
   CloseButton,
@@ -21,11 +22,13 @@ import {
   useChoices,
   normalizeStringSuggestions,
   ReadonlyText,
-  UNLISTED_LABEL,
+  useUnlistedLabel,
   inputWrapperStyle,
   type OptionDataType,
 } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
+import { useMsg } from "../messages/useMsg";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -85,12 +88,16 @@ const ArrayOfEnumComponent = wrapComponent(
     const choices = useChoices(choiceSchema);
 
     // arrayスキーマ自体のメタからlabelを取得
-    const arrayMeta = getMeta(schema);
+    const arrayMeta = useResolvedMeta(schema);
     const labelFromMeta = arrayMeta?.label;
 
     const uiType = arrayMeta?.uiType;
     const label = labelFromParent ?? labelFromMeta;
-    const { unlisted, emptyMessage } = elementMeta ?? {};
+    const { unlisted } = elementMeta ?? {};
+    const msg = useMsg();
+    const resolveText = useResolveText();
+    const unlistedLabel = useUnlistedLabel();
+    const emptyMessage = resolveText(elementMeta?.emptyMessage);
     // 数値の選択肢も扱えるよう、MultiSelect とは文字列でやりとりする
     // 今の値の要素を、選択肢の値ごとに引けるようにしておく（選択肢に無い値を keep で残すとき、
     // 選択肢の値からは元の値に戻せないため）
@@ -134,11 +141,11 @@ const ArrayOfEnumComponent = wrapComponent(
       : EMPTY_SUGGESTIONS;
     const suggestionData = useMemo<OptionDataType[]>(
       () =>
-        normalizeStringSuggestions(suggestions).map((option) => ({
+        normalizeStringSuggestions(suggestions, resolveText).map((option) => ({
           ...option,
           color: "gray",
         })),
-      [suggestions],
+      [suggestions, resolveText],
     );
     const data = allowUnlisted ? suggestionData : enumData;
 
@@ -192,17 +199,26 @@ const ArrayOfEnumComponent = wrapComponent(
                   ? { value: item, label: item, color: "gray" }
                   : {
                       value: item,
-                      label: UNLISTED_LABEL,
+                      label: unlistedLabel,
                       color: "red",
                     },
               ),
             ]
           : data,
-      [data, hasUnlisted, shouldClear, unlistedValues, allowUnlisted],
+      [
+        data,
+        hasUnlisted,
+        shouldClear,
+        unlistedValues,
+        allowUnlisted,
+        unlistedLabel,
+      ],
     );
     // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
     const errorMessage = showUnlisted
-      ? "選択肢に無い値があります。消すか、選び直してください。"
+      ? msg(
+          "zodFormMantine.multipleEnum.unlisted" /* 選択肢に無い値があります。消すか、選び直してください。 */,
+        )
       : error?.message;
 
     const isBadge = uiType === "multipleEnumBadge";
@@ -221,7 +237,7 @@ const ArrayOfEnumComponent = wrapComponent(
                     ? renderBadge(option)
                     : allowUnlisted
                       ? v
-                      : UNLISTED_LABEL}
+                      : unlistedLabel}
                 </React.Fragment>
               );
             })}
@@ -231,10 +247,10 @@ const ArrayOfEnumComponent = wrapComponent(
       return value
         .map((v) => {
           const option = selectData.find((d) => d.value === v);
-          return option?.label ?? (allowUnlisted ? v : UNLISTED_LABEL);
+          return option?.label ?? (allowUnlisted ? v : unlistedLabel);
         })
         .join(", ");
-    }, [data, selectData, value, allowUnlisted, isBadge]);
+    }, [data, selectData, value, allowUnlisted, isBadge, unlistedLabel]);
 
     // 選択済みのピルも選択肢の色のバッジにする（× で外せる）。
     // 選択肢に無い値も selectData に足してあるので、そのラベル・色で出る
@@ -249,7 +265,10 @@ const ArrayOfEnumComponent = wrapComponent(
                 size="xs"
                 variant="transparent"
                 c="inherit"
-                aria-label={`${option.label}を外す`}
+                aria-label={msg(
+                  "zodFormMantine.multipleEnum.remove" /* ${label}を外す */,
+                  { label: option.label },
+                )}
                 // Mantine の Pill の削除ボタンと同じく、入れ物（PillsInput）の
                 // mousedown / click（フォーカス・開閉）へ伝えない
                 onMouseDown={(event) => {
@@ -288,7 +307,10 @@ const ArrayOfEnumComponent = wrapComponent(
           value={[]}
           data={[]}
           label={label || undefined}
-          placeholder={emptyMessage ?? "選択肢がありません"}
+          placeholder={
+            emptyMessage ??
+            msg("zodFormMantineLite.noOptions" /* 選択肢がありません */)
+          }
           error={error?.message}
           required={!(optional || nullable)}
           disabled={true}

@@ -1,7 +1,9 @@
+import { zodMsgKeyErrorMap } from "@zodapp/i18n-messages-zod";
+import { useMsg } from "../messages/useMsg";
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useEffect, useState } from "react";
 import { ActionIcon, Group, InputWrapper, TextInput } from "@mantine/core";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
-import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
   Switch,
@@ -60,7 +62,8 @@ const RecordEntriesComponent = wrapComponent(
     errorToken,
   }: ZodFormInternalProps<RecordSchema>) {
     const { optional, nullable } = emptinessOf(outer);
-    const meta = getMeta(schema);
+    const meta = useResolvedMeta(schema);
+    const msg = useMsg();
     const valueSchema = schema.def.valueType;
     const keySchema = schema.def.keyType;
     const value = getRecordValue(field.value, defaultValue);
@@ -103,13 +106,17 @@ const RecordEntriesComponent = wrapComponent(
     };
 
     const handleKeyChange = (row: EntryRow, draftKey: string) => {
-      const parsedKey = keySchema.safeParse(draftKey);
+      const parsedKey = keySchema.safeParse(draftKey, {
+        error: zodMsgKeyErrorMap,
+      });
       const duplicate = draftKey !== row.key && usedKeys.has(draftKey);
       const keyError = duplicate
-        ? "同じキーが既に存在します"
+        ? msg(
+            "zodFormMantine.record.duplicateKey" /* 同じキーが既に存在します */,
+          )
         : parsedKey.success
           ? undefined
-          : parsedKey.error.issues[0]?.message;
+          : msg.resolve(parsedKey.error.issues[0]?.message);
 
       if (keyError) {
         setRows((currentRows) =>
@@ -159,7 +166,7 @@ const RecordEntriesComponent = wrapComponent(
         >
           <Group align="flex-start" wrap="nowrap">
             <TextInput
-              label="キー"
+              label={msg("zodFormMantine.record.key" /* キー */)}
               value={row.draftKey}
               error={row.keyError}
               readOnly={readOnly}
@@ -180,12 +187,14 @@ const RecordEntriesComponent = wrapComponent(
                   defaultValue={value[row.key]}
                   outer={undefined}
                   readOnly={readOnly}
-                  label="値"
+                  label={msg("zodFormMantine.record.value" /* 値 */)}
                 />
               ) : (
                 <TextInput
-                  label="値"
-                  placeholder="先にキーを入力してください"
+                  label={msg("zodFormMantine.record.value" /* 値 */)}
+                  placeholder={msg(
+                    "zodFormMantine.record.keyFirst" /* 先にキーを入力してください */,
+                  )}
                   disabled
                 />
               )}
@@ -194,7 +203,15 @@ const RecordEntriesComponent = wrapComponent(
         </div>
         {!readOnly && (
           <ActionIcon
-            aria-label={`${row.draftKey || row.key || "空の行"}を削除`}
+            aria-label={msg(
+              "zodFormMantine.record.removeRow" /* ${label}を削除 */,
+              {
+                label:
+                  row.draftKey ||
+                  row.key ||
+                  msg("zodFormMantine.record.emptyRow" /* 空の行 */),
+              },
+            )}
             size={20}
             variant="light"
             color="#63687C"
@@ -237,7 +254,9 @@ const RecordEntriesComponent = wrapComponent(
           {!readOnly && (
             <div style={{ position: "relative" }}>
               <ActionIcon
-                aria-label="末尾に追加"
+                aria-label={msg(
+                  "zodFormMantine.record.append" /* 末尾に追加 */,
+                )}
                 size={20}
                 variant="light"
                 color="#63687C"

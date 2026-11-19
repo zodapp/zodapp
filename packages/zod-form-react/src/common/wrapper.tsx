@@ -4,6 +4,7 @@ import type { AnyFieldApi } from "@tanstack/react-form";
 import type { ZodForm, ZodFormProps } from "../utils/type";
 import { getMeta } from "@zodapp/zod-form";
 import { useRunAsUserEdit, useZodField } from "./form";
+import { useMsg } from "../messages/useMsg";
 import {
   isDisplayedIssue,
   isPendingIssue,
@@ -100,9 +101,18 @@ export const wrapComponent = <TSchema extends z.ZodTypeAny = z.ZodTypeAny>(
       (candidate) => !isPendingIssue(candidate) && !isUnionIssue(candidate),
     );
     // この部品が出すエラー（isDisplayedIssue：hideError・errorToken で選ぶ）
-    const error = issues.find((candidate) =>
+    const displayedIssue = issues.find((candidate) =>
       isDisplayedIssue(candidate, props),
     ) as AdaptedError | undefined;
+    // 文言は msgKey で詰めたキーのことがある（zod の既定のエラー・スキーマに書いたキー）。表示する前に訳す
+    const msg = useMsg();
+    const error = useMemo(
+      () =>
+        displayedIssue?.message === undefined
+          ? displayedIssue
+          : { ...displayedIssue, message: msg.resolve(displayedIssue.message) },
+      [displayedIssue, msg],
+    );
 
     const showError =
       fieldApi.state.meta.isTouched || fieldApi.form.state.isSubmitted;

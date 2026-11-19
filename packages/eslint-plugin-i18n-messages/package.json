@@ -1,0 +1,81 @@
+{
+  "name": "@zodapp/eslint-plugin-i18n-messages",
+  "version": "0.0.0",
+  "private": false,
+  "description": "ESLint rule that keeps the reference-locale text as a comment next to each @zodapp/i18n-messages key",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/eslint-plugin-i18n-messages"
+  },
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/eslint-plugin-i18n-messages#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "i18n",
+    "messages"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules"
+  },
+  "dependencies": {
+    "@typescript-eslint/typescript-estree": "^8.54.0"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

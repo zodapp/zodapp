@@ -30,6 +30,7 @@ import { useAuthContext } from "../shared/auth";
 import { loginRoute } from "../pages/survey-nonmember/login.route";
 
 import styles from "../styles/page.module.css";
+import { LanguageSwitcher } from "./Language";
 
 export type NavItem = Pick<LinkOptions, "to" | "params" | "search"> & {
   label: string;
@@ -262,38 +263,41 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           )}
         </Group>
 
-        {user && (
-          <Menu shadow="md" width={200} position="bottom-end">
-            <Menu.Target>
-              <UnstyledButton mr="md">
-                <Group gap="xs">
-                  <Avatar
-                    src={null}
-                    alt={user.displayName || "User"}
-                    radius="xl"
-                    size="sm"
-                  />
-                  <Text size="sm" visibleFrom="sm">
-                    {user.displayName || user.email}
-                  </Text>
-                  <IconChevronDown size={14} />
-                </Group>
-              </UnstyledButton>
-            </Menu.Target>
+        <Group gap="xs" wrap="nowrap" mr={user ? undefined : "md"}>
+          <LanguageSwitcher />
+          {user && (
+            <Menu shadow="md" width={200} position="bottom-end">
+              <Menu.Target>
+                <UnstyledButton mr="md">
+                  <Group gap="xs">
+                    <Avatar
+                      src={null}
+                      alt={user.displayName || "User"}
+                      radius="xl"
+                      size="sm"
+                    />
+                    <Text size="sm" visibleFrom="sm">
+                      {user.displayName || user.email}
+                    </Text>
+                    <IconChevronDown size={14} />
+                  </Group>
+                </UnstyledButton>
+              </Menu.Target>
 
-            <Menu.Dropdown>
-              <Menu.Label>{user.email}</Menu.Label>
-              <Menu.Divider />
-              <Menu.Item
-                color="red"
-                leftSection={<IconLogout size={14} />}
-                onClick={handleSignOut}
-              >
-                ログアウト
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        )}
+              <Menu.Dropdown>
+                <Menu.Label>{user.email}</Menu.Label>
+                <Menu.Divider />
+                <Menu.Item
+                  color="red"
+                  leftSection={<IconLogout size={14} />}
+                  onClick={handleSignOut}
+                >
+                  ログアウト
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          )}
+        </Group>
       </AppShell.Header>
 
       {hasNavbar && (

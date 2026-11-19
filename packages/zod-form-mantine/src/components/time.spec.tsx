@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 import React, { Suspense } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -57,13 +59,15 @@ const renderForm = (schema: z.ZodTypeAny, defaultValues: unknown) => {
     result.values = () => form.state.values as Record<string, unknown>;
     return (
       <MantineProvider>
-        <ZodFormContextProvider componentLibrary={componentLibrary}>
-          <FormProvider form={form}>
-            <Suspense fallback={null}>
-              <Switch fieldPath="" schema={schema} />
-            </Suspense>
-          </FormProvider>
-        </ZodFormContextProvider>
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <ZodFormContextProvider componentLibrary={componentLibrary}>
+            <FormProvider form={form}>
+              <Suspense fallback={null}>
+                <Switch fieldPath="" schema={schema} />
+              </Suspense>
+            </FormProvider>
+          </ZodFormContextProvider>
+        </I18nMessagesProvider>
       </MantineProvider>
     );
   };
@@ -303,11 +307,13 @@ describe("zf.time", () => {
     });
     render(
       <MantineProvider>
-        <TableTimeComponent
-          schema={schema as never}
-          fieldPath="start"
-          defaultValue={570}
-        />
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <TableTimeComponent
+            schema={schema as never}
+            fieldPath="start"
+            defaultValue={570}
+          />
+        </I18nMessagesProvider>
       </MantineProvider>,
     );
     expect(screen.getByText("09:30")).toBeTruthy();

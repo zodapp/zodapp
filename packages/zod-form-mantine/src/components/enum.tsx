@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { InputWrapper, Select } from "@mantine/core";
 import { useStore } from "@tanstack/react-form";
@@ -11,7 +12,7 @@ import {
   emptinessOf,
   isPendingIssue,
 } from "@zodapp/zod-form-react/common";
-import { zf, getMeta } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 import type z from "zod";
 import {
   BadgeSelect,
@@ -22,6 +23,8 @@ import {
   WithValueAction,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
+import { useMsg } from "../messages/useMsg";
+import { useUnlistedLabel } from "@zodapp/zod-form-mantine-lite/utils";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -50,9 +53,11 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
     uiType,
     unlisted,
     emptyMessage,
-  } = getMeta(schema) ?? {};
+  } = useResolvedMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
+  const msg = useMsg();
+  const unlistedLabel = useUnlistedLabel();
 
   const choices = useChoices(schema);
   // 腕で表せる空の値は、外側の optional・nullable より腕を優先する（undefined の腕があれば
@@ -114,12 +119,12 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
             ...data,
             {
               value: optionValue,
-              label: "（不正な値）",
+              label: unlistedLabel,
               disabled: true,
             },
           ]
         : data,
-    [data, showUnlisted, optionValue],
+    [data, showUnlisted, optionValue, unlistedLabel],
   );
   // literal の union の検証エラーは invalid_union になる。wrapComponent は invalid_union を
   // 欄のエラーに出さず（union の部品が読む前提）、日本語の文言も空なので、ここで読んで文言にする
@@ -137,15 +142,21 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
       .some((issue) => isUnionIssue(issue) && !isPendingIssue(issue));
   const unionErrorMessage = hasUnionIssue
     ? optionValue === null
-      ? "必ず入力してください。"
-      : "選択肢に無い値です。選び直してください。"
+      ? msg("zod.required" /* 必ず入力してください。 */)
+      : msg(
+          "zodFormMantine.enum.unlisted" /* 選択肢に無い値です。選び直してください。 */,
+        )
     : undefined;
 
   // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
   const errorMessage = showUnlisted
     ? Boolean(optional || nullable)
-      ? "選択肢に無い値です。選び直すか、消してください。"
-      : "選択肢に無い値です。選び直してください。"
+      ? msg(
+          "zodFormMantine.enum.unlistedClearable" /* 選択肢に無い値です。選び直すか、消してください。 */,
+        )
+      : msg(
+          "zodFormMantine.enum.unlisted" /* 選択肢に無い値です。選び直してください。 */,
+        )
     : (error?.message ?? unionErrorMessage);
 
   const isBadge = uiType === "badge";
@@ -187,7 +198,10 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         value={null}
         data={[]}
         label={label || undefined}
-        placeholder={emptyMessage ?? "選択肢がありません"}
+        placeholder={
+          emptyMessage ??
+          msg("zodFormMantineLite.noOptions" /* 選択肢がありません */)
+        }
         error={
           emptyMessage !== undefined && !(optional || nullable)
             ? error?.message

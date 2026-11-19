@@ -3,12 +3,16 @@
  * video/* mimeType用のプレビューコンポーネント
  */
 
+import { useMsg } from "../messages/useMsg";
 import type { UrlPreviewProps, MediaResolverUrlBased } from "../media";
 
 function VideoPreview({ url, mimeType: _mimeType }: UrlPreviewProps) {
+  const msg = useMsg();
   return (
     <video src={url} controls style={{ maxWidth: "100%", maxHeight: "400px" }}>
-      お使いのブラウザは動画の再生に対応していません。
+      {msg(
+        "zodFormReact.media.videoUnsupported" /* お使いのブラウザは動画の再生に対応していません。 */,
+      )}
     </video>
   );
 }

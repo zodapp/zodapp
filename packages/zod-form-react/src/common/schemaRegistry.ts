@@ -1,4 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { msgKey } from "@zodapp/i18n-messages";
+import { zodMsgKeyErrorMap } from "@zodapp/i18n-messages-zod";
+import "../messages/types";
 import type { AnyFormApi, StandardSchemaV1 } from "@tanstack/react-form";
 import type { z } from "zod";
 import { getDefaultValue } from "@zodapp/zod-form";
@@ -410,14 +413,17 @@ export class FormRuntime {
       }
     };
 
-    collect(null, staticSchema.safeParse(value) as any);
+    collect(
+      null,
+      staticSchema.safeParse(value, { error: zodMsgKeyErrorMap }) as any,
+    );
     for (const { path, segments } of registered) {
       const entry = this.get(path);
       if (!entry) continue;
       if (entry.status === "pending") {
         if (!isCovered(segments, segments)) {
           issues.push({
-            message: "読み込み中",
+            message: msgKey("zodFormReact.dynamic.loading" /* 読み込み中 */),
             path: segments,
             code: PENDING_ISSUE_CODE,
           });
@@ -427,7 +433,9 @@ export class FormRuntime {
       if (entry.status === "error") {
         if (!isCovered(segments, segments)) {
           issues.push({
-            message: "取得できませんでした",
+            message: msgKey(
+              "zodFormReact.dynamic.failed" /* 取得できませんでした */,
+            ),
             path: segments,
             code: RESOLVE_ERROR_ISSUE_CODE,
           });
@@ -436,7 +444,9 @@ export class FormRuntime {
       }
       collect(
         segments,
-        entry.schema.safeParse(getValueAt(value, segments)) as any,
+        entry.schema.safeParse(getValueAt(value, segments), {
+          error: zodMsgKeyErrorMap,
+        }) as any,
       );
     }
     return issues;

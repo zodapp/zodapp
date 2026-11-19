@@ -12,7 +12,8 @@
   "exports": {
     "./base": "./base.js",
     "./next-js": "./next.js",
-    "./react-internal": "./react-internal.js"
+    "./react-internal": "./react-internal.js",
+    "./i18n-messages": "./i18n-messages.js"
   },
   "scripts": {},
   "devDependencies": {

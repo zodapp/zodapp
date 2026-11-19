@@ -1,4 +1,5 @@
 import { Alert, Button, Group, Text } from "@mantine/core";
+import { useMsg } from "../messages/useMsg";
 
 /**
  * 選択肢などの取得に失敗したときの表示。再試行のボタンを出す。
@@ -10,13 +11,23 @@ export const FetchErrorView = ({
 }: {
   label: string | undefined;
   retry: () => void;
-}) => (
-  <Alert color="red" data-dynamic-status="error">
-    <Group justify="space-between">
-      <Text size="sm">{label ? `${label}を` : ""}取得できませんでした</Text>
-      <Button size="xs" variant="light" onClick={retry}>
-        再試行
-      </Button>
-    </Group>
-  </Alert>
-);
+}) => {
+  const msg = useMsg();
+  return (
+    <Alert color="red" data-dynamic-status="error">
+      <Group justify="space-between">
+        <Text size="sm">
+          {label
+            ? msg(
+                "zodFormMantineLite.fetchFailedWithLabel" /* ${label}を取得できませんでした */,
+                { label },
+              )
+            : msg("zodFormMantineLite.fetchFailed" /* 取得できませんでした */)}
+        </Text>
+        <Button size="xs" variant="light" onClick={retry}>
+          {msg("zodFormMantineLite.retry" /* 再試行 */)}
+        </Button>
+      </Group>
+    </Alert>
+  );
+};

@@ -4,6 +4,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MantineProvider } from "@mantine/core";
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 import {
   BadgeSelect,
   type OptionDataType,
@@ -51,16 +53,18 @@ const renderSelect = (initial: string | null) => {
     const [value, setValue] = useState<string | null>(initial);
     return (
       <MantineProvider env="test">
-        <BadgeSelect
-          label="ステータス"
-          value={value}
-          data={data}
-          placeholder="選択"
-          onChange={(next) => {
-            onChange(next);
-            setValue(next);
-          }}
-        />
+        <I18nMessagesProvider locale="ja" messages={jaMessages}>
+          <BadgeSelect
+            label="ステータス"
+            value={value}
+            data={data}
+            placeholder="選択"
+            onChange={(next) => {
+              onChange(next);
+              setValue(next);
+            }}
+          />
+        </I18nMessagesProvider>
       </MantineProvider>
     );
   };

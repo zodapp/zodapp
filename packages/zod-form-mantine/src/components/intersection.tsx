@@ -1,6 +1,6 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import z from "zod";
-import { getMeta } from "@zodapp/zod-form";
 import {
   Switch,
   ContainerMarker,
@@ -11,6 +11,7 @@ import {
 import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
 import { OptionalContainer } from "./object";
 import { unrecognizedKeysMessage } from "./unrecognizedKeys";
+import { useMsg } from "../messages/useMsg";
 
 type IntersectionSchema = z.ZodIntersection<z.ZodTypeAny, z.ZodTypeAny>;
 
@@ -46,7 +47,7 @@ const warnDuplicatedKeys = (schema: IntersectionSchema) => {
   const duplicated = leftKeys.filter((key) => rightKeys.has(key));
   if (duplicated.length > 0) {
     console.warn(
-      `zf.intersection：両側の object が同じキー（${duplicated.join(", ")}）を持つので、その欄が 2 回出ます`,
+      `zf.intersection: both sides have the same keys (${duplicated.join(", ")}), so those fields are rendered twice`,
     );
   }
 };
@@ -66,16 +67,18 @@ function IntersectionBody({
   hideError,
   errorToken,
 }: ZodFormInternalProps<IntersectionSchema>) {
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const label = labelFromParent ?? meta?.label;
   warnDuplicatedKeys(schema);
+  const msg = useMsg();
   // unrecognized_keys は、キーを腕に持つ discriminatedUnion の名前で、選択を促す文言にする
   const issue = error as
     | { code?: string; keys?: string[]; message?: string }
     | undefined;
   const errorMessage =
     issue?.code === "unrecognized_keys"
-      ? (unrecognizedKeysMessage(schema, issue.keys ?? []) ?? issue.message)
+      ? (unrecognizedKeysMessage(schema, issue.keys ?? [], msg) ??
+        issue.message)
       : issue?.message;
   const sides = [
     ["left", schema.def.left as z.ZodTypeAny],

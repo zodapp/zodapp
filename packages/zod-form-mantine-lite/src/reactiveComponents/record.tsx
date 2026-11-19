@@ -1,6 +1,6 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
-import { getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { Switch } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
@@ -21,7 +21,7 @@ const RecordComponent = React.memo(function RecordComponent({
   readOnly: readOnlyProp,
   label: labelFromParent,
 }: ZodFormProps<RecordSchema>) {
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const valueSchema = schema.def.valueType;
 

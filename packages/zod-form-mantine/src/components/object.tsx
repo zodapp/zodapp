@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { ActionIcon, InputWrapper } from "@mantine/core";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
@@ -15,6 +16,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
+import { useMsg } from "../messages/useMsg";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -36,7 +38,7 @@ function ObjectBodyImplement({
   hideError,
   errorToken,
 }: ZodFormInternalProps<ObjectSchema>) {
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
 
   const fields = order.flatMap((propertyName: string) => {
@@ -126,9 +128,10 @@ export function OptionalContainer(
   } = props;
   const field = useZodField(fieldPath);
   const value = field.state.value;
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const label = labelFromParent ?? meta?.label;
   const isSet = value !== undefined && value !== null;
+  const msg = useMsg();
   const runAsUserEdit = useRunAsUserEdit();
   const { emptyValue } = emptinessOf(props.outer);
 
@@ -187,7 +190,7 @@ export function OptionalContainer(
               variant="light"
               color="#63687C"
               style={actionIconStyle}
-              aria-label="削除"
+              aria-label={msg("zodFormMantine.object.remove" /* 削除 */)}
               onClick={handleRemove}
             >
               <IconCircleMinus />
@@ -204,7 +207,7 @@ export function OptionalContainer(
               variant="light"
               color="#63687C"
               style={{ ...actionIconStyle, zIndex: 1 }}
-              aria-label="追加"
+              aria-label={msg("zodFormMantine.object.add" /* 追加 */)}
               onClick={handleAdd}
             >
               <IconCirclePlus />
