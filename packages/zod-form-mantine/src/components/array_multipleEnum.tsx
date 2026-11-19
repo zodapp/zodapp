@@ -29,6 +29,7 @@ import {
 import type z from "zod";
 import { useMsg } from "../messages/useMsg";
 import { withSupportCheck } from "../utils/unsupported";
+import { arrayCollection, type Collection } from "../utils/collection";
 import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
@@ -49,8 +50,8 @@ const NO_ENUM_OPTIONS = zf.enum(
  * 要素が `uiType: "select"` の string（externalKey の allowUnlisted から作るもの）なら、
  * suggestions から選び、選択肢に無い値も値そのものの表示で残す（検証は string のまま）
  */
-const ArrayOfEnumComponent = wrapComponent(
-  function ArrayOfEnumComponentImplement({
+export const createMultipleEnumComponent = (collection: Collection) =>
+  wrapComponent(function MultipleEnumComponentImplement({
     schema,
     label: labelFromParent,
     outer,
@@ -61,7 +62,7 @@ const ArrayOfEnumComponent = wrapComponent(
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
-    const elementSchema = schema.element as z.ZodTypeAny;
+    const elementSchema = collection.elementOf(schema);
     const elementMeta = getMeta(elementSchema) as
       | {
           uiType?: string;
@@ -96,13 +97,11 @@ const ArrayOfEnumComponent = wrapComponent(
     const { value, currentByOption } = useMemo(() => {
       const value: string[] = [];
       const currentByOption = new Map<string, unknown>();
-      if (Array.isArray(field.value)) {
-        for (const item of field.value as unknown[]) {
-          const optionValue = choices.toOption(item);
-          if (optionValue === null) continue;
-          value.push(optionValue);
-          currentByOption.set(optionValue, item);
-        }
+      for (const item of collection.toItems(field.value)) {
+        const optionValue = choices.toOption(item);
+        if (optionValue === null) continue;
+        value.push(optionValue);
+        currentByOption.set(optionValue, item);
       }
       return { value, currentByOption };
     }, [field.value, choices]);
@@ -111,13 +110,15 @@ const ArrayOfEnumComponent = wrapComponent(
       (next: string[]) =>
         next.length === 0
           ? emptyValue
-          : allowUnlisted
-            ? next
-            : next.map((item) =>
-                currentByOption.has(item)
-                  ? currentByOption.get(item)
-                  : choices.fromOption(item),
-              ),
+          : collection.fromItems(
+              allowUnlisted
+                ? next
+                : next.map((item) =>
+                    currentByOption.has(item)
+                      ? currentByOption.get(item)
+                      : choices.fromOption(item),
+                  ),
+            ),
       [allowUnlisted, choices, currentByOption, emptyValue],
     );
     const onChange = useCallback(
@@ -331,12 +332,13 @@ const ArrayOfEnumComponent = wrapComponent(
         style={inputWrapperStyle}
       />
     );
-  },
-);
+  });
 
 /** 要素が選択肢として扱えるか。扱えなければ理由（開発者向け）を返す */
-const checkElement = (schema: ArrayOfEnumSchema): string | undefined => {
-  const elementSchema = schema.element as z.ZodTypeAny;
+export const checkChoiceElement = (
+  elementSchema: z.ZodTypeAny,
+  uiTypeName: string,
+): string | undefined => {
   const elementMeta = getMeta(elementSchema) as { uiType?: string } | undefined;
   if (
     elementSchema.type === "enum" ||
@@ -346,12 +348,15 @@ const checkElement = (schema: ArrayOfEnumSchema): string | undefined => {
     return;
   if (elementSchema.type === "string" && elementMeta?.uiType === "select")
     return;
-  return `uiType "multipleEnum" expects an array of enum, literal, or union of literals, but the element is ${elementSchema.type}`;
+  return `${uiTypeName} expects elements of enum, literal, or union of literals, but the element is ${elementSchema.type}`;
 };
+
+const ArrayOfEnumComponent = createMultipleEnumComponent(arrayCollection);
 
 const CheckedArrayOfEnumComponent = withSupportCheck(
   ArrayOfEnumComponent,
-  checkElement,
+  (schema: ArrayOfEnumSchema) =>
+    checkChoiceElement(schema.element as z.ZodTypeAny, 'uiType "multipleEnum"'),
 );
 
 export { CheckedArrayOfEnumComponent as component };

@@ -1,3 +1,4 @@
+import { previewReplacer } from "./previewReplacer";
 import {
   Suspense,
   useMemo,
@@ -284,16 +285,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
               {/* デモ・デバッグ用: リアクティブに現在の値を表示 */}
               {showPreview && (
                 <Code block style={{ maxHeight: 200, overflow: "auto" }}>
-                  {JSON.stringify(
-                    formValues,
-                    (_key, value) => {
-                      if (typeof value === "bigint") {
-                        return value.toString();
-                      }
-                      return value;
-                    },
-                    2,
-                  )}
+                  {JSON.stringify(formValues, previewReplacer, 2)}
                 </Code>
               )}
               <Switch fieldPath="" schema={schema} readOnly={readOnly} />
