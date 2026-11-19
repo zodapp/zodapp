@@ -3,6 +3,7 @@ import * as formatterAndSuggestions from "./formatterAndSuggestions";
 import * as booleanVariants from "./booleanVariants";
 import * as objectLayout from "./objectLayout";
 import * as recordEntries from "./recordEntries";
+import * as zodBuiltins from "./zodBuiltins";
 import * as computedVariants from "./computedVariants";
 import * as schemaTransform from "./schemaTransform";
 import * as validatePreceding from "./validatePreceding";
@@ -43,6 +44,7 @@ import formatterAndSuggestionsCode from "./formatterAndSuggestions.ts?raw";
 import booleanVariantsCode from "./booleanVariants.ts?raw";
 import objectLayoutCode from "./objectLayout.ts?raw";
 import recordEntriesCode from "./recordEntries.ts?raw";
+import zodBuiltinsCode from "./zodBuiltins.ts?raw";
 import computedVariantsCode from "./computedVariants.ts?raw";
 import schemaTransformCode from "./schemaTransform.tsx?raw";
 import validatePrecedingCode from "./validatePreceding.ts?raw";
@@ -92,6 +94,7 @@ export const formSchemas = {
   [intersection.formId]: intersection,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
+  [zodBuiltins.formId]: zodBuiltins,
   [union.formId]: union,
   [unionArms.formId]: unionArms,
   [discriminatedUnion.formId]: discriminatedUnion,
@@ -134,6 +137,7 @@ export const formCodes = {
   [intersection.formId]: intersectionCode,
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
+  [zodBuiltins.formId]: zodBuiltinsCode,
   [union.formId]: unionCode,
   [unionArms.formId]: unionArmsCode,
   [discriminatedUnion.formId]: discriminatedUnionCode,

@@ -60,7 +60,14 @@ export type E2eHarnessOptions = {
 const toJson = (value: unknown) =>
   JSON.stringify(
     value,
-    (_key, v) => (typeof v === "bigint" ? v.toString() : v),
+    (_key, v) =>
+      typeof v === "bigint"
+        ? v.toString()
+        : v instanceof Set
+          ? [...v]
+          : v instanceof Map
+            ? Object.fromEntries(v)
+            : v,
     2,
   ) ?? "undefined";
 
