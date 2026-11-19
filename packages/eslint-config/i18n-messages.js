@@ -24,7 +24,7 @@ const packageDictionaries = {
 
 /**
  * `@zodapp/i18n-messages/comment` を有効にする設定。
- * `msg("key" /* 文言 *\/)` のように、キーの直後に日本語の文言をコメントで書かせる（`--fix` で書き込む）。
+ * `msg("key" /* i18n: 文言 *\/)` のように、キーの直後に日本語の文言をコメントで書かせる（`--fix` で書き込む）。
  *
  * @param {Record<string, string>} [dictionaries] 足す名前空間と辞書（相対パスは ESLint の cwd から）
  * @returns {import("eslint").Linter.Config[]}

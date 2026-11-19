@@ -37,7 +37,7 @@ export const encodeMsgKey = (
  * キーは {@link RegisteredMessages} に登録されたものに限り、params は辞書の項目の型から決まる。
  *
  * @example
- * z.string().min(3, msgKey("myapp.nameTooShort" /* {length}文字以上で入力 *\/, { length: 3 }))
+ * z.string().min(3, msgKey("myapp.nameTooShort" /* i18n: {length}文字以上で入力 *\/, { length: 3 }))
  * // → "myapp.nameTooShort?length=3"
  */
 export const msgKey = <K extends MessageKey>(
