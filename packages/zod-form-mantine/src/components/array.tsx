@@ -6,6 +6,7 @@ import { $ZodCheckMaxLengthDef, $ZodCheckMinLengthDef } from "zod/v4/core";
 import z from "zod";
 import {
   Switch,
+  ContainerMarker,
   getDefaultValue,
   useArray,
   ZodFormInternalProps,
@@ -13,6 +14,7 @@ import {
   useZodFormContext,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
+import { ownsContainerMarker } from "./container";
 import {
   DndContext,
   closestCenter,
@@ -359,6 +361,9 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
             }}
           >
             {itemsWithInsertButtons}
+            {ownsContainerMarker({ hideError, errorToken }) && (
+              <ContainerMarker fieldPath={fieldPath} />
+            )}
           </div>
         </SortableContext>
       </DndContext>
