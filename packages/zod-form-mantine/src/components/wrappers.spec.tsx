@@ -66,7 +66,7 @@ describe("包みを外して中を描く", () => {
     expect(await screen.findByDisplayValue("初期")).toBeTruthy();
   });
 
-  it("「Component not found」を出さない", async () => {
+  it("扱えない注記を出さない", async () => {
     const schema = z.object({
       r: text("R").readonly(),
       c: text("C").catch(""),
@@ -75,6 +75,6 @@ describe("包みを外して中を描く", () => {
     });
     renderForm(schema, { r: "", c: "", n: "", p: "" });
     await screen.findByLabelText(/^R/);
-    expect(screen.queryByText(/Component not found/)).toBeNull();
+    expect(document.querySelector("[data-zod-form-unsupported]")).toBeNull();
   });
 });

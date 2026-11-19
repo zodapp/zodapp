@@ -8,4 +8,7 @@ export const en = defineMessages({
     "Your browser does not support video playback.",
   "zodFormReact.media.audioUnsupported":
     "Your browser does not support audio playback.",
+  "zodFormReact.unsupportedSchema": "This form cannot handle this schema.",
+  "zodFormReact.asyncValidation":
+    "This form cannot handle asynchronous validation.",
 });

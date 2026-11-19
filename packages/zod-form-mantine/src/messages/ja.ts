@@ -36,4 +36,5 @@ export const ja = {
   "zodFormMantine.unsafeKeyName": "このキー名は使えません",
   "zodFormMantine.unsupported":
     "このスキーマの組み合わせは、このフォームでは扱えません",
+  "zodFormMantine.unsupportedSchema": "このスキーマは、このフォームでは扱えません",
 } satisfies MessagesOf<typeof en>;

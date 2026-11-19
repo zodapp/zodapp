@@ -16,6 +16,8 @@ export const en = defineMessages({
     "Could not submit because some fields failed to load.",
   "zodFormWidget.autoForm.blocked.input":
     "Could not submit because some fields have errors.",
+  "zodFormWidget.autoForm.blocked.async":
+    "Could not submit because this form cannot handle asynchronous validation.",
 
   "zodFormWidget.delete.title": "Confirm deletion",
   "zodFormWidget.delete.confirm": "Delete",

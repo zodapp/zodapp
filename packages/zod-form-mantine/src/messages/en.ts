@@ -39,4 +39,5 @@ export const en = defineMessages({
   "zodFormMantine.unsafeKeyName": "This key name cannot be used.",
   "zodFormMantine.unsupported":
     "This form cannot handle this combination of schemas.",
+  "zodFormMantine.unsupportedSchema": "This form cannot handle this schema.",
 });

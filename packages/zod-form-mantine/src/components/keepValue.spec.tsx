@@ -38,7 +38,7 @@ describe("欄を出さず、値を保つ", () => {
     const { submit, onSubmit } = renderForm(schema, value);
     await screen.findByDisplayValue("x");
     expect(screen.queryByText("A")).toBeNull();
-    expect(screen.queryByText(/Component not found/)).toBeNull();
+    expect(document.querySelector("[data-zod-form-unsupported]")).toBeNull();
     submit();
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const sent = onSubmit.mock.calls[0]![0];

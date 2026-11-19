@@ -7,6 +7,7 @@ import {
   TableRowProvider,
   ZodFormContextProvider,
   reactiveComponentLibrary as defaultReactiveComponentLibrary,
+  UnsupportedSchemaNotice,
   type ReactiveFieldEvent
 } from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
@@ -123,6 +124,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
     <Suspense fallback={<Loader />}>
       <LoadingOverlay visible={isLoading} />
       <ZodFormContextProvider
+        notFoundComponent={UnsupportedSchemaNotice}
         merge
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}

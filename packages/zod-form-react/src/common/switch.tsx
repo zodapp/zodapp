@@ -138,16 +138,7 @@ const SchemaSwitch = (props: ZodFormProps) => {
     // eslint-disable-next-line react-hooks/static-components
     return <Component {...props} />;
   } else {
-    console.log(
-      "componentDef not found",
-      schema,
-      `${typeName ?? schema.type}_${uiType}`,
-      `${typeName ?? schema.type}`,
-    );
-    return (
-      <div>
-        <NotFoundComponent {...props} />
-      </div>
-    );
+    // 部品が無い：notFoundComponent（既定は「扱えない」の注記と console.error）を出す
+    return <NotFoundComponent {...props} />;
   }
 };
