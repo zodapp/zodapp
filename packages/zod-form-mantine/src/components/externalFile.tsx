@@ -42,194 +42,198 @@ const formatFileSize = (bytes: number): string => {
   return `${bytes}B`;
 };
 
-const ExternalFileComponent = wrapComponent(function ExternalFileComponentImplement({
-  schema,
-  label: labelFromParent,
-  outer,
-  readOnly,
-  field,
-  error,
-}: ZodFormInternalProps<FileSchema>) {
-  const { optional, nullable } = emptinessOf(outer);
-  const meta = useResolvedMeta(schema, "externalFile");
-  const msg = useMsg();
-  const label = labelFromParent ?? meta?.label;
+const ExternalFileComponent = wrapComponent(
+  function ExternalFileComponentImplement({
+    schema,
+    label: labelFromParent,
+    outer,
+    readOnly,
+    field,
+    error,
+  }: ZodFormInternalProps<FileSchema>) {
+    const { optional, nullable } = emptinessOf(outer);
+    const meta = useResolvedMeta(schema, "externalFile");
+    const msg = useMsg();
+    const label = labelFromParent ?? meta?.label;
 
-  // config はただのデータ（親や context で変えるときは zf.dynamic で包む）
-  const config = meta?.fileConfig as BaseFileConfig | undefined;
+    // config はただのデータ（親や context で変えるときは zf.dynamic で包む）
+    const config = meta?.fileConfig as BaseFileConfig | undefined;
 
-  if (!config) {
-    throw new Error(
-      "fileConfig is not defined in schema. Use zf.externalFile.registry to register the config.",
-    );
-  }
-
-  // resolverを取得
-  const resolverResult = useFileResolver(config);
-  const resolverResultRef = useRef<FileResolverResult>(resolverResult);
-  resolverResultRef.current = resolverResult;
-
-  // mediaResolversを取得（Contextから）
-  const mediaResolvers = useMediaResolvers();
-
-  const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [mimeType, setMimeType] = useState<string | null>(null);
-
-  const value = field.value ?? null;
-
-  // 既存値がある場合、プレビュー用のURLを取得
-  useEffect(() => {
-    if (!value) {
-      setPreviewUrl(null);
-      setMimeType(null);
-      return;
-    }
-
-    // URLからmimeTypeを抽出
-    const extractedMimeType = parseMimeTypeFromUrl(value);
-    setMimeType(extractedMimeType ?? null);
-
-    // signedURLを取得
-    resolverResultRef.current.getDownloadUrl(value).then(({ url }) => {
-      setPreviewUrl(url);
-
-      // mimeTypeがURLになければHEADリクエストで取得
-      if (!extractedMimeType) {
-        fetch(url, { method: "HEAD" }).then((res) => {
-          const contentType = res.headers.get("Content-Type");
-          if (contentType) {
-            const parsed = contentType.split(";")[0];
-            if (parsed) {
-              setMimeType(parsed);
-            }
-          }
-        });
-      }
-    });
-  }, [value]);
-
-  const handleDrop = useCallback(
-    async (files: FileWithPath[]) => {
-      const file = files[0];
-      if (!file) return;
-
-      setUploading(true);
-      try {
-        const { url } = await resolverResultRef.current.upload(file);
-        field.onChange(url);
-      } finally {
-        setUploading(false);
-      }
-    },
-    [field],
-  );
-
-  const emptyValue = emptyValueOf({ optional, nullable });
-  const handleDelete = useCallback(async () => {
-    if (value && resolverResultRef.current.delete) {
-      await resolverResultRef.current.delete(value);
-    }
-    field.onChange(emptyValue);
-  }, [value, field, emptyValue]);
-
-  // プレビュー表示
-  const renderPreview = () => {
-    if (!previewUrl || !mimeType) return null;
-
-    const mediaResolver = findMediaResolver(mediaResolvers, mimeType);
-    if (!mediaResolver) return null;
-
-    if (mediaResolver.acceptsUrl) {
-      const Component = mediaResolver.component;
-      return <Component url={previewUrl} mimeType={mimeType} />;
-    } else {
-      return (
-        <DataBasedPreview
-          url={previewUrl}
-          mimeType={mimeType}
-          component={mediaResolver.component}
-        />
+    if (!config) {
+      throw new Error(
+        "fileConfig is not defined in schema. Use zf.externalFile.registry to register the config.",
       );
     }
-  };
 
-  return (
-    <div>
-      {label && (
-        <Text size="sm" fw={500} mb={4}>
-          {label}
-        </Text>
-      )}
-      {value ? (
-        <div>
-          {renderPreview()}
-          <Button
-            onClick={handleDelete}
+    // resolverを取得
+    const resolverResult = useFileResolver(config);
+    const resolverResultRef = useRef<FileResolverResult>(resolverResult);
+    resolverResultRef.current = resolverResult;
+
+    // mediaResolversを取得（Contextから）
+    const mediaResolvers = useMediaResolvers();
+
+    const [uploading, setUploading] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [mimeType, setMimeType] = useState<string | null>(null);
+
+    const value = field.value ?? null;
+
+    // 既存値がある場合、プレビュー用のURLを取得
+    useEffect(() => {
+      if (!value) {
+        setPreviewUrl(null);
+        setMimeType(null);
+        return;
+      }
+
+      // URLからmimeTypeを抽出
+      const extractedMimeType = parseMimeTypeFromUrl(value);
+      setMimeType(extractedMimeType ?? null);
+
+      // signedURLを取得
+      resolverResultRef.current.getDownloadUrl(value).then(({ url }) => {
+        setPreviewUrl(url);
+
+        // mimeTypeがURLになければHEADリクエストで取得
+        if (!extractedMimeType) {
+          fetch(url, { method: "HEAD" }).then((res) => {
+            const contentType = res.headers.get("Content-Type");
+            if (contentType) {
+              const parsed = contentType.split(";")[0];
+              if (parsed) {
+                setMimeType(parsed);
+              }
+            }
+          });
+        }
+      });
+    }, [value]);
+
+    const handleDrop = useCallback(
+      async (files: FileWithPath[]) => {
+        const file = files[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+          const { url } = await resolverResultRef.current.upload(file);
+          field.onChange(url);
+        } finally {
+          setUploading(false);
+        }
+      },
+      [field],
+    );
+
+    const emptyValue = emptyValueOf({ optional, nullable });
+    const handleDelete = useCallback(async () => {
+      if (value && resolverResultRef.current.delete) {
+        await resolverResultRef.current.delete(value);
+      }
+      field.onChange(emptyValue);
+    }, [value, field, emptyValue]);
+
+    // プレビュー表示
+    const renderPreview = () => {
+      if (!previewUrl || !mimeType) return null;
+
+      const mediaResolver = findMediaResolver(mediaResolvers, mimeType);
+      if (!mediaResolver) return null;
+
+      if (mediaResolver.acceptsUrl) {
+        const Component = mediaResolver.component;
+        return <Component url={previewUrl} mimeType={mimeType} />;
+      } else {
+        return (
+          <DataBasedPreview
+            url={previewUrl}
+            mimeType={mimeType}
+            component={mediaResolver.component}
+          />
+        );
+      }
+    };
+
+    return (
+      <div>
+        {label && (
+          <Text size="sm" fw={500} mb={4}>
+            {label}
+          </Text>
+        )}
+        {value ? (
+          <div>
+            {renderPreview()}
+            <Button
+              onClick={handleDelete}
+              disabled={readOnly || field.disabled}
+              mt="xs"
+            >
+              {msg("zodFormMantine.externalFile.remove" /* 削除 */)}
+            </Button>
+          </div>
+        ) : (
+          <Dropzone
+            onDrop={handleDrop}
+            onReject={(files) => console.log("rejected files", files)}
+            maxSize={config.maxSize ?? DEFAULT_MAX_SIZE}
+            accept={config.mimeTypes}
+            loading={uploading}
             disabled={readOnly || field.disabled}
-            mt="xs"
           >
-            {msg("zodFormMantine.externalFile.remove" /* 削除 */)}
-          </Button>
-        </div>
-      ) : (
-        <Dropzone
-          onDrop={handleDrop}
-          onReject={(files) => console.log("rejected files", files)}
-          maxSize={config.maxSize ?? DEFAULT_MAX_SIZE}
-          accept={config.mimeTypes}
-          loading={uploading}
-          disabled={readOnly || field.disabled}
-        >
-          <Group
-            justify="center"
-            gap="xl"
-            mih={220}
-            style={{ pointerEvents: "none" }}
-          >
-            <Dropzone.Accept>
-              <IconUpload
-                size={52}
-                color="var(--mantine-color-blue-6)"
-                stroke={1.5}
-              />
-            </Dropzone.Accept>
-            <Dropzone.Reject>
-              <IconX
-                size={52}
-                color="var(--mantine-color-red-6)"
-                stroke={1.5}
-              />
-            </Dropzone.Reject>
-            <Dropzone.Idle>
-              <IconFile
-                size={52}
-                color="var(--mantine-color-dimmed)"
-                stroke={1.5}
-              />
-            </Dropzone.Idle>
+            <Group
+              justify="center"
+              gap="xl"
+              mih={220}
+              style={{ pointerEvents: "none" }}
+            >
+              <Dropzone.Accept>
+                <IconUpload
+                  size={52}
+                  color="var(--mantine-color-blue-6)"
+                  stroke={1.5}
+                />
+              </Dropzone.Accept>
+              <Dropzone.Reject>
+                <IconX
+                  size={52}
+                  color="var(--mantine-color-red-6)"
+                  stroke={1.5}
+                />
+              </Dropzone.Reject>
+              <Dropzone.Idle>
+                <IconFile
+                  size={52}
+                  color="var(--mantine-color-dimmed)"
+                  stroke={1.5}
+                />
+              </Dropzone.Idle>
 
-            <div>
-              <Text size="lg" inline>
-                {msg(
-                  "zodFormMantine.externalFile.dropzone" /* ここにファイルをドラッグ、またはクリックして選択 */,
-                )}
-              </Text>
-              <Text size="sm" c="dimmed" inline mt={7}>
-                {msg("zodFormMantine.externalFile.maxSize" /* 最大ファイルサイズ: */)}{" "}
-                {formatFileSize(config.maxSize ?? DEFAULT_MAX_SIZE)}
-              </Text>
-            </div>
-          </Group>
-        </Dropzone>
-      )}
-      {error && (
-        <Text size="sm" c="red" mt={4}>
-          {error.message}
-        </Text>
-      )}
-    </div>
-  );
-});
+              <div>
+                <Text size="lg" inline>
+                  {msg(
+                    "zodFormMantine.externalFile.dropzone" /* ここにファイルをドラッグ、またはクリックして選択 */,
+                  )}
+                </Text>
+                <Text size="sm" c="dimmed" inline mt={7}>
+                  {msg(
+                    "zodFormMantine.externalFile.maxSize" /* 最大ファイルサイズ: */,
+                  )}{" "}
+                  {formatFileSize(config.maxSize ?? DEFAULT_MAX_SIZE)}
+                </Text>
+              </div>
+            </Group>
+          </Dropzone>
+        )}
+        {error && (
+          <Text size="sm" c="red" mt={4}>
+            {error.message}
+          </Text>
+        )}
+      </div>
+    );
+  },
+);
 
 export { ExternalFileComponent as component };

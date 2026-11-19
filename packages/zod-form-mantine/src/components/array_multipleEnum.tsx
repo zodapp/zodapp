@@ -28,6 +28,7 @@ import {
 } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
 import { useMsg } from "../messages/useMsg";
+import { withSupportCheck } from "../utils/unsupported";
 import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
@@ -73,15 +74,6 @@ const ArrayOfEnumComponent = wrapComponent(
     const allowUnlisted =
       elementSchema.type === "string" && elementMeta?.uiType === "select";
 
-    if (
-      elementSchema.type !== "enum" &&
-      elementSchema.type !== "union" &&
-      !allowUnlisted
-    ) {
-      throw new Error(
-        `ArrayOfEnumComponent: Expected ZodEnum or ZodUnion of literals as internal type, but got ${elementSchema.type}`,
-      );
-    }
     const choiceSchema = allowUnlisted
       ? NO_ENUM_OPTIONS
       : (elementSchema as EnumSchema);
@@ -342,4 +334,19 @@ const ArrayOfEnumComponent = wrapComponent(
   },
 );
 
-export { ArrayOfEnumComponent as component };
+/** 要素が選択肢として扱えるか。扱えなければ理由（開発者向け）を返す */
+const checkElement = (schema: ArrayOfEnumSchema): string | undefined => {
+  const elementSchema = schema.element as z.ZodTypeAny;
+  const elementMeta = getMeta(elementSchema) as { uiType?: string } | undefined;
+  if (elementSchema.type === "enum" || elementSchema.type === "union") return;
+  if (elementSchema.type === "string" && elementMeta?.uiType === "select")
+    return;
+  return `uiType "multipleEnum" expects an array of enum or union of literals, but the element is ${elementSchema.type}`;
+};
+
+const CheckedArrayOfEnumComponent = withSupportCheck(
+  ArrayOfEnumComponent,
+  checkElement,
+);
+
+export { CheckedArrayOfEnumComponent as component };

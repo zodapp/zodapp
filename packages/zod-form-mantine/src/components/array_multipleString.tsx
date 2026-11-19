@@ -11,6 +11,7 @@ import {
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
 import { useMsg } from "../messages/useMsg";
+import { withSupportCheck } from "../utils/unsupported";
 
 type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
 
@@ -107,4 +108,14 @@ const ArrayOfStringComponent = wrapComponent(
   },
 );
 
-export { ArrayOfStringComponent as component };
+const CheckedArrayOfStringComponent = withSupportCheck(
+  ArrayOfStringComponent,
+  (schema) => {
+    const elementType = (schema.element as z.ZodTypeAny).type;
+    return elementType === "string"
+      ? undefined
+      : `uiType "multipleString" expects an array of string, but the element is ${elementType}`;
+  },
+);
+
+export { CheckedArrayOfStringComponent as component };

@@ -21,7 +21,8 @@ export const en = defineMessages({
     `Enter a valid time in the format ${format}.`,
   "zodFormMantine.date.monthLabelFormat": "MMMM YYYY",
   "zodFormMantine.externalFile.remove": "Remove",
-  "zodFormMantine.externalFile.dropzone": "Drag a file here or click to select one",
+  "zodFormMantine.externalFile.dropzone":
+    "Drag a file here or click to select one",
   "zodFormMantine.externalFile.maxSize": "Max file size:",
   "zodFormMantine.record.duplicateKey": "This key already exists.",
   "zodFormMantine.record.key": "Key",
@@ -31,4 +32,6 @@ export const en = defineMessages({
   "zodFormMantine.record.removeRow": ({ label }: { label: string }) =>
     `Remove ${label}`,
   "zodFormMantine.record.append": "Add to the end",
+  "zodFormMantine.unsupported":
+    "This form cannot handle this combination of schemas.",
 });

@@ -399,7 +399,8 @@ const externalKey = extendCustom(
   z.string,
   "externalKey",
   externalKeyConfigSchema,
-  schemaType<z.ZodString>(),
+  // zf.string と同じく、書式付きの文字列（z.email() など）も受け付ける
+  schemaType<z.ZodString | z.ZodStringFormat>(),
 );
 
 // ファイル設定用メタスキーマ
@@ -413,16 +414,22 @@ const externalFile = extendCustom(
   z.string,
   "externalFile",
   fileConfigSchema,
-  schemaType<z.ZodString>(),
+  schemaType<z.ZodString | z.ZodStringFormat>(),
 );
 
 // zf.date: 複数の Zod 型に対応
-// z.date(), z.number(), z.iso.datetime(), z.iso.datetime({ local: true }), z.iso.date()
+// z.date(), z.coerce.date(), z.number(), z.iso.datetime(), z.iso.datetime({ local: true }), z.iso.date()
 const date = extendCustom(
   z.date, // ベース型（実際には複数型を受け入れる）
   "date",
   dateMetaSchema,
-  schemaType<z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate>(),
+  schemaType<
+    | z.ZodDate
+    | z.ZodCoercedDate
+    | z.ZodNumber
+    | z.ZodISODateTime
+    | z.ZodISODate
+  >(),
 );
 
 // zf.time: z.iso.time(), z.number() に対応

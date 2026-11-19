@@ -30,4 +30,6 @@ export const ja = {
   "zodFormMantine.record.emptyRow": "空の行",
   "zodFormMantine.record.removeRow": ({ label }) => `${label}を削除`,
   "zodFormMantine.record.append": "末尾に追加",
+  "zodFormMantine.unsupported":
+    "このスキーマの組み合わせは、このフォームでは扱えません",
 } satisfies MessagesOf<typeof en>;
