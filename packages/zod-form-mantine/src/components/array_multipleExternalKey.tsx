@@ -53,7 +53,7 @@ const ArrayOfExternalKeyComponent = React.memo(
         required={!(optional || nullable)}
         disabled={true}
         rightSection={<Loader size="xs" />}
-        placeholder={msg("zodFormReact.dynamic.loading" /* 読み込み中 */)}
+        placeholder={msg("zodFormReact.dynamic.loading" /* i18n: 読み込み中 */)}
         style={inputWrapperStyle}
         data-dynamic-status={status}
       />

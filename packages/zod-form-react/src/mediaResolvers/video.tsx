@@ -11,7 +11,7 @@ function VideoPreview({ url, mimeType: _mimeType }: UrlPreviewProps) {
   return (
     <video src={url} controls style={{ maxWidth: "100%", maxHeight: "400px" }}>
       {msg(
-        "zodFormReact.media.videoUnsupported" /* お使いのブラウザは動画の再生に対応していません。 */,
+        "zodFormReact.media.videoUnsupported" /* i18n: お使いのブラウザは動画の再生に対応していません。 */,
       )}
     </video>
   );

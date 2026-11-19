@@ -30,13 +30,15 @@ export const DynamicErrorView = ({
         <Text size="sm">
           {label
             ? msg(
-                "zodFormMantineLite.fetchFailedWithLabel" /* ${label}を取得できませんでした */,
+                "zodFormMantineLite.fetchFailedWithLabel" /* i18n: ${label}を取得できませんでした */,
                 { label },
               )
-            : msg("zodFormMantineLite.fetchFailed" /* 取得できませんでした */)}
+            : msg(
+                "zodFormMantineLite.fetchFailed" /* i18n: 取得できませんでした */,
+              )}
         </Text>
         <Button size="xs" variant="light" onClick={retry}>
-          {msg("zodFormMantineLite.retry" /* 再試行 */)}
+          {msg("zodFormMantineLite.retry" /* i18n: 再試行 */)}
         </Button>
       </Group>
     </Alert>
@@ -50,7 +52,7 @@ const DynamicLoadingView = ({ status }: { status?: "loading" | "pending" }) => {
     <Group gap="xs" data-dynamic-status={status}>
       <Loader size="xs" />
       <Text size="sm" c="dimmed">
-        {msg("zodFormReact.dynamic.loading" /* 読み込み中 */)}
+        {msg("zodFormReact.dynamic.loading" /* i18n: 読み込み中 */)}
       </Text>
     </Group>
   );

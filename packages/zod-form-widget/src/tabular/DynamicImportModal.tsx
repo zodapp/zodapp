@@ -78,12 +78,12 @@ function useDynamicImportState({
         setInternalValue(null);
         onChange?.(null);
         console.error('Dynamic tabular import parse failed', e);
-        const message = msg('zodFormWidget.import.parseError' /* 解析エラー: ${message} */, {
+        const message = msg('zodFormWidget.import.parseError' /* i18n: 解析エラー: ${message} */, {
           message:
             e instanceof Error
               ? msg.resolve(e.message)
               : String(e) ||
-                msg('zodFormWidget.import.parseFailed' /* ファイルの解析に失敗しました。 */)
+                msg('zodFormWidget.import.parseFailed' /* i18n: ファイルの解析に失敗しました。 */)
         });
         setError(message);
         onError?.(message);
@@ -102,10 +102,10 @@ function useDynamicImportState({
     } catch (e) {
       const message =
         e instanceof Error
-          ? msg('zodFormWidget.import.importError' /* インポートエラー: ${message} */, {
+          ? msg('zodFormWidget.import.importError' /* i18n: インポートエラー: ${message} */, {
               message: msg.resolve(e.message)
             })
-          : msg('zodFormWidget.import.importFailed' /* インポートに失敗しました。 */);
+          : msg('zodFormWidget.import.importFailed' /* i18n: インポートに失敗しました。 */);
       setError(message);
       onError?.(message);
     } finally {
@@ -173,13 +173,13 @@ function DynamicImportContent({
       <Group justify="space-between" mb="sm">
         <Text size="sm" c="dimmed">
           {msg(
-            'zodFormWidget.import.fileDescription' /* ファイルを選択して内容を確認後に取り込みます。 */
+            'zodFormWidget.import.fileDescription' /* i18n: ファイルを選択して内容を確認後に取り込みます。 */
           )}
         </Text>
         <FileButton onChange={handleSelectFile} accept={acceptedFileTypes}>
           {(props) => (
             <Button {...props} leftSection={<IconUpload size={16} />} variant="default">
-              {msg('zodFormWidget.import.selectFile' /* ファイルを選択 */)}
+              {msg('zodFormWidget.import.selectFile' /* i18n: ファイルを選択 */)}
             </Button>
           )}
         </FileButton>
@@ -187,7 +187,7 @@ function DynamicImportContent({
 
       {value && (
         <Text size="sm" mb="sm">
-          {msg('zodFormWidget.import.selected' /* 選択中: ${name} */, { name: value.fileName })}
+          {msg('zodFormWidget.import.selected' /* i18n: 選択中: ${name} */, { name: value.fileName })}
         </Text>
       )}
 
@@ -202,11 +202,11 @@ function DynamicImportContent({
           <Text size="sm" mb="xs">
             {rowCount <= PREVIEW_LIMIT
               ? msg(
-                  'zodFormWidget.import.plannedAll' /* ${count} 件を取り込み予定です（全${count}件を表示中）。 */,
+                  'zodFormWidget.import.plannedAll' /* i18n: ${count} 件を取り込み予定です（全${count}件を表示中）。 */,
                   { count: rowCount }
                 )
               : msg(
-                  'zodFormWidget.import.plannedHead' /* ${count} 件を取り込み予定です（先頭 ${limit} 件を表示）。 */,
+                  'zodFormWidget.import.plannedHead' /* i18n: ${count} 件を取り込み予定です（先頭 ${limit} 件を表示）。 */,
                   { count: rowCount, limit: PREVIEW_LIMIT }
                 )}
           </Text>
@@ -215,7 +215,7 @@ function DynamicImportContent({
       ) : (
         <Text size="sm" c="dimmed" mb="md">
           {emptyStateText ??
-            msg('zodFormWidget.import.fileEmpty' /* まだファイルが選択されていません。 */)}
+            msg('zodFormWidget.import.fileEmpty' /* i18n: まだファイルが選択されていません。 */)}
         </Text>
       )}
 
@@ -225,7 +225,7 @@ function DynamicImportContent({
         <Group justify="flex-end">
           {showCancel && onCancel && (
             <Button variant="default" onClick={onCancel}>
-              {msg('zodFormWidget.common.cancel' /* キャンセル */)}
+              {msg('zodFormWidget.common.cancel' /* i18n: キャンセル */)}
             </Button>
           )}
           <Button
@@ -234,7 +234,7 @@ function DynamicImportContent({
             loading={isImporting}
             disabled={!value || !state.canImport}
           >
-            {submitLabel ?? msg('zodFormWidget.import.fileSubmit' /* データをインポート */)}
+            {submitLabel ?? msg('zodFormWidget.import.fileSubmit' /* i18n: データをインポート */)}
           </Button>
         </Group>
       )}
@@ -250,7 +250,7 @@ export function useDynamicImportModal({
   title?: React.ReactNode;
 }) {
   const msg = useMsg();
-  const title = titleFromProps ?? msg('zodFormWidget.import.title' /* データインポート */);
+  const title = titleFromProps ?? msg('zodFormWidget.import.title' /* i18n: データインポート */);
   const [opened, { open, close }] = useDisclosure(false);
   const state = useDynamicImportState(props);
 

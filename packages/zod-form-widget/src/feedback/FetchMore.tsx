@@ -54,7 +54,7 @@ export const FetchMore = ({
         <Center style={layerStyle(state === 'loading')} aria-hidden={state !== 'loading'}>
           <Tooltip
             label={msg(
-              'zodFormWidget.fetchMore.loadingTooltip' /* ${scanned}件をスキャン中、${filtered}件が条件に一致 */,
+              'zodFormWidget.fetchMore.loadingTooltip' /* i18n: ${scanned}件をスキャン中、${filtered}件が条件に一致 */,
               { scanned: scannedCount, filtered: filteredCount }
             )}
             position="bottom"
@@ -63,7 +63,7 @@ export const FetchMore = ({
             <Group gap="xs" style={{ cursor: 'help' }}>
               <Loader size="sm" />
               <Text size="sm" c="dimmed">
-                {msg('zodFormWidget.fetchMore.loading' /* 読み込み中... */)}
+                {msg('zodFormWidget.fetchMore.loading' /* i18n: 読み込み中... */)}
               </Text>
             </Group>
           </Tooltip>
@@ -71,7 +71,7 @@ export const FetchMore = ({
         <Center style={layerStyle(state === 'hasMore')} aria-hidden={state !== 'hasMore'}>
           <Tooltip
             label={msg(
-              'zodFormWidget.fetchMore.hasMoreTooltip' /* ${scanned}件をスキャン済み、${filtered}件が条件に一致。続きを読み込めます。 */,
+              'zodFormWidget.fetchMore.hasMoreTooltip' /* i18n: ${scanned}件をスキャン済み、${filtered}件が条件に一致。続きを読み込めます。 */,
               { scanned: scannedCount, filtered: filteredCount }
             )}
             position="bottom"
@@ -85,14 +85,14 @@ export const FetchMore = ({
               onClick={fetchMore}
               tabIndex={state === 'hasMore' ? undefined : -1}
             >
-              {msg('zodFormWidget.fetchMore.loadMore' /* さらに読み込む */)}
+              {msg('zodFormWidget.fetchMore.loadMore' /* i18n: さらに読み込む */)}
             </Button>
           </Tooltip>
         </Center>
         <Center style={layerStyle(state === 'done')} aria-hidden={state !== 'done'}>
           <Tooltip
             label={msg(
-              'zodFormWidget.fetchMore.doneTooltip' /* 全${scanned}件をスキャン、${filtered}件が条件に一致 */,
+              'zodFormWidget.fetchMore.doneTooltip' /* i18n: 全${scanned}件をスキャン、${filtered}件が条件に一致 */,
               { scanned: scannedCount, filtered: filteredCount }
             )}
             position="bottom"
@@ -101,7 +101,7 @@ export const FetchMore = ({
             <Group gap="xs" style={{ cursor: 'help' }}>
               <IconCheck size={16} color="var(--mantine-color-dimmed)" />
               <Text size="sm" c="dimmed">
-                {msg('zodFormWidget.fetchMore.done' /* すべて読み込みました */)}
+                {msg('zodFormWidget.fetchMore.done' /* i18n: すべて読み込みました */)}
               </Text>
             </Group>
           </Tooltip>
@@ -112,11 +112,11 @@ export const FetchMore = ({
           {hasMore
             ? (emptyWithMoreMessage ??
               msg(
-                'zodFormWidget.fetchMore.emptyWithMore' /* フィルタ条件に一致するアイテムが見つかりませんでした */
+                'zodFormWidget.fetchMore.emptyWithMore' /* i18n: フィルタ条件に一致するアイテムが見つかりませんでした */
               ))
             : (emptyNoMoreMessage ??
               msg(
-                'zodFormWidget.fetchMore.emptyNoMore' /* アイテムがありません。新規作成してください。 */
+                'zodFormWidget.fetchMore.emptyNoMore' /* i18n: アイテムがありません。新規作成してください。 */
               ))}
         </Text>
       )}

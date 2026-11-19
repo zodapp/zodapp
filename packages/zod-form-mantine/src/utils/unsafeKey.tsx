@@ -38,7 +38,7 @@ export const UnsafeKeyNameNotice = ({
       style={inputWrapperStyle}
     >
       <Text c="red" size="sm" data-zod-form-unsafe-key="">
-        {msg("zodFormMantine.unsafeKeyName" /* このキー名は使えません */)}
+        {msg("zodFormMantine.unsafeKeyName" /* i18n: このキー名は使えません */)}
       </Text>
     </InputWrapper>
   );
@@ -83,9 +83,10 @@ export const UnsafeRecordEntry = ({
       )
     : undefined;
   const removeLabel = msg(
-    "zodFormMantine.record.removeRow" /* ${label}を削除 */,
+    "zodFormMantine.record.removeRow" /* i18n: ${label}を削除 */,
     {
-      label: entryKey || msg("zodFormMantine.record.emptyRow" /* 空の行 */),
+      label:
+        entryKey || msg("zodFormMantine.record.emptyRow" /* i18n: 空の行 */),
     },
   );
   return (
@@ -110,7 +111,7 @@ export const UnsafeRecordEntry = ({
         )}
         <Text c="dimmed" size="sm">
           {msg(
-            "zodFormMantine.record.uneditable" /* このフォームでは編集できません */,
+            "zodFormMantine.record.uneditable" /* i18n: このフォームでは編集できません */,
           )}
         </Text>
       </Group>

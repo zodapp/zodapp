@@ -19,9 +19,9 @@ export function useDeleteModal({
   onDelete
 }: UseDeleteModalProps) {
   const msg = useMsg();
-  const title = titleFromProps ?? msg('zodFormWidget.delete.title' /* 削除確認 */);
+  const title = titleFromProps ?? msg('zodFormWidget.delete.title' /* i18n: 削除確認 */);
   const confirmLabel =
-    confirmLabelFromProps ?? msg('zodFormWidget.delete.confirm' /* 削除する */);
+    confirmLabelFromProps ?? msg('zodFormWidget.delete.confirm' /* i18n: 削除する */);
   const [opened, { open, close }] = useDisclosure(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function useDeleteModal({
       setError(
         e instanceof Error
           ? msg.resolve(e.message)
-          : msg('zodFormWidget.delete.failed' /* 削除に失敗しました。 */)
+          : msg('zodFormWidget.delete.failed' /* i18n: 削除に失敗しました。 */)
       );
     } finally {
       setIsDeleting(false);
@@ -61,7 +61,7 @@ export function useDeleteModal({
       )}
       <Group justify="flex-end" mt="lg">
         <Button variant="default" onClick={handleClose} disabled={isDeleting}>
-          {msg('zodFormWidget.common.cancel' /* キャンセル */)}
+          {msg('zodFormWidget.common.cancel' /* i18n: キャンセル */)}
         </Button>
         <Button
           color="red"
@@ -87,7 +87,7 @@ export function DeleteMenuItem({ label, onClick }: DeleteMenuItemProps) {
   const msg = useMsg();
   return (
     <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={onClick}>
-      {label ?? msg('zodFormWidget.delete.menuItem' /* 削除 */)}
+      {label ?? msg('zodFormWidget.delete.menuItem' /* i18n: 削除 */)}
     </Menu.Item>
   );
 }

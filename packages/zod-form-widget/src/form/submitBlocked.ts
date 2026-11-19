@@ -22,14 +22,14 @@ export const submitBlockedReasons = (
   if (issues.some((issue) => issue.code === PENDING_ISSUE_CODE)) {
     reasons.push(
       msgKey(
-        "zodFormWidget.autoForm.blocked.loading" /* 読み込み中の欄があるため、送信できませんでした */,
+        "zodFormWidget.autoForm.blocked.loading" /* i18n: 読み込み中の欄があるため、送信できませんでした */,
       ),
     );
   }
   if (issues.some((issue) => issue.code === RESOLVE_ERROR_ISSUE_CODE)) {
     reasons.push(
       msgKey(
-        "zodFormWidget.autoForm.blocked.failed" /* 取得できなかった欄があるため、送信できませんでした */,
+        "zodFormWidget.autoForm.blocked.failed" /* i18n: 取得できなかった欄があるため、送信できませんでした */,
       ),
     );
   }
@@ -41,7 +41,7 @@ export const submitBlockedReasons = (
   if (hasInputError || reasons.length === 0) {
     reasons.push(
       msgKey(
-        "zodFormWidget.autoForm.blocked.input" /* 入力に誤りがあるため、送信できませんでした */,
+        "zodFormWidget.autoForm.blocked.input" /* i18n: 入力に誤りがあるため、送信できませんでした */,
       ),
     );
   }

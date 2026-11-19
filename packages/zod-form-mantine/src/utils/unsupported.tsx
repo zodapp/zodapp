@@ -14,7 +14,7 @@ const UnsupportedText = () => {
   return (
     <Text c="red" size="sm" data-zod-form-unsupported="">
       {msg(
-        "zodFormMantine.unsupported" /* このスキーマの組み合わせは、このフォームでは扱えません */,
+        "zodFormMantine.unsupported" /* i18n: このスキーマの組み合わせは、このフォームでは扱えません */,
       )}
     </Text>
   );

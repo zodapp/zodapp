@@ -170,7 +170,7 @@ const ExternalFileComponent = wrapComponent(
               disabled={readOnly || field.disabled}
               mt="xs"
             >
-              {msg("zodFormMantine.externalFile.remove" /* 削除 */)}
+              {msg("zodFormMantine.externalFile.remove" /* i18n: 削除 */)}
             </Button>
           </div>
         ) : (
@@ -213,12 +213,12 @@ const ExternalFileComponent = wrapComponent(
               <div>
                 <Text size="lg" inline>
                   {msg(
-                    "zodFormMantine.externalFile.dropzone" /* ここにファイルをドラッグ、またはクリックして選択 */,
+                    "zodFormMantine.externalFile.dropzone" /* i18n: ここにファイルをドラッグ、またはクリックして選択 */,
                   )}
                 </Text>
                 <Text size="sm" c="dimmed" inline mt={7}>
                   {msg(
-                    "zodFormMantine.externalFile.maxSize" /* 最大ファイルサイズ: */,
+                    "zodFormMantine.externalFile.maxSize" /* i18n: 最大ファイルサイズ: */,
                   )}{" "}
                   {formatFileSize(config.maxSize ?? DEFAULT_MAX_SIZE)}
                 </Text>

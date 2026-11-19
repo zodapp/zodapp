@@ -116,7 +116,7 @@ export const BadgeSelect = ({
       {showClear ? (
         <CloseButton
           size="sm"
-          aria-label={msg("zodFormMantineLite.clear" /* クリア */)}
+          aria-label={msg("zodFormMantineLite.clear" /* i18n: クリア */)}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             onChange(null);
@@ -210,7 +210,9 @@ export const BadgeSelect = ({
             ))
           ) : (
             <Combobox.Empty>
-              {msg("zodFormMantineLite.nothingFound" /* 見つかりません */)}
+              {msg(
+                "zodFormMantineLite.nothingFound" /* i18n: 見つかりません */,
+              )}
             </Combobox.Empty>
           )}
         </Combobox.Options>

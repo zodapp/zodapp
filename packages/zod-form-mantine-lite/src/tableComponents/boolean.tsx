@@ -12,8 +12,8 @@ const BooleanComponent = ({ defaultValue }: ZodFormProps<BooleanSchema>) => {
     <Text size="sm" c={value !== null ? undefined : "dimmed"}>
       {value !== null
         ? value
-          ? msg("zodFormMantineLite.yes" /* はい */)
-          : msg("zodFormMantineLite.no" /* いいえ */)
+          ? msg("zodFormMantineLite.yes" /* i18n: はい */)
+          : msg("zodFormMantineLite.no" /* i18n: いいえ */)
         : "-"}
     </Text>
   );

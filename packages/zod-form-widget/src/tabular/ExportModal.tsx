@@ -37,7 +37,7 @@ export function useExportModal<S extends z.ZodType>({
   title: titleFromProps
 }: ExportModalProps<S>) {
   const msg = useMsg();
-  const title = titleFromProps ?? msg('zodFormWidget.export.title' /* データエクスポート */);
+  const title = titleFromProps ?? msg('zodFormWidget.export.title' /* i18n: データエクスポート */);
   const [opened, { open, close }] = useDisclosure(false);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export function useExportModal<S extends z.ZodType>({
     try {
       const allData = await fetchAll();
       if (allData.length === 0) {
-        setError(msg('zodFormWidget.export.noData' /* エクスポート対象のデータがありません。 */));
+        setError(msg('zodFormWidget.export.noData' /* i18n: エクスポート対象のデータがありません。 */));
         return;
       }
       const table = toTable(schema, allData, tabularOptions);
@@ -64,10 +64,10 @@ export function useExportModal<S extends z.ZodType>({
     } catch (e) {
       setError(
         e instanceof Error
-          ? msg('zodFormWidget.export.fetchError' /* 取得エラー: ${message} */, {
+          ? msg('zodFormWidget.export.fetchError' /* i18n: 取得エラー: ${message} */, {
               message: msg.resolve(e.message)
             })
-          : msg('zodFormWidget.export.fetchFailed' /* データの取得に失敗しました。 */)
+          : msg('zodFormWidget.export.fetchFailed' /* i18n: データの取得に失敗しました。 */)
       );
     } finally {
       setIsFetching(false);
@@ -78,20 +78,20 @@ export function useExportModal<S extends z.ZodType>({
     <Modal opened={opened} onClose={close} title={title} size="calc(100vw - 3rem)">
       {data.length === 0 ? (
         <Text c="dimmed">
-          {msg('zodFormWidget.export.nothingShown' /* 現在表示中のデータがありません。 */)}
+          {msg('zodFormWidget.export.nothingShown' /* i18n: 現在表示中のデータがありません。 */)}
         </Text>
       ) : (
         <>
           <Group justify="flex-end" mb="sm">
             <Button variant="default" onClick={close}>
-              {msg('zodFormWidget.common.cancel' /* キャンセル */)}
+              {msg('zodFormWidget.common.cancel' /* i18n: キャンセル */)}
             </Button>
             <Button
               leftSection={<IconDownload size={16} />}
               onClick={handleDownload}
               loading={isFetching}
             >
-              {msg('zodFormWidget.export.download' /* 全件取得してCSVダウンロード */)}
+              {msg('zodFormWidget.export.download' /* i18n: 全件取得してCSVダウンロード */)}
             </Button>
           </Group>
 
@@ -102,13 +102,13 @@ export function useExportModal<S extends z.ZodType>({
           )}
 
           <Text size="sm" mb="xs">
-            {msg('zodFormWidget.export.preview' /* 先頭 ${count} 件をプレビュー表示しています。 */, {
+            {msg('zodFormWidget.export.preview' /* i18n: 先頭 ${count} 件をプレビュー表示しています。 */, {
               count: previewData.length
             })}
           </Text>
           <Text size="sm" c="dimmed" mb="sm">
             {msg(
-              'zodFormWidget.export.downloadNote' /* ダウンロード時は全件を取得してエクスポートします。 */
+              'zodFormWidget.export.downloadNote' /* i18n: ダウンロード時は全件を取得してエクスポートします。 */
             )}
           </Text>
 

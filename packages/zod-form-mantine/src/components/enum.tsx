@@ -142,9 +142,9 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
       .some((issue) => isUnionIssue(issue) && !isPendingIssue(issue));
   const unionErrorMessage = hasUnionIssue
     ? optionValue === null
-      ? msg("zod.required" /* 必ず入力してください。 */)
+      ? msg("zod.required" /* i18n: 必ず入力してください。 */)
       : msg(
-          "zodFormMantine.enum.unlisted" /* 選択肢に無い値です。選び直してください。 */,
+          "zodFormMantine.enum.unlisted" /* i18n: 選択肢に無い値です。選び直してください。 */,
         )
     : undefined;
 
@@ -152,10 +152,10 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
   const errorMessage = showUnlisted
     ? Boolean(optional || nullable)
       ? msg(
-          "zodFormMantine.enum.unlistedClearable" /* 選択肢に無い値です。選び直すか、消してください。 */,
+          "zodFormMantine.enum.unlistedClearable" /* i18n: 選択肢に無い値です。選び直すか、消してください。 */,
         )
       : msg(
-          "zodFormMantine.enum.unlisted" /* 選択肢に無い値です。選び直してください。 */,
+          "zodFormMantine.enum.unlisted" /* i18n: 選択肢に無い値です。選び直してください。 */,
         )
     : (error?.message ?? unionErrorMessage);
 
@@ -200,7 +200,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         label={label || undefined}
         placeholder={
           emptyMessage ??
-          msg("zodFormMantineLite.noOptions" /* 選択肢がありません */)
+          msg("zodFormMantineLite.noOptions" /* i18n: 選択肢がありません */)
         }
         error={
           emptyMessage !== undefined && !(optional || nullable)

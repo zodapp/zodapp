@@ -200,7 +200,7 @@ export function OptionalContainer(
               variant="light"
               color="#63687C"
               style={actionIconStyle}
-              aria-label={msg("zodFormMantine.object.remove" /* 削除 */)}
+              aria-label={msg("zodFormMantine.object.remove" /* i18n: 削除 */)}
               onClick={handleRemove}
             >
               <IconCircleMinus />
@@ -217,7 +217,7 @@ export function OptionalContainer(
               variant="light"
               color="#63687C"
               style={{ ...actionIconStyle, zIndex: 1 }}
-              aria-label={msg("zodFormMantine.object.add" /* 追加 */)}
+              aria-label={msg("zodFormMantine.object.add" /* i18n: 追加 */)}
               onClick={handleAdd}
             >
               <IconCirclePlus />
