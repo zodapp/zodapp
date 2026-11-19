@@ -7,19 +7,25 @@ schema からフォームの初期値を作ります。`value` を渡すと、�
 - 配列の各要素、record の各値、object の各キー、union の選んだ腕の中も補います。初期値の木を別に作って重ねるのではなく、値と schema を一緒に歩くので、どの深さでも同じ規則になります
 - `value` を省くと、schema だけから初期値を作ります
 - 補えないとき（schema の形と値が合わないなど）は、値をそのまま返します
+- AutoForm は、フォームを開くときに `defaultValues` をこれに通します（`@zodapp/zod-form-widget` の README の「開くときの値」）。固定値（値が 1 つの literal など）の値も、部品ではなくここで入ります
 
 型ごとの初期値（値が `undefined` のとき）は次のとおりです。
 
 | schema | 初期値 |
 |---|---|
-| `.default(x)` | `x`（関数なら呼んだ結果） |
+| `.default(x)`・`.prefault(x)` | `x`（関数なら呼んだ結果） |
 | object | `{}` に、子の初期値を入れたもの。`undefined` になったキーは置かない（キーが無いと検証結果が変わる子のキーは残す） |
 | 配列 | `[]`。長さの指定（`length`・`min`）があれば、その長さの `undefined` |
 | tuple | 要素の数の `undefined` |
-| record・Set・Map | 空の値 |
-| literal | その値 |
-| `null` | `null` |
+| キーを列挙できる record（キーが enum・literal とその union） | 列挙したキーごとに値の初期値を入れたもの（初期値が `undefined` のキーは置かない） |
+| そのほかの record・Set・Map | 空の値 |
+| 値が 1 つの literal | その値 |
+| 値が複数の literal | `undefined` |
+| `z.null()` | `null` |
+| `z.nan()` | `NaN` |
+| `z.undefined()`・`z.void()` | `undefined`（object のキーは置く。キーが無いと zod の検証結果が変わるため） |
 | optional | `undefined`（中は歩かない） |
+| `.nonoptional()` | optional を外した中の初期値 |
 | nullable | 中が default なら（`.default("x").nullable()`）その値、中が optional を含むなら `undefined`、それ以外は `null` |
 
 - optional と nullable の両方が付いた欄（`.optional().nullable()`・`.nullable().optional()`）は、どちらの順でも `undefined` です
