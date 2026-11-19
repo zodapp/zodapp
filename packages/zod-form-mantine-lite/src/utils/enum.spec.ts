@@ -201,3 +201,13 @@ describe("choicesOf（NaN の腕）", () => {
     expect(choices.toOption(1)).toBe("1");
   });
 });
+
+describe("enumOptionsOf は検証を走らせない", () => {
+  it("async の refine が付いた enum でも、例外を投げずに選択肢を作る", () => {
+    const schema = z.enum(["a", "b"]).refine(async () => true);
+    expect(enumOptionsOf(schema as never)).toEqual([
+      { value: "a", name: "a" },
+      { value: "b", name: "b" },
+    ]);
+  });
+});

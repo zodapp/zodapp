@@ -16,19 +16,25 @@ export type EnumOption = { value: EnumValue; name: string };
  *
  * - object の形で書いた enum（`z.enum({ A: 1 })`・TS enum）は、キーを名前にする。
  *   配列で書いた enum はキーと値が同じなので、名前は値になる
- * - zod の検証を通らない値は外す。数値の TS enum の逆引きのキー（`"Red"` など）は
- *   `options` に入るが検証は通らないので、これで消える
+ * - 数値の TS enum の逆引きのキー（`"0": "Red"` の組）は外す。zod が検証に使う値の求め方
+ *   （`util.getEnumValues`）と同じく、数の値と同じ数字のキーの組を外す。
+ *   検証（safeParse）は使わない（async の refine が付いた enum で、描画中に例外になるため）
  */
 export const enumOptionsOf = (enumSchema: EnumSchema): EnumOption[] => {
   const entries = Object.entries(
     (enumSchema.def as { entries?: Record<string, EnumValue> }).entries ?? {},
   );
-  return (enumSchema.options as readonly EnumValue[])
-    .filter((value) => enumSchema.safeParse(value).success)
-    .map((value) => ({
-      value,
-      name: entries.find(([, entry]) => entry === value)?.[0] ?? String(value),
-    }));
+  const numericValues = entries
+    .map(([, value]) => value)
+    .filter((value): value is number => typeof value === "number");
+  const options: EnumOption[] = [];
+  for (const [key, value] of entries) {
+    if (numericValues.includes(Number(key))) continue;
+    // 同じ値を持つキーが複数あれば、先のキーを名前にする
+    if (options.some((option) => option.value === value)) continue;
+    options.push({ value, name: key });
+  }
+  return options;
 };
 
 /** enum の選択肢の名前（literal の label。無ければ {@link enumOptionsOf} の名前）と色 */
