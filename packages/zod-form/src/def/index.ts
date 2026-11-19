@@ -292,10 +292,10 @@ export type ExternalKeyUnlistedOptions =
   | { allowUnlisted?: false; unlisted?: UnlistedPolicy }
   | { allowUnlisted: true; unlisted?: never };
 
-export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
+export type ExternalFileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
   /**
    * 保存先の設定。ただのデータ（関数で返す形は持たない）。
-   * 親の値や context で変えるときは、zf.dynamic で包んで file の schema を返す。
+   * 親の値や context で変えるときは、zf.dynamic で包んで externalFile の schema を返す。
    */
   fileConfig: RegisteredFileConfig;
 };
@@ -399,29 +399,37 @@ const externalKey = extendCustom(
   z.string,
   "externalKey",
   externalKeyConfigSchema,
-  schemaType<z.ZodString>(),
+  // zf.string と同じく、書式付きの文字列（z.email() など）も受け付ける
+  schemaType<z.ZodString | z.ZodStringFormat>(),
 );
 
 // ファイル設定用メタスキーマ
 const fileConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredFileConfig を使用（declare module で拡張可能）
   fileConfig: z.custom<RegisteredFileConfig>(),
-}) as z.ZodType<FileMetaDef>;
+}) as z.ZodType<ExternalFileMetaDef>;
 
-const file = extendCustom(
+// 外に置いたファイルを指す文字列（URL・キーなど）。z.file()（File オブジェクト）とは別もの
+const externalFile = extendCustom(
   z.string,
-  "file",
+  "externalFile",
   fileConfigSchema,
-  schemaType<z.ZodString>(),
+  schemaType<z.ZodString | z.ZodStringFormat>(),
 );
 
 // zf.date: 複数の Zod 型に対応
-// z.date(), z.number(), z.iso.datetime(), z.iso.datetime({ local: true }), z.iso.date()
+// z.date(), z.coerce.date(), z.number(), z.iso.datetime(), z.iso.datetime({ local: true }), z.iso.date()
 const date = extendCustom(
   z.date, // ベース型（実際には複数型を受け入れる）
   "date",
   dateMetaSchema,
-  schemaType<z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate>(),
+  schemaType<
+    | z.ZodDate
+    | z.ZodCoercedDate
+    | z.ZodNumber
+    | z.ZodISODateTime
+    | z.ZodISODate
+  >(),
 );
 
 // zf.time: z.iso.time(), z.number() に対応
@@ -456,9 +464,11 @@ const computed = extendCustom(
   schemaType<z.ZodType>(),
 );
 
-// dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める
+// dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める。
+// 土台は z.unknown：静的な schema の parse では何でも通し（値の検証は実行時に決めた schema で行う）、
+// 隣の欄や親の .refine() も走るようにする
 const dynamic = extendCustom(
-  z.never,
+  z.unknown,
   "dynamic",
   zodExtendableCommonDefSchema.extend({
     ...fnSourceMetaSchema.shape,
@@ -527,7 +537,7 @@ const zf = {
   common,
   hidden,
   externalKey,
-  file,
+  externalFile,
   computed,
   dynamic,
 };

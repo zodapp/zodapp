@@ -230,11 +230,11 @@ test("真偽値・literal・文字列の腕を切り替える", async ({
   await expect(field(page, "回答のしかた")).toHaveValue("はい・いいえ");
   await expect(answerSwitch).toBeChecked();
 
-  // literal：値はその literal
+  // literal：値はその literal。値が 1 つの literal は固定値なので、値は欄に出さない
   await choose(page, "回答のしかた", "わからない");
   await expect(field(page, "回答のしかた")).toHaveValue("わからない");
   await expect.poll(() => valueOf(page, "answer")).toBe("unknown");
-  await expect(unionGroup(page, ANSWER).getByText("unknown")).toBeVisible();
+  await expect(unionGroup(page, ANSWER).getByText("unknown")).toHaveCount(0);
 
   // 文字列
   await choose(page, "回答のしかた", "その他（自由に書く）");
@@ -403,7 +403,8 @@ test("読み取り専用の union は、腕ごとに腕の名前と値を出す"
   await expect(
     view("literal の腕").getByText("わからない", { exact: true }),
   ).toBeVisible();
-  await expect(view("literal の腕").getByText("unknown")).toBeVisible();
+  // 値が 1 つの literal は固定値なので、腕の名前だけを出し、値は出さない
+  await expect(view("literal の腕").getByText("unknown")).toHaveCount(0);
 
   // 読み取り専用の欄には、腕を選ぶ欄も入力欄も出さない
   for (const label of [

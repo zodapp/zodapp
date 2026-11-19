@@ -1,3 +1,4 @@
+import { previewReplacer } from './previewReplacer';
 import { Suspense, useMemo, useEffect, useState, memo } from 'react';
 import { Code, Loader, Stack } from '@mantine/core';
 import {
@@ -115,12 +116,7 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
                 <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
                   {JSON.stringify(
                     formValues,
-                    (_key, value) => {
-                      if (typeof value === 'bigint') {
-                        return value.toString();
-                      }
-                      return value;
-                    },
+                    previewReplacer,
                     2
                   )}
                 </Code>

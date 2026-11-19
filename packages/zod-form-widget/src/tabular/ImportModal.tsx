@@ -12,6 +12,7 @@ import {
 } from "@zodapp/zod-tabular";
 import { TabularPreviewTable } from "./TabularPreviewTable";
 import { useMsg } from "../messages/useMsg";
+import { tabularOptions } from "./skipDynamic";
 
 const PREVIEW_LIMIT = 20;
 const CSV_DROPZONE_ACCEPT = { "text/csv": [".csv"] };
@@ -63,7 +64,7 @@ function useImportState<S extends z.ZodType>({
 
         validateTable?.(table);
 
-        const importedRows = fromTable(schema, table);
+        const importedRows = fromTable(schema, table, tabularOptions);
         if (importedRows.length === 0) {
           setRows([]);
           setPreviewTable(table.slice(0, 1));
@@ -76,7 +77,9 @@ function useImportState<S extends z.ZodType>({
         }
 
         setRows(importedRows);
-        setPreviewTable(toTable(schema, importedRows.slice(0, PREVIEW_LIMIT)));
+        setPreviewTable(
+          toTable(schema, importedRows.slice(0, PREVIEW_LIMIT), tabularOptions),
+        );
       } catch (e) {
         setRows([]);
         setPreviewTable([]);

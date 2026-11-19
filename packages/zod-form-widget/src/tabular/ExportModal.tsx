@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { toTable, tableToCsv } from '@zodapp/zod-tabular';
 import { TabularPreviewTable } from './TabularPreviewTable';
 import { useMsg } from '../messages/useMsg';
+import { tabularOptions } from './skipDynamic';
 
 interface ExportModalProps<S extends z.ZodType> {
   schema: S;
@@ -44,7 +45,7 @@ export function useExportModal<S extends z.ZodType>({
   const previewData = useMemo(() => data.slice(0, PREVIEW_LIMIT), [data]);
   const previewTable = useMemo(() => {
     if (!opened || previewData.length === 0) return null;
-    return toTable(schema, previewData);
+    return toTable(schema, previewData, tabularOptions);
   }, [opened, schema, previewData]);
 
   const handleDownload = useCallback(async () => {
@@ -56,7 +57,7 @@ export function useExportModal<S extends z.ZodType>({
         setError(msg('zodFormWidget.export.noData' /* エクスポート対象のデータがありません。 */));
         return;
       }
-      const table = toTable(schema, allData);
+      const table = toTable(schema, allData, tabularOptions);
       const csv = tableToCsv(table);
       downloadCsv(csv, filename);
       close();

@@ -34,6 +34,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { tableComponentLibrary } from "@zodapp/zod-form-mantine-lite";
+import { withSupportCheck } from "../utils/unsupported";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -685,4 +686,12 @@ const ArrayTableComponent = wrapComponent(
   },
 );
 
-export { ArrayTableComponent as component };
+const CheckedArrayTableComponent = withSupportCheck(
+  ArrayTableComponent,
+  (schema) =>
+    unwrapObjectSchema(schema.element as z.ZodTypeAny)
+      ? undefined
+      : `uiType "table" expects an array of objects, but the element is ${(schema.element as z.ZodTypeAny).type}`,
+);
+
+export { CheckedArrayTableComponent as component };

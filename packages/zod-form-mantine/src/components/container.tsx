@@ -4,6 +4,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import z from "zod";
 import { getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { isHiddenFixedValueSchema } from "../utils/fixedValue";
 
 /**
  * 子を並べる入れ物（object・intersection で共通）の描き方。
@@ -45,11 +46,15 @@ const WRAPPER_TYPES = new Set([
   "nonoptional",
 ]);
 
-/** 子の schema の uiType が flat か。optional・nullable・default などの包みは外して見る */
+/**
+ * 子の schema の uiType が flat か。optional・nullable・default などの包みは外して見る。
+ * 出さない固定値（{@link isHiddenFixedValueSchema}）も flat として扱い、並びに場所を取らないようにする
+ */
 export const isFlatSchema = (schema: z.ZodTypeAny): boolean => {
   let current: z.ZodTypeAny | undefined = schema;
   for (let depth = 0; current && depth < 16; depth++) {
     if (getMeta(current)?.uiType === "flat") return true;
+    if (isHiddenFixedValueSchema(current)) return true;
     const def = current.def as { type: string; innerType?: z.ZodTypeAny };
     if (!WRAPPER_TYPES.has(def.type)) return false;
     current = def.innerType;

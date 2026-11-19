@@ -19,10 +19,10 @@ export const ja = {
   "zodFormMantine.time.invalidFormat": ({ format }) =>
     `${format} の形で、正しい時刻を入力してください`,
   "zodFormMantine.date.monthLabelFormat": "YYYY年M月",
-  "zodFormMantine.file.remove": "削除",
-  "zodFormMantine.file.dropzone":
+  "zodFormMantine.externalFile.remove": "削除",
+  "zodFormMantine.externalFile.dropzone":
     "ここにファイルをドラッグ、またはクリックして選択",
-  "zodFormMantine.file.maxSize": "最大ファイルサイズ:",
+  "zodFormMantine.externalFile.maxSize": "最大ファイルサイズ:",
   "zodFormMantine.record.duplicateKey": "同じキーが既に存在します",
   "zodFormMantine.record.key": "キー",
   "zodFormMantine.record.value": "値",
@@ -30,4 +30,10 @@ export const ja = {
   "zodFormMantine.record.emptyRow": "空の行",
   "zodFormMantine.record.removeRow": ({ label }) => `${label}を削除`,
   "zodFormMantine.record.append": "末尾に追加",
+  "zodFormMantine.record.unsafeKey": "キーに . [ ] は使えません",
+  "zodFormMantine.record.emptyKey": "キーを入力してください",
+  "zodFormMantine.record.uneditable": "このフォームでは編集できません",
+  "zodFormMantine.unsafeKeyName": "このキー名は使えません",
+  "zodFormMantine.unsupported":
+    "このスキーマの組み合わせは、このフォームでは扱えません",
 } satisfies MessagesOf<typeof en>;

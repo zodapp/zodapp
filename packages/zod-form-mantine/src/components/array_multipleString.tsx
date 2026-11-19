@@ -11,11 +11,13 @@ import {
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
 import { useMsg } from "../messages/useMsg";
+import { withSupportCheck } from "../utils/unsupported";
+import { arrayCollection, type Collection } from "../utils/collection";
 
 type ArrayOfStringSchema = z.ZodArray<z.ZodString>;
 
-const ArrayOfStringComponent = wrapComponent(
-  function ArrayOfStringComponentImplement({
+export const createMultipleStringComponent = (collection: Collection) =>
+  wrapComponent(function MultipleStringComponentImplement({
     schema,
     label: labelFromParent,
     outer,
@@ -32,22 +34,34 @@ const ArrayOfStringComponent = wrapComponent(
     const labelFromMeta = arrayMeta?.label;
     const label = labelFromParent ?? labelFromMeta;
 
+    // 要素が number のとき（set のタグ入力）は、文字にして並べ、数に戻して書く
+    const isNumber = collection.elementOf(schema).type === "number";
     const value = useMemo(
       () =>
-        Array.isArray(field.value)
-          ? field.value.filter(
-              (item): item is string => typeof item === "string",
-            )
-          : [],
+        collection
+          .toItems(field.value)
+          .filter(
+            (item): item is string | number =>
+              typeof item === "string" || typeof item === "number",
+          )
+          .map(String),
       [field.value],
     );
 
     const emptyValue = emptyValueOf({ optional, nullable });
     const onChange = useCallback(
       (next: string[]) => {
-        field.onChange(next.length === 0 ? emptyValue : next);
+        if (next.length === 0) {
+          field.onChange(emptyValue);
+          return;
+        }
+        const items: unknown[] = isNumber
+          ? next.map(Number).filter((item) => !Number.isNaN(item))
+          : next;
+        // 重複は入れない（set では同じ値が 1 つになる。配列でも TagsInput は重複を入れない）
+        field.onChange(collection.fromItems(Array.from(new Set(items))));
       },
-      [field, emptyValue],
+      [field, emptyValue, isNumber],
     );
 
     if (readOnly || field.disabled) {
@@ -104,7 +118,18 @@ const ArrayOfStringComponent = wrapComponent(
         style={inputWrapperStyle}
       />
     );
+  });
+
+const ArrayOfStringComponent = createMultipleStringComponent(arrayCollection);
+
+const CheckedArrayOfStringComponent = withSupportCheck(
+  ArrayOfStringComponent,
+  (schema) => {
+    const elementType = (schema.element as z.ZodTypeAny).type;
+    return elementType === "string"
+      ? undefined
+      : `uiType "multipleString" expects an array of string, but the element is ${elementType}`;
   },
 );
 
-export { ArrayOfStringComponent as component };
+export { CheckedArrayOfStringComponent as component };

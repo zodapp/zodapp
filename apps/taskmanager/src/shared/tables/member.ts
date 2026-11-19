@@ -32,8 +32,8 @@ export const memberBodySchema = z
       .min(1)
       .register(zf.string.registry, { label: "表示名" }),
     avatarImage: zf
-      .file()
-      .register(zf.file.registry, {
+      .externalFile()
+      .register(zf.externalFile.registry, {
         label: "アバター画像",
         fileConfig: {
           type: "s3",

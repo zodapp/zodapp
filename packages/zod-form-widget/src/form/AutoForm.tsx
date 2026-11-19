@@ -1,3 +1,4 @@
+import { previewReplacer } from "./previewReplacer";
 import {
   Suspense,
   useMemo,
@@ -18,7 +19,11 @@ import {
   useZodForm,
   componentLibrary as defaultComponentLibrary,
 } from "@zodapp/zod-form-mantine";
-import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
+import {
+  getDefaultValue,
+  type ExternalKeyResolvers,
+  type FileResolvers,
+} from "@zodapp/zod-form";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   MediaResolvers,
@@ -65,6 +70,22 @@ type AutoFormProps<T extends z.ZodTypeAny> = {
   readOnly?: boolean;
 };
 
+/**
+ * defaultValues を schema の既定値で補う。補えなければ（optional の付かない z.lazy の無限の再帰など）、
+ * 補わずに渡された値を使う
+ */
+const fillDefaultValues = (schema: z.ZodTypeAny, defaultValues: unknown) => {
+  try {
+    return getDefaultValue(schema, defaultValues) ?? defaultValues ?? {};
+  } catch (error) {
+    console.error(
+      "[AutoForm] Could not fill the default values from the schema:",
+      error,
+    );
+    return defaultValues ?? {};
+  }
+};
+
 const AutoFormInner = <T extends z.ZodTypeAny>({
   schema,
   defaultValues,
@@ -91,9 +112,11 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
     submitLabelFromProps ?? msg("zodFormWidget.autoForm.submit" /* 保存 */);
   const cancelLabel =
     cancelLabelFromProps ?? msg("zodFormWidget.common.cancel" /* キャンセル */);
+  // 開くときに、値が無いところを schema の既定値で補う（`.default()`・空の配列・値が 1 つの literal など）。
+  // 補った値は既定値に入るので、開いただけでは「変更あり」にならない
   const initialValues = useMemo(
-    () => (defaultValues ?? {}) as z.input<T>,
-    [defaultValues],
+    () => fillDefaultValues(schema, defaultValues) as z.input<T>,
+    [schema, defaultValues],
   );
   const defaultSubmitHandlerRef = useRef(onSubmit);
   const pendingSubmitHandlerRef = useRef<
@@ -105,6 +128,10 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   // 包んだ validator は standard schema の形なので、TanStack Form 1.33 以降の
   // validators の型（RejectPromiseValidator<T>）にもそのまま渡せる。
   const [runtime] = useState(() => new FormRuntime());
+  // 検証は通ったが parse できなかったときの issue（送信が止まった理由に使う）
+  const parseIssuesRef = useRef<readonly { code?: string }[] | undefined>(
+    undefined,
+  );
   const validator = useMemo(
     () => runtime.wrapValidator<z.input<T>>(schema),
     [runtime, schema],
@@ -123,11 +150,18 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
       onBlur: validator,
       onSubmit: validator,
     },
+    // onSubmit には parse した値（output）を渡す。parse できなければ送らない
+    // （止まった理由は handleSubmit が出す。onCancel にはフォームの値（input）を渡す）
     onSubmit: ({ value }) => {
+      const parsed = runtime.parse(schema, value);
+      if (!parsed.success) {
+        parseIssuesRef.current = parsed.issues;
+        return;
+      }
       const handler =
         pendingSubmitHandlerRef.current ?? defaultSubmitHandlerRef.current;
       pendingSubmitHandlerRef.current = undefined;
-      handler?.(value as z.output<T>);
+      handler?.(parsed.data as z.output<T>);
     },
   });
 
@@ -168,14 +202,18 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         resolve(data);
       };
 
+      parseIssuesRef.current = undefined;
       void form
         .handleSubmit()
         .then(() => {
           if (!form.state.isValid) {
             // 登録された schema（読み込み中・取得失敗を含む）でも通るときだけ送る
             const issues = runtime.validate(schema, form.state.values);
-            const parsed = schema.safeParse(form.state.values);
-            if (issues.length === 0 && parsed.success) {
+            const parsed =
+              issues.length === 0
+                ? runtime.parse(schema, form.state.values)
+                : undefined;
+            if (parsed?.success) {
               const handler = pendingSubmitHandlerRef.current;
               pendingSubmitHandlerRef.current = undefined;
               handler?.(parsed.data as z.output<T>);
@@ -183,7 +221,21 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
               return;
             }
             console.warn("[AutoForm] Validation errors:", form.getAllErrors());
-            setBlockedReasons(submitBlockedReasons(issues));
+            setBlockedReasons(
+              submitBlockedReasons(
+                parsed && !parsed.success ? parsed.issues : issues,
+              ),
+            );
+            pendingSubmitHandlerRef.current = undefined;
+            resolve(undefined);
+            return;
+          }
+          // 検証は通ったが parse できなかった（onSubmit が送らなかった）
+          const parseIssues = parseIssuesRef.current;
+          if (parseIssues) {
+            parseIssuesRef.current = undefined;
+            console.warn("[AutoForm] Could not parse the values:", parseIssues);
+            setBlockedReasons(submitBlockedReasons(parseIssues));
             pendingSubmitHandlerRef.current = undefined;
             resolve(undefined);
           }
@@ -255,16 +307,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
               {/* デモ・デバッグ用: リアクティブに現在の値を表示 */}
               {showPreview && (
                 <Code block style={{ maxHeight: 200, overflow: "auto" }}>
-                  {JSON.stringify(
-                    formValues,
-                    (_key, value) => {
-                      if (typeof value === "bigint") {
-                        return value.toString();
-                      }
-                      return value;
-                    },
-                    2,
-                  )}
+                  {JSON.stringify(formValues, previewReplacer, 2)}
                 </Code>
               )}
               <Switch fieldPath="" schema={schema} readOnly={readOnly} />

@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import type z from "zod";
 import { Loader, MultiSelect } from "@mantine/core";
 import {
   Switch,
@@ -18,6 +19,7 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { DynamicErrorView } from "./dynamic";
 import { useMsg } from "../messages/useMsg";
 import { useResolveText } from "@zodapp/zod-form-react/common";
+import { withSupportCheck } from "../utils/unsupported";
 
 /**
  * 複数選択の externalKey（`z.array(zf.externalKey ...)` に `uiType: "multipleExternalKey"`）。
@@ -82,4 +84,12 @@ const ArrayOfExternalKeyComponent = React.memo(
   },
 );
 
-export { ArrayOfExternalKeyComponent as component };
+const CheckedArrayOfExternalKeyComponent = withSupportCheck(
+  ArrayOfExternalKeyComponent,
+  (schema) =>
+    getMeta(schema.element as z.ZodTypeAny)?.typeName === "externalKey"
+      ? undefined
+      : `uiType "multipleExternalKey" expects an array of zf.externalKey, but the element is ${(schema.element as z.ZodTypeAny).type}`,
+);
+
+export { CheckedArrayOfExternalKeyComponent as component };

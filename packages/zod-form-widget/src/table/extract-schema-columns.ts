@@ -224,6 +224,8 @@ function addSchemaColumn(
 
 function isSingleCellValueSchema(schema: z.ZodTypeAny): boolean {
   const inner = unwrapWrappers(schema);
+  // zf.dynamic は 1 つのセルで出す（土台は z.unknown なので、型では見分けられない）
+  if (getUnwrappedMeta(schema).typeName === "dynamic") return true;
 
   if (
     inner instanceof z.ZodString ||

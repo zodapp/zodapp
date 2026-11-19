@@ -75,6 +75,17 @@ import { ja } from "@zodapp/zod-form-widget/messages";
 
 `parseDynamicTabularFile` は、CSV を読めないとき `TabularImportError`（`code`: `"emptyFile" | "noHeader" | "noRows"`）を投げます。`message` は辞書のキーです。
 
+## 開くときの値（`AutoForm`）
+
+`AutoForm` は、受け取った `defaultValues` を `getDefaultValue(schema, defaultValues)` に通してから使います（`defaultValues` が無ければ `getDefaultValue(schema)`）。
+
+- 値が無いところを schema の既定値で補います：`.default()` の値、空の配列・object・Set・Map、値が 1 つの literal、`z.undefined()`・`z.void()` のキーなど。渡した値はそのまま使い、無いキーだけを補います
+- 補った値は既定値に入るので、開いただけでは「変更あり」になりません
+- 必須の object・intersection・配列は `{}`・`[]` で始まります（空で始めることはできません）
+- `onSubmit`・`onCancel` に渡る値にも、補ったキー（空の配列など）が入ります
+- 補えない schema（optional の付かない `z.lazy` の再帰など）では、補わずに渡された値を使い、`console.error` を出します
+- `AutoSearch` と `ReactiveAutoForm` は補いません
+
 ## 送信が止まったとき（`AutoForm`）
 
 送信が止まると、ボタンの行の近くに理由を出します（`data-testid="form-submit-blocked"`）。当てはまるものをすべて出し、次に送信を押すまで出したままにします。送信が通れば消えます。

@@ -1,3 +1,4 @@
+import { previewReplacer } from './previewReplacer';
 import { Suspense, memo, useCallback, useEffect, useState } from 'react';
 import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
 import {
@@ -150,12 +151,7 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
               <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
                 {JSON.stringify(
                   values,
-                  (_key, v) => {
-                    if (typeof v === 'bigint') {
-                      return v.toString();
-                    }
-                    return v;
-                  },
+                  previewReplacer,
                   2
                 )}
               </Code>

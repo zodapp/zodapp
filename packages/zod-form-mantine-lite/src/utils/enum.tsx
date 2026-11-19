@@ -150,11 +150,42 @@ const literalUnionChoices = (unionSchema: z.ZodUnion): Choices => {
   };
 };
 
-/** enum か literal だけの union の選択肢（{@link Choices}） */
+/**
+ * 値を複数持つ literal（`z.literal(["a", "b"])`）の選択肢。Select とは値の番号（"0"・"1"…）でやりとりし、
+ * フォームの値には literal の値をそのまま書く（literal だけの union と同じ）。
+ * literal の meta の label は欄の名前なので、選択肢の名前には使わない
+ */
+const literalChoices = (literalSchema: z.ZodLiteral): Choices => {
+  const values = (literalSchema.def as { values?: unknown[] }).values ?? [];
+  const options = values.map((value, index) => ({ key: String(index), value }));
+  return {
+    data: options.map(({ key, value }) => ({
+      value: key,
+      label: defaultLabelOf(value),
+      color: "gray",
+    })),
+    toOption: (value) => {
+      const option = options.find((candidate) => candidate.value === value);
+      if (option) return option.key;
+      if (value === undefined || value === null || value === "") return null;
+      return `${UNLISTED_OPTION_PREFIX}${defaultLabelOf(value)}`;
+    },
+    fromOption: (option) => {
+      if (isEmptyOption(option)) return undefined;
+      return options.find((candidate) => candidate.key === option)?.value;
+    },
+    hasUndefined: options.some((option) => option.value === undefined),
+    hasNull: options.some((option) => option.value === null),
+  };
+};
+
+/** enum・literal だけの union・値を複数持つ literal の選択肢（{@link Choices}） */
 export const choicesOf = (schema: z.ZodTypeAny): Choices =>
   schema.type === "union"
     ? literalUnionChoices(schema as z.ZodUnion)
-    : enumChoices(schema as EnumSchema);
+    : schema.type === "literal"
+      ? literalChoices(schema as z.ZodLiteral)
+      : enumChoices(schema as EnumSchema);
 
 /** {@link choicesOf} を schema ごとに一度だけ作る hook */
 export function useChoices(schema: z.ZodTypeAny): Choices {

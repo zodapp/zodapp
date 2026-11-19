@@ -138,6 +138,26 @@ const fillAt = (
 };
 
 /**
+ * record のキーの検査のエラー（invalid_key）を、値の欄ではなくキーの側（record の欄）に出すため、
+ * path を record の path にする。どのキーかは `key` に、文言はキーの検査の文言（中の issue）にする。
+ * record の部品は `key` を見て、そのキーの欄（entries）に出すか、record の欄に出す
+ */
+const moveInvalidKeyIssue = (issue: Issue): Issue => {
+  const raw = issue as Issue & {
+    code?: string;
+    issues?: { message?: string }[];
+  };
+  if (raw.code !== "invalid_key" || issue.path.length === 0) return issue;
+  const key = issue.path[issue.path.length - 1];
+  return {
+    ...issue,
+    path: issue.path.slice(0, -1),
+    message: raw.issues?.[0]?.message ?? issue.message,
+    key: String(key),
+  } as Issue;
+};
+
+/**
  * フォームごとの実行時の状態。
  *
  * 1. dynamic が resolve した schema の登録先（{@link RegisteredSchema}）
@@ -409,7 +429,7 @@ export class FormRuntime {
         if (isCovered(sourceSegments, path)) continue;
         // 一番外の path だけを付け直し、ほかの欄は残す。invalid_union の errors
         // （腕ごとの issue。path はその union の値からの相対）は書き換えない
-        issues.push({ ...issue, path });
+        issues.push(moveInvalidKeyIssue({ ...issue, path }));
       }
     };
 
@@ -450,6 +470,82 @@ export class FormRuntime {
       );
     }
     return issues;
+  }
+
+  /**
+   * 送信する値を parse して、output（`.transform()`・`.default()`・`z.coerce` などを通した値）を返す。
+   *
+   * dynamic の output を先に値へ差し込んでから、静的な schema で parse する。
+   * 1. 登録された path を深い順に並べ、それぞれ今の値のその path を、その path の一番深い登録の schema で parse する。
+   *    読み込み中・取得の失敗・parse の失敗は、送信しない（`success: false`）
+   * 2. その path に output を差し込む（内側の dynamic が先なので、外側の dynamic は内側の output を受け取る。
+   *    外側から見ると内側の土台は `z.unknown()` なので、output がそのまま通る）
+   * 3. 差し込んだ値を静的な schema で parse し、その output を返す
+   *
+   * 外側の transform・refine は、dynamic を parse した後の値を受け取る（zod で親が子の output を受け取るのと同じ）
+   */
+  parse(
+    staticSchema: z.ZodTypeAny,
+    value: unknown,
+  ): { success: true; data: unknown } | { success: false; issues: Issue[] } {
+    const registered = Array.from(this.entries.keys())
+      .map((path) => ({ path, segments: parseFieldPath(path) }))
+      .sort((a, b) => b.segments.length - a.segments.length);
+
+    let current = value;
+    for (const { path, segments } of registered) {
+      const entry = this.get(path);
+      if (!entry) continue;
+      if (entry.status !== "resolved") {
+        return {
+          success: false,
+          issues: [
+            entry.status === "pending"
+              ? {
+                  message: msgKey(
+                    "zodFormReact.dynamic.loading" /* 読み込み中 */,
+                  ),
+                  path: segments,
+                  code: PENDING_ISSUE_CODE,
+                }
+              : {
+                  message: msgKey(
+                    "zodFormReact.dynamic.failed" /* 取得できませんでした */,
+                  ),
+                  path: segments,
+                  code: RESOLVE_ERROR_ISSUE_CODE,
+                },
+          ],
+        };
+      }
+      const result = entry.schema.safeParse(getValueAt(current, segments), {
+        error: zodMsgKeyErrorMap,
+      });
+      if (!result.success) {
+        return {
+          success: false,
+          issues: result.error.issues.map((issue) => ({
+            ...issue,
+            path: [...segments, ...normalizeIssuePath(issue.path)],
+          })) as Issue[],
+        };
+      }
+      current = fillAt(current, segments, () => result.data);
+    }
+
+    const result = staticSchema.safeParse(current, {
+      error: zodMsgKeyErrorMap,
+    });
+    if (!result.success) {
+      return {
+        success: false,
+        issues: result.error.issues.map((issue) => ({
+          ...issue,
+          path: normalizeIssuePath(issue.path),
+        })) as Issue[],
+      };
+    }
+    return { success: true, data: result.data };
   }
 
   /**

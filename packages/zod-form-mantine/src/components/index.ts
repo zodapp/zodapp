@@ -19,7 +19,7 @@ export { component as DateComponent } from "./date.js";
 export { component as TimeComponent } from "./time.js";
 export { component as EnumComponent } from "./enum.js";
 export { component as ExternalKeyComponent } from "./externalKey.js";
-export { component as FileComponent } from "./file.js";
+export { component as ExternalFileComponent } from "./externalFile.js";
 export { component as LiteralComponent } from "./literal.js";
 export { component as NumberComponent } from "./number.js";
 export { component as NumberSliderComponent } from "./number_slider.js";
@@ -60,12 +60,20 @@ export const componentLibrary: ComponentLibrary = {
   enum: (() => import("./enum.js")) as DynamicZodFormDef,
   enum_badge: (() => import("./enum.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
-  file: (() => import("./file.js")) as DynamicZodFormDef,
+  externalFile: (() => import("./externalFile.js")) as DynamicZodFormDef,
   literal: (() => import("./literal.js")) as DynamicZodFormDef,
+  // 値を複数持つ literal を、enum と同じ見た目で選ぶ
+  literal_select: (() => import("./literal.js")) as DynamicZodFormDef,
+  literal_badge: (() => import("./literal.js")) as DynamicZodFormDef,
+  // 固定値（既定で出さない）
+  null: (() => import("./null.js")) as DynamicZodFormDef,
+  undefined: (() => import("./undefined.js")) as DynamicZodFormDef,
+  void: (() => import("./void.js")) as DynamicZodFormDef,
   number: (() => import("./number.js")) as DynamicZodFormDef,
   number_slider: (() => import("./number_slider.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
+  set: (() => import("./set.js")) as DynamicZodFormDef,
   record_entries: (() => import("./record_entries.js")) as DynamicZodFormDef,
   dynamic: (() => import("./dynamic.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,

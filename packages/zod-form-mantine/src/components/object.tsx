@@ -13,10 +13,12 @@ import {
   useRunAsUserEdit,
   wrapComponent,
   emptinessOf,
+  isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
 import { useMsg } from "../messages/useMsg";
+import { UnsafeKeyNameNotice } from "../utils/unsafeKey";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -69,8 +71,16 @@ function ObjectBodyImplement({
     >
       {fields.map((property) => ({
         key: property.propertyName,
-        flat: isFlatSchema(property.schema),
-        node: (
+        flat:
+          isFlatSchema(property.schema) &&
+          !isUnsafeFieldKey(property.propertyName),
+        node: isUnsafeFieldKey(property.propertyName) ? (
+          <UnsafeKeyNameNotice
+            parentPath={fieldPath}
+            propertyKey={property.propertyName}
+            label={getMeta(property.schema)?.label}
+          />
+        ) : (
           <Switch
             fieldPath={joinFieldPath(fieldPath, property.propertyName)}
             schema={property.schema}

@@ -1,5 +1,5 @@
 /**
- * ファイルの項目（zf.file）を S3 に保存する設定。
+ * ファイルの項目（zf.externalFile）を S3 に保存する設定。
  * アップロードとダウンロードの署名付き URL は、サーバー（`@zodapp/zod-form-s3-node`）が発行する。
  */
 import type { BaseFileConfig } from "@zodapp/zod-form";
