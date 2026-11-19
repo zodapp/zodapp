@@ -52,6 +52,7 @@ ruleTester.run("comment", rule, {
     { code: 'msg("test.multiline" /* i18n: 1行目\\n2行目 */);', options },
     { code: 'msg("test.special" /* i18n: a *\\/ b \\\\ c */);', options },
     { code: 'msg("other.ok" /* i18n: OK */);', options },
+    { code: 'msg("test.empty" /* i18n: */);', options },
     // 関数の名前は見ない。キーの形の文字列なら、どこにあっても確かめる
     { code: 't("test.title" /* i18n: タイトル */);', options },
     { code: 'const pair = ["test.title" /* i18n: タイトル */, {}];', options },
@@ -181,6 +182,19 @@ ruleTester.run("comment", rule, {
       options,
       errors: [{ messageId: "invalidEscape" }],
       output: null,
+    },
+    {
+      code: 'msg("test.empty");',
+      options,
+      errors: [{ messageId: "missing" }],
+      output: 'msg("test.empty" /* i18n: */);',
+    },
+    {
+      code: 'msg("test.conditional");',
+      options,
+      errors: [{ messageId: "missing" }],
+      output:
+        'msg("test.conditional" /* i18n: p.inclusive === "true" ? `${p.minimum}以上` : `${p.minimum}より大きい` */);',
     },
     {
       code: 'msg("test.nothing");',

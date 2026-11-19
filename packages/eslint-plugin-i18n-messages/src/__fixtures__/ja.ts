@@ -15,4 +15,5 @@ export const ja = {
     p.inclusive === "true" ? `${p.minimum}以上` : `${p.minimum}より大きい`,
   "test.multiline": "1行目\n2行目",
   "test.special": "a */ b \\ c",
+  "test.empty": "",
 } satisfies Record<string, unknown>;

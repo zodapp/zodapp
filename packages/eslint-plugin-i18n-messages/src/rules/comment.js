@@ -172,8 +172,10 @@ const rule = {
         return;
       }
 
-      const expected = `/* ${MARKER} ${escapeCommentText(text)} */`;
-      const data = { text: `${MARKER} ${escapeCommentText(text)}` };
+      const commentText =
+        text === "" ? MARKER : `${MARKER} ${escapeCommentText(text)}`;
+      const expected = `/* ${commentText} */`;
+      const data = { text: commentText };
 
       // JSX の属性の値には後ろにコメントを置けないので、{} で包む
       if (node.parent?.type === "JSXAttribute") {
