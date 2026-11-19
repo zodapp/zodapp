@@ -20,7 +20,7 @@ const MARKER = "i18n:";
  * 目印付きのブロックコメントなら、目印の後ろの文言（エスケープしたまま）。それ以外は undefined。
  * `/* i18n: 文言 *\/` の目印の後ろの空白 1 つまでは目印に含める。
  *
- * @param {import("estree").Comment} comment
+ * @param {import("eslint").AST.Program["comments"][number]} comment
  * @returns {string | undefined}
  */
 const markedTextOf = (comment) => {
@@ -245,7 +245,7 @@ const rule = {
      * コメントと、その前の空白（同じ行の中）を消す。
      *
      * @param {import("eslint").Rule.RuleFixer} fixer
-     * @param {import("estree").Comment} comment
+     * @param {import("eslint").AST.Program["comments"][number]} comment
      */
     const removeComment = (fixer, comment) => {
       const [start, end] = /** @type {[number, number]} */ (comment.range);
