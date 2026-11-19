@@ -338,10 +338,15 @@ const ArrayOfEnumComponent = wrapComponent(
 const checkElement = (schema: ArrayOfEnumSchema): string | undefined => {
   const elementSchema = schema.element as z.ZodTypeAny;
   const elementMeta = getMeta(elementSchema) as { uiType?: string } | undefined;
-  if (elementSchema.type === "enum" || elementSchema.type === "union") return;
+  if (
+    elementSchema.type === "enum" ||
+    elementSchema.type === "union" ||
+    elementSchema.type === "literal"
+  )
+    return;
   if (elementSchema.type === "string" && elementMeta?.uiType === "select")
     return;
-  return `uiType "multipleEnum" expects an array of enum or union of literals, but the element is ${elementSchema.type}`;
+  return `uiType "multipleEnum" expects an array of enum, literal, or union of literals, but the element is ${elementSchema.type}`;
 };
 
 const CheckedArrayOfEnumComponent = withSupportCheck(

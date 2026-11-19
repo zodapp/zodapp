@@ -59,7 +59,7 @@ describe("扱えない組み合わせ", () => {
       expect(screen.getByText("欄")).toBeTruthy();
       expect(screen.getByRole("button", { name: SUBMIT_LABEL })).toBeTruthy();
       expect(
-        consoleError.mock.calls.some((call) =>
+        consoleError.mock.calls.some((call: unknown[]) =>
           String(call[0]).includes(reason),
         ),
       ).toBe(true);
@@ -75,7 +75,7 @@ describe("扱えない組み合わせ", () => {
     const inputs = container.querySelectorAll("input");
     expect(inputs).toHaveLength(2);
     expect(
-      consoleError.mock.calls.some((call) =>
+      consoleError.mock.calls.some((call: unknown[]) =>
         String(call[0]).includes("tuple with rest"),
       ),
     ).toBe(true);

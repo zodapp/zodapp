@@ -1548,7 +1548,8 @@ describe("UnionComponent union of primitive arms", () => {
 
     await selectArm("回答", "わからない");
     expect(formRef.current?.state.values.answer).toBe("unknown");
-    expect(within(group("回答")).getByText("unknown")).toBeTruthy();
+    // 値が 1 つの literal の腕は固定値なので、腕の中には何も出さない（選択欄だけが残る）
+    expect(within(group("回答")).queryByText("unknown")).toBeNull();
 
     await selectArm("回答", "はい・いいえ");
     fireEvent.click(within(group("回答")).getByRole("switch"));

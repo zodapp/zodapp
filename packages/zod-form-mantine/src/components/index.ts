@@ -62,6 +62,13 @@ export const componentLibrary: ComponentLibrary = {
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
   externalFile: (() => import("./externalFile.js")) as DynamicZodFormDef,
   literal: (() => import("./literal.js")) as DynamicZodFormDef,
+  // 値を複数持つ literal を、enum と同じ見た目で選ぶ
+  literal_select: (() => import("./literal.js")) as DynamicZodFormDef,
+  literal_badge: (() => import("./literal.js")) as DynamicZodFormDef,
+  // 固定値（既定で出さない）
+  null: (() => import("./null.js")) as DynamicZodFormDef,
+  undefined: (() => import("./undefined.js")) as DynamicZodFormDef,
+  void: (() => import("./void.js")) as DynamicZodFormDef,
   number: (() => import("./number.js")) as DynamicZodFormDef,
   number_slider: (() => import("./number_slider.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,

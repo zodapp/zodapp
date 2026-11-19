@@ -331,3 +331,15 @@ describe("getDefaultValue（intersection）", () => {
     });
   });
 });
+
+describe("getDefaultValue の literal", () => {
+  it("値が 1 つの literal は、その値を入れる", () => {
+    expect(getDefaultValue(z.object({ k: z.literal("a") }))).toEqual({
+      k: "a",
+    });
+  });
+
+  it("値を複数持つ literal は、例外を投げずに値を入れない", () => {
+    expect(getDefaultValue(z.object({ k: z.literal(["a", "b"]) }))).toEqual({});
+  });
+});

@@ -180,8 +180,12 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           ? obj
           : Array((schema as z.ZodTuple).def.items.length ?? 0).fill(undefined);
       },
+      // 値が 1 つの literal はその値を入れる。値を複数持つ literal（z.literal(["a", "b"])）は選ぶものなので入れない
+      // （zod 4 の `.value` は、値が複数あると例外を投げる）
       literal: (obj, schema) => {
-        return obj !== undefined ? obj : (schema as z.ZodLiteral).value;
+        if (obj !== undefined) return obj;
+        const values = (schema.def as { values?: unknown[] }).values ?? [];
+        return values.length === 1 ? values[0] : undefined;
       },
       default: (obj, schema) => {
         const defaultValue = schema.def.defaultValue;

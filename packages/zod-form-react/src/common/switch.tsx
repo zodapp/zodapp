@@ -143,11 +143,19 @@ const SchemaSwitch = (props: ZodFormProps) => {
   const meta = getMeta(schema);
   const { uiType, typeName } = meta ?? {};
 
-  const componentDef =
-    componentLibrary[`${typeName}_${uiType}`] ||
-    componentLibrary[`${schema.type}_${uiType}`] ||
-    componentLibrary[`${typeName}`] ||
-    componentLibrary[`${schema.type}`];
+  // meta が無いとき（typeName・uiType が undefined）に、"undefined" の名前の部品（z.undefined() の部品）に
+  // 当たらないよう、ある名前だけで探す
+  const candidates = [
+    typeName !== undefined && uiType !== undefined
+      ? `${typeName}_${uiType}`
+      : undefined,
+    uiType !== undefined ? `${schema.type}_${uiType}` : undefined,
+    typeName,
+    schema.type,
+  ];
+  const componentDef = candidates
+    .map((name) => (name === undefined ? undefined : componentLibrary[name]))
+    .find(Boolean);
 
   if (componentDef) {
     const Component = getLazyComponent(componentDef, lazyFactory);
