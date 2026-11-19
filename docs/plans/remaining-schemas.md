@@ -160,22 +160,19 @@ zod 4 の `z.promise()` は、値を `Promise.resolve(value).then(中の schema 
 
 ### 6.1 方針
 
-lazy の部品（mantine-lite の `baseComponents/lazy.tsx`）が、自分より上にある lazy を React の context で数え、次の 2 段で止める。
+lazy の部品（mantine-lite の `baseComponents/lazy.tsx`）が、自分より上にある lazy の数を React の context で数え、入れ子が上限を超えたら止める。
+schema が同じかどうかは見ない（同じ schema かどうかの判定は zod の内部の動きに頼ることになり危ういため、入れない）。
 
-- **同じ schema の検出**：同じ `z.lazy`（zod は getter の結果を覚えるので、同じ lazy は同じ schema を返す）が上にあり、
-  その欄の値が undefined なら、それ以上は描かずに止める。値があれば描く（データは有限なので終わる）
-- **深さの上限**：lazy の入れ子が上限を超えたら、schema が同じかどうかにかかわらず止める。
-  関数で階層ごとに schema を作る書き方（同じ schema の検出に当たらない）は、こちらで止まる
-  - 既定の上限は 10
-  - `z.lazy` の meta の `maxDepth`（`.register(zf.common.registry, { maxDepth: 30 })`）で、その lazy から下の上限を変えられる。
-    `zf.common.registry` の meta に `maxDepth` を足す
-  - 関数の中で決まった階層で止まる書き方は、上限より前に終わるので、止めずに描ける
+- 既定の上限は 10
+- `z.lazy` の meta の `maxDepth`（`.register(zf.common.registry, { maxDepth: 30 })`）で、その lazy から下の上限を変えられる。
+  `zf.common.registry` の meta に `maxDepth` を足す
+- 関数の中で決まった階層で止まる書き方は、上限より前に終わるので、止めずに描ける
 
 止めた所には、扱えない注記（`maxDepth` で上限を変えられることも書く）を出し、`console.error` も出す。その先の値は消さず、そのまま送る。
 
 ### 6.2 確かめること
 
-- `const node = z.lazy(() => z.object({ child: node }))` が、値の無い所で止まり、注記が出る
+- `const node = z.lazy(() => z.object({ child: node }))` が、上限で止まり、注記が出る
 - `const node = () => z.object({ child: z.lazy(() => node()) })` が、上限で止まる
 - 値で入れ子になったデータ（optional な再帰の木）が、上限までは今までどおり描ける
 - `maxDepth` で上限を変えられる
@@ -194,7 +191,7 @@ lazy の部品（mantine-lite の `baseComponents/lazy.tsx`）が、自分より
 ## 8. 決めたこと
 
 - enum：object の形で書いた enum は、label が無ければキーを名前にする。検証を通らない値は選択肢から外す
-- 再帰：同じ schema の検出と、深さの上限（既定 10、meta の `maxDepth` で変える）の 2 段で止める
+- 再帰：深さの上限（既定 10、meta の `maxDepth` で変える）だけで止める。同じ schema の検出はしない
 - `zf.computed()`：初めから optional を含める
 - `z.nan()`：固定値として扱う
 - `z.symbol()`・`z.function()`：欄を出さず、値を保つ
