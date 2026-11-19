@@ -35,6 +35,8 @@ export { component as StringSelectComponent } from "./string_select.js";
 export { component as TupleComponent } from "./tuple.js";
 export { component as UnionComponent } from "./union.js";
 export { component as IntersectionComponent } from "./intersection.js";
+export { component as MapComponent } from "./map.js";
+export { component as FileComponent } from "./file.js";
 
 // Library（dynamic import による lazy load — Library 自体を使わなければ tree shake で除外される）
 export const componentLibrary: ComponentLibrary = {
@@ -61,6 +63,8 @@ export const componentLibrary: ComponentLibrary = {
   enum_badge: (() => import("./enum.js")) as DynamicZodFormDef,
   externalKey: (() => import("./externalKey.js")) as DynamicZodFormDef,
   externalFile: (() => import("./externalFile.js")) as DynamicZodFormDef,
+  // z.file()（File を値に持つ）。zf.externalFile（外に置いたファイルを指す文字列）とは別
+  file: (() => import("./file.js")) as DynamicZodFormDef,
   literal: (() => import("./literal.js")) as DynamicZodFormDef,
   // 値を複数持つ literal を、enum と同じ見た目で選ぶ
   literal_select: (() => import("./literal.js")) as DynamicZodFormDef,
@@ -82,9 +86,12 @@ export const componentLibrary: ComponentLibrary = {
   object: (() => import("./object.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
   set: (() => import("./set.js")) as DynamicZodFormDef,
+  map: (() => import("./map.js")) as DynamicZodFormDef,
   record_entries: (() => import("./record_entries.js")) as DynamicZodFormDef,
   dynamic: (() => import("./dynamic.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
+  // z.templateLiteral() は文字列の欄で描く（形は zod の検証で確かめる）
+  template_literal: (() => import("./string.js")) as DynamicZodFormDef,
   string_multiline: (() =>
     import("./string_multiline.js")) as DynamicZodFormDef,
   string_lazy: (() => import("./string_lazy.js")) as DynamicZodFormDef,
