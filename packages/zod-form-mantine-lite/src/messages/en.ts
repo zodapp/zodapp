@@ -15,4 +15,6 @@ export const en = defineMessages({
   "zodFormMantineLite.retry": "Retry",
   "zodFormMantineLite.yes": "Yes",
   "zodFormMantineLite.no": "No",
+  "zodFormMantineLite.recursionLimit":
+    "This form cannot show deeper levels. Raise maxDepth in the schema meta to show more.",
 });

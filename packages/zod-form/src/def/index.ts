@@ -367,7 +367,13 @@ const booleanMetaSchema = zodExtendableCommonDefSchema.extend({
 const common = extendCustom(
   z.never,
   "common",
-  zodExtendableCommonDefSchema,
+  zodExtendableCommonDefSchema.extend({
+    /**
+     * `z.lazy` に付ける、再帰の深さの上限（ルートから数えた lazy の入れ子の数。既定 10）。
+     * これより深い所は描かずに注記を出す（値は消さない）
+     */
+    maxDepth: z.number().optional(),
+  }),
   schemaType<z.ZodType>(),
 );
 

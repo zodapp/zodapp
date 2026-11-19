@@ -20,4 +20,6 @@ export const ja = {
   "zodFormMantineLite.retry": "再試行",
   "zodFormMantineLite.yes": "はい",
   "zodFormMantineLite.no": "いいえ",
+  "zodFormMantineLite.recursionLimit":
+    "これより深い階層は表示できません。schema の meta の maxDepth で上限を変えられます",
 } satisfies MessagesOf<typeof en>;
