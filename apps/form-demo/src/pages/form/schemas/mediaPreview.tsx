@@ -13,7 +13,7 @@ import { AutoForm } from "../../../components/AutoForm";
 import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "mediaPreview";
-export const title = "zf.file（プレビューの種類）";
+export const title = "zf.externalFile（プレビューの種類）";
 export const description =
   "アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示）";
 export const icon = IconPhotoVideo;
@@ -23,7 +23,7 @@ export const schema = z
   .object({
     image: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "画像（imageMediaResolver → <img> プレビュー）",
         fileConfig: {
           type: "mock",
@@ -33,7 +33,7 @@ export const schema = z
       .optional(),
     audio: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "音声（audioMediaResolver → <audio> プレビュー）",
         fileConfig: {
           type: "mock",
@@ -43,7 +43,7 @@ export const schema = z
       .optional(),
     textFile: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "テキスト（自作の data ベース resolver で内容を表示）",
         fileConfig: {
           type: "mock",
@@ -53,7 +53,7 @@ export const schema = z
       .optional(),
     anyFile: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "その他（genericMediaResolver → ダウンロードリンク）",
         fileConfig: {
           type: "mock",

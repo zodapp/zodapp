@@ -134,7 +134,7 @@ import { ja } from "@zodapp/zod-form-mantine/messages";
 - `@zodapp/zod-form`: `zf`（スキーマ拡張）
 - `@zodapp/zod-form-react`: React 基盤（自前UIの場合）
 - `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
-- `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
+- `@zodapp/zod-form-s3`: ファイル（`zf.externalFile`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
 
 ## ライセンス
 

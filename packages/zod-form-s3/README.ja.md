@@ -1,6 +1,6 @@
 # @zodapp/zod-form-s3
 
-zod-form のファイルの項目（`zf.file`）を S3 に保存する Resolver です。ブラウザで動きます。署名付き URL は、サーバー（[`@zodapp/zod-form-s3-node`](../zod-form-s3-node/README.ja.md)）が発行し、ブラウザが S3 に直接 PUT / GET します。
+zod-form のファイルの項目（`zf.externalFile`）を S3 に保存する Resolver です。ブラウザで動きます。署名付き URL は、サーバー（[`@zodapp/zod-form-s3-node`](../zod-form-s3-node/README.ja.md)）が発行し、ブラウザが S3 に直接 PUT / GET します。
 
 ## 設定（共有の定義）
 
@@ -13,7 +13,7 @@ declare module "@zodapp/zod-form/file/types" {
   }
 }
 
-const avatar = zf.file().register(zf.file.registry, {
+const avatar = zf.externalFile().register(zf.externalFile.registry, {
   label: "アバター画像",
   fileConfig: {
     type: "s3",

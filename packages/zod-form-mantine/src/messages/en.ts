@@ -20,9 +20,9 @@ export const en = defineMessages({
   "zodFormMantine.time.invalidFormat": ({ format }: { format: string }) =>
     `Enter a valid time in the format ${format}.`,
   "zodFormMantine.date.monthLabelFormat": "MMMM YYYY",
-  "zodFormMantine.file.remove": "Remove",
-  "zodFormMantine.file.dropzone": "Drag a file here or click to select one",
-  "zodFormMantine.file.maxSize": "Max file size:",
+  "zodFormMantine.externalFile.remove": "Remove",
+  "zodFormMantine.externalFile.dropzone": "Drag a file here or click to select one",
+  "zodFormMantine.externalFile.maxSize": "Max file size:",
   "zodFormMantine.record.duplicateKey": "This key already exists.",
   "zodFormMantine.record.key": "Key",
   "zodFormMantine.record.value": "Value",

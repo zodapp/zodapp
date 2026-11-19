@@ -3,7 +3,7 @@
  *
  * このファイルは2つの役割を持つ:
  * 1. WebFileConfig 型の定義
- * 2. declare module による型登録（zf.file.registry に型を効かせる）
+ * 2. declare module による型登録（zf.externalFile.registry に型を効かせる）
  *
  * フォームのデモは DB やストレージに依存しないので、Mock の Resolver だけを使う。
  * S3 などの実際の保存先は、各サンプル（apps/taskmanager など）が自分で登録する。
@@ -22,7 +22,7 @@ export type WebFileConfig = MockFileConfig;
 
 /**
  * declare module でグローバル型を登録
- * これにより zf.file.registry の fileConfig が
+ * これにより zf.externalFile.registry の fileConfig が
  * WebFileConfig として型推論される
  */
 declare module "@zodapp/zod-form/file/types" {

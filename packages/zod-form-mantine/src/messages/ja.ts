@@ -19,10 +19,10 @@ export const ja = {
   "zodFormMantine.time.invalidFormat": ({ format }) =>
     `${format} の形で、正しい時刻を入力してください`,
   "zodFormMantine.date.monthLabelFormat": "YYYY年M月",
-  "zodFormMantine.file.remove": "削除",
-  "zodFormMantine.file.dropzone":
+  "zodFormMantine.externalFile.remove": "削除",
+  "zodFormMantine.externalFile.dropzone":
     "ここにファイルをドラッグ、またはクリックして選択",
-  "zodFormMantine.file.maxSize": "最大ファイルサイズ:",
+  "zodFormMantine.externalFile.maxSize": "最大ファイルサイズ:",
   "zodFormMantine.record.duplicateKey": "同じキーが既に存在します",
   "zodFormMantine.record.key": "キー",
   "zodFormMantine.record.value": "値",

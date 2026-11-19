@@ -3,7 +3,7 @@ import { zf } from "@zodapp/zod-form";
 import { IconUpload } from "@tabler/icons-react";
 
 export const formId = "file";
-export const title = "zf.file";
+export const title = "zf.externalFile";
 export const description =
   "ファイルを添付してプレビューする。保存先は差し替えられる";
 export const icon = IconUpload;
@@ -13,7 +13,7 @@ export const schema = z
   .object({
     profileImage: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "プロフィール画像",
         fileConfig: {
           type: "mock",
@@ -23,7 +23,7 @@ export const schema = z
       .optional(),
     document: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "ドキュメント",
         fileConfig: {
           type: "mock",
@@ -33,7 +33,7 @@ export const schema = z
       .optional(),
     video: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "動画ファイル",
         fileConfig: {
           type: "mock",
@@ -43,7 +43,7 @@ export const schema = z
       .optional(),
     audio: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "音声ファイル",
         fileConfig: {
           type: "mock",
@@ -53,7 +53,7 @@ export const schema = z
       .optional(),
     anyFile: zf
       .string()
-      .register(zf.file.registry, {
+      .register(zf.externalFile.registry, {
         label: "任意のファイル",
         fileConfig: {
           type: "mock",

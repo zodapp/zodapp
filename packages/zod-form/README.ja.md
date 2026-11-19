@@ -8,7 +8,7 @@
 
 - `zf.*`: Zod v4 registry を用いた拡張ファクトリ（`label` / `uiType` / `readOnly` 等のメタ）
 - `getMeta(schema)`: スキーマから付与されたメタデータを取り出す
-- `externalKey` / `file`: 外部キー選択・ファイルアップロードのための型/設定を扱う土台（config はただのデータ。親や context で変えるときは `zf.dynamic` で包む。選択肢を取り直すかどうかは config を文字列にしたものと context の値で決まるので、関数だけが違う config に差し替えるときは config に `key` を書く）
+- `externalKey` / `externalFile`: 外部キー選択・外に置いたファイル（アップロード）のための型/設定を扱う土台（config はただのデータ。親や context で変えるときは `zf.dynamic` で包む。選択肢を取り直すかどうかは config を文字列にしたものと context の値で決まるので、関数だけが違う config に差し替えるときは config に `key` を書く）
 - `computed` / `dynamic`: `{ value, parent, context }` を受け取る関数で、表示や実際に使う schema を実行時に決める
 - `valueAction`: 選んだ値に対する操作（リンクで開くなど）の型
 - `zf.time`: 時刻だけを持つ値（`z.iso.time()` と、0 時からの経過量を持つ `z.number()`）
@@ -46,6 +46,13 @@ const userSchema = z
 
 export type User = z.infer<typeof userSchema>;
 ```
+
+## `zf.*` の名前の決まり
+
+`zf.*()` は標準の zod スキーマに meta の登録を足した別名で、値・検証は `z.*()` と同じです。部品は zf の名前（typeName）で探し、無ければ zod の型の名前（`schema.type`）で探します。
+
+- zf の名前が zod の型の名前と同じなら、その zod の型を必ず受け付け、同じ部品で扱います。型の約束を広げて、ほかの型も受け付けることはあります（例：`zf.date` は `z.date()` に加えて `z.number()`・`z.iso.datetime()`・`z.iso.date()` も受け付けます）
+- zod の型に対応しない独自の名前（`time`・`externalKey`・`externalFile`・`hidden`・`common`・`computed`・`dynamic`）は、zod の型の名前と重ねません。たとえば外に置いたファイルを指す文字列は `zf.externalFile` で、`z.file()`（File オブジェクト）とは別ものです
 
 ## メタデータの取得
 
@@ -184,7 +191,7 @@ const fileResolvers = [createMockFileResolver()];
 - `@zodapp/zod-form-react`: React 依存の `Dynamic` / hooks / `zfReact`
 - `@zodapp/zod-form-mantine`: Mantine UI の componentLibrary 実装
 - `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
-- `@zodapp/zod-form-s3`: ファイル（`zf.file`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
+- `@zodapp/zod-form-s3`: ファイル（`zf.externalFile`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
 
 ## ライセンス
 

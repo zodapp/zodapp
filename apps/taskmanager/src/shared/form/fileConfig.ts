@@ -1,5 +1,5 @@
 /**
- * ファイルの項目（zf.file）を S3 に保存する設定（@zodapp/zod-form-s3）。
+ * ファイルの項目（zf.externalFile）を S3 に保存する設定（@zodapp/zod-form-s3）。
  * アップロードとダウンロードの署名付き URL は、サーバーの /api/files が発行する
  * （@zodapp/zod-form-s3-node の createS3FileRouter）。
  */

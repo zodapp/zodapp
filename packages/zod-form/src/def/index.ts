@@ -292,10 +292,10 @@ export type ExternalKeyUnlistedOptions =
   | { allowUnlisted?: false; unlisted?: UnlistedPolicy }
   | { allowUnlisted: true; unlisted?: never };
 
-export type FileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
+export type ExternalFileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
   /**
    * 保存先の設定。ただのデータ（関数で返す形は持たない）。
-   * 親の値や context で変えるときは、zf.dynamic で包んで file の schema を返す。
+   * 親の値や context で変えるときは、zf.dynamic で包んで externalFile の schema を返す。
    */
   fileConfig: RegisteredFileConfig;
 };
@@ -406,11 +406,12 @@ const externalKey = extendCustom(
 const fileConfigSchema = zodExtendableCommonDefSchema.extend({
   // RegisteredFileConfig を使用（declare module で拡張可能）
   fileConfig: z.custom<RegisteredFileConfig>(),
-}) as z.ZodType<FileMetaDef>;
+}) as z.ZodType<ExternalFileMetaDef>;
 
-const file = extendCustom(
+// 外に置いたファイルを指す文字列（URL・キーなど）。z.file()（File オブジェクト）とは別もの
+const externalFile = extendCustom(
   z.string,
-  "file",
+  "externalFile",
   fileConfigSchema,
   schemaType<z.ZodString>(),
 );
@@ -529,7 +530,7 @@ const zf = {
   common,
   hidden,
   externalKey,
-  file,
+  externalFile,
   computed,
   dynamic,
 };

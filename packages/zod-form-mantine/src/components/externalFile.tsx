@@ -42,7 +42,7 @@ const formatFileSize = (bytes: number): string => {
   return `${bytes}B`;
 };
 
-const FileComponent = wrapComponent(function FileComponentImplement({
+const ExternalFileComponent = wrapComponent(function ExternalFileComponentImplement({
   schema,
   label: labelFromParent,
   outer,
@@ -51,7 +51,7 @@ const FileComponent = wrapComponent(function FileComponentImplement({
   error,
 }: ZodFormInternalProps<FileSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const meta = useResolvedMeta(schema, "file");
+  const meta = useResolvedMeta(schema, "externalFile");
   const msg = useMsg();
   const label = labelFromParent ?? meta?.label;
 
@@ -60,7 +60,7 @@ const FileComponent = wrapComponent(function FileComponentImplement({
 
   if (!config) {
     throw new Error(
-      "fileConfig is not defined in schema. Use zf.file.registry to register the config.",
+      "fileConfig is not defined in schema. Use zf.externalFile.registry to register the config.",
     );
   }
 
@@ -169,7 +169,7 @@ const FileComponent = wrapComponent(function FileComponentImplement({
             disabled={readOnly || field.disabled}
             mt="xs"
           >
-            {msg("zodFormMantine.file.remove" /* 削除 */)}
+            {msg("zodFormMantine.externalFile.remove" /* 削除 */)}
           </Button>
         </div>
       ) : (
@@ -212,11 +212,11 @@ const FileComponent = wrapComponent(function FileComponentImplement({
             <div>
               <Text size="lg" inline>
                 {msg(
-                  "zodFormMantine.file.dropzone" /* ここにファイルをドラッグ、またはクリックして選択 */,
+                  "zodFormMantine.externalFile.dropzone" /* ここにファイルをドラッグ、またはクリックして選択 */,
                 )}
               </Text>
               <Text size="sm" c="dimmed" inline mt={7}>
-                {msg("zodFormMantine.file.maxSize" /* 最大ファイルサイズ: */)}{" "}
+                {msg("zodFormMantine.externalFile.maxSize" /* 最大ファイルサイズ: */)}{" "}
                 {formatFileSize(config.maxSize ?? DEFAULT_MAX_SIZE)}
               </Text>
             </div>
@@ -232,4 +232,4 @@ const FileComponent = wrapComponent(function FileComponentImplement({
   );
 });
 
-export { FileComponent as component };
+export { ExternalFileComponent as component };
