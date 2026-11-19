@@ -1,5 +1,6 @@
 import path from "node:path";
-import { RuleTester } from "eslint";
+import tsParser from "@typescript-eslint/parser";
+import { Linter, RuleTester } from "eslint";
 import { describe, expect, it } from "vitest";
 import { parseDictionary } from "../dictionary.js";
 import { escapeCommentText, unescapeCommentText } from "../escape.js";
@@ -20,7 +21,11 @@ const options = [
 ];
 
 const ruleTester = new RuleTester({
-  languageOptions: { ecmaVersion: 2022, sourceType: "module" },
+  languageOptions: {
+    ecmaVersion: 2022,
+    sourceType: "module",
+    parserOptions: { ecmaFeatures: { jsx: true } },
+  },
 });
 
 ruleTester.run("comment", rule, {
@@ -41,10 +46,32 @@ ruleTester.run("comment", rule, {
     { code: 'msg("test.multiline" /* 1行目\\n2行目 */);', options },
     { code: 'msg("test.special" /* a *\\/ b \\\\ c */);', options },
     { code: 'msg("other.ok" /* OK */);', options },
-    // 対象の外：名前空間が無い・関数名が違う・キーがリテラルでない
+    // 関数の名前は見ない。キーの形の文字列なら、どこにあっても確かめる
+    { code: 't("test.title" /* タイトル */);', options },
+    { code: 'const pair = ["test.title" /* タイトル */, {}];', options },
+    { code: "const k = `test.title` /* タイトル */;", options },
+    { code: 'useMsg()("test.title" /* タイトル */);', options },
+    { code: 'const el = <A label={"test.title" /* タイトル */} />;', options },
+    // 対象の外：名前空間が無い・キーの形でない・キーがリテラルでない・${} を含む
     { code: 'msg("unknownNamespace.key");', options },
-    { code: 't("test.title");', options },
+    { code: 'const url = "test.dev/docs";', options },
+    { code: 'const s = "test.title ";', options },
+    { code: 'const s = "test.title.";', options },
+    { code: 'const s = "test.";', options },
+    { code: 'const s = "test.a b";', options },
     { code: "msg(key);", options },
+    { code: "const k = `test.${name}`;", options },
+    // 見ない場所：オブジェクトのキー・import・export・タグ付きテンプレート
+    { code: 'const dict = { "test.title": "タイトル" };', options },
+    { code: 'import x from "test.title";', options },
+    { code: 'export * from "test.title";', options },
+    { code: "tag`test.title`;", options },
+    // 型の位置
+    {
+      code: 'type K = "test.title"; interface I { "test.title": string }',
+      options,
+      languageOptions: { parser: tsParser },
+    },
     // 辞書を指定しなければ何もしない
     { code: 'msg("test.title");' },
   ],
@@ -109,13 +136,105 @@ ruleTester.run("comment", rule, {
       errors: [{ messageId: "unknownKey" }],
       output: null,
     },
+    // 関数を挟んだ呼び出し・タプル・配列・名前でない呼び出し
     {
       code: 'translate("test.title");',
-      options: [{ ...options[0], callees: ["translate"] }],
+      options,
       errors: [{ messageId: "missing" }],
       output: 'translate("test.title" /* タイトル */);',
     },
+    {
+      code: 'const pair = ["test.rowCount", { count: "1" }];',
+      options,
+      errors: [{ messageId: "missing" }],
+      output:
+        'const pair = ["test.rowCount" /* ${count} 件 */, { count: "1" }];',
+    },
+    {
+      code: 'const keys = ["test.title", "other.ok"];',
+      options,
+      errors: [{ messageId: "missing" }, { messageId: "missing" }],
+      output:
+        'const keys = ["test.title" /* タイトル */, "other.ok" /* OK */];',
+    },
+    {
+      code: 'useMsg()("test.title");',
+      options,
+      errors: [{ messageId: "missing" }],
+      output: 'useMsg()("test.title" /* タイトル */);',
+    },
+    {
+      code: "const k = `test.title`;",
+      options,
+      errors: [{ messageId: "missing" }],
+      output: "const k = `test.title` /* タイトル */;",
+    },
+    {
+      code: 'const label = "test.rowCount?count=1";',
+      options,
+      errors: [{ messageId: "missing" }],
+      output: 'const label = "test.rowCount?count=1" /* ${count} 件 */;',
+    },
+    {
+      code: 'const v = { label: "test.nothing" };',
+      options,
+      errors: [{ messageId: "unknownKey" }],
+      output: null,
+    },
+    // JSX の属性の値は {} で包む
+    {
+      code: 'const el = <A label="test.title" />;',
+      options,
+      errors: [{ messageId: "missing" }],
+      output: 'const el = <A label={"test.title" /* タイトル */} />;',
+    },
+    // 型の位置でない TS の文字列は確かめる
+    {
+      code: 'const k = "test.title" as const;',
+      options,
+      languageOptions: { parser: tsParser },
+      errors: [{ messageId: "missing" }],
+      output: 'const k = "test.title" /* タイトル */ as const;',
+    },
   ],
+});
+
+describe("dictionaries のプレフィックス", () => {
+  it.each(["test", "test.a", ".test.", "1test.", "te-st.", "test..", ""])(
+    "形が違えば設定の誤りとして投げる: %s",
+    (prefix) => {
+      const linter = new Linter({ configType: "flat" });
+      expect(() =>
+        linter.verify('msg("x");', [
+          {
+            plugins: { i18n: { rules: { comment: rule } } },
+            rules: {
+              "i18n/comment": [
+                "warn",
+                { dictionaries: { [prefix]: path.join(fixtures, "ja.ts") } },
+              ],
+            },
+          },
+        ]),
+      ).toThrow(/prefix/);
+    },
+  );
+
+  it("入れ子のプレフィックスを使える", () => {
+    const linter = new Linter({ configType: "flat" });
+    const messages = linter.verify('msg("test.title");', [
+      {
+        plugins: { i18n: { rules: { comment: rule } } },
+        rules: {
+          "i18n/comment": [
+            "warn",
+            { dictionaries: { "my.test.": path.join(fixtures, "ja.ts") } },
+          ],
+        },
+      },
+    ]);
+    expect(messages).toEqual([]);
+  });
 });
 
 describe("parseDictionary", () => {
