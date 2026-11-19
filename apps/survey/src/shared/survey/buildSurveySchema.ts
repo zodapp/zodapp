@@ -40,8 +40,7 @@ const createSentinelSchema = (message: string) =>
         label: message,
         color: "red",
       }),
-    })
-    .optional();
+    });
 
 const buildFieldSchema = (
   field: SurveyFieldDef,

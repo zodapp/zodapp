@@ -13,6 +13,8 @@ export {
 export { BadgeSelect, type BadgeSelectProps } from "./badgeSelect";
 export {
   useEnumData,
+  enumOptionsOf,
+  type EnumOption,
   toEnumOptionValue,
   fromEnumOptionValue,
   choicesOf,

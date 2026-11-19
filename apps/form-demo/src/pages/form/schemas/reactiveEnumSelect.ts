@@ -99,8 +99,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "Reactive版ではzf.enumの単一選択のみ対応。array（複数選択）は非対応。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

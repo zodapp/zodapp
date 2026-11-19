@@ -120,8 +120,7 @@ export const schema = z
       .computed()
       .register(zf.computed.registry, {
         compute: () => "これはreadOnlyモードのサンプルです",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, { readOnly: true });
 

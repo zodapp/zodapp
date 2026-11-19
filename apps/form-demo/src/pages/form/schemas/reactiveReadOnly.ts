@@ -64,8 +64,7 @@ export const schema = z
       .computed()
       .register(zf.computed.registry, {
         compute: () => "これはReactive版のreadOnlyモードサンプルです",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, { readOnly: true });
 

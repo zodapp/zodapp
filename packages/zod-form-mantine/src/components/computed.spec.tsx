@@ -115,8 +115,7 @@ describe("computed", () => {
         .register(zf.computed.registry, {
           dependsOnParent: true,
           compute: ({ parent }) => `${parent.last} ${parent.first}`,
-        })
-        .optional(),
+        }),
     });
     const form = renderForm(schema, { first: "太郎", last: "山田" });
     expect(await screen.findByText("山田 太郎")).toBeTruthy();
@@ -130,7 +129,7 @@ describe("computed", () => {
     );
     const schema = z.object({
       first: zf.string().register(zf.string.registry, { label: "名" }),
-      note: zf.computed().register(zf.computed.registry, { compute }).optional(),
+      note: zf.computed().register(zf.computed.registry, { compute }),
     });
     const form = renderForm(schema, { first: "太郎" });
     expect(await screen.findByText("親なし")).toBeTruthy();
@@ -164,8 +163,7 @@ describe("computed", () => {
           contextId: "auth",
           compute: ({ context }) =>
             `${(context as { userName: string }).userName} さんとして編集しています`,
-        })
-        .optional(),
+        }),
     });
     renderForm(
       schema,

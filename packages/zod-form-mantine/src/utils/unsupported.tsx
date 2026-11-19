@@ -1,21 +1,27 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { InputWrapper, Text } from "@mantine/core";
 import type { z } from "zod";
 import {
   useResolvedMeta,
+  unsupportedSchemaReason,
+  useReportUnsupported,
   type ZodForm,
   type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { useMsg } from "../messages/useMsg";
 
-const UnsupportedText = () => {
+const UnsupportedText = ({ kind }: { kind: "combination" | "schema" }) => {
   const msg = useMsg();
   return (
     <Text c="red" size="sm" data-zod-form-unsupported="">
-      {msg(
-        "zodFormMantine.unsupported" /* このスキーマの組み合わせは、このフォームでは扱えません */,
-      )}
+      {kind === "schema"
+        ? msg(
+            "zodFormMantine.unsupportedSchema" /* このスキーマは、このフォームでは扱えません */,
+          )
+        : msg(
+            "zodFormMantine.unsupported" /* このスキーマの組み合わせは、このフォームでは扱えません */,
+          )}
     </Text>
   );
 };
@@ -29,22 +35,23 @@ export const UnsupportedNotice = ({
   fieldPath,
   label,
   reason,
+  kind = "combination",
   children,
 }: {
   fieldPath: string;
   label: string | false | undefined;
   /** 開発者向けの理由（英語。console.error に出す） */
   reason: string;
+  /** 画面の文言。combination：組み合わせを扱えない（既定）。schema：schema そのものを扱えない */
+  kind?: "combination" | "schema";
   children?: React.ReactNode;
 }) => {
-  useEffect(() => {
-    console.error(`[zod-form] Unsupported schema at "${fieldPath}": ${reason}`);
-  }, [fieldPath, reason]);
+  useReportUnsupported(fieldPath, reason);
   if (children) {
     return (
       <>
         {children}
-        <UnsupportedText />
+        <UnsupportedText kind={kind} />
       </>
     );
   }
@@ -54,8 +61,24 @@ export const UnsupportedNotice = ({
       labelElement="div"
       style={inputWrapperStyle}
     >
-      <UnsupportedText />
+      <UnsupportedText kind={kind} />
     </InputWrapper>
+  );
+};
+
+/**
+ * 部品の無い schema（`ZodFormContextProvider` の notFoundComponent）。
+ * 欄の場所にラベルと「扱えない」注記を出し、型の名前を入れた理由を console.error に出す
+ */
+export const UnsupportedSchemaNotice: ZodForm = (props: ZodFormProps) => {
+  const meta = useResolvedMeta(props.schema);
+  return (
+    <UnsupportedNotice
+      fieldPath={props.fieldPath}
+      label={props.label ?? (meta as { label?: string } | undefined)?.label}
+      reason={unsupportedSchemaReason(props.schema)}
+      kind="schema"
+    />
   );
 };
 

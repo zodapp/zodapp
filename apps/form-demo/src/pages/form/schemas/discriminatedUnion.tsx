@@ -154,8 +154,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

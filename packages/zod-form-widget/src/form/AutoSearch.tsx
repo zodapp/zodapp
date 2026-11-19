@@ -8,7 +8,8 @@ import {
   ZodFormContextProvider,
   ValidatePrecedingFieldsProvider,
   FormRuntime,
-  useZodForm
+  useZodForm,
+  UnsupportedSchemaNotice
 } from '@zodapp/zod-form-mantine';
 import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
 import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
@@ -98,6 +99,7 @@ const AutoSearchInner = <T extends z.ZodTypeAny>({
   return (
     <Suspense fallback={<Loader />}>
       <ZodFormContextProvider
+        notFoundComponent={UnsupportedSchemaNotice}
         componentLibrary={componentLibrary}
         externalKeyResolvers={externalKeyResolvers}
         valueActionResolver={valueActionResolver}

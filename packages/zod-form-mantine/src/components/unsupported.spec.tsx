@@ -72,6 +72,26 @@ describe("扱えない組み合わせ", () => {
     });
   }
 
+  it("部品の無い型：欄の場所にラベルと注記を出し、型の名前を console.error に出す", async () => {
+    renderForm(
+      z.object({
+        p: z.promise(z.number()).register(zf.common.registry, { label: "欄" }),
+      }),
+      {},
+    );
+    expect(
+      await screen.findByText("This form cannot handle this schema."),
+    ).toBeTruthy();
+    expect(screen.getByText("欄")).toBeTruthy();
+    expect(
+      consoleError.mock.calls.some(
+        (call: unknown[]) =>
+          String(call[0]).includes('no component for schema type "promise"') &&
+          String(call[0]).includes("z.custom()"),
+      ),
+    ).toBe(true);
+  });
+
   it("rest 付きの tuple：今ある要素は描き、後ろに出す", async () => {
     const { container } = renderForm(
       z.object({ f: z.tuple([z.string()], z.number()) }),

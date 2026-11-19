@@ -4,12 +4,25 @@ type Check = z.core.$ZodCheck<unknown>;
 
 /** 同じ path の外側の包み 1 つぶん */
 export type OuterWrap = {
-  /** 包みの種類。optional・nullable・default・prefault 以外（dynamic の土台、preprocess など）は "checks" */
-  type: "optional" | "nullable" | "default" | "prefault" | "checks";
+  /**
+   * 包みの種類。optional・nullable・default・prefault・nonoptional・readonly・catch 以外
+   * （dynamic の土台、preprocess など）は "checks"
+   */
+  type:
+    | "optional"
+    | "nullable"
+    | "default"
+    | "prefault"
+    | "nonoptional"
+    | "readonly"
+    | "catch"
+    | "checks";
   /** その包み（または schema）に付いた検査（`.refine()` など） */
   checks: readonly Check[];
   /** default・prefault の既定の値 */
   defaultValue?: unknown;
+  /** catch の値（zod の def.catchValue。関数） */
+  catchValue?: unknown;
 };
 
 /**
@@ -41,7 +54,8 @@ const cache = new WeakMap<object, WeakMap<z.ZodTypeAny, Outer>>();
  * outer に schema（自分）の分を足した outer を返す。同じ outer と schema なら同じ object を返す
  * （props が毎回変わって、memo した部品が描き直されないように）。
  *
- * - optional・nullable・default・prefault：その種類と、付いた検査を足す
+ * - optional・nullable・default・prefault：その種類と、付いた検査を足す（nonoptional の内側では optional にしない）
+ * - nonoptional：内側の optional を打ち消す（外側の optional は残る）。readonly・catch：種類と検査を足す（dynamic が包み直すため）
  * - それ以外：付いた検査だけを足す（検査が無ければ outer をそのまま返す）
  */
 export const addOuter = (
@@ -60,8 +74,23 @@ export const addOuter = (
 
   const type = typeOf(schema);
   const checks = checksOf(schema);
+  // nonoptional の内側では、optional・default・prefault があっても undefined を受け付けない
+  // （外側に optional があれば、そちらが先に undefined を受けるので optional のまま）
+  const underNonoptional = base.wraps.some(
+    (wrap) => wrap.type === "nonoptional",
+  );
   let next: Outer;
-  if (
+  if (type === "nonoptional") {
+    next = { ...base, wraps: [...base.wraps, { type, checks }] };
+  } else if (type === "readonly") {
+    next = { ...base, wraps: [...base.wraps, { type, checks }] };
+  } else if (type === "catch") {
+    const def = (schema as unknown as { def: { catchValue?: unknown } }).def;
+    next = {
+      ...base,
+      wraps: [...base.wraps, { type, checks, catchValue: def.catchValue }],
+    };
+  } else if (
     type === "optional" ||
     type === "nullable" ||
     type === "default" ||
@@ -69,7 +98,8 @@ export const addOuter = (
   ) {
     const def = (schema as unknown as { def: { defaultValue?: unknown } }).def;
     next = {
-      optional: base.optional || type !== "nullable",
+      optional:
+        base.optional || (!underNonoptional && type !== "nullable"),
       nullable: base.nullable || type === "nullable",
       wraps: [
         ...base.wraps,
@@ -136,6 +166,15 @@ export const rewrapWithOuter = (
       case "prefault":
         schema = schema.prefault(wrap.defaultValue as never) as z.ZodTypeAny;
         break;
+      case "nonoptional":
+        schema = schema.nonoptional() as z.ZodTypeAny;
+        break;
+      case "readonly":
+        schema = schema.readonly() as z.ZodTypeAny;
+        break;
+      case "catch":
+        schema = schema.catch(wrap.catchValue as never) as z.ZodTypeAny;
+        break;
       default:
         break;
     }
@@ -144,10 +183,18 @@ export const rewrapWithOuter = (
   return schema;
 };
 
-const WRAPPER_TYPES = new Set(["optional", "nullable", "default", "prefault"]);
+const WRAPPER_TYPES = new Set([
+  "optional",
+  "nullable",
+  "default",
+  "prefault",
+  "nonoptional",
+  "readonly",
+  "catch",
+]);
 
 /**
- * 包みの部品（optional・nullable・default・prefault）が、内の Switch に渡す defaultValue（defaultValue の決まり）。
+ * 包みの部品（optional・nullable・default・prefault・nonoptional・readonly・catch）が、内の Switch に渡す defaultValue（defaultValue の決まり）。
  *
  * - optional・nullable は、受け取った値に手を付けない（null で埋めない）
  * - default・prefault は、受け取った値が undefined なら `.default(x)` の x を入れる
