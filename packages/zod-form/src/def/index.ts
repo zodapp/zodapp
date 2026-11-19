@@ -456,9 +456,11 @@ const computed = extendCustom(
   schemaType<z.ZodType>(),
 );
 
-// dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める
+// dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める。
+// 土台は z.unknown：静的な schema の parse では何でも通し（値の検証は実行時に決めた schema で行う）、
+// 隣の欄や親の .refine() も走るようにする
 const dynamic = extendCustom(
-  z.never,
+  z.unknown,
   "dynamic",
   zodExtendableCommonDefSchema.extend({
     ...fnSourceMetaSchema.shape,

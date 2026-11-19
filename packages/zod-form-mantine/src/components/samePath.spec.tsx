@@ -199,9 +199,9 @@ describe("同じ path の外側の包み（dynamic）", () => {
     expect(messagesAt("x")).toContain("内側の必須");
   });
 
-  // 同じ path の受け渡しでは直らない（path の違う object の refine）。今の動きを記録しておく
-  it.fails(
-    "参考：zf.dynamic()（z.never が土台）の兄弟がいても、object の .refine() が効く",
+  // zf.dynamic() の土台は z.unknown なので、静的な parse が dynamic の所で落ちず、親の refine も走る
+  it(
+    "zf.dynamic() の兄弟がいても、object の .refine() が効く",
     async () => {
       const x = zf.dynamic().register(
         zf.dynamic.registry,

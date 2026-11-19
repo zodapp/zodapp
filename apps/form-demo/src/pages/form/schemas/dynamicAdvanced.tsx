@@ -209,7 +209,6 @@ export const schema = z
   })
   .register(zf.object.registry, {});
 
-// dynamic の欄は静的には値型を持たないため、unknown 経由でキャストする
 export const defaultValues = {
   template: "invoice",
   templateFields: { dueDate: "2026-12-31", amount: 10000 },
@@ -217,7 +216,7 @@ export const defaultValues = {
   prefecture: "tokyo",
   city: "shinjuku",
   town: "nishi-shinjuku",
-} as unknown as z.input<typeof schema>;
+} satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
 
