@@ -6,6 +6,8 @@ export type {
   TableCell,
   Table,
   FromTableOptions,
+  ToTableOptions,
+  TableSchemaOptions,
   ToTableFn,
   FromTableFn,
 } from "./types/publicTypes.js";

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Table, TableCell } from "../types/publicTypes.js";
+import type { Table, TableCell, ToTableOptions } from "../types/publicTypes.js";
 import { compileSchema } from "../compile/compileSchema.js";
 import { collectColumns } from "../columns/collectColumns.js";
 import { sortColumns } from "../columns/sortColumns.js";
@@ -9,8 +9,9 @@ import { createRowWriterContext, writeValue } from "../encode/rowWriter.js";
 export function toTable<S extends z.ZodType>(
   schema: S,
   rows: z.infer<S>[],
+  options?: ToTableOptions,
 ): Table {
-  const compiled = compileSchema(schema);
+  const compiled = compileSchema(schema, { skip: options?.skip });
 
   const colKeys = collectColumns(compiled, rows);
   const sorted = sortColumns(colKeys);
