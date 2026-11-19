@@ -23,10 +23,11 @@ const LazyDepthContext = createContext<{ depth: number; maxDepth: number }>({
 /**
  * lazy の数を 0 に戻す（上限は引き継ぐ）。
  *
- * 値が無ければ中を描かない部品（optional・nullable・array・record の entries・Map・union）は、
+ * 値が無ければ中を描かない部品（optional・nullable な object・intersection の 0..1 の枠、array・record の entries・Map・union）は、
  * 中をこれで包む。そこから先の描画は値の深さで止まるので、上限で数える必要がない。
  * 上限で数えるのは、値が無くても中を描く所（object・intersection・キーの決まった record など）
- * だけで続いている lazy の連なり（関数で深さを決めた optional なしの再帰など）
+ * だけで続いている lazy の連なり（関数で深さを決めた optional なしの再帰など）。
+ * optional・nullable の包み自体では数え直さない（tuple・キーの決まった record は、値が無くても中を描くため）
  */
 export const ResetLazyDepth = ({ children }: { children: React.ReactNode }) => {
   const parent = useContext(LazyDepthContext);

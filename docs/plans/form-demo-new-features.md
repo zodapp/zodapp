@@ -36,18 +36,18 @@ lazy の上限は「optional の付かない再帰」（関数で深さを決め
 
 数を 0 に戻す部品：
 
-- optional（値が無いと ＋ だけを出す）
-- nullable
+- optional・nullable な object・intersection の 0..1 の枠（`OptionalContainer`。値が無いと ＋ だけを出す）
 - array（要素の数だけ描く）
 - record の entries（`uiType: "entries"`）・Map（組の数だけ描く）
 - union・discriminatedUnion（選んだ腕だけ描く）
 
 キーの決まった record（キーごとに必ず欄を出す）・object・intersection・tuple・pipe などは、数を戻さない。
+optional・nullable の包み自体でも戻さない。中が tuple・キーの決まった record なら、値が無くても中を描くので、戻すと `z.lazy(() => z.tuple([node.optional()]))` のような再帰が止まらなくなる（レビューの指摘）。
 
 作り：
 
 - `lazy.tsx` から、数を 0 に戻す Provider（`ResetLazyDepth`）を export する
-- 上の部品が、中の欄を描く所をそれで包む（mantine-lite と mantine の該当の部品）
+- 上の部品が、中の欄を描く所をそれで包む（mantine の `OptionalContainer`・array・record の entries・Map・union）
 - 関数で深さを決めた optional なしの再帰（`const level = (n) => n === 0 ? leaf : z.object({ child: z.lazy(() => level(n - 1)) })`）は、今までどおり数え、上限を超えたら注記を出す
 
 テスト（`zod-form-mantine/src/components/lazy.spec.tsx`）：
@@ -56,6 +56,7 @@ lazy の上限は「optional の付かない再帰」（関数で深さを決め
 - 配列を通る再帰も同じ
 - optional なしの再帰は、今までどおり上限で注記を出し、その先の値を消さない
 - 関数で深さを決めた再帰（上限以下）は、全部描く
+- optional な要素を持つ tuple・nullable な値を持つキーの決まった record の再帰は、上限で止める
 
 changeset を足す（patch）。
 

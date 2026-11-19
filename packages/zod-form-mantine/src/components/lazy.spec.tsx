@@ -145,4 +145,24 @@ describe("z.lazy の再帰の上限", () => {
     expect(await screen.findByText(NOTICE)).toBeTruthy();
     expect(notices()).toBe(1);
   });
+
+  it("optional な要素を持つ tuple の再帰は、値が無くても中を描くので、上限で止める", async () => {
+    type Node = [Node | undefined];
+    const node: z.ZodType<Node> = z.lazy(() => z.tuple([node.optional()]));
+    const limited = node.register(zf.common.registry, { maxDepth: 3 });
+    renderForm(z.object({ root: limited }), { root: [undefined] });
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(notices()).toBe(1);
+  });
+
+  it("nullable な値を持つキーの決まった record の再帰も、上限で止める", async () => {
+    type Node = Record<"a", Node | null>;
+    const node: z.ZodType<Node> = z.lazy(() =>
+      z.record(z.enum(["a"]), node.nullable()),
+    );
+    const limited = node.register(zf.common.registry, { maxDepth: 3 });
+    renderForm(z.object({ root: limited }), { root: { a: null } });
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(notices()).toBe(1);
+  });
 });
