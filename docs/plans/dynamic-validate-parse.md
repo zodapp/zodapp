@@ -2,7 +2,7 @@
 
 - ステータス: プラン（レビュー中）
 - 対象ブランチ: `claude/project-thread-cn05w5`
-- 前提の main: 600252e（PR #32 をマージ済み）
+- 前提の main: a55963f（PR #32・#33・#34 をマージ済み）
 - 対象パッケージ: `@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`（テスト）、`@zodapp/zod-form-widget`、`apps/survey`
 
 ---
@@ -60,6 +60,7 @@ main で確かめた症状は次のとおり。どれもスクラッチで `Form
 
 同じ path の外側の登録（#4）は、内側の output（または目印）が差し込まれた値を受け取る。外側の schema の中の内側の dynamic は土台が `z.unknown()` なので、output は素通りし、目印は §2.2 の検査で落ちる。
 最初に失敗した所で止めずに、全部の登録を評価する（エラーをすべて出すため）。
+2・3 の `safeParse` は、今の `validate`・`parse` と同じく `safeParseSync`（PR #33・#34 で入った。非同期の検証で zod が投げる例外を握り、`ASYNC_VALIDATION_ISSUE_CODE` の issue にする）を通す。
 
 issue の並びは今の `validate` に合わせ、静的な schema の issue を先に、登録の issue を後に並べる。
 `moveInvalidKeyIssue`（record のキーの issue を record の欄に移す）は、両方の issue に今どおりかける。
@@ -116,7 +117,7 @@ const dynamic = extendCustom(dynamicBase, "dynamic", …);
 
 ### 3.2 送信が止まった理由
 
-`submitBlockedReasons` には `evaluate` の issue を渡す。validate と parse のどちらの issue かを選ぶ分岐を消す。
+`submitBlockedReasons` には `evaluate` の issue を渡す。validate と parse のどちらの issue かを選ぶ分岐を消す。読み込み中・取得失敗・非同期の検証・入力の誤りを数える `submitBlockedReasons` 自体は変えない。
 
 ### 3.3 survey の SurveyBuilder
 
