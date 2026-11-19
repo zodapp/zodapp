@@ -192,3 +192,12 @@ describe("enum の選択肢の名前", () => {
     expect(enumOptionDataOf(schema, "zzz")).toBeUndefined();
   });
 });
+
+describe("choicesOf（NaN の腕）", () => {
+  it("NaN の腕を選べ、値と行き来する", () => {
+    const choices = choicesOf(z.union([z.literal(NaN), z.literal(1)]));
+    expect(choices.toOption(NaN)).toBe("0");
+    expect(Number.isNaN(choices.fromOption("0"))).toBe(true);
+    expect(choices.toOption(1)).toBe("1");
+  });
+});

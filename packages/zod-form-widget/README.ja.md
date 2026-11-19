@@ -79,7 +79,8 @@ import { ja } from "@zodapp/zod-form-widget/messages";
 
 `AutoForm` は、受け取った `defaultValues` を `getDefaultValue(schema, defaultValues)` に通してから使います（`defaultValues` が無ければ `getDefaultValue(schema)`）。
 
-- 値が無いところを schema の既定値で補います：`.default()` の値、空の配列・object・Set・Map、値が 1 つの literal、`z.undefined()`・`z.void()` のキーなど。渡した値はそのまま使い、無いキーだけを補います
+- 値が無いところを schema の既定値で補います：`.default()`・`.prefault()` の値、空の配列・object・Set・Map、値が 1 つの literal、`z.nan()` の NaN、`z.undefined()`・`z.void()` のキーなど。渡した値はそのまま使い、無いキーだけを補います
+  - NaN は JSON にすると null になります。サーバーへの送信や DynamoDB への保存では NaN のまま届かないので、`z.nan()`・`z.literal(NaN)` はフォームの中だけで使ってください
 - 補った値は既定値に入るので、開いただけでは「変更あり」になりません
 - 必須の object・intersection・配列は `{}`・`[]` で始まります（空で始めることはできません）
 - `onSubmit`・`onCancel` に渡る値にも、補ったキー（空の配列など）が入ります

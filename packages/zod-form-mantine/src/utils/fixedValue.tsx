@@ -15,6 +15,7 @@ import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
  * - 値が 1 つの literal：その値
  * - `z.null()`：null
  * - `z.undefined()`・`z.void()`：undefined
+ * - `z.nan()`：NaN（比べ方は `Object.is` なので、NaN 同士は等しい）
  */
 export const fixedValueOf = (
   schema: z.ZodTypeAny,
@@ -29,6 +30,8 @@ export const fixedValueOf = (
     case "undefined":
     case "void":
       return { value: undefined };
+    case "nan":
+      return { value: NaN };
     default:
       return undefined;
   }
@@ -44,9 +47,35 @@ const isShownFixedValue = (schema: z.ZodTypeAny): boolean => {
   return getMeta(schema)?.hidden === false;
 };
 
-/** 欄として何も出さない固定値か（入れ物の並びに場所を取らないようにするため） */
+/** 欄を出さず、値をそのまま保つ型（{@link KeepValueComponent}） */
+const KEPT_VALUE_TYPES = new Set([
+  "any",
+  "unknown",
+  "custom",
+  "symbol",
+  "function",
+  "never",
+]);
+
+/**
+ * 欄を出さず、値をそのまま保つ型か。zf の型（zf.dynamic・zf.computed など。土台が z.unknown・z.never）は、
+ * それぞれの部品で描くので当たらない
+ */
+export const isKeptValueSchema = (schema: z.ZodTypeAny): boolean => {
+  if (!KEPT_VALUE_TYPES.has(schema.type)) return false;
+  const typeName = getMeta(schema)?.typeName;
+  return (
+    typeName === undefined ||
+    typeName === schema.type ||
+    typeName === "common" ||
+    typeName === "hidden"
+  );
+};
+
+/** 欄として何も出さない固定値・値を保つ型か（入れ物の並びに場所を取らないようにするため） */
 export const isHiddenFixedValueSchema = (schema: z.ZodTypeAny): boolean =>
-  fixedValueOf(schema) !== undefined && !isShownFixedValue(schema);
+  (fixedValueOf(schema) !== undefined && !isShownFixedValue(schema)) ||
+  isKeptValueSchema(schema);
 
 const displayOf = (value: unknown) =>
   typeof value === "bigint" ? `${value}n` : String(value);
@@ -89,5 +118,24 @@ export const FixedValueComponent = wrapComponent(
         </Text>
       </Input.Wrapper>
     );
+  },
+);
+
+/**
+ * 欄を出さず、値をそのまま保つ部品（`z.any()`・`z.unknown()`・zf の型でない `z.custom()`・
+ * `z.symbol()`・`z.function()`・`z.never()`）。
+ *
+ * - 欄は出さない（`hidden: false` でも中身は出さない）。値は書き込まず、そのまま送る
+ * - 値が無いなど、この欄にエラーが出たときは、エラーだけを出す（固定値と同じ）
+ */
+export const KeepValueComponent = wrapComponent(
+  function KeepValueComponentImplement({
+    error,
+  }: ZodFormInternalProps<z.ZodTypeAny>) {
+    return error?.message ? (
+      <Text c="red" size="sm">
+        {error.message}
+      </Text>
+    ) : null;
   },
 );

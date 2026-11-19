@@ -127,6 +127,13 @@ const enumChoices = (enumSchema: EnumSchema): Choices => {
   };
 };
 
+/**
+ * 選択肢の値を探すときの比べ方。NaN の腕（`z.literal(NaN)`）も選べるよう、NaN 同士を等しいとする
+ * （0 と -0 は等しいままにする。zod の literal の検証と同じ）
+ */
+const sameValueZero = (a: unknown, b: unknown) =>
+  a === b || (Number.isNaN(a) && Number.isNaN(b));
+
 /** 選択肢に無い値の Select の値（腕の番号と重ならないよう、数字だけにしない） */
 const UNLISTED_OPTION_PREFIX = "unlisted:";
 
@@ -174,7 +181,9 @@ const literalUnionChoices = (unionSchema: z.ZodUnion): Choices => {
       color: meta?.color ?? "gray",
     })),
     toOption: (value) => {
-      const option = options.find((candidate) => candidate.value === value);
+      const option = options.find((candidate) =>
+        sameValueZero(candidate.value, value),
+      );
       if (option) return option.key;
       if (value === undefined || value === null || value === "") return null;
       return `${UNLISTED_OPTION_PREFIX}${defaultLabelOf(value)}`;
@@ -203,7 +212,9 @@ const literalChoices = (literalSchema: z.ZodLiteral): Choices => {
       color: "gray",
     })),
     toOption: (value) => {
-      const option = options.find((candidate) => candidate.value === value);
+      const option = options.find((candidate) =>
+        sameValueZero(candidate.value, value),
+      );
       if (option) return option.key;
       if (value === undefined || value === null || value === "") return null;
       return `${UNLISTED_OPTION_PREFIX}${defaultLabelOf(value)}`;
