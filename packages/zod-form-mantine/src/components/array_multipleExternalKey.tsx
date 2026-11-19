@@ -16,6 +16,8 @@ import {
 } from "@zodapp/zod-form-react/utils/externalKey";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { DynamicErrorView } from "./dynamic";
+import { useMsg } from "../messages/useMsg";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 /**
  * 複数選択の externalKey（`z.array(zf.externalKey ...)` に `uiType: "multipleExternalKey"`）。
@@ -31,7 +33,9 @@ const ArrayOfExternalKeyComponent = React.memo(
   ) {
     const { fieldPath, schema, outer, label: labelFromParent } = props;
     const { optional, nullable } = emptinessOf(outer);
-    const label = labelFromParent ?? getMeta(schema)?.label;
+    const msg = useMsg();
+    const resolveText = useResolveText();
+    const label = labelFromParent ?? resolveText(getMeta(schema)?.label);
     const dynamicMeta = useArrayExternalKeyDynamicMeta(schema);
     const depth = useDynamicDepth(fieldPath);
     const state = useDynamicSchema(dynamicMeta, fieldPath, {
@@ -47,7 +51,7 @@ const ArrayOfExternalKeyComponent = React.memo(
         required={!(optional || nullable)}
         disabled={true}
         rightSection={<Loader size="xs" />}
-        placeholder="読み込み中"
+        placeholder={msg("zodFormReact.dynamic.loading" /* 読み込み中 */)}
         style={inputWrapperStyle}
         data-dynamic-status={status}
       />

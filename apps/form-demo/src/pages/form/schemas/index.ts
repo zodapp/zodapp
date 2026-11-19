@@ -28,6 +28,7 @@ import * as nullableFields from "./nullableFields";
 import * as literalUnionSelect from "./literalUnionSelect";
 import * as intersection from "./intersection";
 import * as refineValidation from "./refineValidation";
+import * as i18nMessages from "./i18nMessages";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
 import * as readOnly from "./readOnly";
@@ -67,6 +68,7 @@ import nullableFieldsCode from "./nullableFields.ts?raw";
 import literalUnionSelectCode from "./literalUnionSelect.ts?raw";
 import intersectionCode from "./intersection.ts?raw";
 import refineValidationCode from "./refineValidation.ts?raw";
+import i18nMessagesCode from "./i18nMessages.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
 import readOnlyCode from "./readOnly.ts?raw";
@@ -96,6 +98,7 @@ export const formSchemas = {
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
   [recursiveData.formId]: recursiveData,
   [refineValidation.formId]: refineValidation,
+  [i18nMessages.formId]: i18nMessages,
   [file.formId]: file,
   [mediaPreview.formId]: mediaPreview,
   [computed.formId]: computed,
@@ -137,6 +140,7 @@ export const formCodes = {
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevelCode,
   [recursiveData.formId]: recursiveDataCode,
   [refineValidation.formId]: refineValidationCode,
+  [i18nMessages.formId]: i18nMessagesCode,
   [file.formId]: fileCode,
   [mediaPreview.formId]: mediaPreviewCode,
   [computed.formId]: computedCode,

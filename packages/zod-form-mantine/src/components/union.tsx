@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, {
   useCallback,
   useEffect,
@@ -32,6 +33,8 @@ import {
   ReadonlyText,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
+import { useResolveText } from "@zodapp/zod-form-react/common";
+import { useMsg } from "../messages/useMsg";
 
 type UnionSchema = z.ZodUnion<[z.ZodTypeAny, ...z.ZodTypeAny[]]>;
 
@@ -276,9 +279,6 @@ const replaceWrittenIssues = (
 
 const EMPTY_ERRORS: readonly unknown[] = [];
 
-/** 腕が未選択で検証に落ちているときに、腕を選ぶ欄に出す文言 */
-const UNSELECTED_MESSAGE = "選択してください";
-
 type schemaProfile = {
   schema: z.ZodTypeAny | undefined;
   label: string;
@@ -414,6 +414,8 @@ const UnionBody = React.memo(function UnionBody({
 }) {
   const { loadingComponent: LoadingComponent } = useZodFormContext();
   const { onFocus, ref } = useValidatePrecedingFields(field);
+  const msg = useMsg();
+  const resolveText = useResolveText();
 
   const compiledOptions: {
     profiles: schemaProfile[];
@@ -437,7 +439,8 @@ const UnionBody = React.memo(function UnionBody({
             key,
             {
               schema: optionSchema,
-              label: getMeta(optionSchema)?.label ?? ` ${index + 1}`,
+              label:
+                resolveText(getMeta(optionSchema)?.label) ?? ` ${index + 1}`,
               value: key,
               index,
             } satisfies schemaProfile,
@@ -464,7 +467,8 @@ const UnionBody = React.memo(function UnionBody({
             key,
             {
               schema: optionSchema,
-              label: getMeta(optionSchema)?.label ?? ` ${index + 1}`,
+              label:
+                resolveText(getMeta(optionSchema)?.label) ?? ` ${index + 1}`,
               value: key,
               index,
             } satisfies schemaProfile,
@@ -494,7 +498,7 @@ const UnionBody = React.memo(function UnionBody({
         discriminator: undefined,
       };
     }
-  }, [schema]);
+  }, [schema, resolveText]);
 
   /**
    * discriminator のない保存値では、zod は invalid_union を [union の欄, discriminator] に出す。
@@ -795,8 +799,11 @@ const UnionBody = React.memo(function UnionBody({
       (iss) => isUnrecognizedKeysIssue(iss) && !isWrittenIssue(iss),
     ) as { keys?: string[]; message?: string } | undefined;
     if (!issue) return undefined;
-    return unrecognizedKeysMessage(schema, issue.keys ?? []) ?? issue.message;
-  }, [fieldErrors, hideError, schema]);
+    return (
+      unrecognizedKeysMessage(schema, issue.keys ?? [], msg) ??
+      msg.resolve(issue.message)
+    );
+  }, [fieldErrors, hideError, schema, msg]);
 
   /**
    * 腕が未選択で検証に落ちているとき（必須の union が空のとき、値がどの腕にも合わず
@@ -812,10 +819,10 @@ const UnionBody = React.memo(function UnionBody({
       ? // discriminatedUnion は、値が undefined・null のとき invalid_union ではなく
         // invalid_type を union の欄に出す。腕が未選択で欄にエラーがあれば、code を問わず出す
         hasDiscriminatorError || (fieldErrors.length > 0 && !yieldsToAncestor)
-        ? UNSELECTED_MESSAGE
+        ? msg("zodFormMantine.union.unselected" /* 選択してください */)
         : undefined
       : unionError && !yieldsToAncestor
-        ? UNSELECTED_MESSAGE
+        ? msg("zodFormMantine.union.unselected" /* 選択してください */)
         : undefined;
 
   const runAsUserEdit = useRunAsUserEdit();
@@ -950,7 +957,10 @@ const UnionBody = React.memo(function UnionBody({
       {!shouldHideSelector &&
         (selectorIsReadOnly ? (
           <InputWrapper
-            label={selectorLabel ?? "タイプ"}
+            label={
+              selectorLabel ??
+              msg("zodFormMantine.union.selectorLabel" /* タイプ */)
+            }
             labelElement="div"
             style={inputWrapperStyle}
           >
@@ -964,7 +974,10 @@ const UnionBody = React.memo(function UnionBody({
             onChange={handleSelect}
             onBlur={field.onBlur}
             onFocus={onFocus}
-            label={selectorLabel ?? "タイプ"}
+            label={
+              selectorLabel ??
+              msg("zodFormMantine.union.selectorLabel" /* タイプ */)
+            }
             error={selectorError}
             required={!(optional || nullable)}
             disabled={selectorIsReadOnly}
@@ -1046,7 +1059,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
     hideSelector,
     readOnlySelector,
     uiType,
-  } = getMeta(schema) ?? {};
+  } = useResolvedMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const isRoot = fieldPath === "";
   const accessor = useValueAccessor(fieldPath, field);

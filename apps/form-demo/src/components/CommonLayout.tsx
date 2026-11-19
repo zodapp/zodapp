@@ -24,6 +24,7 @@ import {
 
 
 import styles from "../styles/page.module.css";
+import { LanguageSwitcher } from "./Language";
 
 export type NavItem = Pick<LinkOptions, "to" | "params" | "search"> & {
   label: string;
@@ -249,7 +250,9 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             </span>
           )}
         </Group>
-
+        <Box mr="md">
+          <LanguageSwitcher />
+        </Box>
       </AppShell.Header>
 
       {hasNavbar && (

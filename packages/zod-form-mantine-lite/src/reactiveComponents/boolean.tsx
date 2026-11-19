@@ -1,8 +1,9 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { Group, InputWrapper, Switch } from "@mantine/core";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
 import { emptinessOf } from "@zodapp/zod-form-react/common";
-import { zf, getMeta } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 import {
   useConfirmableState,
   ConfirmableInputActions,
@@ -20,7 +21,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
   readOnly: readOnlyProp,
 }: ZodFormProps<BooleanSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const uiType = meta?.uiType;
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;

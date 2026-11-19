@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import {
-  UNLISTED_LABEL,
   externalKeyDisplayLabel,
   isEnumValueListed,
   withUnlistedOption,
 } from "./unlisted";
+
+const UNLISTED_LABEL = "（不正な値）";
 
 describe("isEnumValueListed", () => {
   it("選択肢にある値は true、無い値は false（数値の選択肢も比べられる）", () => {
@@ -23,16 +24,21 @@ describe("externalKeyDisplayLabel", () => {
   const options = [{ label: "利用者 A", value: "u1" }];
 
   it("選択肢にある値は、そのラベル", () => {
-    expect(externalKeyDisplayLabel(options, "u1", false)).toBe("利用者 A");
+    expect(externalKeyDisplayLabel(options, "u1", false, UNLISTED_LABEL)).toBe(
+      "利用者 A",
+    );
   });
 
-  it("選択肢に無い値は「（不正な値）」で、生の値は出さない", () => {
-    expect(externalKeyDisplayLabel(options, "u9", false)).toBe(UNLISTED_LABEL);
-    expect(UNLISTED_LABEL).toBe("（不正な値）");
+  it("選択肢に無い値は unlistedLabel（「（不正な値）」）で、生の値は出さない", () => {
+    expect(externalKeyDisplayLabel(options, "u9", false, UNLISTED_LABEL)).toBe(
+      UNLISTED_LABEL,
+    );
   });
 
   it("allowUnlisted なら、選択肢に無い値もそのまま出す", () => {
-    expect(externalKeyDisplayLabel(options, "u9", true)).toBe("u9");
+    expect(externalKeyDisplayLabel(options, "u9", true, UNLISTED_LABEL)).toBe(
+      "u9",
+    );
   });
 });
 

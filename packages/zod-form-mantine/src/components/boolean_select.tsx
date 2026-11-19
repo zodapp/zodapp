@@ -12,6 +12,8 @@ import {
   ReadonlyText,
   inputWrapperStyle,
 } from "@zodapp/zod-form-mantine-lite/utils";
+import { useMsg } from "../messages/useMsg";
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 
 type BooleanSchema = ReturnType<typeof zf.boolean>;
 
@@ -28,11 +30,12 @@ const BooleanSelectComponent = wrapComponent(
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
     const { optional, nullable } = emptinessOf(outer);
+    const msg = useMsg();
     const {
       label: labelFromMeta,
-      trueLabel = "はい",
-      falseLabel = "いいえ",
-    } = getMeta(schema) ?? {};
+      trueLabel = msg("zodFormMantineLite.yes" /* はい */),
+      falseLabel = msg("zodFormMantineLite.no" /* いいえ */),
+    } = useResolvedMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const isOptional = Boolean(optional || nullable);

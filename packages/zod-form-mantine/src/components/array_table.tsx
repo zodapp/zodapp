@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, InputWrapper, Table, Text } from "@mantine/core";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
@@ -365,7 +366,8 @@ const ArrayTableComponent = wrapComponent(
     const itemSchema = schema.element as z.ZodTypeAny;
     const objectSchema = unwrapObjectSchema(itemSchema);
 
-    const { discriminator, label: labelFromMeta } = getMeta(schema) ?? {};
+    const { discriminator, label: labelFromMeta } =
+      useResolvedMeta(schema) ?? {};
 
     const maxLength = extractCheck<$ZodCheckMaxLengthDef>(
       schema.def.checks,
@@ -463,7 +465,7 @@ const ArrayTableComponent = wrapComponent(
       >
         {!objectSchema ? (
           <Text c="red" size="sm">
-            table 表示は object 配列のみ対応しています。
+            uiType &quot;table&quot; supports only arrays of objects.
           </Text>
         ) : (
           <>

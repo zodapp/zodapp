@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 import React from "react";
 import {
   cleanup,
@@ -49,29 +51,31 @@ function TestForm({
 
   return (
     <MantineProvider>
-      <ZodFormContextProvider
-        componentLibrary={{
-          record: () => ({ component: RecordComponent }),
-          record_entries: () => ({ component: RecordEntriesComponent }),
-          string: () => ({ component: StringComponent }),
-        }}
-      >
-        <FormProvider form={form}>
-          <Switch
-            fieldPath="slots"
-            schema={recordSchema}
-            readOnly={readOnly}
-          />
-          {onCapture && (
-            <button
-              type="button"
-              onClick={() => onCapture(form.state.values.slots)}
-            >
-              Capture
-            </button>
-          )}
-        </FormProvider>
-      </ZodFormContextProvider>
+      <I18nMessagesProvider locale="ja" messages={jaMessages}>
+        <ZodFormContextProvider
+          componentLibrary={{
+            record: () => ({ component: RecordComponent }),
+            record_entries: () => ({ component: RecordEntriesComponent }),
+            string: () => ({ component: StringComponent }),
+          }}
+        >
+          <FormProvider form={form}>
+            <Switch
+              fieldPath="slots"
+              schema={recordSchema}
+              readOnly={readOnly}
+            />
+            {onCapture && (
+              <button
+                type="button"
+                onClick={() => onCapture(form.state.values.slots)}
+              >
+                Capture
+              </button>
+            )}
+          </FormProvider>
+        </ZodFormContextProvider>
+      </I18nMessagesProvider>
     </MantineProvider>
   );
 }

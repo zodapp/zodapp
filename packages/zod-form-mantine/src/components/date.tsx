@@ -1,8 +1,8 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useMemo } from "react";
 import dayjs from "dayjs";
 import { InputWrapper } from "@mantine/core";
 import { DateInput, DateTimePicker } from "@mantine/dates";
-import "dayjs/locale/ja.js";
 import {
   ZodFormInternalProps,
   wrapComponent,
@@ -11,7 +11,6 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import {
   ReadonlyText,
   inputWrapperStyle,
@@ -24,6 +23,8 @@ import {
   type CreateDateConverterParams,
 } from "@zodapp/zod-form-react/utils/dateConverter";
 import { z } from "zod";
+import { useMsg } from "../messages/useMsg";
+import { useLocale } from "@zodapp/i18n-messages-react";
 
 // zf.date でサポートするスキーマ型
 type DateSchema = z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate;
@@ -38,8 +39,10 @@ const DateComponent = wrapComponent(function DateComponentImplement({
 }: ZodFormInternalProps<DateSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
+  const msg = useMsg();
+  const locale = useLocale();
   const { timezone } = useZodFormContext();
-  const meta = getMeta(schema) as
+  const meta = useResolvedMeta(schema) as
     | {
         label?: string;
         unit?: DateUnit;
@@ -99,9 +102,11 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   const commonProps = {
     ref,
     value: pickerValue,
-    locale: "ja" as const,
+    locale,
     firstDayOfWeek: 0 as const,
-    monthLabelFormat: "YYYY年M月",
+    monthLabelFormat: msg(
+      "zodFormMantine.date.monthLabelFormat" /* YYYY年M月 */,
+    ),
     defaultDate: new Date(),
     onChange,
     onBlur: field.onBlur,

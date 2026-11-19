@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
 import { zf, getMeta } from "@zodapp/zod-form";
@@ -25,7 +26,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
   label: labelFromParent,
 }: ZodFormProps<ObjectSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
 

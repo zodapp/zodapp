@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { toTable, tableToCsv } from '@zodapp/zod-tabular';
 import { TabularPreviewTable } from './TabularPreviewTable';
+import { useMsg } from '../messages/useMsg';
 
 interface ExportModalProps<S extends z.ZodType> {
   schema: S;
@@ -32,8 +33,10 @@ export function useExportModal<S extends z.ZodType>({
   data,
   fetchAll,
   filename = 'export.csv',
-  title = 'データエクスポート'
+  title: titleFromProps
 }: ExportModalProps<S>) {
+  const msg = useMsg();
+  const title = titleFromProps ?? msg('zodFormWidget.export.title' /* データエクスポート */);
   const [opened, { open, close }] = useDisclosure(false);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export function useExportModal<S extends z.ZodType>({
     try {
       const allData = await fetchAll();
       if (allData.length === 0) {
-        setError('エクスポート対象のデータがありません。');
+        setError(msg('zodFormWidget.export.noData' /* エクスポート対象のデータがありません。 */));
         return;
       }
       const table = toTable(schema, allData);
@@ -58,28 +61,36 @@ export function useExportModal<S extends z.ZodType>({
       downloadCsv(csv, filename);
       close();
     } catch (e) {
-      setError(e instanceof Error ? `取得エラー: ${e.message}` : 'データの取得に失敗しました。');
+      setError(
+        e instanceof Error
+          ? msg('zodFormWidget.export.fetchError' /* 取得エラー: ${message} */, {
+              message: msg.resolve(e.message)
+            })
+          : msg('zodFormWidget.export.fetchFailed' /* データの取得に失敗しました。 */)
+      );
     } finally {
       setIsFetching(false);
     }
-  }, [fetchAll, schema, filename, close]);
+  }, [fetchAll, schema, filename, close, msg]);
 
   const modal = (
     <Modal opened={opened} onClose={close} title={title} size="calc(100vw - 3rem)">
       {data.length === 0 ? (
-        <Text c="dimmed">現在表示中のデータがありません。</Text>
+        <Text c="dimmed">
+          {msg('zodFormWidget.export.nothingShown' /* 現在表示中のデータがありません。 */)}
+        </Text>
       ) : (
         <>
           <Group justify="flex-end" mb="sm">
             <Button variant="default" onClick={close}>
-              キャンセル
+              {msg('zodFormWidget.common.cancel' /* キャンセル */)}
             </Button>
             <Button
               leftSection={<IconDownload size={16} />}
               onClick={handleDownload}
               loading={isFetching}
             >
-              全件取得してCSVダウンロード
+              {msg('zodFormWidget.export.download' /* 全件取得してCSVダウンロード */)}
             </Button>
           </Group>
 
@@ -90,10 +101,14 @@ export function useExportModal<S extends z.ZodType>({
           )}
 
           <Text size="sm" mb="xs">
-            先頭 {previewData.length} 件をプレビュー表示しています。
+            {msg('zodFormWidget.export.preview' /* 先頭 ${count} 件をプレビュー表示しています。 */, {
+              count: previewData.length
+            })}
           </Text>
           <Text size="sm" c="dimmed" mb="sm">
-            ダウンロード時は全件を取得してエクスポートします。
+            {msg(
+              'zodFormWidget.export.downloadNote' /* ダウンロード時は全件を取得してエクスポートします。 */
+            )}
           </Text>
 
           {previewTable && (

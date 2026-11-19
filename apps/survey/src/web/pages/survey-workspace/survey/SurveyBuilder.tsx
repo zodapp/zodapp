@@ -11,10 +11,10 @@ import {
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { z } from "zod";
 import { stableStringify } from "@zodapp/caching-utilities";
-import type { StandardSchemaV1 } from "@tanstack/react-form";
 import {
   componentLibrary,
   FormProvider,
+  FormRuntime,
   Switch,
   useFormValues,
   useZodForm,
@@ -146,10 +146,12 @@ export const SurveyBuilder = ({
   // status / revision などはヘッダとアクション側で扱う
   const editorSchema = surveyBodySchema;
 
-  const validator = editorSchema as unknown as StandardSchemaV1<
-    EditorValues,
-    unknown
-  >;
+  // FormRuntime で包むと、zod のエラーが辞書のキー（zod.*）になり、言語の切り替えに従う
+  const [runtime] = useState(() => new FormRuntime());
+  const validator = useMemo(
+    () => runtime.wrapValidator<EditorValues>(editorSchema),
+    [runtime, editorSchema],
+  );
   const form = useZodForm({
     defaultValues: survey as unknown as EditorValues,
     validators: {
@@ -212,7 +214,7 @@ export const SurveyBuilder = ({
 
   return (
     <ZodFormContextProvider merge componentLibrary={componentLibrary}>
-      <FormProvider form={form}>
+      <FormProvider form={form} runtime={runtime}>
         <ValidatePrecedingFieldsProvider>
           <Grid gap="lg">
             <Grid.Col span={{ base: 12, md: 6 }}>

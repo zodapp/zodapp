@@ -28,6 +28,8 @@
     "@tanstack/react-form": "^1.33.1",
     "@tanstack/react-router": "^1.157.18",
     "@zodapp/caching-utilities": "workspace:*",
+    "@zodapp/i18n-messages": "workspace:*",
+    "@zodapp/i18n-messages-react": "workspace:*",
     "@zodapp/react-storage": "workspace:*",
     "@zodapp/zod-dynamodb": "workspace:*",
     "@zodapp/zod-dynamodb-client": "workspace:*",
