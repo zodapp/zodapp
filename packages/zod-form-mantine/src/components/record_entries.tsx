@@ -7,12 +7,14 @@ import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import z from "zod";
 import {
   Switch,
+  ContainerMarker,
   ZodFormInternalProps,
   getDefaultValue,
   wrapComponent,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { ownsContainerMarker } from "./container";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -56,6 +58,8 @@ const RecordEntriesComponent = wrapComponent(
     label: labelFromParent,
     error,
     field,
+    hideError,
+    errorToken,
   }: ZodFormInternalProps<RecordSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const meta = useResolvedMeta(schema);
@@ -244,6 +248,9 @@ const RecordEntriesComponent = wrapComponent(
           }}
         >
           {rowComponents}
+          {ownsContainerMarker({ hideError, errorToken }) && (
+            <ContainerMarker fieldPath={fieldPath} />
+          )}
           {!readOnly && (
             <div style={{ position: "relative" }}>
               <ActionIcon

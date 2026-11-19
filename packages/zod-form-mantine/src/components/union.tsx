@@ -14,6 +14,7 @@ import {
   ZodFormInternalProps,
   wrapComponent,
   Switch,
+  ContainerMarker,
   useValidatePrecedingFields,
   getDefaultValue,
   useZodFormContext,
@@ -25,6 +26,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { unrecognizedKeysMessage } from "./unrecognizedKeys";
+import { ownsContainerMarker } from "./container";
 import { $ZodDiscriminatedUnionDef } from "zod/v4/core";
 import { Suspense } from "react";
 import {
@@ -1015,6 +1017,9 @@ const UnionBody = React.memo(function UnionBody({
             />
           </Suspense>
         </div>
+      )}
+      {ownsContainerMarker({ hideError, errorToken }) && (
+        <ContainerMarker fieldPath={fieldPath} />
       )}
     </>
   );

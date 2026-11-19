@@ -76,3 +76,4 @@ export {
   resolveMeta,
   TEXT_META_KEYS,
 } from "./i18n";
+export { ContainerMarker } from "./containerMarker";
