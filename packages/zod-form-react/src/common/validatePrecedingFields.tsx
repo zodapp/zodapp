@@ -30,6 +30,11 @@ type FieldRecord = {
    * （`ContainerMarker`）。目印の handleBlur は入れ物の欄を触ったことにする
    */
   kind?: "field" | "marker";
+  /**
+   * 欄の path（`field.name`）。目印では入れ物の path。最後の欄を離したとき、離した欄が
+   * 入れ物の内側（同じ path かその下）にあるかを見るのに使う
+   */
+  path?: string;
   /** node に付けた focusout の listener を外す */
   detach?: () => void;
 };
@@ -47,6 +52,21 @@ type ValidatePrecedingFieldsContextType = {
    * （入れ物の最後の欄を離したら、入れ物を触ったことにする）
    */
   triggerTrailing: (field: FieldRecord) => void;
+};
+
+/** `a[0].b` と `a.0.b` を同じにする */
+const normalizePath = (path: string): string =>
+  path.replace(/\[(\w+)\]/g, ".$1").replace(/^\./, "");
+
+/** path が、入れ物の path と同じか、その下にあるか */
+const isWithinPath = (path: string, containerPath: string): boolean => {
+  const target = normalizePath(path);
+  const container = normalizePath(containerPath);
+  return (
+    container === "" ||
+    target === container ||
+    target.startsWith(container + ".")
+  );
 };
 
 const ValidatePrecedingFieldsContext = createContext<
@@ -125,6 +145,15 @@ export const ValidatePrecedingFieldsProvider = ({
           ) {
             return;
           }
+          // 離した欄が入れ物の内側に無ければ（入れ物の前の欄なら）、入れ物の最後の欄ではない。
+          // 中に欄の無い入れ物（空の配列など）の目印が、直前の欄を離しただけで呼ばれないようにする
+          if (
+            fieldRecord.path === undefined ||
+            marker.path === undefined ||
+            !isWithinPath(fieldRecord.path, marker.path)
+          ) {
+            return;
+          }
           // 離した欄と目印の間に入力欄があれば、最後の欄ではない
           const hasFieldBetween = followingFields.some((other) =>
             isAfter(marker.node!, other.node!),
@@ -153,6 +182,8 @@ export const ValidatePrecedingFieldsProvider = ({
  * @returns Handlers to attach to the controlled input.
  */
 export function useValidatePrecedingFields(field: {
+  /** 欄の path。入れ物の最後の欄を離したかを判定するのに使う */
+  name?: string;
   ref: (node: HTMLElement | null) => void;
   api: {
     handleBlur: () => void;
@@ -164,6 +195,7 @@ export function useValidatePrecedingFields(field: {
   const context = useContext(ValidatePrecedingFieldsContext);
   const fieldRecordRef = useRef<FieldRecord>({});
   fieldRecordRef.current.handleBlur = field.api.handleBlur;
+  fieldRecordRef.current.path = field.name;
 
   useEffect(() => {
     // いったん固定のスタブを登録することで、register/unregisterの整合性を保つ。
@@ -217,11 +249,14 @@ export function useValidatePrecedingFields(field: {
  * に `handleBlur` が呼ばれる。返す ref を、目印の要素に渡す。
  */
 export function useValidatePrecedingMarker(
+  /** 入れ物の欄の path */
+  path: string,
   handleBlur: () => void,
 ): (node: HTMLElement | null) => void {
   const context = useContext(ValidatePrecedingFieldsContext);
   const recordRef = useRef<FieldRecord>({ kind: "marker" });
   recordRef.current.handleBlur = handleBlur;
+  recordRef.current.path = path;
 
   useEffect(() => {
     const record = recordRef.current;

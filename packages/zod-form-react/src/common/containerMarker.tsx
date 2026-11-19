@@ -33,7 +33,7 @@ export const ContainerMarker = ({ fieldPath }: { fieldPath: string }) => {
           | null
           | undefined);
 
-  const ref = useValidatePrecedingMarker(() => {
+  const ref = useValidatePrecedingMarker(fieldPath, () => {
     fieldInstance()?.handleBlur();
   });
 

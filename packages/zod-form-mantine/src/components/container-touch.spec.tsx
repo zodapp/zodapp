@@ -165,6 +165,21 @@ describe("入れ物の欄を触った・変えたにする（ContainerMarker）"
     await expectAbsent(MISMATCH);
   });
 
+  it("中に欄の無い入れ物（空の配列）は、直前の欄を離しても触ったことにならない", async () => {
+    const schema = z.object({
+      name: text("名前"),
+      tags: z
+        .array(zf.string())
+        .min(1, "タグを 1 つ以上入れてください")
+        .register(zf.array.registry, { label: "タグ" }),
+    });
+    renderForm(schema, { name: "", tags: [] });
+    const name = await screen.findByLabelText(/^名前/);
+    focus(name);
+    blur(name);
+    await expectAbsent("タグを 1 つ以上入れてください");
+  });
+
   it("入れ物より後ろの欄にフォーカスすると、入れ物のエラーが出る", async () => {
     renderForm(pairSchema(), { pair: { from: "a", to: "a" }, memo: "" });
     focus(await screen.findByLabelText(/^メモ/));
