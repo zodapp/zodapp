@@ -93,7 +93,7 @@ const MillisecondInput = ({
       error={
         invalid
           ? msg(
-              "zodFormMantine.time.invalidFormat" /* ${format} の形で、正しい時刻を入力してください */,
+              "zodFormMantine.time.invalidFormat" /* i18n: ${format} の形で、正しい時刻を入力してください */,
               { format },
             )
           : error

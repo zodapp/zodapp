@@ -47,13 +47,15 @@ describe("record の entries：キーの入力", () => {
     },
   );
 
-  it("空のキーはエラーにし、値に入れない", async () => {
+  it("空のキーはエラーにし、直すまでその組を値から外す（古いキーのまま送らない）", async () => {
     const { values } = renderForm(entries(), { r: { a: "x" } });
     await ready();
     const keyInput = screen.getByDisplayValue("a");
     fireEvent.change(keyInput, { target: { value: "" } });
     expect(await screen.findByText("Enter a key.")).toBeTruthy();
-    expect(values()).toEqual({ r: { a: "x" } });
+    expect(values()).toEqual({ r: {} });
+    fireEvent.change(keyInput, { target: { value: "b" } });
+    await waitFor(() => expect(values()).toEqual({ r: { b: "x" } }));
   });
 });
 

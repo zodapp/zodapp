@@ -22,38 +22,38 @@ export const schema = z
       .min(
         3,
         msgKey(
-          "formDemo.i18n.nameTooShort" /* ${length}文字以上で入力してください。 */,
+          "formDemo.i18n.nameTooShort" /* i18n: ${length}文字以上で入力してください。 */,
           {
             length: 3,
           },
         ),
       )
       .register(zf.string.registry, {
-        label: msgKey("formDemo.i18n.name" /* 名前 */),
+        label: msgKey("formDemo.i18n.name" /* i18n: 名前 */),
       }),
     // schema にエラーの文言を書かなければ、zod の既定のエラー（zod.*）を辞書で訳す
     email: z.email().register(zf.string.registry, {
-      label: msgKey("formDemo.i18n.email" /* メールアドレス */),
+      label: msgKey("formDemo.i18n.email" /* i18n: メールアドレス */),
     }),
     color: zf
       .enum([
         zf.literal("red").register(zf.literal.registry, {
-          label: msgKey("formDemo.i18n.color.red" /* 赤 */),
+          label: msgKey("formDemo.i18n.color.red" /* i18n: 赤 */),
         }),
         zf.literal("green").register(zf.literal.registry, {
-          label: msgKey("formDemo.i18n.color.green" /* 緑 */),
+          label: msgKey("formDemo.i18n.color.green" /* i18n: 緑 */),
         }),
         zf.literal("blue").register(zf.literal.registry, {
-          label: msgKey("formDemo.i18n.color.blue" /* 青 */),
+          label: msgKey("formDemo.i18n.color.blue" /* i18n: 青 */),
         }),
       ])
       .register(zf.enum.registry, {
-        label: msgKey("formDemo.i18n.color" /* 好きな色 */),
+        label: msgKey("formDemo.i18n.color" /* i18n: 好きな色 */),
       }),
     contact: zf
       .union([
         z.email().register(zf.string.registry, {
-          label: msgKey("formDemo.i18n.contact.email" /* メール */),
+          label: msgKey("formDemo.i18n.contact.email" /* i18n: メール */),
         }),
         zf
           .object({
@@ -61,30 +61,30 @@ export const schema = z
               .string()
               .min(10)
               .register(zf.string.registry, {
-                label: msgKey("formDemo.i18n.phone" /* 電話番号 */),
+                label: msgKey("formDemo.i18n.phone" /* i18n: 電話番号 */),
               }),
           })
           .register(zf.object.registry, {
-            label: msgKey("formDemo.i18n.contact.phone" /* 電話 */),
+            label: msgKey("formDemo.i18n.contact.phone" /* i18n: 電話 */),
           }),
       ])
       .register(zf.union.registry, {
-        label: msgKey("formDemo.i18n.contact" /* 連絡方法 */),
+        label: msgKey("formDemo.i18n.contact" /* i18n: 連絡方法 */),
         selectorLabel: msgKey(
-          "formDemo.i18n.contact.selector" /* 連絡の手段 */,
+          "formDemo.i18n.contact.selector" /* i18n: 連絡の手段 */,
         ),
       }),
     birthday: z.iso
       .date()
       .register(zf.date.registry, {
-        label: msgKey("formDemo.i18n.birthday" /* 誕生日 */),
+        label: msgKey("formDemo.i18n.birthday" /* i18n: 誕生日 */),
       })
       .optional(),
     note: zf
       .string()
       .max(20)
       .register(zf.string.registry, {
-        label: msgKey("formDemo.i18n.note" /* メモ */),
+        label: msgKey("formDemo.i18n.note" /* i18n: メモ */),
       })
       .optional(),
     message: zfReact
@@ -92,8 +92,7 @@ export const schema = z
       .register(zf.computed.registry, {
         compute: () =>
           "ラベル・選択肢・エラーは辞書のキーで書いています。ヘッダーで English に切り替えると、英語の辞書で表示します（アプリの見出しや説明は日本語のままです）。送信すると、名前（params 付きのキー）とメールアドレス（zod の既定のエラー）のエラーが出ます。",
-      })
-      .optional(),
+      }),
   })
   .register(zf.object.registry, {});
 

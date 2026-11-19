@@ -195,6 +195,16 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           ? defaultValue()
           : schema.def.defaultValue;
       },
+      // prefault：値が無ければ prefault の値（関数なら呼んだ結果）を入れる。中の schema の入力として歩く
+      prefault: (obj, schema) => {
+        const defaultValue = schema.def.defaultValue as unknown;
+        if (obj !== undefined) return obj;
+        return typeof defaultValue === "function"
+          ? (defaultValue as () => unknown)()
+          : defaultValue;
+      },
+      // z.nan() は値が NaN の 1 つに決まるので、値が 1 つの literal と同じく入れる
+      nan: (obj) => (obj !== undefined ? obj : NaN),
     } as PreprocessorDef,
     {
       processor: {
@@ -204,6 +214,14 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           obj === undefined
             ? undefined
             : context.transform(obj, schema.def.innerType as z.ZodTypeAny),
+        // nonoptional：中の optional を打ち消すので、optional を外した中で歩く（値が無くても中の初期値を入れる）
+        nonoptional: (obj, schema, context) => {
+          let innerType = schema.def.innerType as z.ZodTypeAny;
+          while (innerType.def.type === "optional")
+            innerType = (innerType as z.ZodOptional).def
+              .innerType as z.ZodTypeAny;
+          return context.transform(obj, innerType);
+        },
         // nullable：中が default なら（`.default("x").nullable()`）その値を使う（zod と同じく、
         // nullable は undefined を中に渡す）。optional を含むなら undefined。それ以外は null にする。
         // object・配列・record の空の値（{ x: undefined }・[]・{}）は使わない。nullable な object は

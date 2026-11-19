@@ -155,7 +155,7 @@ describe("RecordEntriesComponent", () => {
     });
   });
 
-  it("不正なキーと重複キーをrecordへ反映しない", async () => {
+  it("キーを不正な書きかけにすると、その組を値から外し、直すと元の位置に戻す", async () => {
     const onCapture = vi.fn();
     const { rerender } = render(
       <TestForm
@@ -170,10 +170,23 @@ describe("RecordEntriesComponent", () => {
     expect(
       await screen.findByText("使用できない文字が含まれています"),
     ).toBeTruthy();
+    // 画面と違う古いキーのまま送らない（書きかけの組は無いまま）
     fireEvent.click(screen.getByRole("button", { name: "Capture" }));
-    expect(onCapture).toHaveBeenLastCalledWith({
-      顧客ID: "00123",
-      契約番号: "C-999",
+    expect(onCapture).toHaveBeenLastCalledWith({ 契約番号: "C-999" });
+    expect(
+      screen.getByPlaceholderText("キーを直すと、値が戻ります"),
+    ).toBeTruthy();
+
+    // キーを直すと、持っておいた値で元の位置に戻る
+    fireEvent.change(screen.getByDisplayValue("顧客.ID"), {
+      target: { value: "顧客番号" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Capture" }));
+    const restored = onCapture.mock.lastCall![0] as Record<string, string>;
+    expect(restored).toEqual({ 顧客番号: "00123", 契約番号: "C-999" });
+    expect(Object.keys(restored)).toEqual(["顧客番号", "契約番号"]);
+    fireEvent.change(screen.getByDisplayValue("顧客番号"), {
+      target: { value: "顧客.ID" },
     });
 
     rerender(

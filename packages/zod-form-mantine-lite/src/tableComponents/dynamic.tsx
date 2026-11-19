@@ -29,7 +29,7 @@ const DynamicComponent = (props: ZodFormProps<z.ZodTypeAny>) => {
   if (state.status === "error") {
     return (
       <Text size="sm" c="dimmed">
-        {msg("zodFormMantineLite.fetchFailed" /* 取得できませんでした */)}
+        {msg("zodFormMantineLite.fetchFailed" /* i18n: 取得できませんでした */)}
       </Text>
     );
   }

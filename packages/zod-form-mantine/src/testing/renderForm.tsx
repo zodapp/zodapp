@@ -17,6 +17,7 @@ import {
   useZodForm,
 } from "@zodapp/zod-form-react/common";
 import { componentLibrary } from "../components";
+import { UnsupportedSchemaNotice } from "../utils/unsupported";
 
 export const setupDomMocks = () => {
   if (!window.matchMedia) {
@@ -76,7 +77,10 @@ export const renderForm = (
     formRef.current = form as unknown as AnyFormApi;
     return (
       <MantineProvider>
-        <ZodFormContextProvider componentLibrary={componentLibrary}>
+        <ZodFormContextProvider
+          componentLibrary={componentLibrary}
+          notFoundComponent={UnsupportedSchemaNotice}
+        >
           <FormProvider form={form} runtime={runtime}>
             <ValidatePrecedingFieldsProvider>
               <Suspense fallback={null}>

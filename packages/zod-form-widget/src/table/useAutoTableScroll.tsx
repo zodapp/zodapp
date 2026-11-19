@@ -117,7 +117,7 @@ function AutoTableScrollFab({
                   color="var(--mantine-color-primary-filled)"
                   style={fabActionIconStyle}
                   aria-label={msg(
-                    'zodFormWidget.table.scrollToTop' /* 一覧の先頭へ移動 */
+                    'zodFormWidget.table.scrollToTop' /* i18n: 一覧の先頭へ移動 */
                   )}
                   onClick={onScrollToTop}
                 >
@@ -132,7 +132,7 @@ function AutoTableScrollFab({
                   radius="xl"
                   variant="filled"
                   aria-label={msg(
-                    'zodFormWidget.table.scrollToBottom' /* 一覧の末尾へ移動 */
+                    'zodFormWidget.table.scrollToBottom' /* i18n: 一覧の末尾へ移動 */
                   )}
                   color="var(--mantine-color-primary-filled)"
                   style={fabActionIconStyle}

@@ -1,6 +1,7 @@
 import React, { createContext, useMemo } from "react";
 import type { ZodForm } from "../utils/type";
-import { getMeta, getResolverContextSlice } from "@zodapp/zod-form";
+import { getResolverContextSlice } from "@zodapp/zod-form";
+import { UnsupportedSchema } from "./unsupported";
 import type {
   ExternalKeyResolvers,
   ExternalKeyResolverResult,
@@ -109,15 +110,7 @@ const getDefaultTimezone = (): string =>
 const ZodFormContext = createContext<ZodFormContextType>({
   componentLibrary: {},
   loadingComponent: () => <div>Loading...</div>,
-  notFoundComponent: ({ schema }) => {
-    const meta = getMeta(schema);
-    return (
-      <div>
-        Component not found for meta.typeName: {meta?.typeName}, meta.uiType:{" "}
-        {meta?.uiType}, schema.type: {meta?.typeName ?? schema.type}
-      </div>
-    );
-  },
+  notFoundComponent: UnsupportedSchema,
   timezone: getDefaultTimezone(),
 });
 

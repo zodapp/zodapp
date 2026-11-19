@@ -210,7 +210,7 @@ export const createMultipleEnumComponent = (collection: Collection) =>
     // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
     const errorMessage = showUnlisted
       ? msg(
-          "zodFormMantine.multipleEnum.unlisted" /* 選択肢に無い値があります。消すか、選び直してください。 */,
+          "zodFormMantine.multipleEnum.unlisted" /* i18n: 選択肢に無い値があります。消すか、選び直してください。 */,
         )
       : error?.message;
 
@@ -259,7 +259,7 @@ export const createMultipleEnumComponent = (collection: Collection) =>
                 variant="transparent"
                 c="inherit"
                 aria-label={msg(
-                  "zodFormMantine.multipleEnum.remove" /* ${label}を外す */,
+                  "zodFormMantine.multipleEnum.remove" /* i18n: ${label}を外す */,
                   { label: option.label },
                 )}
                 // Mantine の Pill の削除ボタンと同じく、入れ物（PillsInput）の
@@ -302,7 +302,7 @@ export const createMultipleEnumComponent = (collection: Collection) =>
           label={label || undefined}
           placeholder={
             emptyMessage ??
-            msg("zodFormMantineLite.noOptions" /* 選択肢がありません */)
+            msg("zodFormMantineLite.noOptions" /* i18n: 選択肢がありません */)
           }
           error={error?.message}
           required={!(optional || nullable)}

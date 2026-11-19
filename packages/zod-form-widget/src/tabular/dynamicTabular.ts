@@ -54,7 +54,7 @@ export const parseDynamicTabularFile = async (file: File): Promise<DynamicTabula
   if (table.length === 0) {
     throw new TabularImportError(
       'emptyFile',
-      msgKey('zodFormWidget.tabular.emptyFile' /* CSVファイルが空です。 */)
+      msgKey('zodFormWidget.tabular.emptyFile' /* i18n: CSVファイルが空です。 */)
     );
   }
 
@@ -62,7 +62,7 @@ export const parseDynamicTabularFile = async (file: File): Promise<DynamicTabula
   if (headers.length === 0) {
     throw new TabularImportError(
       'noHeader',
-      msgKey('zodFormWidget.tabular.noHeader' /* CSVヘッダーが見つかりません。 */)
+      msgKey('zodFormWidget.tabular.noHeader' /* i18n: CSVヘッダーが見つかりません。 */)
     );
   }
 
@@ -80,7 +80,7 @@ export const parseDynamicTabularFile = async (file: File): Promise<DynamicTabula
   if (rows.length === 0) {
     throw new TabularImportError(
       'noRows',
-      msgKey('zodFormWidget.tabular.noRows' /* CSVにデータ行がありません。 */)
+      msgKey('zodFormWidget.tabular.noRows' /* i18n: CSVにデータ行がありません。 */)
     );
   }
 

@@ -27,7 +27,7 @@ import {
 
 const Title = () => {
   const msg = useMsg();
-  return <h1>{msg("myApp.title" /* タイトル */)}</h1>;
+  return <h1>{msg("myApp.title" /* i18n: タイトル */)}</h1>;
 };
 ```
 

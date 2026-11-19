@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ASYNC_VALIDATION_ISSUE_CODE,
   PENDING_ISSUE_CODE,
   RESOLVE_ERROR_ISSUE_CODE,
 } from "@zodapp/zod-form-react";
@@ -20,6 +21,14 @@ describe("submitBlockedReasons", () => {
   it("取得できなかった欄だけなら、取得の失敗を理由にする", () => {
     expect(submitBlockedReasons([{ code: RESOLVE_ERROR_ISSUE_CODE }])).toEqual([
       FAILED,
+    ]);
+  });
+
+  it("非同期の検証の印だけなら、非同期の検証を理由にする", () => {
+    expect(
+      submitBlockedReasons([{ code: ASYNC_VALIDATION_ISSUE_CODE }]),
+    ).toEqual([
+      "zodFormWidget.autoForm.blocked.async" /* i18n: このフォームでは非同期の検証を扱えないため、送信できませんでした */,
     ]);
   });
 

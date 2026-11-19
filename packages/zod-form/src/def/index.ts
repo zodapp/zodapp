@@ -367,7 +367,13 @@ const booleanMetaSchema = zodExtendableCommonDefSchema.extend({
 const common = extendCustom(
   z.never,
   "common",
-  zodExtendableCommonDefSchema,
+  zodExtendableCommonDefSchema.extend({
+    /**
+     * `z.lazy` に付ける、再帰の深さの上限（ルートから数えた lazy の入れ子の数。既定 10）。
+     * これより深い所は描かずに注記を出す（値は消さない）
+     */
+    maxDepth: z.number().optional(),
+  }),
   schemaType<z.ZodType>(),
 );
 
@@ -452,7 +458,8 @@ export const fnSourceMetaSchema = z.object({
 // computed: { value, parent, context } を受け取り ComputedValue を返す
 // 値を持たない欄（z.never）に付ければ表示専用、値を持つ欄に付ければその値の表示になる
 const computed = extendCustom(
-  z.never,
+  // 値を持たない表示専用の欄なので、初めから optional にする（キーが無くても検証を通す）
+  () => z.never().optional(),
   "computed",
   zodExtendableCommonDefSchema.extend({
     ...fnSourceMetaSchema.shape,

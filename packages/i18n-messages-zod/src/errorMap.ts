@@ -62,12 +62,15 @@ export const zodIssueToMsgKey = (
     case "invalid_value":
       if (issue.input === undefined || issue.input === null) {
         return issue.code === "invalid_type"
-          ? ["zod.required", { expected: String(issue.expected) }]
-          : ["zod.required"];
+          ? [
+              "zod.required" /* i18n: 必ず入力してください。 */,
+              { expected: String(issue.expected) },
+            ]
+          : ["zod.required" /* i18n: 必ず入力してください。 */];
       }
       if (issue.code === "invalid_type") {
         return [
-          "zod.invalidType",
+          "zod.invalidType" /* i18n: 無効な値です。修正してください。 */,
           {
             expected: String(issue.expected),
             received: receivedType(issue.input),
@@ -75,7 +78,7 @@ export const zodIssueToMsgKey = (
         ];
       }
       return [
-        "zod.invalidValue",
+        "zod.invalidValue" /* i18n: 無効な値です。修正してください。 */,
         { values: issue.values.map(formatValue).join(", ") },
       ];
     case "too_small": {
@@ -117,17 +120,29 @@ export const zodIssueToMsgKey = (
       ];
     }
     case "not_multiple_of":
-      return ["zod.notMultipleOf", { divisor: String(issue.divisor) }];
+      return [
+        "zod.notMultipleOf" /* i18n: 数値は${p.divisor}の倍数を入力してください。 */,
+        { divisor: String(issue.divisor) },
+      ];
     case "unrecognized_keys":
-      return ["zod.unrecognizedKeys", { keys: issue.keys.join(", ") }];
+      return [
+        "zod.unrecognizedKeys" /* i18n: オブジェクトのキー '${p.keys}' が識別できません。 */,
+        { keys: issue.keys.join(", ") },
+      ];
     case "invalid_key":
-      return ["zod.invalidKey", { origin: issue.origin }];
+      return [
+        "zod.invalidKey" /* i18n: ${p.origin}内の無効なキー */,
+        { origin: issue.origin },
+      ];
     case "invalid_element":
-      return ["zod.invalidElement", { origin: issue.origin }];
+      return [
+        "zod.invalidElement" /* i18n: ${p.origin}内の無効な値 */,
+        { origin: issue.origin },
+      ];
     case "invalid_union":
-      return ["zod.invalidUnion"];
+      return ["zod.invalidUnion" /* i18n: */];
     default:
-      return ["zod.invalid"];
+      return ["zod.invalid" /* i18n: 無効な入力です。 */];
   }
 };
 

@@ -3,7 +3,7 @@ import { msgKey } from "@zodapp/i18n-messages";
 import { zodMsgKeyErrorMap } from "@zodapp/i18n-messages-zod";
 import "../messages/types";
 import type { AnyFormApi, StandardSchemaV1 } from "@tanstack/react-form";
-import type { z } from "zod";
+import { z } from "zod";
 import { getDefaultValue } from "@zodapp/zod-form";
 import { isEqualValue } from "../utils/equal";
 import {
@@ -33,6 +33,8 @@ export type EditCause = "user" | "external";
 export const PENDING_ISSUE_CODE = "zodform_pending";
 /** 取得に失敗した path に付ける issue の印 */
 export const RESOLVE_ERROR_ISSUE_CODE = "zodform_resolve_error";
+/** 非同期の検証（`z.promise()`・async の refine）が要る schema に付ける issue の印 */
+export const ASYNC_VALIDATION_ISSUE_CODE = "zodform_async_validation";
 
 type Issue = {
   message: string;
@@ -40,6 +42,34 @@ type Issue = {
   code?: string;
   /** zod の issue のほかの欄（invalid_union の errors など）は、そのまま残す */
   [key: string]: unknown;
+};
+
+/** schema の中に z.promise() があるか（def の中の schema をたどる。lazy は 1 度だけ開く） */
+const containsPromise = (
+  schema: z.ZodTypeAny,
+  seen: Set<unknown> = new Set(),
+): boolean => {
+  if (seen.has(schema)) return false;
+  seen.add(schema);
+  if (schema.type === "promise") return true;
+  const def = schema.def as unknown as Record<string, unknown>;
+  const children: unknown[] = [];
+  for (const [key, value] of Object.entries(def)) {
+    if (key === "getter" && typeof value === "function") {
+      children.push((value as () => unknown)());
+    } else if (key === "shape" && value && typeof value === "object") {
+      children.push(...Object.values(value));
+    } else if (Array.isArray(value)) {
+      children.push(...value);
+    } else {
+      children.push(value);
+    }
+  }
+  return children.some(
+    (child) =>
+      child instanceof z.ZodType &&
+      containsPromise(child as z.ZodTypeAny, seen),
+  );
 };
 
 const isThenable = (value: unknown): value is PromiseLike<unknown> =>
@@ -181,6 +211,7 @@ export class FormRuntime {
   private readonly defaultFills = new Map<string, z.ZodTypeAny>();
   private readonly defaultFillListeners = new Set<() => void>();
   private defaultFillsVersion = 0;
+  private asyncReported = false;
   private readonly fillCache = new Map<
     string,
     { schema: z.ZodTypeAny; input: unknown; output: unknown }[]
@@ -390,6 +421,47 @@ export class FormRuntime {
   }
 
   /**
+   * 同期の safeParse。schema が非同期の検証（`z.promise()`・`.refine(async …)`）を要すると、
+   * zod は例外を投げて検証全体を打ち切る。その例外を握り、ルートの issue（{@link ASYNC_VALIDATION_ISSUE_CODE}）
+   * にして返す（送信は止まる）。console.error は、このフォームで 1 度だけ出す
+   */
+  private safeParseSync(
+    schema: z.ZodTypeAny,
+    value: unknown,
+  ):
+    | { success: true; data: unknown }
+    | { success: false; error: { issues: z.core.$ZodIssue[] } } {
+    try {
+      return schema.safeParse(value, { error: zodMsgKeyErrorMap }) as any;
+    } catch (error) {
+      // zod 4 は、object の中の z.promise() で $ZodAsyncError ではなく TypeError を投げることがある
+      if (!(error instanceof z.core.$ZodAsyncError) && !containsPromise(schema))
+        throw error;
+      if (!this.asyncReported) {
+        this.asyncReported = true;
+        console.error(
+          "[zod-form] The schema needs asynchronous validation (z.promise() or an async refine), which this form does not support. Submitting is blocked. Use z.custom() to check only the shape of a Promise.",
+          error,
+        );
+      }
+      return {
+        success: false,
+        error: {
+          issues: [
+            {
+              code: ASYNC_VALIDATION_ISSUE_CODE,
+              path: [],
+              message: msgKey(
+                "zodFormReact.asyncValidation" /* i18n: このフォームでは非同期の検証を扱えません */,
+              ),
+            } as unknown as z.core.$ZodIssue,
+          ],
+        },
+      };
+    }
+  }
+
+  /**
    * 静的な schema と、登録された schema の両方で値を検証する。
    *
    * 登録された path の下は、静的な schema（や、より浅い登録）の issue を捨て、
@@ -433,17 +505,16 @@ export class FormRuntime {
       }
     };
 
-    collect(
-      null,
-      staticSchema.safeParse(value, { error: zodMsgKeyErrorMap }) as any,
-    );
+    collect(null, this.safeParseSync(staticSchema, value));
     for (const { path, segments } of registered) {
       const entry = this.get(path);
       if (!entry) continue;
       if (entry.status === "pending") {
         if (!isCovered(segments, segments)) {
           issues.push({
-            message: msgKey("zodFormReact.dynamic.loading" /* 読み込み中 */),
+            message: msgKey(
+              "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
+            ),
             path: segments,
             code: PENDING_ISSUE_CODE,
           });
@@ -454,7 +525,7 @@ export class FormRuntime {
         if (!isCovered(segments, segments)) {
           issues.push({
             message: msgKey(
-              "zodFormReact.dynamic.failed" /* 取得できませんでした */,
+              "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
             ),
             path: segments,
             code: RESOLVE_ERROR_ISSUE_CODE,
@@ -464,9 +535,7 @@ export class FormRuntime {
       }
       collect(
         segments,
-        entry.schema.safeParse(getValueAt(value, segments), {
-          error: zodMsgKeyErrorMap,
-        }) as any,
+        this.safeParseSync(entry.schema, getValueAt(value, segments)),
       );
     }
     return issues;
@@ -503,14 +572,14 @@ export class FormRuntime {
             entry.status === "pending"
               ? {
                   message: msgKey(
-                    "zodFormReact.dynamic.loading" /* 読み込み中 */,
+                    "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
                   ),
                   path: segments,
                   code: PENDING_ISSUE_CODE,
                 }
               : {
                   message: msgKey(
-                    "zodFormReact.dynamic.failed" /* 取得できませんでした */,
+                    "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
                   ),
                   path: segments,
                   code: RESOLVE_ERROR_ISSUE_CODE,
@@ -518,9 +587,10 @@ export class FormRuntime {
           ],
         };
       }
-      const result = entry.schema.safeParse(getValueAt(current, segments), {
-        error: zodMsgKeyErrorMap,
-      });
+      const result = this.safeParseSync(
+        entry.schema,
+        getValueAt(current, segments),
+      );
       if (!result.success) {
         return {
           success: false,
@@ -533,9 +603,7 @@ export class FormRuntime {
       current = fillAt(current, segments, () => result.data);
     }
 
-    const result = staticSchema.safeParse(current, {
-      error: zodMsgKeyErrorMap,
-    });
+    const result = this.safeParseSync(staticSchema, current);
     if (!result.success) {
       return {
         success: false,

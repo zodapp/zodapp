@@ -25,8 +25,7 @@ const total = zfReact
     dependsOnParent: true,
     compute: ({ parent }: { parent: { price: number; quantity: number } }) =>
       `${parent.price * parent.quantity}`,
-  })
-  .optional();
+  });
 
 const amount = z.number().register(
   zf.dynamic.registry,

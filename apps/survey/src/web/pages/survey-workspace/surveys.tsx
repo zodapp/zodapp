@@ -124,8 +124,7 @@ const SurveysPage = () => {
                 </ActionIcon>
               </Tooltip>
             ),
-          })
-          .optional(),
+          }),
       }),
     [handleRestore],
   );

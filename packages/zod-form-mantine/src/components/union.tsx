@@ -819,10 +819,10 @@ const UnionBody = React.memo(function UnionBody({
       ? // discriminatedUnion は、値が undefined・null のとき invalid_union ではなく
         // invalid_type を union の欄に出す。腕が未選択で欄にエラーがあれば、code を問わず出す
         hasDiscriminatorError || (fieldErrors.length > 0 && !yieldsToAncestor)
-        ? msg("zodFormMantine.union.unselected" /* 選択してください */)
+        ? msg("zodFormMantine.union.unselected" /* i18n: 選択してください */)
         : undefined
       : unionError && !yieldsToAncestor
-        ? msg("zodFormMantine.union.unselected" /* 選択してください */)
+        ? msg("zodFormMantine.union.unselected" /* i18n: 選択してください */)
         : undefined;
 
   const runAsUserEdit = useRunAsUserEdit();
@@ -959,7 +959,7 @@ const UnionBody = React.memo(function UnionBody({
           <InputWrapper
             label={
               selectorLabel ??
-              msg("zodFormMantine.union.selectorLabel" /* タイプ */)
+              msg("zodFormMantine.union.selectorLabel" /* i18n: タイプ */)
             }
             labelElement="div"
             style={inputWrapperStyle}
@@ -976,7 +976,7 @@ const UnionBody = React.memo(function UnionBody({
             onFocus={onFocus}
             label={
               selectorLabel ??
-              msg("zodFormMantine.union.selectorLabel" /* タイプ */)
+              msg("zodFormMantine.union.selectorLabel" /* i18n: タイプ */)
             }
             error={selectorError}
             required={!(optional || nullable)}
