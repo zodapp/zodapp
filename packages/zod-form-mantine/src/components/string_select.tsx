@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useMemo } from "react";
 import { InputWrapper, Select } from "@mantine/core";
 import {
@@ -35,7 +36,7 @@ const StringSelectComponent = wrapComponent(
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
     const { label: labelFromMeta, suggestions } =
-      getMeta(schema, "string") ?? {};
+      useResolvedMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const value = typeof field.value === "string" ? field.value : null;
     const actionWrapper = useSchemaValueAction(schema, value);

@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback, useEffect, useMemo } from "react";
 import {
   CloseButton,
@@ -21,11 +22,15 @@ import {
   useChoices,
   normalizeStringSuggestions,
   ReadonlyText,
-  UNLISTED_LABEL,
+  useUnlistedLabel,
   inputWrapperStyle,
   type OptionDataType,
 } from "@zodapp/zod-form-mantine-lite/utils";
 import type z from "zod";
+import { useMsg } from "../messages/useMsg";
+import { withSupportCheck } from "../utils/unsupported";
+import { arrayCollection, type Collection } from "../utils/collection";
+import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
@@ -45,8 +50,8 @@ const NO_ENUM_OPTIONS = zf.enum(
  * 要素が `uiType: "select"` の string（externalKey の allowUnlisted から作るもの）なら、
  * suggestions から選び、選択肢に無い値も値そのものの表示で残す（検証は string のまま）
  */
-const ArrayOfEnumComponent = wrapComponent(
-  function ArrayOfEnumComponentImplement({
+export const createMultipleEnumComponent = (collection: Collection) =>
+  wrapComponent(function MultipleEnumComponentImplement({
     schema,
     label: labelFromParent,
     outer,
@@ -57,7 +62,7 @@ const ArrayOfEnumComponent = wrapComponent(
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
 
-    const elementSchema = schema.element as z.ZodTypeAny;
+    const elementSchema = collection.elementOf(schema);
     const elementMeta = getMeta(elementSchema) as
       | {
           uiType?: string;
@@ -70,40 +75,33 @@ const ArrayOfEnumComponent = wrapComponent(
     const allowUnlisted =
       elementSchema.type === "string" && elementMeta?.uiType === "select";
 
-    if (
-      elementSchema.type !== "enum" &&
-      elementSchema.type !== "union" &&
-      !allowUnlisted
-    ) {
-      throw new Error(
-        `ArrayOfEnumComponent: Expected ZodEnum or ZodUnion of literals as internal type, but got ${elementSchema.type}`,
-      );
-    }
     const choiceSchema = allowUnlisted
       ? NO_ENUM_OPTIONS
       : (elementSchema as EnumSchema);
     const choices = useChoices(choiceSchema);
 
     // arrayスキーマ自体のメタからlabelを取得
-    const arrayMeta = getMeta(schema);
+    const arrayMeta = useResolvedMeta(schema);
     const labelFromMeta = arrayMeta?.label;
 
     const uiType = arrayMeta?.uiType;
     const label = labelFromParent ?? labelFromMeta;
-    const { unlisted, emptyMessage } = elementMeta ?? {};
+    const { unlisted } = elementMeta ?? {};
+    const msg = useMsg();
+    const resolveText = useResolveText();
+    const unlistedLabel = useUnlistedLabel();
+    const emptyMessage = resolveText(elementMeta?.emptyMessage);
     // 数値の選択肢も扱えるよう、MultiSelect とは文字列でやりとりする
     // 今の値の要素を、選択肢の値ごとに引けるようにしておく（選択肢に無い値を keep で残すとき、
     // 選択肢の値からは元の値に戻せないため）
     const { value, currentByOption } = useMemo(() => {
       const value: string[] = [];
       const currentByOption = new Map<string, unknown>();
-      if (Array.isArray(field.value)) {
-        for (const item of field.value as unknown[]) {
-          const optionValue = choices.toOption(item);
-          if (optionValue === null) continue;
-          value.push(optionValue);
-          currentByOption.set(optionValue, item);
-        }
+      for (const item of collection.toItems(field.value)) {
+        const optionValue = choices.toOption(item);
+        if (optionValue === null) continue;
+        value.push(optionValue);
+        currentByOption.set(optionValue, item);
       }
       return { value, currentByOption };
     }, [field.value, choices]);
@@ -112,13 +110,15 @@ const ArrayOfEnumComponent = wrapComponent(
       (next: string[]) =>
         next.length === 0
           ? emptyValue
-          : allowUnlisted
-            ? next
-            : next.map((item) =>
-                currentByOption.has(item)
-                  ? currentByOption.get(item)
-                  : choices.fromOption(item),
-              ),
+          : collection.fromItems(
+              allowUnlisted
+                ? next
+                : next.map((item) =>
+                    currentByOption.has(item)
+                      ? currentByOption.get(item)
+                      : choices.fromOption(item),
+                  ),
+            ),
       [allowUnlisted, choices, currentByOption, emptyValue],
     );
     const onChange = useCallback(
@@ -134,11 +134,11 @@ const ArrayOfEnumComponent = wrapComponent(
       : EMPTY_SUGGESTIONS;
     const suggestionData = useMemo<OptionDataType[]>(
       () =>
-        normalizeStringSuggestions(suggestions).map((option) => ({
+        normalizeStringSuggestions(suggestions, resolveText).map((option) => ({
           ...option,
           color: "gray",
         })),
-      [suggestions],
+      [suggestions, resolveText],
     );
     const data = allowUnlisted ? suggestionData : enumData;
 
@@ -192,17 +192,26 @@ const ArrayOfEnumComponent = wrapComponent(
                   ? { value: item, label: item, color: "gray" }
                   : {
                       value: item,
-                      label: UNLISTED_LABEL,
+                      label: unlistedLabel,
                       color: "red",
                     },
               ),
             ]
           : data,
-      [data, hasUnlisted, shouldClear, unlistedValues, allowUnlisted],
+      [
+        data,
+        hasUnlisted,
+        shouldClear,
+        unlistedValues,
+        allowUnlisted,
+        unlistedLabel,
+      ],
     );
     // 選択肢に無い値は、触ったかどうかに関係なく、何が悪いかが分かる文言で出す
     const errorMessage = showUnlisted
-      ? "選択肢に無い値があります。消すか、選び直してください。"
+      ? msg(
+          "zodFormMantine.multipleEnum.unlisted" /* i18n: 選択肢に無い値があります。消すか、選び直してください。 */,
+        )
       : error?.message;
 
     const isBadge = uiType === "multipleEnumBadge";
@@ -221,7 +230,7 @@ const ArrayOfEnumComponent = wrapComponent(
                     ? renderBadge(option)
                     : allowUnlisted
                       ? v
-                      : UNLISTED_LABEL}
+                      : unlistedLabel}
                 </React.Fragment>
               );
             })}
@@ -231,10 +240,10 @@ const ArrayOfEnumComponent = wrapComponent(
       return value
         .map((v) => {
           const option = selectData.find((d) => d.value === v);
-          return option?.label ?? (allowUnlisted ? v : UNLISTED_LABEL);
+          return option?.label ?? (allowUnlisted ? v : unlistedLabel);
         })
         .join(", ");
-    }, [data, selectData, value, allowUnlisted, isBadge]);
+    }, [data, selectData, value, allowUnlisted, isBadge, unlistedLabel]);
 
     // 選択済みのピルも選択肢の色のバッジにする（× で外せる）。
     // 選択肢に無い値も selectData に足してあるので、そのラベル・色で出る
@@ -249,7 +258,10 @@ const ArrayOfEnumComponent = wrapComponent(
                 size="xs"
                 variant="transparent"
                 c="inherit"
-                aria-label={`${option.label}を外す`}
+                aria-label={msg(
+                  "zodFormMantine.multipleEnum.remove" /* i18n: ${label}を外す */,
+                  { label: option.label },
+                )}
                 // Mantine の Pill の削除ボタンと同じく、入れ物（PillsInput）の
                 // mousedown / click（フォーカス・開閉）へ伝えない
                 onMouseDown={(event) => {
@@ -288,7 +300,10 @@ const ArrayOfEnumComponent = wrapComponent(
           value={[]}
           data={[]}
           label={label || undefined}
-          placeholder={emptyMessage ?? "選択肢がありません"}
+          placeholder={
+            emptyMessage ??
+            msg("zodFormMantineLite.noOptions" /* i18n: 選択肢がありません */)
+          }
           error={error?.message}
           required={!(optional || nullable)}
           disabled={true}
@@ -317,7 +332,38 @@ const ArrayOfEnumComponent = wrapComponent(
         style={inputWrapperStyle}
       />
     );
-  },
+  });
+
+/** 要素が選択肢として扱えるか。扱えなければ理由（開発者向け）を返す */
+export const checkChoiceElement = (
+  elementSchema: z.ZodTypeAny,
+  uiTypeName: string,
+): string | undefined => {
+  const elementMeta = getMeta(elementSchema) as { uiType?: string } | undefined;
+  if (elementSchema.type === "enum" || elementSchema.type === "literal") return;
+  // union は、腕がすべて literal・null・undefined のときだけ選択肢にできる
+  // （ほかの腕は選択肢に出せず、値がすべて「選択肢に無い値」になって消えてしまうため）
+  if (elementSchema.type === "union") {
+    const options = (elementSchema as z.ZodUnion).def.options as z.ZodTypeAny[];
+    if (
+      options.every((option) =>
+        ["literal", "null", "undefined"].includes(option.type),
+      )
+    )
+      return;
+    return `${uiTypeName} expects a union of literals, but the union has an arm that is not a literal`;
+  }
+  if (elementSchema.type === "string" && elementMeta?.uiType === "select")
+    return;
+  return `${uiTypeName} expects elements of enum, literal, or union of literals, but the element is ${elementSchema.type}`;
+};
+
+const ArrayOfEnumComponent = createMultipleEnumComponent(arrayCollection);
+
+const CheckedArrayOfEnumComponent = withSupportCheck(
+  ArrayOfEnumComponent,
+  (schema: ArrayOfEnumSchema) =>
+    checkChoiceElement(schema.element as z.ZodTypeAny, 'uiType "multipleEnum"'),
 );
 
-export { ArrayOfEnumComponent as component };
+export { CheckedArrayOfEnumComponent as component };

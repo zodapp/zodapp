@@ -2,6 +2,7 @@ export * from "@zodapp/zod-form";
 export * from "@zodapp/zod-form-react";
 
 export { componentLibrary } from "./components";
+export { UnsupportedSchemaNotice } from "./utils/unsupported";
 
 export {
   baseComponents,

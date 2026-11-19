@@ -26,6 +26,12 @@ export const users: MockExternalKeyOption[] = [
   { label: "鈴木 一郎", value: "u-003" },
 ];
 
+/** メールアドレスを値に持つ利用者（externalKey の土台に z.email() を使う例） */
+export const userEmails: MockExternalKeyOption[] = [
+  { label: "山田 太郎", value: "yamada@example.com" },
+  { label: "佐藤 花子", value: "sato@example.com" },
+];
+
 /** 部署を持つメンバー。欄に届くのは label と value だけで、team は filter で使う */
 export const members: MockExternalKeyOption[] = [
   { label: "山田 太郎（営業）", value: "u-001", team: "sales" },
@@ -95,6 +101,7 @@ const topicsOf = (
 export const demoTopics = {
   users: createMockTopic(users),
   members: createMockTopic(members),
+  userEmails: createMockTopic(userEmails),
   prefectures: createMockTopic(prefectures),
   // 当番。デモの画面のボタンで届け直す（購読の更新を見るため）
   onDuty: createMockTopic(users),

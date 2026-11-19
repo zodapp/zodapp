@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { ActionIcon, InputWrapper } from "@mantine/core";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
@@ -5,15 +6,20 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
   Switch,
+  ContainerMarker,
   ZodFormInternalProps,
   getDefaultValue,
   useZodField,
   useRunAsUserEdit,
   wrapComponent,
   emptinessOf,
+  isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
-import { FieldContainer, isFlatSchema } from "./container";
+import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
+import { useMsg } from "../messages/useMsg";
+import { UnsafeKeyNameNotice } from "../utils/unsafeKey";
+import { ResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -32,8 +38,10 @@ function ObjectBodyImplement({
   readOnly,
   label: labelFromParent,
   error,
+  hideError,
+  errorToken,
 }: ZodFormInternalProps<ObjectSchema>) {
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
 
   const fields = order.flatMap((propertyName: string) => {
@@ -52,11 +60,28 @@ function ObjectBodyImplement({
   const label = labelFromParent ?? meta?.label;
 
   return (
-    <FieldContainer label={label} uiType={meta?.uiType} error={error?.message}>
+    <FieldContainer
+      label={label}
+      uiType={meta?.uiType}
+      error={error?.message}
+      trailing={
+        ownsContainerMarker({ hideError, errorToken }) ? (
+          <ContainerMarker fieldPath={fieldPath} />
+        ) : undefined
+      }
+    >
       {fields.map((property) => ({
         key: property.propertyName,
-        flat: isFlatSchema(property.schema),
-        node: (
+        flat:
+          isFlatSchema(property.schema) &&
+          !isUnsafeFieldKey(property.propertyName),
+        node: isUnsafeFieldKey(property.propertyName) ? (
+          <UnsafeKeyNameNotice
+            parentPath={fieldPath}
+            propertyKey={property.propertyName}
+            label={getMeta(property.schema)?.label}
+          />
+        ) : (
           <Switch
             fieldPath={joinFieldPath(fieldPath, property.propertyName)}
             schema={property.schema}
@@ -114,9 +139,10 @@ export function OptionalContainer(
   } = props;
   const field = useZodField(fieldPath);
   const value = field.state.value;
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const label = labelFromParent ?? meta?.label;
   const isSet = value !== undefined && value !== null;
+  const msg = useMsg();
   const runAsUserEdit = useRunAsUserEdit();
   const { emptyValue } = emptinessOf(props.outer);
 
@@ -167,7 +193,8 @@ export function OptionalContainer(
               paddingBottom: 4,
             }}
           >
-            {children}
+            {/* 値があるときだけ中を描く（無ければ ＋ だけ）ので、lazy の数を数え直す */}
+            <ResetLazyDepth>{children}</ResetLazyDepth>
           </div>
           {!readOnly && (
             <ActionIcon
@@ -175,7 +202,7 @@ export function OptionalContainer(
               variant="light"
               color="#63687C"
               style={actionIconStyle}
-              aria-label="削除"
+              aria-label={msg("zodFormMantine.object.remove" /* i18n: 削除 */)}
               onClick={handleRemove}
             >
               <IconCircleMinus />
@@ -192,7 +219,7 @@ export function OptionalContainer(
               variant="light"
               color="#63687C"
               style={{ ...actionIconStyle, zIndex: 1 }}
-              aria-label="追加"
+              aria-label={msg("zodFormMantine.object.add" /* i18n: 追加 */)}
               onClick={handleAdd}
             >
               <IconCirclePlus />

@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, InputWrapper, Table, Text } from "@mantine/core";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
@@ -33,6 +34,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { tableComponentLibrary } from "@zodapp/zod-form-mantine-lite";
+import { withSupportCheck } from "../utils/unsupported";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -365,7 +367,8 @@ const ArrayTableComponent = wrapComponent(
     const itemSchema = schema.element as z.ZodTypeAny;
     const objectSchema = unwrapObjectSchema(itemSchema);
 
-    const { discriminator, label: labelFromMeta } = getMeta(schema) ?? {};
+    const { discriminator, label: labelFromMeta } =
+      useResolvedMeta(schema) ?? {};
 
     const maxLength = extractCheck<$ZodCheckMaxLengthDef>(
       schema.def.checks,
@@ -463,7 +466,7 @@ const ArrayTableComponent = wrapComponent(
       >
         {!objectSchema ? (
           <Text c="red" size="sm">
-            table 表示は object 配列のみ対応しています。
+            uiType &quot;table&quot; supports only arrays of objects.
           </Text>
         ) : (
           <>
@@ -683,4 +686,12 @@ const ArrayTableComponent = wrapComponent(
   },
 );
 
-export { ArrayTableComponent as component };
+const CheckedArrayTableComponent = withSupportCheck(
+  ArrayTableComponent,
+  (schema) =>
+    unwrapObjectSchema(schema.element as z.ZodTypeAny)
+      ? undefined
+      : `uiType "table" expects an array of objects, but the element is ${(schema.element as z.ZodTypeAny).type}`,
+);
+
+export { CheckedArrayTableComponent as component };

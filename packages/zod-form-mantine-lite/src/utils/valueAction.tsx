@@ -2,6 +2,7 @@ import React from "react";
 import { ActionIcon, Group } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
 import type { ValueActionWrapper } from "@zodapp/zod-form-react/common";
+import { useMsg } from "../messages/useMsg";
 
 /**
  * 値ごとの操作（valueAction）を開くボタン。wrapper が無ければ何も描画しない。
@@ -13,6 +14,7 @@ export const ValueActionIcon = ({
   wrapper: ValueActionWrapper | undefined;
   label: string | undefined;
 }) => {
+  const msg = useMsg();
   if (!wrapper) return null;
   return (
     <>
@@ -21,7 +23,14 @@ export const ValueActionIcon = ({
           component="span"
           size="md"
           variant="subtle"
-          aria-label={`${label ?? "選択済み項目"}を開く`}
+          aria-label={msg(
+            "zodFormMantineLite.open" /* i18n: ${label}を開く */,
+            {
+              label:
+                label ||
+                msg("zodFormMantineLite.selectedItem" /* i18n: 選択済み項目 */),
+            },
+          )}
           style={
             {
               "--ai-color":

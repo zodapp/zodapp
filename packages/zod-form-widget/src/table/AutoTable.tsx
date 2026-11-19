@@ -38,6 +38,8 @@ import { type ColumnEntry, getUnwrappedMeta } from "./table-types";
 import { extractSchemaColumns, type SchemaColumnDef } from "./extract-schema-columns";
 import { getDefaultOrderEntries } from "./default-column-order";
 import styles from "./AutoTable.module.css";
+import { useLocale } from "@zodapp/i18n-messages-react";
+import { useMsg } from "../messages/useMsg";
 
 export type CellAlign = "left" | "center" | "right";
 type AutoTableField = {
@@ -284,6 +286,7 @@ const compareSortValues = (
   left: unknown,
   right: unknown,
   order: SortOrder,
+  locale: string,
 ): number => {
   const leftValue = normalizeSortValue(left);
   const rightValue = normalizeSortValue(right);
@@ -299,7 +302,7 @@ const compareSortValues = (
   } else if (leftValue < rightValue) {
     comparison = -1;
   } else {
-    comparison = String(leftValue).localeCompare(String(rightValue), "ja", {
+    comparison = String(leftValue).localeCompare(String(rightValue), locale, {
       numeric: true,
     });
   }
@@ -634,6 +637,9 @@ function useAutoTableModel<TItem extends TableRowData>({
   sortState,
   resolverContext,
 }: UseAutoTableModelProps<TItem>) {
+  const locale = useLocale();
+  // 列の見出し（meta の label）が辞書のキーなら訳す
+  const resolveText = useMsg().resolve;
   const { fields, totalMinWidth, totalWidthWeight } = useMemo(() => {
     const mainFields = buildSchemaFields({
       schema,
@@ -652,7 +658,9 @@ function useAutoTableModel<TItem extends TableRowData>({
       : { fields: [], totalMinWidth: 0, totalWidthWeight: 0 };
 
     return {
-      fields: [...mainFields.fields, ...trailingFields.fields],
+      fields: [...mainFields.fields, ...trailingFields.fields].map((field) =>
+        field.label ? { ...field, label: resolveText(field.label) } : field,
+      ),
       totalMinWidth: mainFields.totalMinWidth + trailingFields.totalMinWidth,
       totalWidthWeight:
         mainFields.totalWidthWeight + trailingFields.totalWidthWeight,
@@ -660,6 +668,7 @@ function useAutoTableModel<TItem extends TableRowData>({
   }, [
     defaultFieldPaths,
     isPreviewing,
+    resolveText,
     schema,
     storageColumns,
     trailingDefaultFieldPaths,
@@ -681,12 +690,13 @@ function useAutoTableModel<TItem extends TableRowData>({
           sortValueOf(sortField, left.item, resolverContext),
           sortValueOf(sortField, right.item, resolverContext),
           sortState.order,
+          locale,
         );
 
         return comparison !== 0 ? comparison : left.index - right.index;
       })
       .map(({ item }) => item);
-  }, [data, fields, sortState, resolverContext]);
+  }, [data, fields, sortState, resolverContext, locale]);
 
   return { fields, sortedData, totalMinWidth, totalWidthWeight };
 }
@@ -819,6 +829,7 @@ function HeaderCellInner({
 }: HeaderCellProps) {
   const isPreviewSelectable = isPreviewing && !field.isAction;
   const isSorted = sortOrder != null;
+  const msg = useMsg();
   const headerWidth =
     isPreviewing && USE_FIXED_WIDTH_IN_PREVIEW
       ? field.width
@@ -857,7 +868,10 @@ function HeaderCellInner({
             className={styles.sortButton}
             data-sorted={isSorted || undefined}
             onClick={handleSortClick}
-            aria-label={`${field.label}を並び替え`}
+            aria-label={msg(
+              "zodFormWidget.table.sort" /* i18n: ${label}を並び替え */,
+              { label: field.label },
+            )}
           >
             <span>{field.label}</span>
             <span

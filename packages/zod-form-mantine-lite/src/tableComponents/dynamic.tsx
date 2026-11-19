@@ -8,6 +8,7 @@ import {
   type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
 import type z from "zod";
+import { useMsg } from "../messages/useMsg";
 
 /**
  * テーブル表示用 dynamic コンポーネント。
@@ -20,6 +21,7 @@ const DynamicComponent = (props: ZodFormProps<z.ZodTypeAny>) => {
   const meta = getMeta(schema, "dynamic");
   const input = useTableFnInput(meta, fieldPath, defaultValue);
   const state = useResolvedSchema(meta, input);
+  const msg = useMsg();
 
   if (state.status === "loading" || state.status === "pending") {
     return <Loader size="xs" />;
@@ -27,7 +29,7 @@ const DynamicComponent = (props: ZodFormProps<z.ZodTypeAny>) => {
   if (state.status === "error") {
     return (
       <Text size="sm" c="dimmed">
-        取得できませんでした
+        {msg("zodFormMantineLite.fetchFailed" /* i18n: 取得できませんでした */)}
       </Text>
     );
   }

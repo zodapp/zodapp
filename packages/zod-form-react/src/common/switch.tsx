@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isEqualValue } from "../utils/equal";
 import React, { useEffect, useMemo } from "react";
 import type { ZodForm, ZodFormProps } from "../utils/type";
 import {
@@ -50,31 +51,6 @@ export const Switch: ZodForm = (props: ZodFormProps) => {
     return <PreprocessSwitch {...props} />;
   }
   return <SchemaSwitch {...props} />;
-};
-
-const isEqualValue = (a: unknown, b: unknown): boolean => {
-  if (Object.is(a, b)) return true;
-  if (a instanceof Date && b instanceof Date) {
-    return a.getTime() === b.getTime();
-  }
-  if (
-    typeof a !== "object" ||
-    typeof b !== "object" ||
-    a === null ||
-    b === null ||
-    Array.isArray(a) !== Array.isArray(b)
-  ) {
-    return false;
-  }
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  if (keysA.length !== keysB.length) return false;
-  return keysA.every((key) =>
-    isEqualValue(
-      (a as Record<string, unknown>)[key],
-      (b as Record<string, unknown>)[key],
-    ),
-  );
 };
 
 /**
@@ -143,27 +119,26 @@ const SchemaSwitch = (props: ZodFormProps) => {
   const meta = getMeta(schema);
   const { uiType, typeName } = meta ?? {};
 
-  const componentDef =
-    componentLibrary[`${typeName}_${uiType}`] ||
-    componentLibrary[`${schema.type}_${uiType}`] ||
-    componentLibrary[`${typeName}`] ||
-    componentLibrary[`${schema.type}`];
+  // meta が無いとき（typeName・uiType が undefined）に、"undefined" の名前の部品（z.undefined() の部品）に
+  // 当たらないよう、ある名前だけで探す
+  const candidates = [
+    typeName !== undefined && uiType !== undefined
+      ? `${typeName}_${uiType}`
+      : undefined,
+    uiType !== undefined ? `${schema.type}_${uiType}` : undefined,
+    typeName,
+    schema.type,
+  ];
+  const componentDef = candidates
+    .map((name) => (name === undefined ? undefined : componentLibrary[name]))
+    .find(Boolean);
 
   if (componentDef) {
     const Component = getLazyComponent(componentDef, lazyFactory);
     // eslint-disable-next-line react-hooks/static-components
     return <Component {...props} />;
   } else {
-    console.log(
-      "componentDef not found",
-      schema,
-      `${typeName ?? schema.type}_${uiType}`,
-      `${typeName ?? schema.type}`,
-    );
-    return (
-      <div>
-        <NotFoundComponent {...props} />
-      </div>
-    );
+    // 部品が無い：notFoundComponent（既定は「扱えない」の注記と console.error）を出す
+    return <NotFoundComponent {...props} />;
   }
 };

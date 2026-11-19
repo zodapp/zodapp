@@ -2,6 +2,7 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: [
+    "src/messages/index.ts",
     "src/index.ts",
     "src/common/index.ts",
     "src/media/index.ts",

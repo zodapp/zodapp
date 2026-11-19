@@ -51,6 +51,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useMsg } from "../messages/useMsg";
 
 const DEFAULT_WIDTH = 140;
 
@@ -89,8 +90,6 @@ type FieldOptionWithGroup = {
 type SelectDataItem =
   | { value: string; label: string }
   | { group: string; items: { value: string; label: string }[] };
-
-const RECORD_OPTION_GROUP = "入力候補";
 
 const toSelectData = (options: FieldOptionWithGroup[]): SelectDataItem[] => {
   const ungrouped: { value: string; label: string }[] = [];
@@ -163,6 +162,7 @@ function SortableColumn({
   });
 
   const elRef = useRef<HTMLDivElement>(null);
+  const msg = useMsg();
 
   useEffect(() => {
     if (isFocused && elRef.current) {
@@ -293,7 +293,7 @@ function SortableColumn({
           comboboxProps={{ width: 200, position: "bottom-start" }}
         />
         <NumberInput
-          placeholder="幅"
+          placeholder={msg("zodFormWidget.tableSetting.width" /* i18n: 幅 */)}
           value={col.width}
           onChange={(next) => onWidthChange(col.id, next)}
           onFocus={() => onFocusColumn(col.id)}
@@ -339,11 +339,22 @@ export function useTableSettingDrawer({
     selectColumnSetting,
     discardPreview,
   } = controller;
+  const msg = useMsg();
+  const recordOptionGroup = msg(
+    "zodFormWidget.tableSetting.recordOptionGroup" /* i18n: 入力候補 */,
+  );
 
+  // 保存先の名前は利用者が渡す。辞書のキーなら訳す
   const resolveScopeGroupLabel = useCallback(
-    (scope: ColumnSettingScope | undefined): string =>
-      scopeOptions.find((o) => o.value === scope)?.groupLabel ?? "その他",
-    [scopeOptions],
+    (scope: ColumnSettingScope | undefined): string => {
+      const groupLabel = scopeOptions.find(
+        (o) => o.value === scope,
+      )?.groupLabel;
+      return groupLabel
+        ? msg.resolve(groupLabel)
+        : msg("zodFormWidget.tableSetting.otherScope" /* i18n: その他 */);
+    },
+    [msg, scopeOptions],
   );
 
   // --- schema columns ---
@@ -378,13 +389,19 @@ export function useTableSettingDrawer({
   const fieldOptions = useMemo(() => {
     const schemaOptions: FieldOptionWithGroup[] = schemaColumns.map((col) => ({
       value: col.fieldPath,
-      label: col.label,
+      label: msg.resolve(col.label),
       width: col.meta.width,
     }));
 
     if (!extraFieldOptions?.length) return schemaOptions;
-    return [...schemaOptions, ...extraFieldOptions];
-  }, [schemaColumns, extraFieldOptions]);
+    return [
+      ...schemaOptions,
+      ...extraFieldOptions.map((option) => ({
+        ...option,
+        label: msg.resolve(option.label),
+      })),
+    ];
+  }, [schemaColumns, extraFieldOptions, msg]);
 
   const schemaDefaultColumns = useMemo<ColumnEntry[]>(
     () =>
@@ -420,11 +437,11 @@ export function useTableSettingDrawer({
             matchedTemplate.templatePath,
             fieldPath,
           ) ?? fieldPath,
-        group: RECORD_OPTION_GROUP,
+        group: recordOptionGroup,
         width: matchedTemplate.meta.width,
       };
     },
-    [recordTemplates],
+    [recordOptionGroup, recordTemplates],
   );
 
   const buildFieldOptionsForColumn = useCallback(
@@ -451,7 +468,7 @@ export function useTableSettingDrawer({
                 template.templatePath,
                 concretePath,
               ) ?? concretePath,
-            group: RECORD_OPTION_GROUP,
+            group: recordOptionGroup,
             width: template.meta.width,
           });
         }
@@ -464,7 +481,7 @@ export function useTableSettingDrawer({
 
       return Array.from(optionMap.values());
     },
-    [fieldOptions, recordTemplates, resolveTemplateOption],
+    [fieldOptions, recordOptionGroup, recordTemplates, resolveTemplateOption],
   );
 
   const selectDataByColumnId = useMemo(() => {
@@ -633,12 +650,19 @@ export function useTableSettingDrawer({
     const result: (
       | { value: string; label: string }
       | { group: string; items: { value: string; label: string }[] }
-    )[] = [{ value: DEFAULT_PROFILE_ID, label: "デフォルト" }];
+    )[] = [
+      {
+        value: DEFAULT_PROFILE_ID,
+        label: msg(
+          "zodFormWidget.tableSetting.defaultProfile" /* i18n: デフォルト */,
+        ),
+      },
+    ];
     for (const [group, items] of groups) {
       result.push({ group, items });
     }
     return result;
-  }, [columnSettings, resolveScopeGroupLabel]);
+  }, [columnSettings, msg, resolveScopeGroupLabel]);
 
   const isDefaultSelected = currentColumnSetting == null;
 
@@ -701,7 +725,9 @@ export function useTableSettingDrawer({
     );
   }, [columnSettings, saveAsScope, trimmedSaveAsName]);
   const saveAsNameError = hasDuplicateSaveAsName
-    ? "選択した保存先に同名のプロフィールが既に存在します"
+    ? msg(
+        "zodFormWidget.tableSetting.duplicateName" /* i18n: 選択した保存先に同名のプロフィールが既に存在します */,
+      )
     : undefined;
 
   const openSaveAs = useCallback(() => {
@@ -758,7 +784,7 @@ export function useTableSettingDrawer({
         opened={isPreviewing}
         onClose={handleClose}
         closeOnEscape={!isChildModalOpened}
-        title="テーブル設定"
+        title={msg("zodFormWidget.tableSetting.title" /* i18n: テーブル設定 */)}
         position="bottom"
         size="240px"
         withOverlay={false}
@@ -805,9 +831,17 @@ export function useTableSettingDrawer({
               {hasDirtyPreview && (
                 <>
                   <Badge size="sm" variant="light" color="orange">
-                    編集中
+                    {msg(
+                      "zodFormWidget.tableSetting.editing" /* i18n: 編集中 */,
+                    )}
                   </Badge>
-                  <Tooltip label="編集を破棄" position="bottom" withArrow>
+                  <Tooltip
+                    label={msg(
+                      "zodFormWidget.tableSetting.discard" /* i18n: 編集を破棄 */,
+                    )}
+                    position="bottom"
+                    withArrow
+                  >
                     <ActionIcon
                       size="sm"
                       variant="subtle"
@@ -820,7 +854,13 @@ export function useTableSettingDrawer({
                 </>
               )}
               {!isDefaultSelected && currentColumnSetting?.deletable ? (
-                <Tooltip label="プロフィールを削除" position="bottom" withArrow>
+                <Tooltip
+                  label={msg(
+                    "zodFormWidget.tableSetting.deleteProfile" /* i18n: プロフィールを削除 */,
+                  )}
+                  position="bottom"
+                  withArrow
+                >
                   <ActionIcon
                     size="sm"
                     variant="subtle"
@@ -833,7 +873,9 @@ export function useTableSettingDrawer({
                 </Tooltip>
               ) : (
                 <Badge size="sm" variant="light" color="gray">
-                  読み込み専用
+                  {msg(
+                    "zodFormWidget.tableSetting.readOnly" /* i18n: 読み込み専用 */,
+                  )}
                 </Badge>
               )}
             </>
@@ -847,7 +889,7 @@ export function useTableSettingDrawer({
               disabled={isSaving}
               styles={drawerActionButtonStyles}
             >
-              別名で保存
+              {msg("zodFormWidget.tableSetting.saveAs" /* i18n: 別名で保存 */)}
             </Button>
           )}
           {(!hasProfileStore ||
@@ -859,7 +901,9 @@ export function useTableSettingDrawer({
               loading={isSaving}
               styles={drawerActionButtonStyles}
             >
-              上書き保存
+              {msg(
+                "zodFormWidget.tableSetting.overwrite" /* i18n: 上書き保存 */,
+              )}
             </Button>
           )}
         </Group>
@@ -907,14 +951,21 @@ export function useTableSettingDrawer({
       <Modal
         opened={saveConfirmOpened}
         onClose={saveConfirmHandlers.close}
-        title="保存の確認"
+        title={msg(
+          "zodFormWidget.tableSetting.saveConfirmTitle" /* i18n: 保存の確認 */,
+        )}
         centered
         size="sm"
       >
         <Stack>
           <Text size="sm">
-            {resolveScopeGroupLabel(currentColumnSetting?.type)}の設定「
-            {currentColumnSetting?.name}」に上書き保存しますか？
+            {msg(
+              "zodFormWidget.tableSetting.saveConfirm" /* i18n: ${scope}の設定「${name}」に上書き保存しますか？ */,
+              {
+                scope: resolveScopeGroupLabel(currentColumnSetting?.type),
+                name: currentColumnSetting?.name ?? "",
+              },
+            )}
           </Text>
           <Group justify="flex-end">
             <Button
@@ -923,7 +974,7 @@ export function useTableSettingDrawer({
               onClick={saveConfirmHandlers.close}
               styles={drawerActionButtonStyles}
             >
-              キャンセル
+              {msg("zodFormWidget.common.cancel" /* i18n: キャンセル */)}
             </Button>
             <Button
               size="xs"
@@ -931,7 +982,9 @@ export function useTableSettingDrawer({
               loading={isSaving}
               styles={drawerActionButtonStyles}
             >
-              上書き保存
+              {msg(
+                "zodFormWidget.tableSetting.overwrite" /* i18n: 上書き保存 */,
+              )}
             </Button>
           </Group>
         </Stack>
@@ -941,21 +994,25 @@ export function useTableSettingDrawer({
       <Modal
         opened={saveAsOpened}
         onClose={saveAsHandlers.close}
-        title="別名で保存"
+        title={msg("zodFormWidget.tableSetting.saveAs" /* i18n: 別名で保存 */)}
         centered
         size="sm"
       >
         <Stack>
           <TextInput
-            label="プロフィール名"
-            placeholder="名前を入力"
+            label={msg(
+              "zodFormWidget.tableSetting.profileName" /* i18n: プロフィール名 */,
+            )}
+            placeholder={msg(
+              "zodFormWidget.tableSetting.namePlaceholder" /* i18n: 名前を入力 */,
+            )}
             value={saveAsName}
             onChange={(e) => setSaveAsName(e.currentTarget.value)}
             error={saveAsNameError}
             size="sm"
           />
           <Radio.Group
-            label="保存先"
+            label={msg("zodFormWidget.tableSetting.saveTo" /* i18n: 保存先 */)}
             value={saveAsScope}
             onChange={(v) => setSaveAsScope(v as ColumnSettingScope)}
           >
@@ -964,7 +1021,7 @@ export function useTableSettingDrawer({
                 <Radio
                   key={opt.value}
                   value={opt.value}
-                  label={opt.label}
+                  label={msg.resolve(opt.label)}
                   disabled={opt.disabled}
                   size="sm"
                   style={{
@@ -981,7 +1038,7 @@ export function useTableSettingDrawer({
               onClick={saveAsHandlers.close}
               styles={drawerActionButtonStyles}
             >
-              キャンセル
+              {msg("zodFormWidget.common.cancel" /* i18n: キャンセル */)}
             </Button>
             <Button
               size="xs"
@@ -992,7 +1049,7 @@ export function useTableSettingDrawer({
               loading={isSaving}
               styles={drawerActionButtonStyles}
             >
-              保存
+              {msg("zodFormWidget.tableSetting.save" /* i18n: 保存 */)}
             </Button>
           </Group>
         </Stack>
@@ -1002,15 +1059,21 @@ export function useTableSettingDrawer({
       <Modal
         opened={deleteConfirmOpened}
         onClose={deleteConfirmHandlers.close}
-        title="削除の確認"
+        title={msg(
+          "zodFormWidget.tableSetting.deleteConfirmTitle" /* i18n: 削除の確認 */,
+        )}
         centered
         size="sm"
       >
         <Stack>
           <Text size="sm">
-            {resolveScopeGroupLabel(currentColumnSetting?.type)}の設定「
-            {currentColumnSetting?.name}
-            」を削除しますか？この操作は取り消せません。
+            {msg(
+              "zodFormWidget.tableSetting.deleteConfirm" /* i18n: ${scope}の設定「${name}」を削除しますか？この操作は取り消せません。 */,
+              {
+                scope: resolveScopeGroupLabel(currentColumnSetting?.type),
+                name: currentColumnSetting?.name ?? "",
+              },
+            )}
           </Text>
           <Group justify="flex-end">
             <Button
@@ -1019,7 +1082,7 @@ export function useTableSettingDrawer({
               onClick={deleteConfirmHandlers.close}
               styles={drawerActionButtonStyles}
             >
-              キャンセル
+              {msg("zodFormWidget.common.cancel" /* i18n: キャンセル */)}
             </Button>
             <Button
               size="xs"
@@ -1028,7 +1091,7 @@ export function useTableSettingDrawer({
               loading={isSaving}
               styles={drawerActionButtonStyles}
             >
-              削除
+              {msg("zodFormWidget.tableSetting.delete" /* i18n: 削除 */)}
             </Button>
           </Group>
         </Stack>

@@ -331,3 +331,91 @@ describe("getDefaultValue（intersection）", () => {
     });
   });
 });
+
+describe("getDefaultValue の literal", () => {
+  it("値が 1 つの literal は、その値を入れる", () => {
+    expect(getDefaultValue(z.object({ k: z.literal("a") }))).toEqual({
+      k: "a",
+    });
+  });
+
+  it("値を複数持つ literal は、例外を投げずに値を入れない", () => {
+    expect(getDefaultValue(z.object({ k: z.literal(["a", "b"]) }))).toEqual({});
+  });
+});
+
+describe("getDefaultValue のキーの決まった record", () => {
+  it("列挙したキーごとに、値の schema の初期値を入れる", () => {
+    expect(
+      getDefaultValue(z.record(z.enum(["a", "b"]), z.string().default("x"))),
+    ).toEqual({ a: "x", b: "x" });
+    expect(
+      getDefaultValue(
+        z.record(z.enum(["a", "b"]), z.object({ n: z.number().default(1) })),
+      ),
+    ).toEqual({ a: { n: 1 }, b: { n: 1 } });
+  });
+
+  it("初期値が undefined のキーは置かない（object と同じ）", () => {
+    expect(getDefaultValue(z.record(z.enum(["a", "b"]), z.string()))).toEqual(
+      {},
+    );
+  });
+
+  it("値があっても、足りないキーを補う。入っているキーは変えない", () => {
+    expect(
+      getDefaultValue(
+        z.record(z.literal(["a", "b"]), z.string().default("x")),
+        { a: "y" },
+      ),
+    ).toEqual({ a: "y", b: "x" });
+  });
+
+  it("キーを列挙できない record（string・partialRecord）は、キーを足さない", () => {
+    expect(
+      getDefaultValue(z.record(z.string(), z.string().default("x"))),
+    ).toEqual({});
+    expect(
+      getDefaultValue(z.partialRecord(z.enum(["a"]), z.string().default("x"))),
+    ).toEqual({});
+  });
+});
+
+describe("getDefaultValue（prefault・NaN・包む型）", () => {
+  it("prefault は値が無ければ prefault の値を入れる（関数なら呼んだ結果）", () => {
+    expect(getDefaultValue(z.object({ a: z.string().prefault("x") }))).toEqual({
+      a: "x",
+    });
+    expect(
+      getDefaultValue(z.object({ a: z.string().prefault(() => "y") })),
+    ).toEqual({ a: "y" });
+    expect(
+      getDefaultValue(z.object({ a: z.string().prefault("x") }), { a: "z" }),
+    ).toEqual({ a: "z" });
+  });
+
+  it("prefault の値は中の schema の入力として歩く", () => {
+    const schema = z.object({
+      o: z.object({ n: z.number().default(1) }).prefault({}),
+    });
+    expect(getDefaultValue(schema)).toEqual({ o: { n: 1 } });
+  });
+
+  it("z.nan() には NaN を入れる", () => {
+    const value = getDefaultValue(z.object({ n: z.nan() })) as { n: number };
+    expect(Number.isNaN(value.n)).toBe(true);
+  });
+
+  it("readonly・catch・nonoptional は中を歩く", () => {
+    const schema = z.object({
+      r: z.object({ n: z.number().default(1) }).readonly(),
+      c: z.object({ n: z.number().default(2) }).catch({ n: 0 }),
+      o: z.object({ n: z.number().default(3) }).optional().nonoptional(),
+    });
+    expect(getDefaultValue(schema)).toEqual({
+      r: { n: 1 },
+      c: { n: 2 },
+      o: { n: 3 },
+    });
+  });
+});

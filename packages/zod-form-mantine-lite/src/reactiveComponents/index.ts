@@ -28,6 +28,8 @@ export const reactiveComponentLibrary: ComponentLibrary = {
   ...baseComponents,
   computed: (() => import("./computed.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
+  // z.templateLiteral() は文字列の欄で出す
+  template_literal: (() => import("./string.js")) as DynamicZodFormDef,
   string_multiline: (() =>
     import("./string_multiline.js")) as DynamicZodFormDef,
   number: (() => import("./number.js")) as DynamicZodFormDef,

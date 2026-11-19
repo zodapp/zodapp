@@ -20,6 +20,7 @@ export {
 } from "./context";
 export { useExternalKeyAction } from "../utils/externalKey";
 export { emptyValueOf } from "../utils/emptyValue";
+export { isUnsafeFieldKey } from "../utils/path";
 export {
   addOuter,
   emptinessOf,
@@ -45,6 +46,7 @@ export {
   isPendingIssue,
   PENDING_ISSUE_CODE,
   RESOLVE_ERROR_ISSUE_CODE,
+  ASYNC_VALIDATION_ISSUE_CODE,
   type RegisteredSchema,
   type EditCause,
 } from "./schemaRegistry";
@@ -70,3 +72,15 @@ export {
   ValidatePrecedingFieldsProvider,
   useValidatePrecedingFields,
 } from "./validatePrecedingFields";
+export {
+  useResolvedMeta,
+  useResolveText,
+  resolveMeta,
+  TEXT_META_KEYS,
+} from "./i18n";
+export { ContainerMarker } from "./containerMarker";
+export {
+  UnsupportedSchema,
+  unsupportedSchemaReason,
+  useReportUnsupported,
+} from "./unsupported";

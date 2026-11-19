@@ -102,8 +102,6 @@ export const schema = z
   })
   .register(zf.object.registry, {});
 
-// dynamic フィールドは静的には値型を持たない（実際の型は resolve が返す
-// スキーマで決まる）ため、初期値は unknown 経由でキャストする
 export const defaultValues = {
   name: "障害通知",
   notification: {
@@ -111,6 +109,6 @@ export const defaultValues = {
     to: "alert@example.com",
     subject: "[ALERT] 障害が発生しました",
   },
-} as unknown as z.input<typeof schema>;
+} satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;

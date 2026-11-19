@@ -1,0 +1,84 @@
+{
+  "name": "@zodapp/i18n-messages-react",
+  "version": "0.0.0",
+  "private": false,
+  "description": "React provider and hooks for @zodapp/i18n-messages",
+  "author": "zodapp",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zodapp/zodapp.git",
+    "directory": "packages/i18n-messages-react"
+  },
+  "homepage": "https://github.com/zodapp/zodapp/tree/main/packages/i18n-messages-react#readme",
+  "bugs": {
+    "url": "https://github.com/zodapp/zodapp/issues"
+  },
+  "keywords": [
+    "i18n",
+    "messages",
+    "react"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.ja.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "tsup",
+    "watch": "tsup --watch --no-clean",
+    "check-types": "tsc --noEmit",
+    "clean": "rimraf dist .turbo node_modules",
+    "docs:typedoc": "node ../../tools/gen-typedoc.mjs"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.19.7",
+    "eslint": "^9.34.0",
+    "rimraf": "^6.1.2",
+    "tslib": "^2.8.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@zodapp/i18n-messages": "workspace:*"
+  }
+}

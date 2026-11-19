@@ -13,7 +13,7 @@ export function fromTable<S extends z.ZodType>(
 ): z.infer<S>[] {
   if (table.length < 1) return [];
 
-  const compiled = compileSchema(schema);
+  const compiled = compileSchema(schema, { skip: options?.skip });
   const inputHeaders = table[0]!.map(String);
 
   const colKeyByCol: (string | null)[] = inputHeaders.map((h) =>

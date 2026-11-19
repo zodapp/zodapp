@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { HarnessWrite } from "../../../components/E2eHarness";
 import { zf } from "@zodapp/zod-form";
 import { IconArrowsJoin } from "@tabler/icons-react";
 
@@ -288,7 +289,8 @@ export const schema = z
         label: "discriminatedUnion の腕の .refine()",
         uiType: "box",
       }),
-    // 必須の intersection が空：「必ず入力してください。」が 1 回だけ出て、「選択してください」は重ねない
+    // 必須の intersection が空：「必ず入力してください。」が 1 回だけ出て、「選択してください」は重ねない。
+    // AutoForm は開くときに {} で補うので、空になるのは値を外から消したとき（「外から書き込む」のボタン）
     emptyRequired: zf
       .intersection(
         zf
@@ -339,7 +341,7 @@ export const defaultValues: z.input<typeof schema> = {
   fieldMin: { code: "", memo: "" },
   unionArmRefine: { name: "", phone: "090" },
   discriminatedArmRefine: { name: "", type: "phone", phone: "090" },
-  // 必須だが空（送信すると「必ず入力してください。」）
+  // 値を入れない（AutoForm が開くときに {} で補う。空にするのは「外から書き込む」のボタン）
   emptyRequired: undefined as unknown as z.input<
     typeof schema
   >["emptyRequired"],
@@ -357,3 +359,11 @@ export const defaultValues: z.input<typeof schema> = {
 };
 
 export type SchemaType = z.infer<typeof schema>;
+
+/** 値を外から書き込むボタン（必須の intersection を空にする） */
+export const harnessWrites: readonly HarnessWrite[] = [
+  {
+    label: "外から書き込む（必須の intersection を空にする）",
+    run: (form) => form.setFieldValue("emptyRequired", undefined),
+  },
+];

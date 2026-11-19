@@ -2,6 +2,7 @@ import { PreprocessorDef, preprocess } from "@zodapp/zod-transform";
 import z from "zod";
 import { $ZodCheckLengthEqualsDef, $ZodCheckMinLengthDef } from "zod/v4/core";
 import { extractCheck } from "./zod";
+import { enumeratedRecordKeys } from "./schema";
 
 /** optional（間の nullable を通して）なら undefined を受け付ける */
 const acceptsUndefined = (schema: z.ZodTypeAny): boolean => {
@@ -180,8 +181,12 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           ? obj
           : Array((schema as z.ZodTuple).def.items.length ?? 0).fill(undefined);
       },
+      // 値が 1 つの literal はその値を入れる。値を複数持つ literal（z.literal(["a", "b"])）は選ぶものなので入れない
+      // （zod 4 の `.value` は、値が複数あると例外を投げる）
       literal: (obj, schema) => {
-        return obj !== undefined ? obj : (schema as z.ZodLiteral).value;
+        if (obj !== undefined) return obj;
+        const values = (schema.def as { values?: unknown[] }).values ?? [];
+        return values.length === 1 ? values[0] : undefined;
       },
       default: (obj, schema) => {
         const defaultValue = schema.def.defaultValue;
@@ -190,6 +195,16 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           ? defaultValue()
           : schema.def.defaultValue;
       },
+      // prefault：値が無ければ prefault の値（関数なら呼んだ結果）を入れる。中の schema の入力として歩く
+      prefault: (obj, schema) => {
+        const defaultValue = schema.def.defaultValue as unknown;
+        if (obj !== undefined) return obj;
+        return typeof defaultValue === "function"
+          ? (defaultValue as () => unknown)()
+          : defaultValue;
+      },
+      // z.nan() は値が NaN の 1 つに決まるので、値が 1 つの literal と同じく入れる
+      nan: (obj) => (obj !== undefined ? obj : NaN),
     } as PreprocessorDef,
     {
       processor: {
@@ -199,6 +214,14 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
           obj === undefined
             ? undefined
             : context.transform(obj, schema.def.innerType as z.ZodTypeAny),
+        // nonoptional：中の optional を打ち消すので、optional を外した中で歩く（値が無くても中の初期値を入れる）
+        nonoptional: (obj, schema, context) => {
+          let innerType = schema.def.innerType as z.ZodTypeAny;
+          while (innerType.def.type === "optional")
+            innerType = (innerType as z.ZodOptional).def
+              .innerType as z.ZodTypeAny;
+          return context.transform(obj, innerType);
+        },
         // nullable：中が default なら（`.default("x").nullable()`）その値を使う（zod と同じく、
         // nullable は undefined を中に渡す）。optional を含むなら undefined。それ以外は null にする。
         // object・配列・record の空の値（{ x: undefined }・[]・{}）は使わない。nullable な object は
@@ -240,6 +263,24 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
             ) {
               result[key] = value;
             }
+          }
+          return result;
+        },
+        // record：キーを列挙できる record（キーの決まった record）は、object と同じく、列挙したキーごとに
+        // 値の schema の初期値を入れる（初期値が undefined なら置かない）。それ以外は、入っているキーだけを歩く
+        record: (obj, schema, context) => {
+          const keys = enumeratedRecordKeys(schema);
+          const base = obj === undefined && keys ? {} : obj;
+          if (!isPlainObject(base)) return base;
+          const valueType = schema.def.valueType as z.ZodTypeAny;
+          const result: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(base)) {
+            result[key] = context.transform(value, valueType, key);
+          }
+          for (const key of keys ?? []) {
+            if (Object.hasOwn(result, key)) continue;
+            const value = context.transform(undefined, valueType, key);
+            if (value !== undefined) result[key] = value;
           }
           return result;
         },

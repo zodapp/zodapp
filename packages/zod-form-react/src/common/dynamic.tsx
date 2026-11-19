@@ -161,7 +161,7 @@ const callResolve = (
     if (result instanceof Promise) {
       result.catch(() => {});
       throw new Error(
-        "zf.dynamic: resolve が Promise を返しました。非同期に決まるときは { key, load } を返してください",
+        "zf.dynamic: resolve returned a Promise. Return { key, load } when the schema is decided asynchronously.",
       );
     }
     return { kind: "value", result };

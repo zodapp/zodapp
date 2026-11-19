@@ -1,4 +1,6 @@
 import { csvToTable } from '@zodapp/zod-tabular';
+import { msgKey } from '@zodapp/i18n-messages';
+import '../messages/types';
 
 export type DynamicTabularCellValue = string | number | null;
 
@@ -8,6 +10,21 @@ export type DynamicTabularParseResult = {
   headers: string[];
   rows: DynamicTabularRow[];
 };
+
+/** {@link TabularImportError} の理由 */
+export type TabularImportErrorCode = 'emptyFile' | 'noHeader' | 'noRows';
+
+/**
+ * CSV を読めなかったときの error。message は辞書のキー（`msg.resolve` で文言にする）
+ */
+export class TabularImportError extends Error {
+  readonly code: TabularImportErrorCode;
+  constructor(code: TabularImportErrorCode, message: string) {
+    super(message);
+    this.name = 'TabularImportError';
+    this.code = code;
+  }
+}
 
 const hasNonEmptyCell = (line: unknown[]) => line.some((cell) => String(cell ?? '').trim() !== '');
 
@@ -35,12 +52,18 @@ export const parseDynamicTabularFile = async (file: File): Promise<DynamicTabula
   const csv = await file.text();
   const table = csvToTable(csv);
   if (table.length === 0) {
-    throw new Error('CSVファイルが空です。');
+    throw new TabularImportError(
+      'emptyFile',
+      msgKey('zodFormWidget.tabular.emptyFile' /* i18n: CSVファイルが空です。 */)
+    );
   }
 
   const headers = (table[0] ?? []).map((cell) => String(cell ?? '').trim()).filter(Boolean);
   if (headers.length === 0) {
-    throw new Error('CSVヘッダーが見つかりません。');
+    throw new TabularImportError(
+      'noHeader',
+      msgKey('zodFormWidget.tabular.noHeader' /* i18n: CSVヘッダーが見つかりません。 */)
+    );
   }
 
   const rows = table
@@ -55,7 +78,10 @@ export const parseDynamicTabularFile = async (file: File): Promise<DynamicTabula
     });
 
   if (rows.length === 0) {
-    throw new Error('CSVにデータ行がありません。');
+    throw new TabularImportError(
+      'noRows',
+      msgKey('zodFormWidget.tabular.noRows' /* i18n: CSVにデータ行がありません。 */)
+    );
   }
 
   return { headers, rows };

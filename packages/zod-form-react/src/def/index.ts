@@ -30,7 +30,8 @@ const computedOrReactNodeSchema = z.union([
 // computed: { value, parent, context } を受け取り ComputedValue | ReactNode を返す
 // zf.computed を上書きし、JSX（ReactNode）も返せるように拡張
 const computed = extendCustom(
-  z.never,
+  // 値を持たない表示専用の欄なので、初めから optional にする（キーが無くても検証を通す）
+  () => z.never().optional(),
   "computed",
   zodExtendableCommonDefSchema.extend({
     ...fnSourceMetaSchema.shape,

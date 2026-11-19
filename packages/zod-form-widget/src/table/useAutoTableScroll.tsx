@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { ActionIcon, Affix, Transition } from '@mantine/core';
 import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import type { AutoTableHandle } from './AutoTable';
+import { useMsg } from '../messages/useMsg';
 
 const DEFAULT_EDGE_THRESHOLD_PX = 8;
 const DEFAULT_SMOOTH_SCROLL_DISTANCE_TOP_PX = 120;
@@ -83,6 +84,7 @@ function AutoTableScrollFab({
   affixRightPx,
   transitionDurationMs
 }: AutoTableScrollFabProps) {
+  const msg = useMsg();
   const fabStackStyle: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -114,7 +116,9 @@ function AutoTableScrollFab({
                   variant="filled"
                   color="var(--mantine-color-primary-filled)"
                   style={fabActionIconStyle}
-                  aria-label="一覧の先頭へ移動"
+                  aria-label={msg(
+                    'zodFormWidget.table.scrollToTop' /* i18n: 一覧の先頭へ移動 */
+                  )}
                   onClick={onScrollToTop}
                 >
                   <IconChevronUp size={20} />
@@ -127,7 +131,9 @@ function AutoTableScrollFab({
                   size="xl"
                   radius="xl"
                   variant="filled"
-                  aria-label="一覧の末尾へ移動"
+                  aria-label={msg(
+                    'zodFormWidget.table.scrollToBottom' /* i18n: 一覧の末尾へ移動 */
+                  )}
                   color="var(--mantine-color-primary-filled)"
                   style={fabActionIconStyle}
                   onClick={onScrollToBottom}

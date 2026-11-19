@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { InputWrapper, NumberInput } from "@mantine/core";
 import {
@@ -5,7 +6,7 @@ import {
   emptyValueOf,
   type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
-import { getMeta, zf } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import {
   useConfirmableState,
@@ -24,7 +25,7 @@ const NumberComponent = React.memo(function NumberComponent({
   readOnly: readOnlyProp,
 }: ZodFormProps<NumberSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const meta = getMeta(schema);
+  const meta = useResolvedMeta(schema);
   const labelFromMeta = meta?.label;
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;

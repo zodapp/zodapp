@@ -6,9 +6,14 @@
 
 import { Button, Group, Text } from "@mantine/core";
 import { IconDownload, IconFile } from "@tabler/icons-react";
-import type { UrlPreviewProps, MediaResolverUrlBased } from "@zodapp/zod-form-react/media";
+import type {
+  UrlPreviewProps,
+  MediaResolverUrlBased,
+} from "@zodapp/zod-form-react/media";
+import { useMsg } from "../messages/useMsg";
 
 function GenericFilePreview({ url, mimeType }: UrlPreviewProps) {
+  const msg = useMsg();
   return (
     <Group gap="sm" align="center">
       <IconFile size={32} stroke={1.5} />
@@ -26,7 +31,7 @@ function GenericFilePreview({ url, mimeType }: UrlPreviewProps) {
           variant="light"
           leftSection={<IconDownload size={14} />}
         >
-          ダウンロード
+          {msg("zodFormMantineLite.download" /* i18n: ダウンロード */)}
         </Button>
       </div>
     </Group>

@@ -1,11 +1,14 @@
+import { useMsg } from "../messages/useMsg";
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { Suspense } from "react";
 import { ActionIcon, InputWrapper } from "@mantine/core";
-import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
+import { zf, extractCheck } from "@zodapp/zod-form";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import { $ZodCheckMaxLengthDef, $ZodCheckMinLengthDef } from "zod/v4/core";
 import z from "zod";
 import {
   Switch,
+  ContainerMarker,
   getDefaultValue,
   useArray,
   ZodFormInternalProps,
@@ -13,6 +16,7 @@ import {
   useZodFormContext,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
+import { ownsContainerMarker } from "./container";
 import {
   DndContext,
   closestCenter,
@@ -30,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { withResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -140,7 +145,8 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   const value = field.value as unknown[] | undefined;
   const itemSchema = schema.element as z.ZodTypeAny;
 
-  const { discriminator, label: labelFromMeta } = getMeta(schema) ?? {};
+  const { discriminator, label: labelFromMeta } = useResolvedMeta(schema) ?? {};
+  const msg = useMsg();
 
   const maxLength = extractCheck<$ZodCheckMaxLengthDef>(
     schema.def.checks,
@@ -338,7 +344,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
     <InputWrapper
       label={label || undefined}
       required={!(optional || nullable)}
-      error={arrayError?.message}
+      error={msg.resolve(arrayError?.message)}
       labelElement="div"
       style={inputWrapperStyle}
     >
@@ -359,6 +365,9 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
             }}
           >
             {itemsWithInsertButtons}
+            {ownsContainerMarker({ hideError, errorToken }) && (
+              <ContainerMarker fieldPath={fieldPath} />
+            )}
           </div>
         </SortableContext>
       </DndContext>
@@ -366,4 +375,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   );
 });
 
-export { ArrayComponent as component };
+// 要素・組・選んだ腕の分だけ描く（値が無ければ中を描かない）ので、lazy の数を数え直す
+const ArrayWithResetLazyDepth = withResetLazyDepth(ArrayComponent);
+
+export { ArrayWithResetLazyDepth as component };

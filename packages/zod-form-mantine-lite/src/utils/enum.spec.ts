@@ -1,7 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
-import { choicesOf, toEnumOptionValue, fromEnumOptionValue } from "./enum";
+import {
+  choicesOf,
+  toEnumOptionValue,
+  fromEnumOptionValue,
+  enumOptionsOf,
+  enumOptionDataOf,
+} from "./enum";
+import { isEnumValueListed } from "./unlisted";
 
 describe("enum option value", () => {
   const numberEnum = zf.enum([z.literal(0), z.literal(0.5)]);
@@ -125,5 +132,82 @@ describe("choicesOf（enum）", () => {
     expect(choices.data.map((d) => d.value)).toEqual(["0", "a"]);
     expect(choices.toOption(0)).toBe("0");
     expect(choices.fromOption("0")).toBe(0);
+  });
+});
+
+describe("enum の選択肢の名前", () => {
+  enum Color {
+    Red,
+    Blue,
+  }
+  enum Fruit {
+    Apple = "apple",
+    Banana = "banana",
+  }
+
+  it("object の形の数値の enum は、キーを名前にする", () => {
+    const schema = z.enum({ A: 1, B: 2 });
+    expect(choicesOf(schema).data).toEqual([
+      { value: "1", label: "A", color: "gray" },
+      { value: "2", label: "B", color: "gray" },
+    ]);
+    expect(fromEnumOptionValue(schema, "2")).toBe(2);
+  });
+
+  it("数値の TS enum は、逆引きのキーを選択肢に出さない", () => {
+    const schema = z.enum(Color);
+    expect(enumOptionsOf(schema)).toEqual([
+      { value: 0, name: "Red" },
+      { value: 1, name: "Blue" },
+    ]);
+    expect(isEnumValueListed(schema, "Red")).toBe(false);
+    expect(isEnumValueListed(schema, 0)).toBe(true);
+  });
+
+  it("文字列の TS enum は、キーを名前にする", () => {
+    expect(choicesOf(z.enum(Fruit)).data.map((d) => d.label)).toEqual([
+      "Apple",
+      "Banana",
+    ]);
+  });
+
+  it("配列の enum と zf.enum は、今までどおり値・label を名前にする", () => {
+    expect(choicesOf(z.enum(["a", "b"])).data.map((d) => d.label)).toEqual([
+      "a",
+      "b",
+    ]);
+    const labeled = zf.enum([
+      zf.literal("x").register(zf.literal.registry, { label: "エックス" }),
+      zf.literal("y"),
+    ]);
+    expect(choicesOf(labeled).data.map((d) => d.label)).toEqual([
+      "エックス",
+      "y",
+    ]);
+  });
+
+  it("値から表示名を引く。選択肢に無い値は undefined", () => {
+    const schema = z.enum({ A: "a" });
+    expect(enumOptionDataOf(schema, "a")?.label).toBe("A");
+    expect(enumOptionDataOf(schema, "zzz")).toBeUndefined();
+  });
+});
+
+describe("choicesOf（NaN の腕）", () => {
+  it("NaN の腕を選べ、値と行き来する", () => {
+    const choices = choicesOf(z.union([z.literal(NaN), z.literal(1)]));
+    expect(choices.toOption(NaN)).toBe("0");
+    expect(Number.isNaN(choices.fromOption("0"))).toBe(true);
+    expect(choices.toOption(1)).toBe("1");
+  });
+});
+
+describe("enumOptionsOf は検証を走らせない", () => {
+  it("async の refine が付いた enum でも、例外を投げずに選択肢を作る", () => {
+    const schema = z.enum(["a", "b"]).refine(async () => true);
+    expect(enumOptionsOf(schema as never)).toEqual([
+      { value: "a", name: "a" },
+      { value: "b", name: "b" },
+    ]);
   });
 });

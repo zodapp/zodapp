@@ -10,6 +10,8 @@ import {
   type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
+import { useMsg } from "../messages/useMsg";
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 
 type DynamicSchema = z.ZodTypeAny;
 
@@ -20,26 +22,41 @@ export const DynamicErrorView = ({
 }: {
   label: string | undefined;
   retry: () => void;
-}) => (
-  <Alert color="red" data-dynamic-status="error">
-    <Group justify="space-between">
-      <Text size="sm">{label ? `${label}を` : ""}取得できませんでした</Text>
-      <Button size="xs" variant="light" onClick={retry}>
-        再試行
-      </Button>
-    </Group>
-  </Alert>
-);
+}) => {
+  const msg = useMsg();
+  return (
+    <Alert color="red" data-dynamic-status="error">
+      <Group justify="space-between">
+        <Text size="sm">
+          {label
+            ? msg(
+                "zodFormMantineLite.fetchFailedWithLabel" /* i18n: ${label}を取得できませんでした */,
+                { label },
+              )
+            : msg(
+                "zodFormMantineLite.fetchFailed" /* i18n: 取得できませんでした */,
+              )}
+        </Text>
+        <Button size="xs" variant="light" onClick={retry}>
+          {msg("zodFormMantineLite.retry" /* i18n: 再試行 */)}
+        </Button>
+      </Group>
+    </Alert>
+  );
+};
 
 /** 読み込み中の表示 */
-const DynamicLoadingView = ({ status }: { status?: "loading" | "pending" }) => (
-  <Group gap="xs" data-dynamic-status={status}>
-    <Loader size="xs" />
-    <Text size="sm" c="dimmed">
-      読み込み中
-    </Text>
-  </Group>
-);
+const DynamicLoadingView = ({ status }: { status?: "loading" | "pending" }) => {
+  const msg = useMsg();
+  return (
+    <Group gap="xs" data-dynamic-status={status}>
+      <Loader size="xs" />
+      <Text size="sm" c="dimmed">
+        {msg("zodFormReact.dynamic.loading" /* i18n: 読み込み中 */)}
+      </Text>
+    </Group>
+  );
+};
 
 /**
  * 実行時に決まる schema で描画する部品。
@@ -53,7 +70,7 @@ const DynamicComponent = React.memo(function DynamicComponent(
   props: ZodFormProps<DynamicSchema>,
 ) {
   const { fieldPath, schema } = props;
-  const meta = getMeta(schema, "dynamic");
+  const meta = useResolvedMeta(schema, "dynamic");
   const depth = useDynamicDepth(fieldPath);
   const state = useDynamicSchema(meta, fieldPath, {
     outer: props.outer,

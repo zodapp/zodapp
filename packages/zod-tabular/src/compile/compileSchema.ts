@@ -10,7 +10,18 @@ import { createError } from "../errors/createError.js";
 import { unwrap } from "./unwrap.js";
 import { buildUnionMeta } from "./union.js";
 
-export function compileSchema(schema: z.ZodType): CompiledSchema {
+export interface CompileSchemaOptions {
+  /**
+   * true を返した schema の欄を表に出さない（z.never と同じく、object の欄から外す）。
+   * object の欄の schema（optional などで包んだまま）で呼ぶ
+   */
+  skip?: (schema: z.ZodType) => boolean;
+}
+
+export function compileSchema(
+  schema: z.ZodType,
+  options: CompileSchemaOptions = {},
+): CompiledSchema {
   const fieldIdToName = new Map<number, string>();
   const controlIdMeta = new Map<number, UnionMeta>();
 
@@ -50,7 +61,7 @@ export function compileSchema(schema: z.ZodType): CompiledSchema {
 
     let result: CompiledNode;
 
-    if (base instanceof z.ZodNever) {
+    if (base instanceof z.ZodNever || options.skip?.(node)) {
       result = null as unknown as CompiledNode;
     } else if (base instanceof z.ZodObject) {
       const shape = base.shape as Record<string, z.ZodType>;

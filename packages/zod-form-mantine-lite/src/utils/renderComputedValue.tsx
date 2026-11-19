@@ -5,6 +5,7 @@ import { isElement } from "react-is";
 import type { ComputedValue } from "@zodapp/zod-form";
 import { ReadonlyText } from "./text";
 import { ColorBadge } from "./selectOption";
+import { useMsg } from "../messages/useMsg";
 
 export type RenderComputedValueVariant = "table" | "readOnly";
 type LinkComputedValue = { type: "link"; label: string; href: string };
@@ -95,6 +96,7 @@ function getLinkValue(content: unknown): LinkComputedValue | undefined {
 }
 
 function ReadonlyLink({ label, href }: LinkComputedValue) {
+  const msg = useMsg();
   return (
     <Group gap="0" wrap="nowrap" align="center">
       <ReadonlyText style={{ flex: 1 }}>{label}</ReadonlyText>
@@ -108,7 +110,12 @@ function ReadonlyLink({ label, href }: LinkComputedValue) {
           component="span"
           size="md"
           variant="subtle"
-          aria-label={`${label}を開く`}
+          aria-label={msg(
+            "zodFormMantineLite.open" /* i18n: ${label}を開く */,
+            {
+              label,
+            },
+          )}
         >
           <IconExternalLink size={16} />
         </ActionIcon>

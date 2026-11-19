@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback } from "react";
 import { InputWrapper, Switch } from "@mantine/core";
 import {
@@ -6,7 +7,7 @@ import {
   useValidatePrecedingFields,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { zf, getMeta } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 
 type BooleanSchema = ReturnType<typeof zf.boolean>;
@@ -20,7 +21,7 @@ const BooleanComponent = wrapComponent(function BooleanComponentImplement({
   error,
 }: ZodFormInternalProps<BooleanSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const { uiType, label: labelFromMeta } = getMeta(schema) ?? {};
+  const { uiType, label: labelFromMeta } = useResolvedMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
 

@@ -1,14 +1,13 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useMemo } from "react";
 import { InputWrapper } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import "dayjs/locale/ja.js";
 import {
   emptinessOf,
   emptyValueOf,
   type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
 import { useZodFormContext } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import { ReadonlyText } from "../utils/text";
 import {
   createDateConverter,
@@ -23,6 +22,7 @@ import {
   confirmableRightSectionProps,
 } from "./utils/confirmable";
 import { inputWrapperStyle } from "../utils/styles";
+import { useLocale } from "@zodapp/i18n-messages-react";
 
 type DateSchema = z.ZodDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate;
 
@@ -45,7 +45,8 @@ const DateComponent = React.memo(function DateComponent({
 }: ZodFormProps<DateSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { timezone } = useZodFormContext();
-  const meta = getMeta(schema, "date");
+  const meta = useResolvedMeta(schema, "date");
+  const locale = useLocale();
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const labelFromMeta = meta?.label;
   const unitFromMeta = meta?.unit;
@@ -95,7 +96,7 @@ const DateComponent = React.memo(function DateComponent({
       onChange={(next) => onChange(next)}
       onBlur={() => void onBlur()}
       valueFormat={valueFormat}
-      locale="ja"
+      locale={locale}
       label={label || undefined}
       required={!(optional || nullable)}
       clearable

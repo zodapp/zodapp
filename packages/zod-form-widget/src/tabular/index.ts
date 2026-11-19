@@ -12,6 +12,8 @@ export {
   buildDynamicTabularPreviewRows,
   toDynamicTabularRow,
   normalizeDynamicTabularCellValue,
+  TabularImportError,
+  type TabularImportErrorCode,
   type DynamicTabularCellValue,
   type DynamicTabularRow,
   type DynamicTabularParseResult

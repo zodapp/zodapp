@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { FormRuntime } from "./schemaRegistry";
+import { ASYNC_VALIDATION_ISSUE_CODE, FormRuntime } from "./schemaRegistry";
 
 describe("FormRuntime.validate", () => {
   it("keeps the per-arm errors of an invalid_union issue", () => {
@@ -118,5 +118,47 @@ describe("FormRuntime の既定値の補い：作るたびに変わる既定値"
     runtime.setDefaultFill("b", z.object({ x: z.string().default("x") }));
     const second = runtime.applyDefaultFills({});
     expect(second).toEqual({ a: live, b: { x: "x" } });
+  });
+});
+
+describe("FormRuntime（非同期の検証）", () => {
+  const schemas = [
+    ["z.promise()", z.object({ name: z.string(), p: z.promise(z.number()) })],
+    [
+      "async の refine",
+      z.object({ name: z.string() }).refine(async () => true),
+    ],
+  ] as const;
+
+  for (const [name, schema] of schemas) {
+    it(`${name}：例外を握り、ルートの issue にする（console.error は 1 度だけ）`, () => {
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      const runtime = new FormRuntime();
+      const value = { name: "a", p: Promise.resolve(1) };
+      const issues = runtime.validate(schema, value);
+      expect(issues).toHaveLength(1);
+      expect(issues[0]!.code).toBe(ASYNC_VALIDATION_ISSUE_CODE);
+      expect(issues[0]!.path).toEqual([]);
+      const parsed = runtime.parse(schema, value);
+      expect(parsed.success).toBe(false);
+      expect(
+        !parsed.success && parsed.issues[0]!.code,
+      ).toBe(ASYNC_VALIDATION_ISSUE_CODE);
+      expect(error).toHaveBeenCalledTimes(1);
+      error.mockRestore();
+    });
+  }
+
+  it("wrapValidator も例外を投げず、issue を返す", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const runtime = new FormRuntime();
+    const validator = runtime.wrapValidator(
+      z.object({ p: z.promise(z.number()) }),
+    );
+    const result = validator["~standard"].validate({
+      p: Promise.resolve(1),
+    }) as { issues?: unknown[] };
+    expect(result.issues).toHaveLength(1);
+    vi.restoreAllMocks();
   });
 });

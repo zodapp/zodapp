@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback } from "react";
 import { InputWrapper, NumberInput } from "@mantine/core";
 import {
@@ -7,7 +8,7 @@ import {
   emptyValueOf,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { getMeta, zf } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 import {
   ReadonlyText,
   inputWrapperStyle,
@@ -37,7 +38,8 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
 }: ZodFormInternalProps<NumberSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta, formatter } = getMeta(schema, "number") ?? {};
+  const { label: labelFromMeta, formatter } =
+    useResolvedMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const rawValue = field.value as unknown;
 

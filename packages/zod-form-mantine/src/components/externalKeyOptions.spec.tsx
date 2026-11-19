@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
+import { ja as jaMessages } from "../messages";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import {
@@ -112,12 +114,14 @@ const Providers = ({
   children: React.ReactNode;
 }) => (
   <MantineProvider>
-    <ZodFormContextProvider
-      componentLibrary={componentLibrary as any}
-      externalKeyResolvers={resolvers}
-    >
-      {children}
-    </ZodFormContextProvider>
+    <I18nMessagesProvider locale="ja" messages={jaMessages}>
+      <ZodFormContextProvider
+        componentLibrary={componentLibrary as any}
+        externalKeyResolvers={resolvers}
+      >
+        {children}
+      </ZodFormContextProvider>
+    </I18nMessagesProvider>
   </MantineProvider>
 );
 

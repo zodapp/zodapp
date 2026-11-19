@@ -3,12 +3,12 @@ import { buildCss } from "./scripts/build-css.mjs";
 
 export default defineConfig({
   entry: [
+    "src/messages/index.ts",
     "src/index.ts",
     "src/table/index.ts",
     "src/tabular/index.ts",
     "src/form/index.ts",
     "src/feedback/index.ts",
-    "src/i18n/ja.ts",
   ],
   format: ["esm", "cjs"],
   dts: true,

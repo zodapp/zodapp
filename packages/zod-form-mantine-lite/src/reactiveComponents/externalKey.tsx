@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useMemo } from "react";
 import { ActionIcon, Group, InputWrapper, Loader, Select } from "@mantine/core";
 import { IconExternalLink } from "@tabler/icons-react";
@@ -6,7 +7,6 @@ import {
   emptyValueOf,
   type ZodFormProps,
 } from "@zodapp/zod-form-react/common";
-import { getMeta } from "@zodapp/zod-form";
 import {
   useExternalKeyAction,
   useExternalKeyOptions,
@@ -20,6 +20,8 @@ import {
 import { inputWrapperStyle } from "../utils/styles";
 import { FetchErrorView } from "../utils/fetchErrorView";
 import { externalKeyDisplayLabel, withUnlistedOption } from "../utils/unlisted";
+import { useMsg } from "../messages/useMsg";
+import { useUnlistedLabel } from "../utils/unlistedLabel";
 
 type ExternalKeySchema = z.ZodString;
 
@@ -32,7 +34,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   readOnly: readOnlyProp,
 }: ZodFormProps<ExternalKeySchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const meta = getMeta(schema, "externalKey");
+  const meta = useResolvedMeta(schema, "externalKey");
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? meta?.label;
   const allowUnlisted = meta?.allowUnlisted === true;
@@ -45,14 +47,21 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
       emptyValue: emptyValueOf({ optional, nullable }),
     });
   const actionWrapper = useExternalKeyAction(schema, value);
+  const msg = useMsg();
+  const unlistedLabel = useUnlistedLabel();
 
   // 選択肢に無い値は、zod-form-mantine の欄や表のセルと同じく「（不正な値）」と出す（生の値は見せない）。
   // allowUnlisted なら正しい値なので、値そのものを出す。選択肢が無い（取得に失敗した）ときも、生の値は見せない
   const displayLabel = useMemo(() => {
     if (isLoading) return "Loading...";
     if (!value) return "";
-    return externalKeyDisplayLabel(options ?? [], value, allowUnlisted);
-  }, [isLoading, options, value, allowUnlisted]);
+    return externalKeyDisplayLabel(
+      options ?? [],
+      value,
+      allowUnlisted,
+      unlistedLabel,
+    );
+  }, [isLoading, options, value, allowUnlisted, unlistedLabel]);
 
   // 編集できる欄では、選択肢に無い値を選べない選択肢として足す（足さないと Select は空欄に見せる）
   const selectData = useMemo(
@@ -66,7 +75,14 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
           component="span"
           size="md"
           variant="subtle"
-          aria-label={`${label ?? "選択済み項目"}を開く`}
+          aria-label={msg(
+            "zodFormMantineLite.open" /* i18n: ${label}を開く */,
+            {
+              label:
+                label ||
+                msg("zodFormMantineLite.selectedItem" /* i18n: 選択済み項目 */),
+            },
+          )}
           style={{
             color: "var(--mantine-primary-color-filled)",
           }}
@@ -121,7 +137,9 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
         label={label || undefined}
         required={!(optional || nullable)}
         disabled
-        placeholder="選択肢がありません"
+        placeholder={msg(
+          "zodFormMantineLite.noOptions" /* i18n: 選択肢がありません */,
+        )}
         style={inputWrapperStyle}
       />
     );

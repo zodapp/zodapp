@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React from "react";
 import { InputWrapper } from "@mantine/core";
 import z from "zod";
@@ -9,6 +10,7 @@ import {
 } from "@zodapp/zod-form-react/common";
 import { zf, getMeta } from "@zodapp/zod-form";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { withSupportCheck } from "../utils/unsupported";
 
 type TupleSchema = ReturnType<typeof zf.tuple>;
 
@@ -23,7 +25,7 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   field,
 }: ZodFormInternalProps<TupleSchema>) {
   const { optional, nullable } = emptinessOf(outer);
-  const { label: labelFromMeta } = getMeta(schema) ?? {};
+  const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
 
   const baseItems = schema.def.items as z.ZodTypeAny[];
@@ -69,4 +71,14 @@ const TupleComponent = wrapComponent(function TupleComponentImplement({
   );
 });
 
-export { TupleComponent as component };
+// rest の要素を足す手段は無い（今ある要素は描く）
+const CheckedTupleComponent = withSupportCheck(
+  TupleComponent,
+  (schema) =>
+    schema.def.rest
+      ? "tuple with rest elements cannot add or remove elements in this form"
+      : undefined,
+  { keepRendering: true },
+);
+
+export { CheckedTupleComponent as component };

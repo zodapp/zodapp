@@ -133,7 +133,7 @@ type SchemaType = z.infer<typeof schema>;
 | `zf.object()`      | オブジェクト               |
 | `zf.union()`       | ユニオン型（判別器付き）   |
 | `zf.externalKey()` | 外部キー参照               |
-| `zf.file()`        | ファイルアップロード       |
+| `zf.externalFile()` | 外に置いたファイル（アップロード） |
 | `zf.message()`     | メッセージ表示（入力なし） |
 | `zf.computed()`    | 計算フィールド（表示のみ） |
 | `zf.hidden()`      | 非表示フィールド           |

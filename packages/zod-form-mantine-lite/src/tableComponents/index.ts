@@ -20,6 +20,8 @@ export { component as DynamicComponent } from "./dynamic.js";
 export const tableComponentLibrary: ComponentLibrary = {
   ...baseComponents,
   string: (() => import("./string.js")) as DynamicZodFormDef,
+  // z.templateLiteral() は文字列の欄で出す
+  template_literal: (() => import("./string.js")) as DynamicZodFormDef,
   number: (() => import("./number.js")) as DynamicZodFormDef,
   boolean: (() => import("./boolean.js")) as DynamicZodFormDef,
   enum: (() => import("./enum.js")) as DynamicZodFormDef,

@@ -1,3 +1,4 @@
+import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useCallback } from "react";
 import { Checkbox } from "@mantine/core";
 import {
@@ -6,7 +7,7 @@ import {
   useValidatePrecedingFields,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
-import { zf, getMeta } from "@zodapp/zod-form";
+import { zf } from "@zodapp/zod-form";
 
 type BooleanSchema = ReturnType<typeof zf.boolean>;
 
@@ -20,7 +21,7 @@ const BooleanCheckboxComponent = wrapComponent(
     error,
   }: ZodFormInternalProps<BooleanSchema>) {
     const { optional, nullable } = emptinessOf(outer);
-    const { label: labelFromMeta } = getMeta(schema) ?? {};
+    const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const { onFocus, ref } = useValidatePrecedingFields(field);
 

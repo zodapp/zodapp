@@ -32,10 +32,10 @@ describe("FileConfig 型テスト（base package）", () => {
     });
   });
 
-  describe("zf.file.registry の基本型チェック", () => {
+  describe("zf.externalFile.registry の基本型チェック", () => {
     it("BaseFileConfig を直接指定できる", () => {
       // 基本的な設定（type のみ必須）
-      const schema = zf.string().register(zf.file.registry, {
+      const schema = zf.string().register(zf.externalFile.registry, {
         label: "テスト",
         fileConfig: {
           type: "anyStorage",
@@ -45,7 +45,7 @@ describe("FileConfig 型テスト（base package）", () => {
     });
 
     it("BaseFileConfig を関数形式では指定できない（ただのデータにする）", () => {
-      zf.string().register(zf.file.registry, {
+      zf.string().register(zf.externalFile.registry, {
         label: "テスト",
         // @ts-expect-error 関数で返す形は持たない。変えるときは zf.dynamic で包む
         fileConfig: () => ({
@@ -55,7 +55,7 @@ describe("FileConfig 型テスト（base package）", () => {
     });
 
     it("BaseFileConfig のオプションプロパティを指定できる", () => {
-      const schema = zf.string().register(zf.file.registry, {
+      const schema = zf.string().register(zf.externalFile.registry, {
         label: "テスト",
         fileConfig: {
           type: "anyStorage",
@@ -106,7 +106,7 @@ describe("FileConfig 型テスト（base package）", () => {
      *
      * この拡張により:
      * - RegisteredFileConfig が WebFileConfig と等しくなる
-     * - zf.file.registry の fileConfig が
+     * - zf.externalFile.registry の fileConfig が
      *   S3FileConfig | MockFileConfig のみを受け入れる
      * - 不正な type（"s3" | "mock" 以外）がコンパイルエラーになる
      * - S3FileConfig では contextId と getLocation が必須になる

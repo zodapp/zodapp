@@ -34,9 +34,7 @@ export const getValueAt = (
   );
 
 /** issue の path（PropertyKey か { key } の配列）を PathSegment の配列にそろえる */
-export const normalizeIssuePath = (
-  path: readonly unknown[],
-): PathSegment[] =>
+export const normalizeIssuePath = (path: readonly unknown[]): PathSegment[] =>
   path.flatMap((segment) => {
     if (typeof segment === "string" || typeof segment === "number") {
       return [segment];
@@ -55,3 +53,10 @@ export const pathStartsWith = (
 ): boolean =>
   prefix.length <= path.length &&
   prefix.every((segment, index) => String(path[index]) === String(segment));
+
+/**
+ * フィールドパスの名前に使えないキーか。`.`・`[`・`]` を含むキーは、パスにすると別の場所を指し、
+ * 空文字のキーは親を指してしまう。フォームの欄としては扱わない
+ */
+export const isUnsafeFieldKey = (key: string): boolean =>
+  key === "" || /[.[\]]/.test(key);

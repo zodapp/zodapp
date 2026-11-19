@@ -3,12 +3,16 @@
  * audio/* mimeType用のプレビューコンポーネント
  */
 
+import { useMsg } from "../messages/useMsg";
 import type { UrlPreviewProps, MediaResolverUrlBased } from "../media";
 
 function AudioPreview({ url, mimeType: _mimeType }: UrlPreviewProps) {
+  const msg = useMsg();
   return (
     <audio src={url} controls style={{ width: "100%" }}>
-      お使いのブラウザは音声の再生に対応していません。
+      {msg(
+        "zodFormReact.media.audioUnsupported" /* i18n: お使いのブラウザは音声の再生に対応していません。 */,
+      )}
     </audio>
   );
 }

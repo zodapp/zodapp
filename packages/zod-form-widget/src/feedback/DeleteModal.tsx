@@ -3,6 +3,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconTrash } from '@tabler/icons-react';
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useMsg } from '../messages/useMsg';
 
 type UseDeleteModalProps = {
   title?: string;
@@ -12,11 +13,15 @@ type UseDeleteModalProps = {
 };
 
 export function useDeleteModal({
-  title = '削除確認',
+  title: titleFromProps,
   message,
-  confirmLabel = '削除する',
+  confirmLabel: confirmLabelFromProps,
   onDelete
 }: UseDeleteModalProps) {
+  const msg = useMsg();
+  const title = titleFromProps ?? msg('zodFormWidget.delete.title' /* i18n: 削除確認 */);
+  const confirmLabel =
+    confirmLabelFromProps ?? msg('zodFormWidget.delete.confirm' /* i18n: 削除する */);
   const [opened, { open, close }] = useDisclosure(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +41,15 @@ export function useDeleteModal({
       await onDelete();
       close();
     } catch (e) {
-      setError(e instanceof Error ? e.message : '削除に失敗しました。');
+      setError(
+        e instanceof Error
+          ? msg.resolve(e.message)
+          : msg('zodFormWidget.delete.failed' /* i18n: 削除に失敗しました。 */)
+      );
     } finally {
       setIsDeleting(false);
     }
-  }, [close, onDelete]);
+  }, [close, msg, onDelete]);
 
   const modal = (
     <Modal opened={opened} onClose={handleClose} title={title} centered>
@@ -52,7 +61,7 @@ export function useDeleteModal({
       )}
       <Group justify="flex-end" mt="lg">
         <Button variant="default" onClick={handleClose} disabled={isDeleting}>
-          キャンセル
+          {msg('zodFormWidget.common.cancel' /* i18n: キャンセル */)}
         </Button>
         <Button
           color="red"
@@ -74,10 +83,11 @@ type DeleteMenuItemProps = {
   onClick: () => void;
 };
 
-export function DeleteMenuItem({ label = '削除', onClick }: DeleteMenuItemProps) {
+export function DeleteMenuItem({ label, onClick }: DeleteMenuItemProps) {
+  const msg = useMsg();
   return (
     <Menu.Item color="red" leftSection={<IconTrash size={16} />} onClick={onClick}>
-      {label}
+      {label ?? msg('zodFormWidget.delete.menuItem' /* i18n: 削除 */)}
     </Menu.Item>
   );
 }

@@ -137,7 +137,6 @@ export const schema = z
   })
   .register(zf.object.registry, {});
 
-// dynamic の欄は静的には値型を持たないため、unknown 経由でキャストする
 export const defaultValues = {
   office: "hq",
   officeLegacy: "closed-branch",
@@ -149,7 +148,7 @@ export const defaultValues = {
   onDutyKeep: "u-002",
   prefecture: "tokyo",
   city: "shinjuku",
-} as unknown as z.input<typeof schema>;
+} satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
 

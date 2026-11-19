@@ -3,6 +3,7 @@ import * as formatterAndSuggestions from "./formatterAndSuggestions";
 import * as booleanVariants from "./booleanVariants";
 import * as objectLayout from "./objectLayout";
 import * as recordEntries from "./recordEntries";
+import * as zodBuiltins from "./zodBuiltins";
 import * as computedVariants from "./computedVariants";
 import * as schemaTransform from "./schemaTransform";
 import * as validatePreceding from "./validatePreceding";
@@ -28,9 +29,11 @@ import * as nullableFields from "./nullableFields";
 import * as literalUnionSelect from "./literalUnionSelect";
 import * as intersection from "./intersection";
 import * as refineValidation from "./refineValidation";
+import * as i18nMessages from "./i18nMessages";
 import * as recursiveData from "./recursiveSchema";
 import * as file from "./file";
 import * as readOnly from "./readOnly";
+import * as fixedValues from "./fixedValues";
 import * as reactiveBasicInput from "./reactiveBasicInput";
 import * as reactiveEnumSelect from "./reactiveEnumSelect";
 import * as reactiveNestedObject from "./reactiveNestedObject";
@@ -42,6 +45,7 @@ import formatterAndSuggestionsCode from "./formatterAndSuggestions.ts?raw";
 import booleanVariantsCode from "./booleanVariants.ts?raw";
 import objectLayoutCode from "./objectLayout.ts?raw";
 import recordEntriesCode from "./recordEntries.ts?raw";
+import zodBuiltinsCode from "./zodBuiltins.ts?raw";
 import computedVariantsCode from "./computedVariants.ts?raw";
 import schemaTransformCode from "./schemaTransform.tsx?raw";
 import validatePrecedingCode from "./validatePreceding.ts?raw";
@@ -67,9 +71,11 @@ import nullableFieldsCode from "./nullableFields.ts?raw";
 import literalUnionSelectCode from "./literalUnionSelect.ts?raw";
 import intersectionCode from "./intersection.ts?raw";
 import refineValidationCode from "./refineValidation.ts?raw";
+import i18nMessagesCode from "./i18nMessages.ts?raw";
 import recursiveDataCode from "./recursiveSchema.ts?raw";
 import fileCode from "./file.ts?raw";
 import readOnlyCode from "./readOnly.ts?raw";
+import fixedValuesCode from "./fixedValues.ts?raw";
 import reactiveBasicInputCode from "./reactiveBasicInput.ts?raw";
 import reactiveEnumSelectCode from "./reactiveEnumSelect.ts?raw";
 import reactiveNestedObjectCode from "./reactiveNestedObject.ts?raw";
@@ -90,12 +96,14 @@ export const formSchemas = {
   [intersection.formId]: intersection,
   [objectLayout.formId]: objectLayout,
   [recordEntries.formId]: recordEntries,
+  [zodBuiltins.formId]: zodBuiltins,
   [union.formId]: union,
   [unionArms.formId]: unionArms,
   [discriminatedUnion.formId]: discriminatedUnion,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevel,
   [recursiveData.formId]: recursiveData,
   [refineValidation.formId]: refineValidation,
+  [i18nMessages.formId]: i18nMessages,
   [file.formId]: file,
   [mediaPreview.formId]: mediaPreview,
   [computed.formId]: computed,
@@ -105,6 +113,7 @@ export const formSchemas = {
   [selectAndExternalKey.formId]: selectAndExternalKey,
   [externalKeyFilter.formId]: externalKeyFilter,
   [readOnly.formId]: readOnly,
+  [fixedValues.formId]: fixedValues,
   [schemaTransform.formId]: schemaTransform,
   [validatePreceding.formId]: validatePreceding,
   [formActions.formId]: formActions,
@@ -131,12 +140,14 @@ export const formCodes = {
   [intersection.formId]: intersectionCode,
   [objectLayout.formId]: objectLayoutCode,
   [recordEntries.formId]: recordEntriesCode,
+  [zodBuiltins.formId]: zodBuiltinsCode,
   [union.formId]: unionCode,
   [unionArms.formId]: unionArmsCode,
   [discriminatedUnion.formId]: discriminatedUnionCode,
   [discriminatedUnionAsTopLevel.formId]: discriminatedUnionAsTopLevelCode,
   [recursiveData.formId]: recursiveDataCode,
   [refineValidation.formId]: refineValidationCode,
+  [i18nMessages.formId]: i18nMessagesCode,
   [file.formId]: fileCode,
   [mediaPreview.formId]: mediaPreviewCode,
   [computed.formId]: computedCode,
@@ -146,6 +157,7 @@ export const formCodes = {
   [selectAndExternalKey.formId]: selectAndExternalKeyCode,
   [externalKeyFilter.formId]: externalKeyFilterCode,
   [readOnly.formId]: readOnlyCode,
+  [fixedValues.formId]: fixedValuesCode,
   [schemaTransform.formId]: schemaTransformCode,
   [validatePreceding.formId]: validatePrecedingCode,
   [formActions.formId]: formActionsCode,
