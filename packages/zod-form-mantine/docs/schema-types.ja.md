@@ -35,7 +35,7 @@ optional・nullable・default と同じく、包みを外して中を描きま�
 - **`z.set()`**：要素に TanStack Form のパスで欄を割り当てられないので、set 全体を 1 つの欄として描きます。要素が enum・literal の union・複数の値の literal なら MultiSelect、string・number なら TagsInput（重複は入らない）、それ以外は扱えない注記を出します。空の値は `emptyValueOf` にそろえ、要素のエラーもすべて set の欄に出します。値の比較（`isEqualValue`）は Set・Map の中身を比べます
 - **`z.map()`**：set と同じく 1 つの欄で、record の entries の見た目で組を書きます。キーは string・number だけを受け、それ以外は扱えない注記を出します
 - **キーを列挙できる record**（キーの schema に `_zod.values` があるもの。enum・literal とその union）：zod はすべてのキーを必須として検証するので、そのキーを固定の欄として object と同じように並べます。欄の名前はキー（選択肢に label があればその label）で、`uiType: "entries"` でも同じです。`z.partialRecord` は `_zod.values` が空なので、今までどおりの見た目です
-- **キーの検査のエラー**（`invalid_key`）は、キーの側（entries ならそのキーの欄、既定の見た目なら record の欄）に出します
+- **キーの検査のエラー**（`invalid_key`）は、キーの側（entries ならそのキーの欄、既定の見た目なら record の欄）に出します。entries の見た目と Map では、キーが空・重複・キーの schema に通らない書きかけの組は、直すまで値から外します（画面と違う値を送らないため）
 - **tuple の rest**、**array の `uiType` と要素の組み合わせが合わないもの**（要素が object の配列に `multipleEnum` など）は、型で縛りにくいので、その欄の場所に「この組み合わせは非対応」と出し、`console.error` を出します
 
 ## そのほかの型
