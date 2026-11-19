@@ -8,24 +8,69 @@ import { type OptionDataType } from "./selectOption";
 type EnumSchema = z.ZodEnum<z.core.util.EnumLike>;
 type EnumValue = string | number;
 
+/** enum の選択肢 1 つ。value：値。name：label が無いときの名前 */
+export type EnumOption = { value: EnumValue; name: string };
+
+/**
+ * enum の選択肢と、label が無いときの名前。
+ *
+ * - object の形で書いた enum（`z.enum({ A: 1 })`・TS enum）は、キーを名前にする。
+ *   配列で書いた enum はキーと値が同じなので、名前は値になる
+ * - zod の検証を通らない値は外す。数値の TS enum の逆引きのキー（`"Red"` など）は
+ *   `options` に入るが検証は通らないので、これで消える
+ */
+export const enumOptionsOf = (enumSchema: EnumSchema): EnumOption[] => {
+  const entries = Object.entries(
+    (enumSchema.def as { entries?: Record<string, EnumValue> }).entries ?? {},
+  );
+  return (enumSchema.options as readonly EnumValue[])
+    .filter((value) => enumSchema.safeParse(value).success)
+    .map((value) => ({
+      value,
+      name: entries.find(([, entry]) => entry === value)?.[0] ?? String(value),
+    }));
+};
+
+/** enum の選択肢の名前（literal の label。無ければ {@link enumOptionsOf} の名前）と色 */
+const enumOptionData = (
+  enumSchema: EnumSchema,
+  { value, name }: EnumOption,
+): OptionDataType => {
+  const { schemas } = getMeta(enumSchema) ?? {};
+  const key = String(value);
+  const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
+  return {
+    value: key,
+    label: literalMeta?.label ?? name,
+    color: literalMeta?.color ?? "gray",
+  };
+};
+
+/** enum の値の表示名と色。選択肢に無い値は undefined */
+export const enumOptionDataOf = (
+  enumSchema: EnumSchema,
+  value: unknown,
+): OptionDataType | undefined => {
+  const option = enumOptionsOf(enumSchema).find(
+    (candidate) => String(candidate.value) === String(value),
+  );
+  return option ? enumOptionData(enumSchema, option) : undefined;
+};
+
 /**
  * enumスキーマのオプションからSelect/MultiSelect用のdata配列を生成するフック。
  * Select の値は文字列なので、数値の選択肢も文字列にして渡す ({@link fromEnumOptionValue} で戻す)
  */
 export function useEnumData(enumSchema: EnumSchema): OptionDataType[] {
   const resolveText = useResolveText();
-  return useMemo(() => {
-    const { schemas } = getMeta(enumSchema) ?? {};
-    return (enumSchema.options as readonly EnumValue[]).map((value) => {
-      const key = String(value);
-      const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
-      return {
-        value: key,
-        label: resolveText(literalMeta?.label) ?? key,
-        color: literalMeta?.color ?? "gray",
-      } satisfies OptionDataType;
-    });
-  }, [enumSchema, resolveText]);
+  return useMemo(
+    () =>
+      enumOptionsOf(enumSchema).map((option) => {
+        const data = enumOptionData(enumSchema, option);
+        return { ...data, label: resolveText(data.label) ?? data.label };
+      }),
+    [enumSchema, resolveText],
+  );
 }
 
 /** フォームの値を Select の値 (文字列) にする。未選択 (undefined / null / 空文字) は null */
@@ -40,9 +85,9 @@ export const fromEnumOptionValue = (
   if (optionValue === null || optionValue === undefined || optionValue === "")
     return undefined;
   return (
-    (enumSchema.options as readonly EnumValue[]).find(
-      (value) => String(value) === optionValue,
-    ) ?? optionValue
+    enumOptionsOf(enumSchema).find(
+      (option) => String(option.value) === optionValue,
+    )?.value ?? optionValue
   );
 };
 
@@ -71,17 +116,10 @@ export const isEmptyOption = (option: string | null | undefined) =>
   option === null || option === undefined || option === "";
 
 const enumChoices = (enumSchema: EnumSchema): Choices => {
-  const { schemas } = getMeta(enumSchema) ?? {};
   return {
-    data: (enumSchema.options as readonly EnumValue[]).map((value) => {
-      const key = String(value);
-      const literalMeta = schemas?.[key] ? getMeta(schemas[key]) : null;
-      return {
-        value: key,
-        label: literalMeta?.label ?? key,
-        color: literalMeta?.color ?? "gray",
-      } satisfies OptionDataType;
-    }),
+    data: enumOptionsOf(enumSchema).map((option) =>
+      enumOptionData(enumSchema, option),
+    ),
     toOption: toEnumOptionValue,
     fromOption: (option) => fromEnumOptionValue(enumSchema, option),
     hasUndefined: false,

@@ -1,12 +1,13 @@
 import type { z } from "zod";
+import { enumOptionsOf } from "./enum";
 
-/** enum の値が選択肢にあるか（数値の選択肢も文字列にして比べる） */
+/** enum の値が選択肢にあるか（数値の選択肢も文字列にして比べる。検証を通らない値は選択肢に無い） */
 export const isEnumValueListed = (
   enumSchema: z.ZodEnum<z.core.util.EnumLike>,
   value: string | number,
 ): boolean =>
-  (enumSchema.options as readonly (string | number)[]).some(
-    (option) => String(option) === String(value),
+  enumOptionsOf(enumSchema).some(
+    (option) => String(option.value) === String(value),
   );
 
 /**
