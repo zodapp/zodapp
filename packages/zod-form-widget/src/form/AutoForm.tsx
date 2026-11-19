@@ -105,6 +105,10 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   // 包んだ validator は standard schema の形なので、TanStack Form 1.33 以降の
   // validators の型（RejectPromiseValidator<T>）にもそのまま渡せる。
   const [runtime] = useState(() => new FormRuntime());
+  // 検証は通ったが parse できなかったときの issue（送信が止まった理由に使う）
+  const parseIssuesRef = useRef<readonly { code?: string }[] | undefined>(
+    undefined,
+  );
   const validator = useMemo(
     () => runtime.wrapValidator<z.input<T>>(schema),
     [runtime, schema],
@@ -123,11 +127,18 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
       onBlur: validator,
       onSubmit: validator,
     },
+    // onSubmit には parse した値（output）を渡す。parse できなければ送らない
+    // （止まった理由は handleSubmit が出す。onCancel にはフォームの値（input）を渡す）
     onSubmit: ({ value }) => {
+      const parsed = runtime.parse(schema, value);
+      if (!parsed.success) {
+        parseIssuesRef.current = parsed.issues;
+        return;
+      }
       const handler =
         pendingSubmitHandlerRef.current ?? defaultSubmitHandlerRef.current;
       pendingSubmitHandlerRef.current = undefined;
-      handler?.(value as z.output<T>);
+      handler?.(parsed.data as z.output<T>);
     },
   });
 
@@ -168,14 +179,18 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
         resolve(data);
       };
 
+      parseIssuesRef.current = undefined;
       void form
         .handleSubmit()
         .then(() => {
           if (!form.state.isValid) {
             // 登録された schema（読み込み中・取得失敗を含む）でも通るときだけ送る
             const issues = runtime.validate(schema, form.state.values);
-            const parsed = schema.safeParse(form.state.values);
-            if (issues.length === 0 && parsed.success) {
+            const parsed =
+              issues.length === 0
+                ? runtime.parse(schema, form.state.values)
+                : undefined;
+            if (parsed?.success) {
               const handler = pendingSubmitHandlerRef.current;
               pendingSubmitHandlerRef.current = undefined;
               handler?.(parsed.data as z.output<T>);
@@ -183,7 +198,21 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
               return;
             }
             console.warn("[AutoForm] Validation errors:", form.getAllErrors());
-            setBlockedReasons(submitBlockedReasons(issues));
+            setBlockedReasons(
+              submitBlockedReasons(
+                parsed && !parsed.success ? parsed.issues : issues,
+              ),
+            );
+            pendingSubmitHandlerRef.current = undefined;
+            resolve(undefined);
+            return;
+          }
+          // 検証は通ったが parse できなかった（onSubmit が送らなかった）
+          const parseIssues = parseIssuesRef.current;
+          if (parseIssues) {
+            parseIssuesRef.current = undefined;
+            console.warn("[AutoForm] Could not parse the values:", parseIssues);
+            setBlockedReasons(submitBlockedReasons(parseIssues));
             pendingSubmitHandlerRef.current = undefined;
             resolve(undefined);
           }
