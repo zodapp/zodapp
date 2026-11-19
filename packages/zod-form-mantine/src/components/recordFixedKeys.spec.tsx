@@ -83,13 +83,22 @@ describe("キーの決まった record", () => {
     }
   });
 
-  it("partialRecord・string のキーは、今の見た目のまま（値にあるキーだけ）", async () => {
+  it("string のキーの record は、今の見た目のまま（値にあるキーだけ）", async () => {
+    const schema = z.object({
+      p: z.record(z.string(), z.string()),
+    });
+    renderForm(schema, { p: { a: "x" } });
+    await ready();
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+  });
+
+  it("キーが enum の partialRecord は、候補のキーを全部並べる（recordPartial.spec.tsx）", async () => {
     const schema = z.object({
       p: z.partialRecord(z.enum(["a", "b"]), z.string()),
     });
     renderForm(schema, { p: { a: "x" } });
     await ready();
-    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
   });
 });
 
