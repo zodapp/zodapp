@@ -10,25 +10,26 @@
 
 main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描画・入力・送信して調べた。
 その結果を「対応した方が良いもの」「非対応で良いが落ち方を決めたいもの」「今のままで良いもの」に分け、
-このプランでは、次の 8 つに対応する。
+このプランでは、次の 9 つに対応する。
 
-| #   | 内容                                                               | 今の症状                                                                           |
-| --- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| 1   | AutoForm の onSubmit に parse した値を渡す                         | 型は `z.output` だが、生のフォームの値が届く（`.trim()`・`.default()` が効かない） |
-| 2   | pipe を入口（in）の型で描く                                        | `.transform()` は欄が出ない。codec・stringbool などは何を入れても送信できない      |
-| 3   | 複数の値を持つ literal（`z.literal(["a","b"])`）を選べるようにする | 値を表示するだけで選べない。`getDefaultValue` が例外を投げる                       |
-| 4   | set を描く                                                         | 部品が無く、欄が出ない（`zf.set` は meta だけある）                                |
-| 5   | キーを列挙できる record を、固定のキーで描く                       | キーが足りないエラーがどこにも出ず、送信できない                                   |
-| 6   | `.`・`[`・`]` を含むキーを弾く                                     | record の値を編集すると `{ "a.b": "x", a: { b: "y" } }` に分かれて壊れる           |
-| 7   | `zf.file` を `zf.externalFile` に改名する                          | `z.file()` が zf.file の部品に回り、フォームごと落ちる                             |
-| 8   | `zf.dynamic()` の土台を `z.unknown()` にする                       | 土台が `z.never()` なので、静的な parse が必ず落ち、隣の `.refine()` も走らない    |
+| #   | 内容                                                             | 今の症状                                                                                                                      |
+| --- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | AutoForm の onSubmit に parse した値を渡す                       | 型は `z.output` だが、生のフォームの値が届く（`.trim()`・`.default()` が効かない）                                            |
+| 2   | pipe を入口（in）の型で描く                                      | `.transform()` は欄が出ない。codec・stringbool などは何を入れても送信できない                                                 |
+| 3   | literal 系（固定値と、複数の値を持つ literal）を共通の作りで扱う | 複数の値の literal は選べず、`getDefaultValue` が例外を投げる。値が1つの literal は「undefined」と出る。null などは Not found |
+| 4   | set を描く                                                       | 部品が無く、欄が出ない（`zf.set` は meta だけある）                                                                           |
+| 5   | キーを列挙できる record を、固定のキーで描く                     | キーが足りないエラーがどこにも出ず、送信できない                                                                              |
+| 6   | `.`・`[`・`]` を含むキーを弾く                                   | record の値を編集すると `{ "a.b": "x", a: { b: "y" } }` に分かれて壊れる                                                      |
+| 7   | `zf.file` を `zf.externalFile` に改名する                        | `z.file()` が zf.file の部品に回り、フォームごと落ちる                                                                        |
+| 8   | `zf.dynamic()` の土台を `z.unknown()` にする                     | 土台が `z.never()` なので、静的な parse が必ず落ち、隣の `.refine()` も走らない                                               |
+| 9   | `zf.*.registry` の型の約束と、実際の動きをそろえる               | 型は通るのに描けない・落ちるもの、型は通らないのに動くものがある                                                              |
 
 ### 1.1 このプランで扱わないもの
 
 - 包むだけの型（`.readonly()`・`.prefault()`・`.nonoptional()`・`.catch()`）の対応
-- 部品の無い型（`any`・`unknown`・`null`・`function`・`map` など）の落ち方の整理（Not found の出し方、送信が止まる理由の出し方）
+- 部品の無い型（`any`・`unknown`・`function`・`map` など）の落ち方の整理（Not found の出し方、送信が止まる理由の出し方）
 - `z.promise` の検証が例外を投げて送信が終わらない件
-- tuple の rest を足すボタン、`z.templateLiteral`、数値の enum の選択肢の名前、discriminatedUnion の腕の名前
+- tuple の rest を足すボタン（#9 で、開発中のエラーにする）、`z.templateLiteral`、数値の enum の選択肢の名前、discriminatedUnion の腕の名前
 - AutoTable・hideSchemaFields での各型の扱い
 - 入れ物（object・intersection）の path なし refine のエラーの件（別スレッドで対応中）
 - `zf.computed()` の土台（`z.never()`）。表示専用の欄の扱いは別に考える（#8 とは分ける）
@@ -46,9 +47,11 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
   - #5：`z.record`・`zf.record`・`z.partialRecord`（キーの schema も `z.enum`・`zf.enum`・literal の union のどれでもよい）
   - #2：`.transform()`・`.pipe()`・`z.codec()`・`z.stringbool()`（zf には pipe の別名は無い）
 - テストは、各項目を `z.*` と `zf.*` の両方で確かめる
-- **zf 独自の名前の決まり**：zf が独自に付ける typeName は、zod の型の名前と重ねない（`date` は、`z.date()` と同じ部品を使うために、わざと重ねている）。
+- **zf の名前の決まり**：zf の typeName が zod の型の名前と同じなら、その zod の型を必ず受け付け、同じ部品で扱う。
+  型の約束を広げて、ほかの型も受け付けてよい（例：`date` は同じ名前の `z.date()` に対応したうえで、`z.number()`・`z.iso.datetime()`・`z.iso.date()` にも広げている）。
+  zod の型に対応しない独自の名前は、zod の型の名前と重ねない。
   今ある独自の名前（`time`・`externalKey`・`hidden`・`common`・`computed`・`dynamic`）は zod の型の名前と重なっていないことを確かめた。
-  重なっているのは `file` だけで、#7 で直す。この決まりは zod-form の README（zf の拡張の説明）に書く
+  `file` は同じ名前の `z.file()` を受け付けないので、この決まりに反している。#7 で直す。この決まりは zod-form の README（zf の拡張の説明）に書く
 
 ---
 
@@ -108,22 +111,48 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 
 ---
 
-## 4. 複数の値を持つ literal を選べるようにする（#3）
+## 4. literal 系を共通の作りで扱う（#3）
 
 ### 4.1 今
 
-- literal の部品は値を表示するだけで、選ぶ欄が無い
-- `getDefaultValue` の literal の処理が `schema.value` を読むので、値が複数あると zod が例外を投げる
+- 値が 1 つの literal の部品は、スキーマの値ではなくフォームの値を表示する。初期値が無いと「undefined」と出て、送信も「expected 3」で止まる。
+  必須の印「\*」も付く
+- 値が複数の literal（`z.literal(["a","b"])`）は、値を表示するだけで選べない。`getDefaultValue` の literal の処理が `schema.value` を読むので、zod が例外を投げる
+- `z.null()`・`z.undefined()`・`z.void()` は部品が無く、Not found が出る（object の欄でも、union の null の腕を選んだときも）
+- discriminatedUnion・literal を持つ object の union では、選んだ腕の中に discriminator の literal（例「sms」）がもう一度出て、選択欄と二重になる（jsdom で確かめた）
+- apps で literal に付けている label は、どれも enum・literal の union の「選択肢の名前」で、欄として見せるためのものではない
 
-### 4.2 方針
+### 4.2 方針：固定値は既定で出さない
 
-- literal の部品は（`z.literal`・`zf.literal` とも）、値（`schema.def.values`）が 2 つ以上なら、enum の部品で描く（`uiType` の `select`・`badge` も enum にそろえる）
+値が 1 つに決まる型を「固定値」と呼ぶ：値が 1 つの literal（`z.literal("a")`・`z.literal(3)`・`z.literal(null)` など）・`z.null()`・`z.undefined()`・`z.void()`。
+
+- 固定値の欄は、既定で出さない（ラベルも出さない）
+- フォームの値が無いときは、部品がその値を書き込む（触った扱いにせず、検証もしない。PreprocessSwitch の値をそろえる所と同じやり方）。
+  これで送信に固定値が入り、どこにも出ないエラーで送信が止まることが無くなる。undefined・void は書き込むものが無いので何もしない
+- 見せたいときは meta で `hidden: false` と明示する。readOnly と同じ表示で、スキーマの値を出す。必須の印は付けない。
+  null・undefined・void は、`hidden: false` でも中身が無いので出さない
+- これで union の腕の中の discriminator も出なくなるので、union 側に特別な扱いは要らない。union で null の腕を選ぶと、選択欄だけが残る
+- 影響しないもの
+  - `zf.boolean.registry` を付けた `z.literal(true)`（同意のチェック）は boolean の部品で描くので、今のままチェックボックスで出る
+  - literal の union を選ぶ部品（`union_select`・`union_badge`）の選択肢
+
+### 4.3 方針：値が複数の literal は enum と同じに選ぶ
+
+- 値（`schema.def.values`）が 2 つ以上の literal は、enum の部品で描く（`uiType` の `select`・`badge` も enum にそろえる）
   - 選択肢・空の扱い・`unlisted` は enum と同じ
-  - 値が 1 つなら、今どおり表示だけ
 - `getDefaultValue` の literal の処理は、値が 1 つのときだけその値を入れ、複数なら値を入れない（undefined）
-- `array_multipleEnum` も、要素が複数の値を持つ literal のとき動くようにする（union_select のときと同じ広げ方）
+- `array_multipleEnum` も、要素が値が複数の literal のとき動くようにする（union_select のときと同じ広げ方）
 
----
+### 4.4 コードの作り
+
+literal 系の中身は 1 か所にまとめ、部品のファイルは型ごとに置く。
+
+- 固定値の中身（値を書き込む・既定で出さない・`hidden: false` なら readOnly で出す）を 1 つの共通の部品にする
+- 部品のファイル（`componentLibrary` のキー）：
+  - `literal.tsx`：`z.literal()` の入口。値が 1 つなら固定値の共通の部品、2 つ以上なら enum の部品に分ける
+    （`literal_select`・`literal_badge` も同じファイルで受ける）
+  - `null.tsx`・`undefined.tsx`・`void.tsx`：固定値の共通の部品をそのまま使う
+- `z.*`・`zf.*` のどちらでも同じに動く（§1.2）
 
 ## 5. set を描く（#4）
 
@@ -244,15 +273,51 @@ zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を�
 
 ---
 
-## 10. テスト
+## 10. `zf.*.registry` の型の約束と、実際の動きをそろえる（#9）
+
+### 10.1 今
+
+各 `zf.*.registry` にいろいろなスキーマを `.register()` して tsc で確かめ、型が通ったもののうち怪しいものを jsdom で描画・送信した。
+
+**型は通るのに、描けない・落ちるもの**
+
+| registry              | 受け付けるもの                      | 動き                                                   | 対応                          |
+| --------------------- | ----------------------------------- | ------------------------------------------------------ | ----------------------------- |
+| `zf.literal.registry` | 値が複数の literal                  | 選べない                                               | #3 で直る                     |
+| `zf.set.registry`     | `z.set()`                           | 部品が無い                                             | #4 で直る                     |
+| `zf.record.registry`  | キーが enum の record               | 送信できない                                           | #5 で直る                     |
+| `zf.union.registry`   | 腕は何でも（例：null の腕）         | null の腕が Not found                                  | #3 で直る（固定値は出さない） |
+| `zf.tuple.registry`   | rest 付きの tuple                   | rest の要素を足せない                                  | 10.2                          |
+| `zf.array.registry`   | uiType と要素の組み合わせは問わない | 要素が object の配列に `multipleEnum` で、例外で落ちる | 10.2                          |
+| `zf.common.registry`  | どの型でも（meta だけを足すもの）   | 部品の無い型に付けると Not found                       | 意図どおり。変えない          |
+
+**型は通らないのに動くもの**
+
+- `zf.date.registry` は `z.coerce.date()` を受け付けない（実際は `z.date()` と同じ部品で動く）
+- `zf.externalKey.registry`・`zf.file.registry` は `z.string()` だけで、`z.email()` などの書式付きの文字列を受け付けない（`zf.string` は受け付ける）
+
+**型どおりに動いたもの**：`zf.boolean.registry` を付けた `z.literal(true)`、`zf.union.registry` を付けた `z.xor`、
+`zf.date` の `iso.datetime({ local: true })`・`iso.date`、`zf.time` の number、`zf.string` の `iso.datetime`、土台が string の `zf.dynamic`
+
+### 10.2 方針
+
+- 型で縛るのが難しいもの（tuple の rest、array の uiType と要素の組み合わせ）は、開発中のはっきりしたエラーにする。
+  その欄の場所に「この組み合わせは非対応」と出し、`console.error` も出す。例外で描画ごと落とさない
+- 型の約束が狭いものは広げる：`zf.date.registry` に `z.coerce.date()`、`zf.externalKey.registry`・`zf.externalFile.registry`（#7）に書式付きの文字列（`zf.string` と同じ `z.ZodString | z.ZodStringFormat`）
+- registry ごとに、受け付ける型と描ける型が合っていることを確かめる型のテスト（`expectTypeOf`・`@ts-expect-error`）と、描画のテストを足す
+
+---
+
+## 11. テスト
 
 - 各項目ごとに、zod-form-mantine の spec（jsdom）で、描画・入力・送信を確かめる。§1.2 のとおり `z.*` と `zf.*` の両方で確かめる
 - `getDefaultValue` の変更（#3・#5）は zod-form の spec で確かめる
+- #3 は、固定値が出ないこと・値を書き込むこと・`hidden: false` で出ること、discriminatedUnion の腕の中に discriminator が出ないことを確かめる
 - #1 は zod-form-widget の AutoForm の spec を足す（今は `@testing-library/react` が入っていないので、devDependencies に足す）
 - form-demo に、pipe・transform・set・キーの決まった record・複数の値を持つ literal の例を足す（ページを足すか、既存のページに入れるかは実装のときに決める）
 - 最後に `pnpm check-types`・`pnpm build`・`pnpm test` を通す
 
-## 11. 決めていないこと
+## 12. 決めていないこと
 
 1. #1 で、dynamic の外側に transform があるとき、警告を出して生の値を渡すか、送信を止めるか（案：警告を出し、その dynamic の所は parse 前の値のままにする）
 2. #7 で、`zf.file` を互換のための別名として 1 つの版だけ残すか（案：npm にまだ出していないなら残さない）
