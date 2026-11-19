@@ -138,6 +138,26 @@ const fillAt = (
 };
 
 /**
+ * record のキーの検査のエラー（invalid_key）を、値の欄ではなくキーの側（record の欄）に出すため、
+ * path を record の path にする。どのキーかは `key` に、文言はキーの検査の文言（中の issue）にする。
+ * record の部品は `key` を見て、そのキーの欄（entries）に出すか、record の欄に出す
+ */
+const moveInvalidKeyIssue = (issue: Issue): Issue => {
+  const raw = issue as Issue & {
+    code?: string;
+    issues?: { message?: string }[];
+  };
+  if (raw.code !== "invalid_key" || issue.path.length === 0) return issue;
+  const key = issue.path[issue.path.length - 1];
+  return {
+    ...issue,
+    path: issue.path.slice(0, -1),
+    message: raw.issues?.[0]?.message ?? issue.message,
+    key: String(key),
+  } as Issue;
+};
+
+/**
  * フォームごとの実行時の状態。
  *
  * 1. dynamic が resolve した schema の登録先（{@link RegisteredSchema}）
@@ -409,7 +429,7 @@ export class FormRuntime {
         if (isCovered(sourceSegments, path)) continue;
         // 一番外の path だけを付け直し、ほかの欄は残す。invalid_union の errors
         // （腕ごとの issue。path はその union の値からの相対）は書き換えない
-        issues.push({ ...issue, path });
+        issues.push(moveInvalidKeyIssue({ ...issue, path }));
       }
     };
 

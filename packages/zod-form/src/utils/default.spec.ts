@@ -343,3 +343,40 @@ describe("getDefaultValue の literal", () => {
     expect(getDefaultValue(z.object({ k: z.literal(["a", "b"]) }))).toEqual({});
   });
 });
+
+describe("getDefaultValue のキーの決まった record", () => {
+  it("列挙したキーごとに、値の schema の初期値を入れる", () => {
+    expect(
+      getDefaultValue(z.record(z.enum(["a", "b"]), z.string().default("x"))),
+    ).toEqual({ a: "x", b: "x" });
+    expect(
+      getDefaultValue(
+        z.record(z.enum(["a", "b"]), z.object({ n: z.number().default(1) })),
+      ),
+    ).toEqual({ a: { n: 1 }, b: { n: 1 } });
+  });
+
+  it("初期値が undefined のキーは置かない（object と同じ）", () => {
+    expect(getDefaultValue(z.record(z.enum(["a", "b"]), z.string()))).toEqual(
+      {},
+    );
+  });
+
+  it("値があっても、足りないキーを補う。入っているキーは変えない", () => {
+    expect(
+      getDefaultValue(
+        z.record(z.literal(["a", "b"]), z.string().default("x")),
+        { a: "y" },
+      ),
+    ).toEqual({ a: "y", b: "x" });
+  });
+
+  it("キーを列挙できない record（string・partialRecord）は、キーを足さない", () => {
+    expect(
+      getDefaultValue(z.record(z.string(), z.string().default("x"))),
+    ).toEqual({});
+    expect(
+      getDefaultValue(z.partialRecord(z.enum(["a"]), z.string().default("x"))),
+    ).toEqual({});
+  });
+});

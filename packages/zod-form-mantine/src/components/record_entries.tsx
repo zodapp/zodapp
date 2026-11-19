@@ -9,12 +9,15 @@ import {
   Switch,
   ContainerMarker,
   ZodFormInternalProps,
+  type ZodFormProps,
   getDefaultValue,
   wrapComponent,
   emptinessOf,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { ownsContainerMarker } from "./container";
+import { FixedKeysRecordComponent } from "./record";
+import { enumeratedRecordKeys } from "@zodapp/zod-form";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -89,6 +92,16 @@ const RecordEntriesComponent = wrapComponent(
     }, [valueKeysSignature]);
 
     const usedKeys = new Set(valueKeys);
+    // キーの検査のエラー（invalid_key）は、record の欄ではなく、そのキーの欄に出す
+    // （zod-form-react が path を record にし、どのキーかを key に入れている）
+    const invalidKeyError = error as
+      | { code?: string; key?: string; message?: string }
+      | undefined;
+    const invalidKey =
+      invalidKeyError?.code === "invalid_key" &&
+      rows.some((row) => row.key === invalidKeyError.key)
+        ? invalidKeyError.key
+        : undefined;
 
     const handleAdd = () => {
       setRows((currentRows) => [...currentRows, createEntryRow("")]);
@@ -168,7 +181,12 @@ const RecordEntriesComponent = wrapComponent(
             <TextInput
               label={msg("zodFormMantine.record.key" /* キー */)}
               value={row.draftKey}
-              error={row.keyError}
+              error={
+                row.keyError ??
+                (invalidKey !== undefined && row.key === invalidKey
+                  ? error?.message
+                  : undefined)
+              }
               readOnly={readOnly}
               onChange={(event) =>
                 handleKeyChange(row, event.currentTarget.value)
@@ -236,7 +254,7 @@ const RecordEntriesComponent = wrapComponent(
       <InputWrapper
         label={label || undefined}
         required={!(optional || nullable)}
-        error={error?.message}
+        error={invalidKey !== undefined ? undefined : error?.message}
         labelElement="div"
         style={inputWrapperStyle}
       >
@@ -289,4 +307,12 @@ const RecordEntriesComponent = wrapComponent(
 
 RecordEntriesComponent.displayName = "RecordEntriesComponent";
 
-export { RecordEntriesComponent as component };
+/** キーを列挙できる record は、entries の見た目でも固定のキーで描く（キーの追加・名前の変更はできないため） */
+const RecordEntriesSwitch = (props: ZodFormProps<RecordSchema>) =>
+  enumeratedRecordKeys(props.schema) ? (
+    <FixedKeysRecordComponent {...props} />
+  ) : (
+    <RecordEntriesComponent {...props} />
+  );
+
+export { RecordEntriesSwitch as component };

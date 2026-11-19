@@ -355,3 +355,21 @@ export const mergeSchema = (
 
   return schema;
 };
+
+/**
+ * キーを列挙できる record（キーの schema が enum・literal・literal の union など）の、列挙したキー。
+ * zod と同じ基準（キーの schema の `_zod.values` があるか）で見る。zod はこのとき、すべてのキーを必須として検証する。
+ * `z.partialRecord` は zod がわざと `_zod.values` を空にしているので、列挙できないもの（undefined）になる。
+ * 数値のキーは文字にする（zod と同じ）
+ */
+export const enumeratedRecordKeys = (
+  schema: z.ZodTypeAny,
+): string[] | undefined => {
+  if (schema.type !== "record") return undefined;
+  const keyType = (schema.def as { keyType?: z.ZodTypeAny }).keyType;
+  const values = (
+    keyType as unknown as { _zod?: { values?: Set<unknown> } } | undefined
+  )?._zod?.values;
+  if (!values) return undefined;
+  return Array.from(values, (value) => String(value));
+};

@@ -2,6 +2,7 @@ import { PreprocessorDef, preprocess } from "@zodapp/zod-transform";
 import z from "zod";
 import { $ZodCheckLengthEqualsDef, $ZodCheckMinLengthDef } from "zod/v4/core";
 import { extractCheck } from "./zod";
+import { enumeratedRecordKeys } from "./schema";
 
 /** optional（間の nullable を通して）なら undefined を受け付ける */
 const acceptsUndefined = (schema: z.ZodTypeAny): boolean => {
@@ -244,6 +245,24 @@ const fillDefaults = (value: unknown, schema: z.ZodTypeAny) => {
             ) {
               result[key] = value;
             }
+          }
+          return result;
+        },
+        // record：キーを列挙できる record（キーの決まった record）は、object と同じく、列挙したキーごとに
+        // 値の schema の初期値を入れる（初期値が undefined なら置かない）。それ以外は、入っているキーだけを歩く
+        record: (obj, schema, context) => {
+          const keys = enumeratedRecordKeys(schema);
+          const base = obj === undefined && keys ? {} : obj;
+          if (!isPlainObject(base)) return base;
+          const valueType = schema.def.valueType as z.ZodTypeAny;
+          const result: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(base)) {
+            result[key] = context.transform(value, valueType, key);
+          }
+          for (const key of keys ?? []) {
+            if (Object.hasOwn(result, key)) continue;
+            const value = context.transform(undefined, valueType, key);
+            if (value !== undefined) result[key] = value;
           }
           return result;
         },
