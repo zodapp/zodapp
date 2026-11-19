@@ -373,3 +373,43 @@ export const enumeratedRecordKeys = (
   if (!values) return undefined;
   return Array.from(values, (value) => String(value));
 };
+
+/** キーの schema の def から、取りうるキーを集める（enum・literal・それらの union）。集められなければ undefined */
+const keysFromKeySchema = (keyType: z.ZodTypeAny): unknown[] | undefined => {
+  const def = keyType.def as {
+    type: string;
+    entries?: Record<string, unknown>;
+    values?: unknown[];
+    options?: z.ZodTypeAny[];
+  };
+  if (def.type === "enum" && def.entries) return Object.values(def.entries);
+  if (def.type === "literal" && def.values) return [...def.values];
+  if (def.type === "union" && def.options) {
+    const keys: unknown[] = [];
+    for (const option of def.options) {
+      const optionKeys = keysFromKeySchema(option);
+      if (!optionKeys) return undefined;
+      keys.push(...optionKeys);
+    }
+    return keys;
+  }
+  return undefined;
+};
+
+/**
+ * `z.partialRecord` で、キーの schema が enum・literal・それらの union のときの、取りうるキー（定義順）。
+ * zod は partialRecord のキーの schema の `_zod.values` を空にするので、def からたどる。
+ * キーを列挙できる普通の record（{@link enumeratedRecordKeys} が返すもの）・キーが文字列などの record では undefined。
+ * 数値のキーは文字にする（zod と同じ）
+ */
+export const partialRecordKeys = (
+  schema: z.ZodTypeAny,
+): string[] | undefined => {
+  if (schema.type !== "record") return undefined;
+  if (enumeratedRecordKeys(schema)) return undefined;
+  const keyType = (schema.def as { keyType?: z.ZodTypeAny }).keyType;
+  if (!keyType) return undefined;
+  const keys = keysFromKeySchema(keyType);
+  if (!keys || keys.length === 0) return undefined;
+  return [...new Set(keys.map((key) => String(key)))];
+};

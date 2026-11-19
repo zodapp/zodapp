@@ -292,7 +292,9 @@ export type ExternalKeyUnlistedOptions =
   | { allowUnlisted?: false; unlisted?: UnlistedPolicy }
   | { allowUnlisted: true; unlisted?: never };
 
-export type ExternalFileMetaDef = z.infer<typeof zodExtendableCommonDefSchema> & {
+export type ExternalFileMetaDef = z.infer<
+  typeof zodExtendableCommonDefSchema
+> & {
   /**
    * 保存先の設定。ただのデータ（関数で返す形は持たない）。
    * 親の値や context で変えるときは、zf.dynamic で包んで externalFile の schema を返す。
@@ -430,11 +432,7 @@ const date = extendCustom(
   "date",
   dateMetaSchema,
   schemaType<
-    | z.ZodDate
-    | z.ZodCoercedDate
-    | z.ZodNumber
-    | z.ZodISODateTime
-    | z.ZodISODate
+    z.ZodDate | z.ZodCoercedDate | z.ZodNumber | z.ZodISODateTime | z.ZodISODate
   >(),
 );
 
@@ -503,7 +501,18 @@ const zf = {
     }),
   ),
   tuple: extendTuple(zodExtendableCommonDefSchema),
-  record: extendRecord(zodExtendableCommonDefSchema),
+  record: extendRecord(
+    zodExtendableCommonDefSchema.extend({
+      /**
+       * キーが enum・literal の `z.partialRecord` を `uiType: "entries"` で描くときの、行の並び順。
+       * definition：enum の定義順（既定。Firestore・DynamoDB など、キー順を残さないストア向け）。
+       * value：値の object に入っている順。足したキーは末尾に入れるので、キー順を残すストア
+       * （zod-searchparams・localStorage の JSON など）では、実質足した順になる。
+       * ただし JS の object は、"1"・"2" のような整数に見えるキーを、入れた順に関係なく数の小さい順に並べる
+       */
+      keyOrder: z.enum(["definition", "value"]).optional(),
+    }),
+  ),
   set: extendSet(zodExtendableCommonDefSchema),
   enum: extendEnum(
     zodExtendableCommonDefSchema.extend({
