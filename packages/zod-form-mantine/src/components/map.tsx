@@ -24,6 +24,7 @@ import {
 } from "@zodapp/zod-form-mantine-lite/utils";
 import { useMsg } from "../messages/useMsg";
 import { UnsupportedNotice } from "../utils/unsupported";
+import { ResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type MapSchema = z.ZodMap<z.ZodTypeAny, z.ZodTypeAny>;
 type MapKey = string | number;
@@ -473,7 +474,12 @@ const MapComponent = (props: ZodFormProps<MapSchema>) => {
       />
     );
   }
-  return <MapEntriesComponent {...props} />;
+  // 組の分だけ描く（値が無ければ中を描かない）ので、lazy の数を数え直す
+  return (
+    <ResetLazyDepth>
+      <MapEntriesComponent {...props} />
+    </ResetLazyDepth>
+  );
 };
 
 export { MapComponent as component };

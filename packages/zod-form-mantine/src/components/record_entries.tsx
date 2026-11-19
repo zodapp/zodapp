@@ -20,6 +20,7 @@ import { ownsContainerMarker } from "./container";
 import { FixedKeysRecordComponent } from "./record";
 import { enumeratedRecordKeys } from "@zodapp/zod-form";
 import { UnsafeRecordEntry } from "../utils/unsafeKey";
+import { ResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
@@ -380,7 +381,10 @@ const RecordEntriesSwitch = (props: ZodFormProps<RecordSchema>) =>
   enumeratedRecordKeys(props.schema) ? (
     <FixedKeysRecordComponent {...props} />
   ) : (
-    <RecordEntriesComponent {...props} />
+    // 組の分だけ描く（値が無ければ中を描かない）ので、lazy の数を数え直す
+    <ResetLazyDepth>
+      <RecordEntriesComponent {...props} />
+    </ResetLazyDepth>
   );
 
 export { RecordEntriesSwitch as component };

@@ -4,7 +4,12 @@ import type { ComponentLibrary } from "@zodapp/zod-form-react/common";
 export { component as OptionalComponent } from "./optional.js";
 export { component as NullableComponent } from "./nullable.js";
 export { component as DefaultComponent } from "./default.js";
-export { component as LazyComponent } from "./lazy.js";
+export {
+  component as LazyComponent,
+  ResetLazyDepth,
+  withResetLazyDepth,
+  DEFAULT_LAZY_MAX_DEPTH,
+} from "./lazy.js";
 export { component as HiddenComponent } from "./hidden.js";
 export { component as PipeComponent } from "./pipe.js";
 export { component as PassthroughComponent } from "./passthrough.js";

@@ -34,6 +34,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { withResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -374,4 +375,7 @@ const ArrayComponent = wrapComponent(function ArrayComponentImplement({
   );
 });
 
-export { ArrayComponent as component };
+// 要素・組・選んだ腕の分だけ描く（値が無ければ中を描かない）ので、lazy の数を数え直す
+const ArrayWithResetLazyDepth = withResetLazyDepth(ArrayComponent);
+
+export { ArrayWithResetLazyDepth as component };

@@ -35,6 +35,7 @@ import {
 } from "@zodapp/zod-form-mantine-lite/utils";
 import { useResolveText } from "@zodapp/zod-form-react/common";
 import { useMsg } from "../messages/useMsg";
+import { withResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
 type UnionSchema = z.ZodUnion<[z.ZodTypeAny, ...z.ZodTypeAny[]]>;
 
@@ -1114,4 +1115,7 @@ const UnionComponent = wrapComponent(function UnionComponentImplement({
   );
 });
 
-export { UnionComponent as component };
+// 要素・組・選んだ腕の分だけ描く（値が無ければ中を描かない）ので、lazy の数を数え直す
+const UnionWithResetLazyDepth = withResetLazyDepth(UnionComponent);
+
+export { UnionWithResetLazyDepth as component };

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /**
- * optional の付かない再帰（z.lazy）を、lazy の入れ子の数で止める
+ * optional の付かない再帰（z.lazy）を、lazy の入れ子の数で止める。
+ * 値が無ければ中を描かない部品（optional・nullable・array・record の entries・Map・union）を通ったら数え直す
  */
 import { cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,8 +45,7 @@ describe("z.lazy の再帰の上限", () => {
   });
 
   it("関数で階層ごとに schema を作る書き方も、上限で止まる", async () => {
-    const node = (): z.ZodTypeAny =>
-      z.object({ child: z.lazy(() => node()) });
+    const node = (): z.ZodTypeAny => z.object({ child: z.lazy(() => node()) });
     renderForm(node(), {});
     expect(await screen.findByText(NOTICE)).toBeTruthy();
     expect(notices()).toBe(1);
@@ -79,11 +79,70 @@ describe("z.lazy の再帰の上限", () => {
       z.object({ name: z.string().optional(), child: node }),
     );
     const limited = node.register(zf.common.registry, { maxDepth: 2 });
-    const value = { root: { name: "a", child: { name: "b", child: { name: "c" } } } };
+    const value = {
+      root: { name: "a", child: { name: "b", child: { name: "c" } } },
+    };
     const { values } = renderForm(z.object({ root: limited }), value);
     expect(await screen.findByText(NOTICE)).toBeTruthy();
     expect(screen.getByDisplayValue("b")).toBeTruthy();
     expect(screen.queryByDisplayValue("c")).toBeNull();
     await waitFor(() => expect(values()).toEqual(value));
+  });
+
+  it("optional な再帰は、maxDepth より深い値でも注記を出さずに全部描く", async () => {
+    type Tree = { name: string; child?: Tree };
+    const tree: z.ZodType<Tree> = z.lazy(() =>
+      z.object({ name: z.string(), child: tree.optional() }),
+    );
+    const limited = tree.register(zf.common.registry, { maxDepth: 2 });
+    renderForm(z.object({ root: limited }), {
+      root: {
+        name: "a",
+        child: { name: "b", child: { name: "c", child: { name: "d" } } },
+      },
+    });
+    expect(await screen.findByDisplayValue("d")).toBeTruthy();
+    expect(notices()).toBe(0);
+  });
+
+  it("配列を通る再帰も、値のある所まで注記を出さずに描く", async () => {
+    type Tree = { name: string; children: Tree[] };
+    const tree: z.ZodType<Tree> = z.lazy(() =>
+      z.object({ name: z.string(), children: z.array(tree) }),
+    );
+    const limited = tree.register(zf.common.registry, { maxDepth: 2 });
+    const leaf = (name: string): Tree => ({ name, children: [] });
+    renderForm(z.object({ root: limited }), {
+      root: {
+        name: "a",
+        children: [
+          { name: "b", children: [{ name: "c", children: [leaf("d")] }] },
+        ],
+      },
+    });
+    expect(await screen.findByDisplayValue("d")).toBeTruthy();
+    expect(notices()).toBe(0);
+  });
+
+  it("optional を通ったあとの optional なしの再帰は、そこから数え直して上限で止める", async () => {
+    type Node = { child: Node };
+    const node: z.ZodType<Node> = z.lazy(() => z.object({ child: node }));
+    const limited = node.register(zf.common.registry, { maxDepth: 3 });
+    type Tree = { name: string; child?: Tree; loop?: Node };
+    const tree: z.ZodType<Tree> = z.lazy(() =>
+      z.object({
+        name: z.string(),
+        child: tree.optional(),
+        loop: limited.optional(),
+      }),
+    );
+    renderForm(z.object({ root: tree }), {
+      root: {
+        name: "a",
+        child: { name: "b", loop: { child: { child: { child: {} as Node } } } },
+      },
+    });
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(notices()).toBe(1);
   });
 });
