@@ -217,7 +217,7 @@ import { ja } from "@zodapp/zod-form-react/messages";
 - `@zodapp/zod-form-mantine`: Mantine UI 実装（`componentLibrary` 同梱）
 - `@zodapp/zod-form-dynamodb`: externalKey の選択肢を DynamoDB（`@zodapp/zod-dynamodb`）から読む resolver
 - `@zodapp/zod-form-s3`: ファイル（`zf.externalFile`）を S3 に保存する resolver（サーバー側は `@zodapp/zod-form-s3-node`）
-- 仕様の詳細：[欄のエラーの受け渡し](docs/errors.ja.md)、[zf.dynamic の値の扱い](docs/dynamic.ja.md)
+- 仕様の詳細：[欄のエラーの受け渡し](docs/errors.ja.md)、[zf.dynamic の値の扱い](docs/dynamic.ja.md)、[入れ物の欄の「触った」「変えた」](docs/container-touch.ja.md)
 
 ## ライセンス
 
