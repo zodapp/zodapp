@@ -1,0 +1,174 @@
+# dynamic の検証と送信を 1 つの評価にそろえるプラン
+
+- ステータス: プラン（レビュー中）
+- 対象ブランチ: `claude/project-thread-cn05w5`
+- 前提の main: a55963f（PR #32・#33・#34 をマージ済み）
+- 対象パッケージ: `@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`（テスト）、`@zodapp/zod-form-widget`、`apps/survey`
+
+---
+
+## 1. 背景
+
+PR #32 の #8 で、`zf.dynamic()` の土台を `z.unknown()` にした。静的な schema のまま parse でき、親の `.refine()` も走るようになった。
+そのぶん、`FormRuntime` の `validate`（エラーの表示と送信の可否）と `parse`（送信する値）が違う値を見ていることが表に出た。
+
+- `validate`：静的な schema を **生のフォームの値** で検証し、登録された schema（dynamic が resolve したもの）は、それぞれ生の値の自分の path で検証する
+- `parse`：登録された schema を深い順に parse し、**output を差し込んでから** 静的な schema で parse する（`docs/plans/unsupported-schemas.md` §2.2）
+
+main で確かめた症状は次のとおり。どれもスクラッチで `FormRuntime` を直接呼んで再現した。
+
+| #   | 症状                                                                                                                                                                                                                                |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | dynamic が `z.string().transform(Number)` を返し、親の `.refine()` が変換後の値を前提にしていると、正しい値でも送信できない。`{ a: "3", b: 5 }` で、`validate` はルートに refine のエラーを出し、`parse` は `{ a: 3, b: 5 }` で通る |
+| 2   | 親の `.refine(..., { path: ["a"] })` のように dynamic の欄を指す issue を、`validate` は捨てる（登録のある path の下の静的な issue を捨てる作りのため）。`parse` はその issue で落ちるので、**エラーが出ないまま送信できない**      |
+| 3   | dynamic の中の dynamic では、外側の schema の refine が内側の変換前の値を受け取る（#1 と同じ）                                                                                                                                      |
+| 4   | 同じ path で dynamic が入れ子になる（外側の resolve が `zf.dynamic().refine(...)` のように内側の dynamic を包んで返す）と、`validate` も `parse` も一番深い登録しか見ず、外側の refine が無視される                                 |
+| 5   | dynamic が不正・読み込み中・取得失敗のときも、親の refine が生の値で走り、紛らわしいエラーが出る                                                                                                                                    |
+
+あわせて、2 つがずれていることへの備えが、使う側にもある。
+
+- AutoForm（`zod-form-widget/src/form/AutoForm.tsx`）：「検証は通ったが parse で落ちた」ときの `parseIssuesRef` と、「フォームは invalid だが runtime では通る」ときに validate と parse をやり直す分岐
+- 送信が止まった理由（`submitBlocked.ts`）：validate の issue か parse の issue のどちらかを受け取る
+- survey の `SurveyBuilder`：送信で `editorSchema.safeParse` を直接呼び、runtime を通していない（dynamic の output も、文言のキーも通らない）
+
+### 1.1 このプランで扱わないもの
+
+- AutoSearch の `onChange` に parse していない値が渡る件（型は `z.output`）。parse できたときだけ呼ぶと、入力途中の検索条件で呼ばれなくなるので、別に決める
+- dynamic の土台を resolve した schema で置き換えた「実際の schema」を組み立て、zod に 1 回で parse させる形。配列の要素ごとに resolve の結果が変わり、zod の検査からは自分の path が分からないため、組み立てられない
+- 既定値の補い（`applyDefaultFills`・`fillValue`）。path ごとに schema を持つが、役割が違う
+- `docs/plans/unsupported-schemas.md` §1.1 の残り（包むだけの型、部品の無い型、`z.promise` など）
+
+---
+
+## 2. 方針
+
+`FormRuntime` に、値を 1 回評価して issue と output を返す `evaluate(staticSchema, value)` を置く。
+`validate` は `evaluate` の issue を、`parse` は `evaluate` の結果（issue が無ければ output）を返すだけにする。
+2 つは同じ評価の結果を読むので、「エラーが出ないのに送信できない」「エラーが出ているのに送信できる」は起きなくなる。
+
+検査はすべて zod の `safeParse` に任せる。自前で持つのは、parse する順番と差し込みだけ。
+
+### 2.1 評価の手順
+
+1. 登録を、**path の深い順、同じ path の中では depth の深い順** に並べる（今は path ごとに一番深い登録だけを使っている。#4）
+2. それぞれ、今の値（前の手順で差し込んだ後の値）のその path を、登録の schema で `safeParse` する
+   - 成功：output をその path に差し込む（`fillAt`。値はコピーで、フォームの値は変えない）
+   - 失敗：issue を集め（path に登録の path を前置きする）、その path に **目印** を差し込む
+   - 読み込み中・取得失敗：今と同じ印の issue（`PENDING_ISSUE_CODE`・`RESOLVE_ERROR_ISSUE_CODE`）を集め、目印を差し込む
+3. 差し込んだ値を、静的な schema で `safeParse` する
+4. 2 と 3 の issue から、**目印の issue だけ** を捨てる（§2.3）。残った issue を返す。issue が無ければ 3 の output が送信する値になる
+
+同じ path の外側の登録（#4）は、内側の output（または目印）が差し込まれた値を受け取る。外側の schema の中の内側の dynamic は土台が `z.unknown()` なので、output は素通りし、目印は §2.2 の検査で落ちる。
+最初に失敗した所で止めずに、全部の登録を評価する（エラーをすべて出すため）。
+2・3 の `safeParse` は、今の `validate`・`parse` と同じく `safeParseSync`（PR #33・#34 で入った。非同期の検証で zod が投げる例外を握り、`ASYNC_VALIDATION_ISSUE_CODE` の issue にする）を通す。
+
+issue の並びは今の `validate` に合わせ、静的な schema の issue を先に、登録の issue を後に並べる。
+`moveInvalidKeyIssue`（record のキーの issue を record の欄に移す）は、両方の issue に今どおりかける。
+
+### 2.2 目印と、dynamic の土台
+
+zod-form に、目印の値（`Symbol`）と、目印の issue を見分ける関数を置く。
+dynamic の土台を `z.unknown()` から、**目印だけを弾く `abort: true` の検査を足した `z.unknown()`** にする。
+
+```ts
+// zod-form（イメージ）
+export const DYNAMIC_UNRESOLVED: unique symbol = Symbol("zodform.dynamicUnresolved");
+const dynamicBase = () =>
+  z.unknown().refine((value) => value !== DYNAMIC_UNRESOLVED, {
+    abort: true,
+    params: { zodform: "dynamicUnresolved" },
+  });
+const dynamic = extendCustom(dynamicBase, "dynamic", …);
+```
+
+- `abort: true` の issue があると、zod は親の `.refine()` を走らせない（zod 4.4.3 で確かめた）。zod で子の型が合わないときに親の refine が走らないのと同じ動きになる（#5）
+- 目印は `FormRuntime` が評価の中でだけ作るコピーに入れる。フォームの値・サーバー・CSV には出ない。サーバーで同じ schema を parse しても、検査は必ず通る
+- 型は今と同じ `z.ZodUnknown`（`refine` は型を変えない）。部品は今どおり `typeName: "dynamic"` で探される
+- 決めること：zod では、子の失敗が `min()` のような続けられる種類なら、親の refine は走る。このプランでは、dynamic が失敗したら（種類によらず）必ず親の refine を飛ばす。親は変換後の値を前提にしているため
+
+### 2.3 目印の issue を捨てる
+
+- 一番外の issue：`params.zodform === "dynamicUnresolved"` のものを捨てる
+- `invalid_union` の `errors`（腕ごとの issue）の中も、再帰的に捨てる。union の腕の中で dynamic が失敗すると、zod はその腕を諦めて別の腕を試す。その結果、別の腕で通るか、`invalid_union` の腕の issue に目印の issue が入る。後者を残すと、union の部品がそれを腕の欄のエラーとして出してしまう
+  - 別の腕で通ってしまう場合も、送信は dynamic 自身の issue で止まるので、値は壊れない
+- 今の `isCovered`（登録のある path の下の静的な issue を捨てる仕組み）は消す。土台が何でも通す今は、そこに出る静的な issue は「親の refine が `path` で dynamic の欄を指したもの」か目印だけなので、目印だけを捨てればよい（#2 が直る）
+
+### 2.4 結果の使い回し
+
+`validate` は onChange・onBlur・onSubmit で同じ値について何度も呼ばれ、AutoForm の送信ではさらに `parse` も呼ぶ。
+直前の 1 件（静的な schema・値・登録の版）を覚え、同じなら評価し直さない。
+登録の版は `set`・`remove` のたびに進める。値はフォームの値の参照で比べる（TanStack Form は値を変えると新しい object にする）。
+
+### 2.5 API
+
+- `FormRuntime.evaluate(staticSchema, value): { issues: Issue[]; data?: unknown }` を足して export する（`data` は issue が無いときだけ）
+- `validate`・`parse`・`wrapValidator` の形は変えない。中身は `evaluate` を読むだけにする
+- `parse` の失敗の issue は、今は「最初に落ちた所の issue」だったが、全部の issue になる。`submitBlockedReasons` は全部を数えるので、理由が増えることはあっても欠けることはない
+
+---
+
+## 3. 使う側を畳む
+
+### 3.1 AutoForm
+
+- `onSubmit` で `runtime.parse` が落ちる場合（`parseIssuesRef`）は、validate と同じ評価なので起きなくなる。`parseIssuesRef` を消す
+- 「フォームは invalid だが runtime では通る」分岐は、`runtime.evaluate` 1 回で済ませる（今は validate と parse の 2 回）
+- この分岐を丸ごと消せるかは、実装の最初に確かめる。部品に欄ごとの検証は無い（前の欄を検証するしくみも blur を起こすだけ）ので、ずれへの備えというより、TanStack Form に古い欄のエラーが残る場合（union の腕を切り替えて消えた欄など）への備えだと見ている。確かめて不要なら消し、必要なら残す（どちらにしたかを報告する）
+
+### 3.2 送信が止まった理由
+
+`submitBlockedReasons` には `evaluate` の issue を渡す。validate と parse のどちらの issue かを選ぶ分岐を消す。読み込み中・取得失敗・非同期の検証・入力の誤りを数える `submitBlockedReasons` 自体は変えない。
+
+### 3.3 survey の SurveyBuilder
+
+送信で `editorSchema.safeParse(form.state.values)` を直接呼んでいる所を、`runtime.parse(editorSchema, form.state.values)` にする。
+
+---
+
+## 4. ドキュメント
+
+- `schemaRegistry.ts` の `validate`・`parse` のコメントを書き直す（「検証は parse 前の値で行う」をやめる）
+- `docs/plans/unsupported-schemas.md` §2.2 の「検証（エラーの表示）は今のまま、parse 前の値で行う」に、このプランで変えたことを 1 行足す
+- CHANGELOG（日・英）の未リリースに書く
+  - zod-form-react：**振る舞いの変更**：dynamic のある フォームの検証も、送信と同じく dynamic の output を差し込んでから行う。親の `.refine()` は変換後の値を受け取り、`path` で dynamic の欄を指す refine のエラーも出る。dynamic が不正・読み込み中・取得失敗のときは、親の refine を走らせない。同じ path で入れ子になった dynamic の外側の検査も効く。`FormRuntime.evaluate` を足した
+  - zod-form：`zf.dynamic()` の土台に、評価の目印だけを弾く検査を足した（型は `unknown` のまま）
+- zod-form-react の README に dynamic の検証の説明があれば、合わせて直す
+
+---
+
+## 5. テスト
+
+### 5.1 zod-form-react（`schemaRegistry.spec.ts`）
+
+`FormRuntime` を直接呼び、`validate` と `parse` の両方で確かめる。どのケースでも「`validate` が issue を返さない ⇔ `parse` が成功する」ことも確かめる。
+
+- #1：dynamic が `z.string().transform(Number)`、親の refine が数値を前提にする → 通り、parse の output が数値
+- #2：親の refine が `path: ["a"]` で dynamic を指す → `validate` がその issue を `["a"]` に返す
+- #3：dynamic の中の dynamic で、外側の refine が内側の output を受け取る
+- #4：同じ path の入れ子で、外側の refine が効く
+- #5：dynamic が不正・読み込み中・取得失敗のとき、親の refine の issue が出ず、dynamic の issue（と印）だけが出る
+- 配列の要素ごとの dynamic（要素ごとに違う schema）
+- union の腕の中の dynamic が失敗したとき、目印の issue が `invalid_union` の中にも残らない
+- 目印の issue が一番外に出ない（登録のある path に、dynamic 自身の issue だけが出る）
+- 同じ値・同じ登録なら評価し直さず、`set`・`remove` の後は評価し直す
+
+### 5.2 zod-form-mantine（jsdom）
+
+- `samePath.spec.tsx`・`dynamic.spec.tsx` に、描画した dynamic で #1・#2 を確かめるケースを足す（変換する dynamic と、変換後の値を見る親の refine で送信できる。dynamic を指す refine のエラーが欄に出る）
+- union の腕の中の dynamic が失敗したとき、腕の欄に目印のエラーが出ない
+
+### 5.3 zod-form-widget（`AutoForm.spec.tsx`）
+
+- #1 の形で、AutoForm の onSubmit に変換後の値が届く
+- dynamic が読み込み中・取得失敗・不正のとき、送信が止まった理由が今どおり出る
+
+### 5.4 全体
+
+`pnpm check-types`・`pnpm build`・`pnpm test` を通す。form-demo の E2E（zf.dynamic のページ）も通す。
+
+---
+
+## 6. 決めたこと
+
+- 直し方は A（検証も dynamic の output を差し込んでから行い、失敗した所には目印を入れて親の refine を止める）
+- 範囲は、FormRuntime の統一（#1〜#5）、AutoForm の送信、送信が止まった理由、survey の SurveyBuilder。AutoSearch の onChange は扱わない（§1.1）
