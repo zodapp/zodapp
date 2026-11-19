@@ -177,17 +177,15 @@ const rule = {
       const expected = `/* ${commentText} */`;
       const data = { text: commentText };
 
-      // JSX の属性の値には後ろにコメントを置けないので、{} で包む
+      // JSX の属性の値には後ろにコメントを置けないので、{} で包む。
+      // JSX の文字列は実体参照（&amp;）を解釈するので、ソースではなく値を JS の文字列にする
       if (node.parent?.type === "JSXAttribute") {
         context.report({
           node,
           messageId: "missing",
           data,
           fix: (fixer) =>
-            fixer.replaceText(
-              node,
-              `{${sourceCode.getText(node)} ${expected}}`,
-            ),
+            fixer.replaceText(node, `{${JSON.stringify(value)} ${expected}}`),
         });
         return;
       }
@@ -245,6 +243,7 @@ const rule = {
 
     /**
      * コメントと、その前の空白（同じ行の中）を消す。
+     * 後ろに続くトークンと前のトークンがくっつかないよう、後ろが空白・閉じ括弧・区切りでなければ空白 1 つを残す。
      *
      * @param {import("eslint").Rule.RuleFixer} fixer
      * @param {import("eslint").AST.Program["comments"][number]} comment
@@ -253,7 +252,11 @@ const rule = {
       const [start, end] = /** @type {[number, number]} */ (comment.range);
       const before = sourceCode.text.slice(0, start);
       const spaces = /[ \t]*$/.exec(before)?.[0].length ?? 0;
-      return fixer.removeRange([start - spaces, end]);
+      const after = sourceCode.text[end];
+      if (after === undefined || /[\s)\]},;:]/.test(after)) {
+        return fixer.removeRange([start - spaces, end]);
+      }
+      return fixer.replaceTextRange([start - spaces, end], " ");
     };
 
     return {

@@ -146,7 +146,19 @@ ruleTester.run("comment", rule, {
       errors: [{ messageId: "malformed" }],
       output: 'msg("test.title" /* i18n: タイトル */ /* メモ */);',
     },
-    // キーのすぐ後ろ以外にある目印付きのコメントは消す
+    // キーのすぐ後ろ以外にある目印付きのコメントは消す。前後のトークンはくっつけない
+    {
+      code: "const t = typeof /* i18n: タイトル */value;",
+      options,
+      errors: [{ messageId: "orphan" }],
+      output: "const t = typeof value;",
+    },
+    {
+      code: "const t = a+/* i18n: タイトル */+b;",
+      options,
+      errors: [{ messageId: "orphan" }],
+      output: "const t = a+ +b;",
+    },
     {
       code: 'const s = "hello" /* i18n: タイトル */;',
       options,
@@ -253,6 +265,14 @@ ruleTester.run("comment", rule, {
       options,
       errors: [{ messageId: "missing" }],
       output: 'const el = <A label={"test.title" /* i18n: タイトル */} />;',
+    },
+    // 実体参照を含む JSX の属性は、値を JS の文字列にする
+    {
+      code: 'const el = <A label="test.rowCount?name=Tom&amp;count=2" />;',
+      options,
+      errors: [{ messageId: "missing" }],
+      output:
+        'const el = <A label={"test.rowCount?name=Tom&count=2" /* i18n: ${count} 件 */} />;',
     },
     // 型の位置でない TS の文字列は確かめる
     {
