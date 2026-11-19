@@ -66,14 +66,20 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 
 `FormRuntime` に `parse(staticSchema, value)` を足し、送信のときにその結果（output）を `onSubmit` に渡す。
 #8 で `zf.dynamic()` の土台を `z.unknown()` にするので、静的な schema のまま parse でき、dynamic の所は値がそのまま通る。
-そこで次の手順で output を作る。
+そこで、dynamic の output を先に値へ差し込んでから、静的な schema で parse する（先に差し込む形）。
 
-1. 静的な schema で parse する
-2. 登録された path ごとに、登録された schema で、その path の値を parse する（深い path から）
-3. 1 の結果の、その path の所を 2 の結果で置き換える
+1. 登録された path を、深い順に並べる
+2. それぞれ、今の値のその path を、その path の一番深い登録の schema で parse する。失敗したら送信しない（読み込み中・取得の失敗も失敗として扱う）
+3. その path に output を差し込む（既定値の補いで使っている `fillAt`。配列の添字も扱える）
+4. 最後に、差し込んだ値を静的な schema で parse し、その output を onSubmit に渡す
 
-- dynamic の path より外側に transform があり、output の形が input と変わるときは、3 の置き換え先が正しく取れない。
-  この組み合わせは非対応とし、開発中に警告を出す（transform の有無は、dynamic の所までの schema をたどって調べる）
+- 外側の transform・refine は、dynamic を parse した後の値を受け取る。zod で親が子の output を受け取るのと同じ
+- 差し込み先は入力の値の path なので、外側に transform があっても必ずある（後から差し込む形だと、output の形が変わって差し込み先が無くなる）
+- dynamic の中の dynamic は、内側を先に差し込む。外側の schema から見ると内側の土台は `z.unknown()` なので、output が素通りする
+- `zf.dynamic().refine(...)` のような dynamic 自身の検査は、静的な parse で output を受け取る（zod と同じ）
+- 気をつける点：dynamic より外側の preprocess は、dynamic の output を受け取る。preprocess の値はフォームに入る前にそろえ済みで、
+  2 度かけても同じになる作りが前提なので、実害はほぼ無い
+- 検証（エラーの表示）は今のまま、parse 前の値で行う。変わるのは onSubmit に渡す値の作り方だけ
 - `onCancel` は今のまま、フォームの値（z.input）を渡す
 - `ReactiveAutoForm` ほか、送信の値を外に出す所を調べ、同じくそろえる
 
@@ -81,6 +87,8 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 
 - `.trim().toLowerCase()`・`.default("d")`・`z.coerce.number()`・`.transform()` の結果が onSubmit に届く
 - dynamic を含むフォーム（form-demo の zf.dynamic のページ）で、onSubmit に resolve した schema の output が届く
+- dynamic の外側に transform・refine があるとき、それが dynamic の output を受け取る
+- dynamic の中の dynamic、配列の中の dynamic
 
 ---
 
@@ -209,9 +217,17 @@ zod と同じ基準（`keyType._zod.values` があるか）で分ける。
 
 ### 7.1 今
 
-TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープの書き方が無い。
-名前は `.`・`[`・`]` で区切られ、欄の状態もこの名前で持ち、zod のエラーの path も `.` でつないで欄に振り分ける。
-そのため、`.`・`[`・`]` を含むキーは、1 つの欄として扱えない。
+TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープの書き方が無い。名前の扱いは、値と状態で違う。
+
+|                        | 名前 `f.a.b` を通す                                                                                                                   | 親の record を通す                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 値の読み               | 壊れる（`makePathArray` が `["f","a","b"]` に分けてたどる。無ければ undefined、キー `a` の object に `b` があればその値を読み違える） | できる（`record["a.b"]`）         |
+| 値の書き               | 壊れる（`{ a: { b } }` を作る）                                                                                                       | できる（record 全体を書き換える） |
+| 状態・エラーの読み書き | できる（`fieldMeta["f.a.b"]` のように名前を文字列のまま鍵にする。別の要素と名前が重なると混同する）                                   | —                                 |
+
+- フォーム全体の検証のエラーは、zod の path を `.` でつないだ名前で `fieldMeta` に書き込まれる。その名前の欄が描かれていなくても書き込まれ、
+  エラーが無くなれば消える（jsdom で確かめた）
+- 標準の部品（Switch で描くもの）は、値を名前を通して読み書きするので、`.`・`[`・`]` を含むキーの要素には使えない
 
 ### 7.2 方針
 
@@ -219,10 +235,23 @@ TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープ�
 
 - 判定の関数 `isUnsafeFieldKey(key)` を `zod-form-react` の `utils/path.ts` に置く
 - **record の entries の見た目**：キーを入れた時点で「キーに . [ ] は使えません」のエラーにし、値に反映しない（重複のエラーと同じ扱い）
-- **record に保存されていた値のキー**：そのキーの欄は描かず、record の欄に「使えないキーがあります：a.b」と出す。値は変えず、送信も止めない
+- **record に保存されていた値のキー**：その要素は標準の部品で描かない。代わりに、record の中に次の行を出す
+  - キーと「このフォームでは編集できません」の注記
+  - その要素のエラー（`fieldMeta[record の path + "." + キー]` を読む）。値が不正なら、TanStack の invalid で送信は止まり、理由がこの行に見える
+  - 消すボタン（record 全体を書き換えて消す）
+  - 値は変えず、送信も止めない（値が正しければそのまま送る）
+  - 値の readOnly の表示は、後回しにする（§7.3）
+  - 注意：値が object の record で、キー `a` と `a.b` が同時にあると、エラーの名前が重なり、持ち主を見分けられない（ドキュメントに書く）
 - **object の shape のキー・キーの決まった record の列挙のキー**：スキーマを書く人が決めるので、その欄の場所に「このキー名は使えません」と出し、`console.error` も出す
 - looseObject・catchall の shape に無いキーは、object の部品が描かないので、対象にしない
 - 数字だけのキー（`"1"`）は、TanStack が数として扱うが、object の上ではそのまま動くので対象にしない
+
+### 7.3 後回しにするもの：保存されていた値の readOnly の表示
+
+`docs/plans/same-path-experiment.md` の案F の第2段（表示する値を、親から `value` の props で渡す）が入れば、
+その要素を標準の部品の readOnly で描ける（表示は props の値、エラー・状態は名前で持つので、どちらも壊れない）。
+ただ、第2段は「後で相談」のまま実装されておらず、本当に実装するべきかを検討する必要がある。
+このプランでは値の表示はせず、第2段をどうするかが決まってから扱う。
 
 ---
 
@@ -243,6 +272,7 @@ TanStack Form（1.33.2）の欄の名前は文字列だけで、エスケープ�
 - 使っている所（form-demo・taskmanager・zod-form-s3・README・AGENT.md）を書き換える
 - `zf.file` は `z.string()` に meta を付けたものなので、値・検証は変わらず、変わるのは名前だけ
 - 改名のあと、`z.file()` は部品の無い型の 1 つになる（Not found。§1.1 の落ち方の整理で扱う）
+- `zf.file` を互換の別名としては残さない
 - CHANGELOG に破壊的変更として書く
 
 ---
@@ -319,6 +349,10 @@ zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を�
 
 ## 12. 決めていないこと
 
-1. #1 で、dynamic の外側に transform があるとき、警告を出して生の値を渡すか、送信を止めるか（案：警告を出し、その dynamic の所は parse 前の値のままにする）
-2. #7 で、`zf.file` を互換のための別名として 1 つの版だけ残すか（案：npm にまだ出していないなら残さない）
-3. #6 で、保存されていた値に使えないキーがあるとき、送信を止めるか（案：止めない。値は変えずに通す）
+- 案F の第2段（`value`・`parent` を props で渡す）を実装するか。決まったら、§7.3 の readOnly の表示を扱う
+
+### 12.1 決めたこと
+
+- #1：dynamic の output を先に差し込んでから、静的な schema で parse する（§2.2）
+- #7：`zf.file` を互換の別名として残さない
+- #6：保存されていた値に使えないキーがあっても、送信は止めない。エラーと消すボタンを出す（§7.2）
