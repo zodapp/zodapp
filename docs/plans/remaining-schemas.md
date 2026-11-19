@@ -1,6 +1,6 @@
 # 残りの非対応スキーマに対応するプラン
 
-- ステータス: プラン（レビュー中）
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-e4chhv`
 - 前提の main: 600252e（`unsupported-schemas.md` の #1〜#10 を取り込み済み。PR #32）
 - 対象パッケージ: `@zodapp/zod-form`、`@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`@zodapp/zod-form-mantine-lite`、`@zodapp/zod-form-widget`、`apps/form-demo`（ほか `zf.computed` を使っている apps）
