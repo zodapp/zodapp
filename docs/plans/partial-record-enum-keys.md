@@ -1,6 +1,6 @@
 # キーが enum の partialRecord の見た目を直すプラン
 
-- ステータス: プラン
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-t5tgbw`
 - 対象: `@zodapp/zod-form`（キーの候補の取り出し）、`@zodapp/zod-form-mantine`（record・record の entries）、`apps/form-demo`（デモ・e2e）
 

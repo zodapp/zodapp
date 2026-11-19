@@ -1,6 +1,14 @@
 import type { Page } from "@playwright/test";
 
-import { expect, field, openDemo, previewValue, test } from "./helpers";
+import {
+  expect,
+  field,
+  formDemo,
+  openDemo,
+  previewValue,
+  submit,
+  test,
+} from "./helpers";
 
 // zf.record：キーの型で見た目が変わる（固定の欄・組を足して編集する欄）
 test.beforeEach(async ({ page }) => {
@@ -53,37 +61,143 @@ test("キーが複数の値の literal の record も、キーごとの固定の
     .toEqual({ small: 3, medium: 5, large: 7 });
 });
 
-test("キーが enum の partialRecord は、組を足して編集する。enum に無いキーはエラーになる", async ({
+/** label の文字で、その欄の枠を探す */
+const section = (page: Page, label: string) =>
+  page.locator(".mantine-InputWrapper-root").filter({ hasText: label }).last();
+
+/** 枠の中の行の名前（都道府県）を、並んでいる順に */
+const rowNames = (box: ReturnType<typeof section>) =>
+  box.locator("label").evaluateAll((labels) =>
+    labels
+      // 必須の印（*）を除く
+      .map((label) => (label.textContent ?? "").replace(/\*/g, "").trim())
+      .filter((text) => /[都道府県]$/.test(text)),
+  );
+
+/** 枠のいちばん下の選択で、文字で絞り込んでキーを足す */
+const addKey = async (
+  page: Page,
+  box: ReturnType<typeof section>,
+  typed: string,
+  name: string,
+) => {
+  const select = box.getByRole("combobox", { name: "キーを追加" });
+  await select.click();
+  await select.fill(typed);
+  await page.getByRole("option", { name, exact: true }).click();
+};
+
+test("キーが enum の partialRecord（既定）は、候補のキーを label で全部並べ、空にするとキーごと消える", async ({
   page,
   pageErrors: _,
 }) => {
-  await expect(inputWithValue(page, "alice")).toBeVisible();
-  await expect(inputWithValue(page, "アリー")).toBeVisible();
+  const text = (name: string) =>
+    page.getByRole("textbox", { name, exact: true });
+  await expect(text("アリス")).toHaveValue("アリー");
+  await expect(text("ボブ")).toHaveValue("");
+  await expect(text("キャロル")).toHaveValue("");
+  // キーを打つ欄は出ない
+  await expect(
+    section(page, "あだ名（キーが enum の partialRecord）").getByRole(
+      "textbox",
+      { name: /^キー/ },
+    ),
+  ).toHaveCount(0);
 
-  // あだ名の枠の ＋ で組を足し、キーと値を入れる
-  const nicknames = page
-    .locator(".mantine-InputWrapper-root")
-    .filter({ hasText: "あだ名（キーが enum の partialRecord）" })
-    .last();
-  await nicknames.getByRole("button", { name: "追加" }).last().click();
-  const keys = nicknames.getByLabel(/^キー/);
-  const values = nicknames.getByLabel(/^値/);
-  await expect(keys).toHaveCount(2);
-  await keys.nth(1).fill("bob");
-  await values.nth(1).fill("ボビー");
+  await text("ボブ").fill("ボビー");
   await expect
     .poll(async () => (await previewValue(page)).nicknames)
     .toEqual({ alice: "アリー", bob: "ボビー" });
 
-  // enum に無いキーにすると、その組は値から外れ、エラーが出る
-  await keys.nth(1).fill("dave");
-  await keys.nth(1).blur();
-  await expect(
-    nicknames.locator(".mantine-InputWrapper-error").first(),
-  ).toBeVisible();
+  // 空にすると、undefined を入れずにキーごと消す
+  await text("アリス").fill("");
   await expect
-    .poll(async () => (await previewValue(page)).nicknames)
-    .toEqual({ alice: "アリー" });
+    .poll(async () =>
+      readValue<string[]>(page, "return Object.keys(values.nicknames)"),
+    )
+    .toEqual(["bob"]);
+});
+
+test("キーが enum の partialRecord（既定）は、そのまま送信でき、空にしたキーは送信した値にも無い", async ({
+  page,
+  pageErrors: _,
+}) => {
+  await page.getByRole("textbox", { name: "アリス", exact: true }).fill("");
+  await page
+    .getByRole("textbox", { name: "キャロル", exact: true })
+    .fill("キャリー");
+  await submit(page);
+  await expect
+    .poll(async () => {
+      const state = await formDemo(page);
+      return state.submitted.count > 0
+        ? (state.submitted.values as Record<string, unknown>).nicknames
+        : undefined;
+    })
+    .toEqual({ carol: "キャリー" });
+});
+
+test("uiType entries の partialRecord は、値にあるキーだけを並べ、下の選択でまだ無いキーを足す", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const box = section(page, "支店の数（partialRecord・uiType: entries）");
+  // 定義順（東京都 → 大阪府）で並ぶ
+  await expect.poll(() => rowNames(box)).toEqual(["東京都", "大阪府"]);
+
+  // 文字で絞り込んで足す。足した行には値の既定値が入る（数値なので空）
+  await addKey(page, box, "神奈", "神奈川県");
+  await expect
+    .poll(() => rowNames(box))
+    .toEqual(["東京都", "神奈川県", "大阪府"]);
+  await expect
+    .poll(async () =>
+      readValue<string[]>(page, "return Object.keys(values.branches)"),
+    )
+    .toEqual(["大阪府", "東京都", "神奈川県"]);
+  await box.getByRole("textbox", { name: "神奈川県", exact: true }).fill("3");
+  await expect
+    .poll(async () => (await previewValue(page)).branches)
+    .toEqual({ 大阪府: 2, 東京都: 5, 神奈川県: 3 });
+
+  // もうあるキーは、選択の候補に出ない
+  const select = box.getByRole("combobox", { name: "キーを追加" });
+  await select.click();
+  await select.fill("東京");
+  await expect(page.getByRole("option", { name: "東京都" })).toHaveCount(0);
+  await select.press("Escape");
+});
+
+test("uiType entries の partialRecord の行を削除すると、キーごと値から消え、選択の候補に戻る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const box = section(page, "支店の数（partialRecord・uiType: entries）");
+  await box.getByRole("button", { name: "大阪府を削除" }).click();
+  await expect.poll(() => rowNames(box)).toEqual(["東京都"]);
+  await expect
+    .poll(async () => (await previewValue(page)).branches)
+    .toEqual({ 東京都: 5 });
+
+  await addKey(page, box, "大阪", "大阪府");
+  await expect.poll(() => rowNames(box)).toEqual(["東京都", "大阪府"]);
+});
+
+test("keyOrder: value は、値の object の順に並べ、足したキーは末尾に並ぶ", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const box = section(page, "支店の数（keyOrder: value）");
+  await expect.poll(() => rowNames(box)).toEqual(["大阪府", "東京都"]);
+  await addKey(page, box, "北海", "北海道");
+  await expect
+    .poll(() => rowNames(box))
+    .toEqual(["大阪府", "東京都", "北海道"]);
+  await expect
+    .poll(async () =>
+      readValue<string[]>(page, "return Object.keys(values.branchesByValue)"),
+    )
+    .toEqual(["大阪府", "東京都", "北海道"]);
 });
 
 test("Map は record の entries と同じ見た目で、書き換えると Map に書く", async ({
