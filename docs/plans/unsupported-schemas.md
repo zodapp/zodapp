@@ -24,6 +24,7 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 | 7   | `zf.file` を `zf.externalFile` に改名する                        | `z.file()` が zf.file の部品に回り、フォームごと落ちる                                                                        |
 | 8   | `zf.dynamic()` の土台を `z.unknown()` にする                     | 土台が `z.never()` なので、静的な parse が必ず落ち、隣の `.refine()` も走らない                                               |
 | 9   | `zf.*.registry` の型の約束と、実際の動きをそろえる               | 型は通るのに描けない・落ちるもの、型は通らないのに動くものがある                                                              |
+| 10  | AutoForm が開くときに既定値を補う                                | 値が 1 つの literal・undefined のキー・`.default()` は、呼び出し側が入れないと入らない（#3 は部品が描いた後に書き込んでいた） |
 
 ### 1.1 このプランで扱わないもの
 
@@ -160,8 +161,8 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 値が 1 つに決まる型を「固定値」と呼ぶ：値が 1 つの literal（`z.literal("a")`・`z.literal(3)`・`z.literal(null)` など）・`z.null()`・`z.undefined()`・`z.void()`。
 
 - 固定値の欄は、既定で出さない（ラベルも出さない）
-- フォームの値が無いときは、部品がその値を書き込む（触った扱いにせず、検証もしない。PreprocessSwitch の値をそろえる所と同じやり方）。
-  これで送信に固定値が入り、どこにも出ないエラーで送信が止まることが無くなる。undefined・void は書き込むものが無いので何もしない
+- 値は `getDefaultValue` が入れる（値が 1 つの literal はその値、undefined・void はキーを undefined で置く）。
+  AutoForm が開くときに `getDefaultValue` を通すので（§11）、部品からは書き込まない
 - 見せたいときは meta で `hidden: false` と明示する。readOnly と同じ表示で、スキーマの値を出す。必須の印は付けない。
   null・undefined・void は、`hidden: false` でも中身が無いので出さない
 - これで union の腕の中の discriminator も出なくなるので、union 側に特別な扱いは要らない。union で null の腕を選ぶと、選択欄だけが残る
@@ -180,7 +181,7 @@ main（28ab1ea）で、約 90 種類の zod スキーマを jsdom の上で描�
 
 literal 系の中身は 1 か所にまとめ、部品のファイルは型ごとに置く。
 
-- 固定値の中身（値を書き込む・既定で出さない・`hidden: false` なら readOnly で出す）を 1 つの共通の部品にする
+- 固定値の中身（既定で出さない・`hidden: false` なら readOnly で出す・エラーがあれば出す）を 1 つの共通の部品にする
 - 部品のファイル（`componentLibrary` のキー）：
   - `literal.tsx`：`z.literal()` の入口。値が 1 つなら固定値の共通の部品、2 つ以上なら enum の部品に分ける
     （`literal_select`・`literal_badge` も同じファイルで受ける）
@@ -368,7 +369,43 @@ zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を�
 
 ---
 
-## 11. テスト
+## 11. AutoForm が開くときに既定値を補う（#10）
+
+### 11.1 今
+
+- AutoForm は、受け取った `defaultValues` をそのまま使う（`getDefaultValue` を通さない）。`useDefaultValuesWithFills` が補うのは、
+  `zf.dynamic` が決めた schema の path だけ。静的な schema の `.default()`・空の配列・object・値が 1 つの literal は、
+  呼び出し側が `defaultValues` に入れない限りフォームに入らない（`dynamic-default-fill.md` §4 で未決にしていた）
+- #3 の実装では、固定値（値が 1 つの literal・undefined・void）の値を、部品が描いた後に書き込んでいる。
+  描く前に走る検証にはキーが無く見え、書いた値は既定値に入らないので「変更あり」に見えることがあり、描かれない欄には効かない
+
+### 11.2 方針
+
+- AutoForm は、`defaultValues` を `getDefaultValue(schema, defaultValues)` に通してから使う
+  （`defaultValues` が無ければ `getDefaultValue(schema)`）。補った値は既定値に入るので、開いただけでは「変更あり」にならず、reset でも残る
+- `getDefaultValue` が例外を投げたら（optional の付かない `z.lazy` の無限の再帰など）、補わずに渡された値で続け、`console.error` を出す（英語）
+- 固定値の部品からの書き込みをやめる。部品は、既定で出さない・`hidden: false` なら出す・エラーがあれば出す、だけにする
+- 必須の object・intersection・配列は `{}`・`[]` で始まる。「必須だが空」で始める使い方は無くす
+  （form-demo の「必須の intersection（空）」の例は、開いたあとに中身を消した場合の例に変える）
+- 送信する値には、補ったキー（空の配列など）が入る
+- AutoSearch は補わない（検索の条件に literal・空の配列が入ると、絞り込みが変わるため）
+- ReactiveAutoForm は TanStack の form を使わず欄ごとに保存するので、対象にしない
+
+### 11.3 合わせて直す所
+
+- form-demo の E2E：union-arms の 2 件（#3 で値が 1 つの literal の値を出さなくなった）、intersection の 1 件（上の「必須だが空」）
+- `dynamic-default-fill.md` §4 の未決の項目を、決まったとして書き換える
+- ドキュメント（zod-form-widget の README）と changeset に、AutoForm が開くときに既定値を補うこと・送信する値に補ったキーが入ること・
+  AutoSearch と ReactiveAutoForm は補わないことを書く
+
+### 11.4 確かめること
+
+- AutoForm の spec：`.default()`・空の配列・値が 1 つの literal・undefined のキーが、開いたときから値に入り、isDirty が false のまま送れる
+- AutoForm の spec：optional の付かない `z.lazy` でも落ちず、`console.error` が出る
+- 固定値の部品が書き込まなくても、AutoForm で送信が通る
+- form-demo の E2E がすべて通る
+
+## 12. テスト
 
 - 各項目ごとに、zod-form-mantine の spec（jsdom）で、描画・入力・送信を確かめる。§1.2 のとおり `z.*` と `zf.*` の両方で確かめる
 - `getDefaultValue` の変更（#3・#5）は zod-form の spec で確かめる
@@ -377,9 +414,11 @@ zod 4 で確かめたこと：`z.object({ a: z.unknown() })` に `{ a: 1 }` を�
 - form-demo に、pipe・transform・set・キーの決まった record・複数の値を持つ literal の例を足す（ページを足すか、既存のページに入れるかは実装のときに決める）
 - 最後に `pnpm check-types`・`pnpm build`・`pnpm test` を通す
 
-## 12. 決めたこと
+## 13. 決めたこと
 
 - #1：dynamic の output を先に差し込んでから、静的な schema で parse する（§2.2）
 - #7：`zf.file` を互換の別名として残さない
 - #6：保存されていた値に使えないキーがあっても、送信は止めない。エラーと消すボタンを出す（§7.2）
 - #7：文言のキー `zodFormMantine.file.*` も `zodFormMantine.externalFile.*` に変える（§8.2）
+- #8：CSV の書き出し・読み込みでは、`zf.dynamic` の欄を今までどおり飛ばす（zod-tabular に `skip` を足す）
+- #10：値は AutoForm で `getDefaultValue` を通して補い、固定値の部品からは書き込まない。「必須だが空」で始める使い方は無くす（§11）

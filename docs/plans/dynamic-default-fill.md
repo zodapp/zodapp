@@ -127,5 +127,5 @@ AutoForm を使わずに `useZodForm` を直接使う場合は、`useDefaultValu
 
 ## 4. このプランで扱わないこと
 
-- **AutoForm がフォームを開くときに補うかどうか。** 今は AutoForm も `useZodForm` も `getDefaultValue` を通しておらず、渡された `defaultValues` をそのまま使う。静的な schema の `.default()` は、呼び出し側が `defaultValues` に入れない限りフォームに入らない。開くときにも `getDefaultValue(schema, defaultValues)` を通せば静的な schema と dynamic が同じ規則になるが、やるかどうかは未決
+- **AutoForm がフォームを開くときに補うかどうか。** 補うことにした。AutoForm は `defaultValues` を `getDefaultValue(schema, defaultValues)` に通してから使う（`unsupported-schemas.md` §11）
 - **`.prefault()`。** `getDefaultValue` に prefault の処理が無く、`z.number().prefault(3)` の初期値が undefined になる。既存の不具合で、別に直す
