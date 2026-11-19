@@ -1,6 +1,6 @@
 # 最近の機能のデモと E2E を form-demo に足すプラン
 
-- ステータス: プラン
+- ステータス: 実装済み
 - 対象ブランチ: `claude/project-thread-t5tgbw`
 - 対象: `apps/form-demo`（デモ・e2e 用のページ・spec）、`@zodapp/zod-form-mantine-lite` と `@zodapp/zod-form-mantine`（lazy の上限の数え方）
 
@@ -67,7 +67,7 @@ changeset を足す（patch）。
 | --- | --- | --- |
 | キーが enum | `z.record(zf.enum(["ja", "en"]) に label, z.string())` | 選択肢の label をキー名にして、キーごとの固定の欄で並ぶ |
 | キーが複数値の literal | `z.record(z.literal(["small", "large"]), z.number())` | 同じく固定の欄 |
-| キーが enum の partialRecord | `z.partialRecord(z.enum([...]), z.string())` | 固定の欄にならず、entries の見た目で、選べるキーだけ足せる |
+| キーが enum の partialRecord | `z.partialRecord(z.enum([...]), z.string())` | 固定の欄にならず、entries の見た目で組を足す。キーは文字の入力で、enum に無いキーはエラーになり、直すまで値から外す |
 | Map | `z.map(z.string(), z.number())` | record の entries と同じ見た目で、Map を書く |
 
 page の説明（description とページ内の説明）に、キーの型で見た目が変わることを書く。
@@ -76,8 +76,9 @@ page の説明（description とページ内の説明）に、キーの型で見
 
 `hidden: false` を主役にする。
 
-- 同じ形の object を 2 つ並べる。左は既定（欄を出さない）、右は各欄に `hidden: false`（readOnly と同じ見た目で値を出す。必須の印は付けない）
-- 欄：値が 1 つの literal（`z.literal("article")`）、`z.null()`、discriminatedUnion の腕の中の discriminator
+- 同じ形の object を 2 つ、上下に並べる。上は既定（欄を出さない）、下は各欄に `hidden: false`（readOnly と同じ見た目で値を出す。必須の印は付けない）。左右（`uiType: "horizontal"`）は下揃えになり、高さの違う枠どうしで見比べにくいので使わない
+- 欄：値が 1 つの literal（文字列 `"article"`・数値 `2`）、`z.null()`、discriminatedUnion の腕の中の discriminator
+- `z.null()` は中身が無いので、`hidden: false` でも出さない（ライブラリの仕様）。ページの説明に書く
 - どちらも送信値に固定値が入ることを、`E2eHarness` の今の値・送信値で見せる
 - ページ内の説明に「固定値は既定で出さない。見せたいときは `hidden: false`」と書く
 
@@ -98,8 +99,8 @@ page の説明（description とページ内の説明）に、キーの型で見
 | `e2e-passthrough` | 欄を出さずにそのまま送る型：`z.any()`・`z.unknown()`・`z.custom()`・`z.symbol()`・`z.function()`・`z.never()`（optional）、固定値の `z.nan()`、文字列の欄になる `z.templateLiteral()`、包みを外す `.nonoptional()` |
 | `e2e-unsupported` | 扱えない型の注記：rest 付きの tuple、uiType と要素が合わない配列、object を要素に持つ set、使えないキー名（`"a.b"`）。`z.promise()` と async の refine で送信が止まり、理由が出る |
 | `e2e-container-refine` | 入れ物の path を指定しない `.refine()`：object・array・record・union。離すと出て、直すと消えて送り直せる |
-| `e2e-lazy-limit` | optional なしの再帰で `maxDepth: 2`。注記が出て、上限の先の値が消えずに送られる。optional な再帰は深くても注記が出ない |
-| `e2e-misc` | object の形の enum（`z.enum({ A: 1, B: 2 })`）、`zf.date` に `z.coerce.date()`、外部キーに `z.email()`、値が複数の literal を `multipleEnum` の要素にする |
+| `e2e-lazy-limit` | optional なしの再帰で `maxDepth: 2`。注記が出て、上限の先の値は上の欄を編集しても消えない（終わりの無い型なので、送信は検証で止まる）。optional な再帰は深くても注記が出ない |
+| `e2e-misc` | object の形の enum（`z.enum({ Small: "s", Large: "l" })`）、`zf.date` に `z.coerce.date()`、外部キーに `z.email()`（モックの topic に、メールを値に持つ `userEmails` を足す）、値が複数の literal を `multipleEnum` の要素にする |
 
 ## 6. spec
 
@@ -116,7 +117,7 @@ page の説明（description とページ内の説明）に、キーの型で見
 - そのまま送る型：欄が出ない。送信値に初期値がそのまま入る
 - 扱えない型：該当の欄の場所に注記が出て、ほかの欄は描かれる。promise・async の refine では送信が止まり、理由が出る
 - 入れ物の refine：入れ物の最後の欄を離すとエラーが出る。直すと消え、送信できる
-- lazy：optional な再帰（`zodBuiltins` の `outline` を深くしたもの）には注記が出ない。関数で深さを決めた再帰は全部描ける。`maxDepth` を超えた所に注記が出て、送信値に先の値が残る
+- lazy：optional な再帰（`zodBuiltins` の `outline` を深くしたもの）には注記が出ない。関数で深さを決めた再帰は全部描ける。`maxDepth` を超えた所に注記が出て、フォームの値に先の値が残る
 
 ## 7. 確かめること
 
