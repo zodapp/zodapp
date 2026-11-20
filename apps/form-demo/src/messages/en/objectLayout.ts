@@ -15,4 +15,11 @@ export const en = defineMessages({
   "formDemo.objectLayout.boxed": "Boxed (uiType: box)",
   "formDemo.objectLayout.reordered":
     "Display order (properties: reading before name)",
+  "formDemo.objectLayout.horizontalErrors":
+    "Errors in a row (submit to show errors)",
+  "formDemo.objectLayout.horizontalErrors.keyword": "Keyword",
+  "formDemo.objectLayout.horizontalErrors.period.from": "From",
+  "formDemo.objectLayout.horizontalErrors.period.to": "To",
+  "formDemo.objectLayout.horizontalErrors.filter": "Filter",
+  "formDemo.objectLayout.horizontalErrors.filter.activeOnly": "Active only",
 });

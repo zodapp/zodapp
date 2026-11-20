@@ -28,7 +28,7 @@ export const title = msgKey(
   "formDemo.page.dynamicAdvanced.title" /* i18n: zf.dynamic（読み込み・購読・連動） */,
 );
 export const description = msgKey(
-  "formDemo.page.dynamicAdvanced.description" /* i18n: スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、都道府県→市区町村→町名の連動。帳票の種類を変えると、帳票の項目だけを取り直す。取得を失敗させると「再試行」が出て送信が止まる。都道府県を変えると、市区町村・町名が順に消える。「動きを試す」で取得の時機を選び、止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める */,
+  "formDemo.page.dynamicAdvanced.description" /* i18n: スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、住所の連動（米国：州→市→地区、日本：都道府県→市区町村→町名）。帳票の種類を変えると、帳票の項目だけを取り直す。取得を失敗させると「再試行」が出て送信が止まる。住所の上の欄を変えると、下の欄が順に消える。「動きを試す」で取得の時機を選び、止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める */,
 );
 export const icon = IconBolt;
 export const category = "Advanced";
@@ -222,24 +222,32 @@ const dependentKey = <P extends string>(
 const addressUsSchema = z
   .object({
     state: zf.string().register(zf.externalKey.registry, {
-      label: msgKey("formDemo.dynamicAdvanced.addressUs.state"),
+      label: msgKey("formDemo.dynamicAdvanced.addressUs.state" /* i18n: 州 */),
       externalKeyConfig: { type: "mock", topic: "states_us" },
     }),
     city: dependentKey(
       "state",
       "cities_us",
-      msgKey("formDemo.dynamicAdvanced.addressUs.city"),
-      msgKey("formDemo.dynamicAdvanced.addressUs.city.emptyMessage"),
+      msgKey("formDemo.dynamicAdvanced.addressUs.city" /* i18n: 市 */),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressUs.city.emptyMessage" /* i18n: 先に州を選んでください */,
+      ),
     ),
     neighborhood: dependentKey(
       "city",
       "neighborhoods_us",
-      msgKey("formDemo.dynamicAdvanced.addressUs.neighborhood"),
-      msgKey("formDemo.dynamicAdvanced.addressUs.neighborhood.emptyMessage"),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressUs.neighborhood" /* i18n: 地区 */,
+      ),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressUs.neighborhood.emptyMessage" /* i18n: 先に市を選んでください */,
+      ),
     ),
   })
   .register(zf.object.registry, {
-    label: msgKey("formDemo.dynamicAdvanced.addressUs"),
+    label: msgKey(
+      "formDemo.dynamicAdvanced.addressUs" /* i18n: 住所（米国） */,
+    ),
     uiType: "box",
   });
 
@@ -247,24 +255,32 @@ const addressUsSchema = z
 const addressJpSchema = z
   .object({
     prefecture: zf.string().register(zf.externalKey.registry, {
-      label: msgKey("formDemo.dynamicAdvanced.addressJp.prefecture"),
+      label: msgKey(
+        "formDemo.dynamicAdvanced.addressJp.prefecture" /* i18n: 都道府県 */,
+      ),
       externalKeyConfig: { type: "mock", topic: "prefectures_jp" },
     }),
     city: dependentKey(
       "prefecture",
       "cities_jp",
-      msgKey("formDemo.dynamicAdvanced.addressJp.city"),
-      msgKey("formDemo.dynamicAdvanced.addressJp.city.emptyMessage"),
+      msgKey("formDemo.dynamicAdvanced.addressJp.city" /* i18n: 市区町村 */),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressJp.city.emptyMessage" /* i18n: 先に都道府県を選んでください */,
+      ),
     ),
     town: dependentKey(
       "city",
       "towns_jp",
-      msgKey("formDemo.dynamicAdvanced.addressJp.town"),
-      msgKey("formDemo.dynamicAdvanced.addressJp.town.emptyMessage"),
+      msgKey("formDemo.dynamicAdvanced.addressJp.town" /* i18n: 町名 */),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressJp.town.emptyMessage" /* i18n: 先に市区町村を選んでください */,
+      ),
     ),
   })
   .register(zf.object.registry, {
-    label: msgKey("formDemo.dynamicAdvanced.addressJp"),
+    label: msgKey(
+      "formDemo.dynamicAdvanced.addressJp" /* i18n: 住所（日本。選択肢はデータなので、言語を切り替えても日本語のまま） */,
+    ),
     uiType: "box",
   });
 

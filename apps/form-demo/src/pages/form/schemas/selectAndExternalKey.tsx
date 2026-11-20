@@ -161,34 +161,44 @@ export const schema = z
     addressUs: z
       .object({
         state: zf.string().register(zf.externalKey.registry, {
-          label: msgKey("formDemo.selectAndExternalKey.addressUs.state"),
+          label: msgKey(
+            "formDemo.selectAndExternalKey.addressUs.state" /* i18n: 州 */,
+          ),
           externalKeyConfig: { type: "mock", topic: "states_us" },
         }),
         city: dependentKey(
           "state",
           "cities_us",
-          msgKey("formDemo.selectAndExternalKey.addressUs.city"),
+          msgKey("formDemo.selectAndExternalKey.addressUs.city" /* i18n: 市 */),
         ),
       })
       .register(zf.object.registry, {
-        label: msgKey("formDemo.selectAndExternalKey.addressUs"),
+        label: msgKey(
+          "formDemo.selectAndExternalKey.addressUs" /* i18n: 住所（米国） */,
+        ),
         uiType: "box",
       }),
     // 日本の住所：別のサンプル。選択肢はデータなので、言語を切り替えても日本語のまま
     addressJp: z
       .object({
         prefecture: zf.string().register(zf.externalKey.registry, {
-          label: msgKey("formDemo.selectAndExternalKey.addressJp.prefecture"),
+          label: msgKey(
+            "formDemo.selectAndExternalKey.addressJp.prefecture" /* i18n: 都道府県 */,
+          ),
           externalKeyConfig: { type: "mock", topic: "prefectures_jp" },
         }),
         city: dependentKey(
           "prefecture",
           "cities_jp",
-          msgKey("formDemo.selectAndExternalKey.addressJp.city"),
+          msgKey(
+            "formDemo.selectAndExternalKey.addressJp.city" /* i18n: 市区町村 */,
+          ),
         ),
       })
       .register(zf.object.registry, {
-        label: msgKey("formDemo.selectAndExternalKey.addressJp"),
+        label: msgKey(
+          "formDemo.selectAndExternalKey.addressJp" /* i18n: 住所（日本。選択肢はデータなので、言語を切り替えても日本語のまま） */,
+        ),
         uiType: "box",
       }),
   })

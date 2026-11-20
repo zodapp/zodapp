@@ -15,4 +15,11 @@ export const ja = {
     "横並び折返し（uiType: horizontal-wrap）",
   "formDemo.objectLayout.boxed": "枠囲み（uiType: box）",
   "formDemo.objectLayout.reordered": "表示順制御（properties: カナ→漢字の順）",
+  "formDemo.objectLayout.horizontalErrors":
+    "横並びのエラー（送信するとエラーが出る）",
+  "formDemo.objectLayout.horizontalErrors.keyword": "キーワード",
+  "formDemo.objectLayout.horizontalErrors.period.from": "開始",
+  "formDemo.objectLayout.horizontalErrors.period.to": "終了",
+  "formDemo.objectLayout.horizontalErrors.filter": "絞り込み",
+  "formDemo.objectLayout.horizontalErrors.filter.activeOnly": "有効のみ",
 } satisfies MessagesOf<typeof en>;
