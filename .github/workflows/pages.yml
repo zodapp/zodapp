@@ -1,6 +1,6 @@
-# フォームのデモ（apps/form-demo）を GitHub Pages に公開する。
-# https://<owner>.github.io/zodapp/ に置くので、base を /zodapp/ にしてビルドする（package.json の build:pages）。
-# リポジトリの Settings → Pages で、Source を「GitHub Actions」にしておく。
+# Publishes the form demo (apps/form-demo) to GitHub Pages.
+# It is served at https://<owner>.github.io/zodapp/, so it is built with base /zodapp/ (build:pages in package.json).
+# In the repository's Settings → Pages, set Source to "GitHub Actions".
 name: Pages (form demo)
 
 on:

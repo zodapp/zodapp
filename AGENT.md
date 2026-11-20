@@ -1,96 +1,96 @@
 # AGENT.md
 
-このファイルはAIエージェントがプロジェクトを理解し、適切にコード生成・修正を行うためのガイドラインです。
+This file is a guideline for AI agents to understand the project and generate or modify code appropriately.
 
-## コンセプト
+## Concept
 
-プロジェクトのコンセプトと全体像は **[README.ja.md](README.ja.md)** を参照してください。
+For the project's concept and overall picture, see **[README.md](README.md)**.
 
-## コード修正時の必須チェック
+## Required checks after changing code
 
-コードを修正した場合は、**必ず以下のコマンドを実行して**エラーがないことを確認してください：
+After changing code, **always run the following commands** and confirm there are no errors:
 
 ```bash
-pnpm check-types  # 型チェック
-pnpm build        # 全パッケージビルド
+pnpm check-types  # type check
+pnpm build        # build all packages
 ```
 
-## 技術スタック
+## Tech stack
 
-| カテゴリ               | 技術                                     |
-| ---------------------- | ---------------------------------------- |
-| パッケージマネージャー | pnpm 10.9.0                              |
-| Node.js                | 22.22.2 (Volta固定)                      |
-| フロントエンド         | React 19 + Vite 7                        |
-| ルーティング           | TanStack Router                          |
-| フォーム               | TanStack Form + @zodapp/zod-form-mantine |
-| バリデーション         | Zod 4                                    |
-| UI                     | Mantine UI                               |
-| バックエンド           | DynamoDB（@zodapp/zod-dynamodb）+ Express |
-| テスト                 | Vitest                                   |
-| Lint/Format            | ESLint + Prettier                        |
+| Category        | Technology                                |
+| --------------- | ----------------------------------------- |
+| Package manager | pnpm 10.9.0                               |
+| Node.js         | 22.22.2 (pinned with Volta)               |
+| Frontend        | React 19 + Vite 7                         |
+| Routing         | TanStack Router                           |
+| Forms           | TanStack Form + @zodapp/zod-form-mantine  |
+| Validation      | Zod 4                                     |
+| UI              | Mantine UI                                |
+| Backend         | DynamoDB (@zodapp/zod-dynamodb) + Express |
+| Tests           | Vitest                                    |
+| Lint/Format     | ESLint + Prettier                         |
 
-## プロジェクト構造
+## Project structure
 
 ```
 zodapp/
 ├── apps/
-│   ├── form-demo/    # フォームと表のカタログ（DB 非依存、GitHub Pages）
-│   ├── taskmanager/  # タスク管理のサンプル（DynamoDB・Cognito・S3・リアルタイム）
-│   └── survey/       # アンケートのサンプル（質問をデータとして持ち、実行時にスキーマを組み立てる）
+│   ├── form-demo/    # Catalog of forms and tables (no DB, GitHub Pages)
+│   ├── taskmanager/  # Task management sample (DynamoDB, Cognito, S3, realtime)
+│   └── survey/       # Survey sample (keeps questions as data and builds schemas at runtime)
 ├── packages/
-│   ├── zod-form/                 # フォーム自動生成のコア（zf拡張定義）
-│   ├── zod-form-react/           # React基盤（Dynamic / hooks / zfReact）
-│   ├── zod-form-mantine/         # Mantine UIコンポーネントライブラリ
-│   ├── zod-form-mantine-lite/    # TanStack Form に依存しない Mantine コンポーネント
-│   ├── zod-form-widget/          # AutoForm / AutoTable などのウィジェット
-│   ├── zod-form-dynamodb/        # 外部キーの Resolver（登録簿の名前付きクエリ）
-│   ├── zod-form-s3/              # ファイルの Resolver（S3 の署名付き URL、ブラウザ）
-│   ├── zod-form-s3-node/         # 署名付き URL を発行する Express の router（サーバー）
-│   ├── zod-dynamodb/             # Table 定義・操作・認可・登録簿（ブラウザとサーバーで共有）
-│   ├── zod-dynamodb-node/        # DynamoDB の Repository
-│   ├── zod-dynamodb-express/     # 登録簿を配信する Express の router
-│   ├── zod-dynamodb-client/      # 型付きの HTTP / リアルタイムの Client
-│   ├── zod-dynamodb-react/       # 一覧と Item の hooks
-│   ├── zod-dynamodb-realtime/    # リアルタイムの購読の WebSocket Gateway
-│   ├── zod-dynamodb-mqtt/        # 変更の発行と購読の MQTT transport
-│   ├── zod-transport-json/       # スキーマに沿った JSON の送受信
-│   ├── zod-tabular/              # スキーマと表形式データの相互変換
-│   ├── zod-extendable/           # Zodメタデータ拡張機能
-│   ├── zod-propagating-registry/ # Zodレジストリ拡張
-│   ├── zod-searchparams/         # URLパラメータ用変換
-│   ├── zod-transform/            # Zodスキーマ変換ユーティリティ
-│   ├── caching-utilities/        # 購読の共有などのキャッシュ
-│   ├── react-storage/            # ブラウザのストレージに保存する state
-│   ├── eslint-config/            # ESLint設定
-│   └── typescript-config/        # TypeScript設定
-├── docs/               # 公開の手順（releasing.md）、実装前のプラン（plans/）、経緯（archive/）
-├── turbo.json          # Turborepo設定
+│   ├── zod-form/                 # Core of automatic form generation (zf extension definitions)
+│   ├── zod-form-react/           # React foundation (Dynamic / hooks / zfReact)
+│   ├── zod-form-mantine/         # Mantine UI component library
+│   ├── zod-form-mantine-lite/    # Mantine components that do not depend on TanStack Form
+│   ├── zod-form-widget/          # Widgets such as AutoForm / AutoTable
+│   ├── zod-form-dynamodb/        # Foreign key resolver (named queries of the registry)
+│   ├── zod-form-s3/              # File resolver (S3 presigned URLs, browser)
+│   ├── zod-form-s3-node/         # Express router that issues presigned URLs (server)
+│   ├── zod-dynamodb/             # Table definitions, operations, authorization, registry (shared by browser and server)
+│   ├── zod-dynamodb-node/        # DynamoDB Repository
+│   ├── zod-dynamodb-express/     # Express router that serves the registry
+│   ├── zod-dynamodb-client/      # Typed HTTP / realtime client
+│   ├── zod-dynamodb-react/       # Hooks for lists and Items
+│   ├── zod-dynamodb-realtime/    # WebSocket Gateway for realtime subscriptions
+│   ├── zod-dynamodb-mqtt/        # MQTT transport for publishing and subscribing to changes
+│   ├── zod-transport-json/       # Sending and receiving JSON following schemas
+│   ├── zod-tabular/              # Conversion between schemas and tabular data
+│   ├── zod-extendable/           # Zod metadata extension
+│   ├── zod-propagating-registry/ # Zod registry extension
+│   ├── zod-searchparams/         # Conversion for URL parameters
+│   ├── zod-transform/            # Zod schema transformation utilities
+│   ├── caching-utilities/        # Caches such as shared subscriptions
+│   ├── react-storage/            # State saved in browser storage
+│   ├── eslint-config/            # ESLint settings
+│   └── typescript-config/        # TypeScript settings
+├── docs/               # Release procedure (releasing.md), plans before implementation (plans/), history (archive/)
+├── turbo.json          # Turborepo settings
 ├── pnpm-workspace.yaml
 └── vitest.config.ts
 ```
 
-各アプリの詳細は、それぞれの README（`apps/form-demo` は AGENT.md も）を参照してください。
+For details of each app, see its README (and AGENT.md for `apps/form-demo`).
 
-## 開発コマンド
+## Development commands
 
 ```bash
-pnpm build        # 全パッケージビルド（apps はパッケージの dist を使うので、dev の前にも要る）
-pnpm --filter form-demo dev  # フォームのデモ（DB 不要）
-pnpm --filter @zodapp/<name> watch  # パッケージを書き換えながら apps を動かすとき（dist を watch で作り直す）
-pnpm test         # テスト実行（zod-dynamodb 系とサンプルのテストは DynamoDB Local を使う。pnpm dynamodb:start で起動）
-pnpm lint         # リント実行
-pnpm format       # コードフォーマット
-pnpm check-types  # 型チェック
+pnpm build        # build all packages (apps use the packages' dist, so this is also needed before dev)
+pnpm --filter form-demo dev  # form demo (no DB needed)
+pnpm --filter @zodapp/<name> watch  # when running apps while editing a package (rebuilds dist in watch mode)
+pnpm test         # run tests (zod-dynamodb packages and sample tests use DynamoDB Local; start it with pnpm dynamodb:start)
+pnpm lint         # run lint
+pnpm format       # format code
+pnpm check-types  # type check
 ```
 
-## コーディング規約
+## Coding conventions
 
-### Zodスキーマ駆動開発
+### Zod schema-driven development
 
-- 型定義はZodスキーマから生成する (`z.infer<typeof schema>`)
-- フォームは `@zodapp/zod-form` の `zf` 拡張を使用する
-- スキーマに `register()` でメタデータ（label, uiType等）を付与する
+- Types are generated from Zod schemas (`z.infer<typeof schema>`)
+- Forms use the `zf` extension of `@zodapp/zod-form`
+- Metadata (label, uiType, etc.) is attached to schemas with `register()`
 
 ```typescript
 import { z } from "zod";
@@ -98,78 +98,81 @@ import { zf } from "@zodapp/zod-form";
 
 const schema = z
   .object({
-    name: zf.string().register(zf.string.registry, { label: "名前" }),
+    name: zf.string().register(zf.string.registry, { label: "Name" }),
     age: zf
       .number()
       .min(0)
       .max(150)
-      .register(zf.number.registry, { label: "年齢" }),
+      .register(zf.number.registry, { label: "Age" }),
     frequency: zf
       .number()
       .min(0)
       .max(7)
-      .register(zf.number.registry, { label: "週の回数", uiType: "slider" }),
-    birthday: zf.date().register(zf.date.registry, { label: "誕生日" }),
-    isMember: zf.boolean().register(zf.boolean.registry, { label: "会員" }),
+      .register(zf.number.registry, {
+        label: "Times per week",
+        uiType: "slider",
+      }),
+    birthday: zf.date().register(zf.date.registry, { label: "Birthday" }),
+    isMember: zf.boolean().register(zf.boolean.registry, { label: "Member" }),
   })
   .register(zf.object.registry, {});
 
 type SchemaType = z.infer<typeof schema>;
 ```
 
-### zf拡張の主要な型
+### Main zf types
 
-| 型                 | 説明                       |
-| ------------------ | -------------------------- |
-| `zf.string()`      | 文字列入力                 |
-| `zf.number()`      | 数値入力                   |
-| `zf.boolean()`     | チェックボックス           |
-| `zf.date()`        | 日付入力                   |
-| `zf.bigint()`      | BigInt入力                 |
-| `zf.literal()`     | リテラル値                 |
-| `zf.enum()`        | 列挙型（セレクト）         |
-| `zf.array()`       | 配列                       |
-| `zf.tuple()`       | タプル                     |
-| `zf.object()`      | オブジェクト               |
-| `zf.union()`       | ユニオン型（判別器付き）   |
-| `zf.externalKey()` | 外部キー参照               |
-| `zf.externalFile()` | 外に置いたファイル（アップロード） |
-| `zf.message()`     | メッセージ表示（入力なし） |
-| `zf.computed()`    | 計算フィールド（表示のみ） |
-| `zf.hidden()`      | 非表示フィールド           |
+| Type                | Description                    |
+| ------------------- | ------------------------------ |
+| `zf.string()`       | Text input                     |
+| `zf.number()`       | Number input                   |
+| `zf.boolean()`      | Checkbox                       |
+| `zf.date()`         | Date input                     |
+| `zf.bigint()`       | BigInt input                   |
+| `zf.literal()`      | Literal value                  |
+| `zf.enum()`         | Enum (select)                  |
+| `zf.array()`        | Array                          |
+| `zf.tuple()`        | Tuple                          |
+| `zf.object()`       | Object                         |
+| `zf.union()`        | Union (with discriminator)     |
+| `zf.externalKey()`  | Foreign key reference          |
+| `zf.externalFile()` | File stored elsewhere (upload) |
+| `zf.message()`      | Message display (no input)     |
+| `zf.computed()`     | Computed field (display only)  |
+| `zf.hidden()`       | Hidden field                   |
 
-### コンポーネント
+### Components
 
-- 関数コンポーネント + React Hooksを使用
-- `export const ComponentName = () => { ... }` 形式でエクスポート
-- Mantine UIコンポーネントを優先使用
+- Use function components + React Hooks
+- Export in the form `export const ComponentName = () => { ... }`
+- Prefer Mantine UI components
 
 ```typescript
-// 良い例
+// Good
 export const MyComponent = ({ title }: Props) => {
   const [value, setValue] = useState("");
   return <TextInput label={title} value={value} onChange={(e) => setValue(e.target.value)} />;
 };
 ```
 
-### ルーティング
+### Routing
 
-- TanStack Routerの**コードベースルーティング**を使用（ファイルベースルーティングは使用していない）
-- `router.tsx`でルートツリーを手動で構築
-- クエリパラメータは `@zodapp/zod-searchparams` と Zod スキーマで検証・変換
+- Use TanStack Router's **code-based routing** (file-based routing is not used)
+- The route tree is built by hand in `router.tsx`
+- Query parameters are validated and converted with `@zodapp/zod-searchparams` and Zod schemas
 
-#### ファイル命名規則
+#### File naming
 
-| ファイル名        | 役割                                                 |
-| ----------------- | ---------------------------------------------------- |
-| `*.route.ts`      | ルート定義（`createRoute`の呼び出し）                |
-| `*.tsx`           | コンポーネント（`lazyRouteComponent`で遅延読み込み） |
-| `Layout.tsx`      | レイアウトコンポーネント                             |
-| `layout.route.ts` | レイアウトルートの定義                               |
+| File name         | Role                                              |
+| ----------------- | ------------------------------------------------- |
+| `*.route.ts`      | Route definition (calls `createRoute`)            |
+| `*.tsx`           | Component (lazy-loaded with `lazyRouteComponent`) |
+| `Layout.tsx`      | Layout component                                  |
+| `layout.route.ts` | Layout route definition                           |
 
-#### ルートツリーの構築
+#### Building the route tree
 
-ルートツリーは `router.tsx` で手動で構築する：
+The route tree is built by hand in `router.tsx`:
 
 ```typescript
 // router.tsx
@@ -179,7 +182,7 @@ const routeTree = rootRoute.addChildren([
 ]);
 ```
 
-#### ルート定義例
+#### Example route definition
 
 ```typescript
 // detail.route.ts
@@ -194,29 +197,29 @@ const searchSchema = z.object({
 });
 
 export const formDetailRoute = createRoute({
-  getParentRoute: () => formRoute, // 親ルートを指定
+  getParentRoute: () => formRoute, // the parent route
   path: "detail",
   validateSearch: (paramsTree: ParamsTree) =>
     fromParamsTree(paramsTree, searchSchema),
-  component: lazyRouteComponent(() => import("./detail")), // 同名の.tsxを読み込み
+  component: lazyRouteComponent(() => import("./detail")), // loads the .tsx of the same name
 });
 ```
 
-#### zod-searchparams との統合
+#### Integration with zod-searchparams
 
-URL検索パラメータの処理は以下の役割分担で行う：
+URL search parameters are handled with this division of roles:
 
-| 処理       | 設定場所                            | 関数                               | スキーマ |
-| ---------- | ----------------------------------- | ---------------------------------- | -------- |
-| エンコード | `createRouter` の `stringifySearch` | `encodeSearchParams(obj)`          | 不要     |
-| パース     | `createRouter` の `parseSearch`     | `searchParamsToParamsTree(params)` | 不要     |
-| 型変換     | 各ルートの `validateSearch`         | `fromParamsTree(tree, schema)`     | 必要     |
+| Processing      | Where it is set                     | Function                           | Schema     |
+| --------------- | ----------------------------------- | ---------------------------------- | ---------- |
+| Encoding        | `stringifySearch` of `createRouter` | `encodeSearchParams(obj)`          | Not needed |
+| Parsing         | `parseSearch` of `createRouter`     | `searchParamsToParamsTree(params)` | Not needed |
+| Type conversion | `validateSearch` of each route      | `fromParamsTree(tree, schema)`     | Needed     |
 
-これにより Date, Set, Map などの複雑な型を URL パラメータとして扱える。
+This lets complex types such as Date, Set, and Map be handled as URL parameters.
 
-#### ナビゲーション
+#### Navigation
 
-`navigate` や `Link` では Date などをそのまま渡せる（自動エンコード）：
+`navigate` and `Link` take Dates and the like as is (encoded automatically):
 
 ```typescript
 navigate({
@@ -226,22 +229,22 @@ navigate({
 });
 ```
 
-### スタイリング
+### Styling
 
-優先順位: Mantine UI > CSS Modules > インラインスタイル
+Priority: Mantine UI > CSS Modules > inline styles
 
 ```typescript
-// Mantine UIを優先
+// Prefer Mantine UI
 <Button variant="filled" color="blue">Submit</Button>
 
-// ページ固有のスタイルはCSS Modules
+// Page-specific styles use CSS Modules
 import styles from "./page.module.css";
 <div className={styles.container}>
 ```
 
-## 重要なパターン
+## Important patterns
 
-### フォーム作成パターン
+### Creating a form
 
 ```typescript
 import { z } from "zod";
@@ -258,7 +261,7 @@ import { zf } from "@zodapp/zod-form";
 
 const schema = z
   .object({
-    name: zf.string().register(zf.string.registry, { label: "名前" }),
+    name: zf.string().register(zf.string.registry, { label: "Name" }),
   })
   .register(zf.object.registry, {});
 
@@ -281,7 +284,7 @@ export const MyForm = () => {
         <ValidatePrecedingFieldsProvider>
           <Stack gap="md">
             <Dynamic fieldPath="" schema={schema} />
-            <Button onClick={() => form.handleSubmit()}>送信</Button>
+            <Button onClick={() => form.handleSubmit()}>Submit</Button>
           </Stack>
         </ValidatePrecedingFieldsProvider>
       </FormProvider>
@@ -290,29 +293,33 @@ export const MyForm = () => {
 };
 ```
 
-### DynamoDB 連携パターン
+### Working with DynamoDB
 
-Table 定義と操作は、ブラウザとサーバーで共有するファイル（サンプルでは `src/shared/`）に書く。
-認可（`authorize`）も同じ定義に書き、ブラウザは `can` で同じ判定をする。
+Table definitions and operations are written in files shared by the browser and the server (`src/shared/` in the samples).
+Authorization (`authorize`) is written in the same definitions, and the browser makes the same decision with `can`.
 
 ```typescript
 import { z } from "zod";
 import { tableConfig } from "@zodapp/zod-dynamodb";
 
 export const tasks = tableConfig({
-  table: appTable, // physicalTable() で作る単一テーブル
+  table: appTable, // a single table made with physicalTable()
   entity: "Task",
   item: taskSchema,
   create: taskBodySchema,
   key: { partition: ["workspaceId"], sort: ["taskId"] },
   indexes: {
-    byStatus: { slot: "GSI1", partition: ["workspaceId", "status"], sort: ["updatedAt"] },
+    byStatus: {
+      slot: "GSI1",
+      partition: ["workspaceId", "status"],
+      sort: ["updatedAt"],
+    },
   },
   onCreate: ({ now }) => ({ createdAt: now }),
   onWrite: ({ now }) => ({ updatedAt: now }),
 });
 
-// defineContext<Auth>() が返す createOps / defineEndpoints を使う
+// Use the createOps / defineEndpoints returned by defineContext<Auth>()
 export const taskOps = createOps(tasks, (o) => ({
   get: o.get({ authorize: (ctx, { key }) => isMember(ctx, key.workspaceId) }),
   setStatus: o.mutation({
@@ -330,15 +337,15 @@ export const endpoints = defineEndpoints({
 });
 ```
 
-- onCreate の戻り値は入力より優先される（`{...input, ...onCreate, ...onWrite, ...key}`）。入力の値を使いたい項目は onCreate で上書きしない
-- DynamoDB はキー（Index）でしか絞り込めない。残りの条件は読んだ一覧をブラウザで絞る（サンプルは mingo）
-- 詳しくは `packages/zod-dynamodb/README.ja.md` と `packages/zod-dynamodb*/docs/`
+- The return value of onCreate takes precedence over the input (`{...input, ...onCreate, ...onWrite, ...key}`). Do not override in onCreate the fields whose input value you want to use
+- DynamoDB can only filter by keys (indexes). Remaining conditions are applied in the browser to the list that was read (the samples use mingo)
+- For details, see `packages/zod-dynamodb/README.md` and `packages/zod-dynamodb*/docs/`
 
-## テストガイドライン
+## Test guidelines
 
-- テストファイルは `*.spec.ts` または `*.test.ts`
-- Vitestを使用（globals: true設定済み）
-- Reactコンポーネントは `@testing-library/react` を使用
+- Test files are `*.spec.ts` or `*.test.ts`
+- Use Vitest (globals: true is set)
+- React components use `@testing-library/react`
 
 ```typescript
 // example.spec.ts
@@ -351,42 +358,44 @@ describe("myFunction", () => {
 });
 ```
 
-### E2E（apps）
+### E2E (apps)
 
-- `apps/` のアプリには、原則 Playwright の E2E を置く。置き場所は `apps/<名前>/e2e`、実行は `pnpm e2e`
-- 画面の振る舞いを変えたら、その振る舞いを E2E で確かめる（単体テストでわかる部分は単体テストで）
-- 新しいアプリは `.github/workflows/e2e.yml` の matrix に加える
-- `apps/form-demo` は、1 つのデモページを 1 つの spec にする。spec の手順は、そのページを開いて試す手順と同じにし、ユーザーテストの台本としても読めるようにする
+- As a rule, apps in `apps/` have Playwright E2E tests. They live in `apps/<name>/e2e` and run with `pnpm e2e`
+- When you change behavior on screen, check that behavior with E2E (parts that unit tests can check go in unit tests)
+- Add new apps to the matrix in `.github/workflows/e2e.yml`
+- In `apps/form-demo`, one demo page is one spec. A spec's steps are the same as the steps to open that page and try it, so it also reads as a user test script
 
-## 文書の置き場所
+## Where documents go
 
-| 書くもの | 置き場所 |
-| --- | --- |
-| 使い方 | 各パッケージ・アプリの `README.ja.md` |
-| 動きの決まり（仕様） | `packages/<名前>/docs/<テーマ>.ja.md`。README から節ごとにリンクする |
-| 実装前のプラン | `docs/plans/`。実装したら、仕様を README か `docs/` に移し、プランは意図だけに絞って `docs/archive/` に移す |
-| 経緯（決めたことと理由） | `docs/archive/`。コードに合わせて直さない |
-| 公開の手順 | `docs/releasing.md` |
+| What                            | Where                                                                                                                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Usage                           | Each package's and app's `README.md` (English) and `README.ja.md` (Japanese)                                                                                     |
+| Behavior rules (specifications) | `packages/<name>/docs/<topic>.md` (English) and `<topic>.ja.md` (Japanese). Linked per section from the README                                                   |
+| Plans before implementation     | `docs/plans/` (Japanese). After implementing, move the specification into the README or `docs/`, cut the plan down to its intent, and move it to `docs/archive/` |
+| History (decisions and reasons) | `docs/archive/` (Japanese). Not updated to follow the code                                                                                                       |
+| Release procedure               | `docs/releasing.md` (English)                                                                                                                                    |
 
-- 仕様は「〜である／〜する」で今の動きだけを書く。理由は、ないと誤った変更をしそうなものだけ添える
-- `packages/*/docs/api/` は typedoc の生成物（git に入らない）。手書きの文書は置かない
+- For documents for users (READMEs and specifications), English is the source of truth. When you change one, make the same change to the Japanese version
+- Documents for developers and agents (AGENT.md, etc.) are written only in English
+- Specifications describe only current behavior, in plain declarative statements. Add reasons only where, without them, someone would likely make a wrong change
+- `packages/*/docs/api/` is typedoc output (not in git). Do not put hand-written documents there
 
-## 新規パッケージ追加
+## Adding a new package
 
-1. `packages/` に新規ディレクトリを作成
-2. `package.json` を作成（`name` と `exports` を正しく設定）
-3. 既存パッケージから `eslint.config.mjs` と `tsconfig.json` をコピー
-   - JSX使用時: `@repo/eslint-config/react-internal`, `@repo/typescript-config/react-library.json`
-   - JSX不使用時: `@repo/eslint-config/base`, `@repo/typescript-config/base.json`
-4. ルートで `pnpm install` を実行
+1. Create a new directory in `packages/`
+2. Create `package.json` (set `name` and `exports` correctly)
+3. Copy `eslint.config.mjs` and `tsconfig.json` from an existing package
+   - With JSX: `@repo/eslint-config/react-internal`, `@repo/typescript-config/react-library.json`
+   - Without JSX: `@repo/eslint-config/base`, `@repo/typescript-config/base.json`
+4. Run `pnpm install` at the root
 
-詳細は [GUIDE_TO_TURBOREPO.md](GUIDE_TO_TURBOREPO.md) を参照。
+For details, see [GUIDE_TO_TURBOREPO.md](GUIDE_TO_TURBOREPO.md).
 
-## その他の注意事項
+## Other notes
 
-- 日本語のエラーメッセージは `apps/form-demo/src/components/zod-errormap.ja.ts` で定義
-- DB との連携は `@zodapp/zod-dynamodb` 系パッケージを使用
-- 外部キーの選択肢は `@zodapp/zod-form-dynamodb`、ファイルアップロードは `@zodapp/zod-form-s3`（サーバーは `@zodapp/zod-form-s3-node`）を使用
-- Firebase（Firestore）版のパッケージは、タグ `firebase-final` の時点に残っている
-- コードフォーマットは `tabWidth: 2`, `useTabs: false`（Prettier設定）
-- プロジェクトの詳細なコンセプトは [README.ja.md](README.ja.md) を参照
+- Japanese Zod error messages are the `ja` dictionary of `@zodapp/i18n-messages-zod`
+- Use the `@zodapp/zod-dynamodb` packages for working with the DB
+- Use `@zodapp/zod-form-dynamodb` for foreign key options, and `@zodapp/zod-form-s3` for file uploads (`@zodapp/zod-form-s3-node` on the server)
+- The Firebase (Firestore) version of the packages remains at the tag `firebase-final`
+- Code formatting is `tabWidth: 2`, `useTabs: false` (Prettier settings)
+- For the project's detailed concept, see [README.md](README.md)

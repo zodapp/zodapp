@@ -1,15 +1,15 @@
-# @zodapp/* を npm に公開する（changesets）。
+# Publishes @zodapp/* to npm (changesets).
 #
-# いまは手動（workflow_dispatch）でしか動かない。公開を始めるときに、下の on に
+# For now it only runs manually (workflow_dispatch). When publishing starts, add
 #   push:
 #     branches: [main]
-# を足す。手順は docs/releasing.md を参照。
+# to the on below. See docs/releasing.md for the procedure.
 #
-# - 未公開の changeset があれば「Version Packages」の PR を作る（または更新する）
-# - changeset がなく、npm にないバージョンがあれば pnpm release で公開する
+# - If there are unreleased changesets, opens (or updates) the "Version Packages" PR
+# - If there are no changesets and some versions are not on npm, publishes them with pnpm release
 #
-# npm の認証は trusted publishing（OIDC）。NPM_TOKEN は使わない。
-# npm の trusted publisher には、このファイル名（release.yml）で登録する。
+# npm authentication is trusted publishing (OIDC). NPM_TOKEN is not used.
+# Register this file name (release.yml) as the npm trusted publisher.
 name: Release
 
 on:
@@ -23,9 +23,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Version Packages の PR のブランチとタグ
-      pull-requests: write # Version Packages の PR
-      id-token: write # npm の trusted publishing（OIDC）
+      contents: write # branch of the Version Packages PR, and tags
+      pull-requests: write # the Version Packages PR
+      id-token: write # npm trusted publishing (OIDC)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,9 +33,9 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10.9.0
-      # trusted publishing には npm 11.5.1 以上が要る（Node 24 に付いてくる）。
-      # pnpm 10 の pnpm publish は、実際の公開を npm に任せる。
-      # registry-url は付けない（.npmrc のトークン設定が OIDC の邪魔になるため）。
+      # Trusted publishing needs npm 11.5.1 or later (bundled with Node 24).
+      # pnpm publish of pnpm 10 delegates the actual publishing to npm.
+      # registry-url is not set (the token setting in .npmrc would get in the way of OIDC).
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -44,7 +44,7 @@ jobs:
       - name: Check npm version
         run: |
           npm --version
-          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); if (a<11||(a===11&&(b<5||(b===5&&c<1)))) { console.error("npm 11.5.1 以上が要る"); process.exit(1) }' "$(npm --version)"
+          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); if (a<11||(a===11&&(b<5||(b===5&&c<1)))) { console.error("npm 11.5.1 or later is required"); process.exit(1) }' "$(npm --version)"
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Version or publish

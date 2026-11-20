@@ -9,7 +9,7 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    # zod-dynamodb-* のテストが使う DynamoDB Local
+    # DynamoDB Local, used by the zod-dynamodb-* tests
     services:
       dynamodb:
         image: amazon/dynamodb-local:3.3.2
@@ -39,6 +39,6 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
-      # npm に入る中身（pnpm pack の tarball）を確かめる。tools/check-pack.mjs を参照
+      # Checks what goes into npm (the pnpm pack tarball). See tools/check-pack.mjs
       - name: Check packed packages
         run: pnpm check:pack
