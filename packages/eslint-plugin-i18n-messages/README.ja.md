@@ -1,5 +1,7 @@
 # @zodapp/eslint-plugin-i18n-messages
 
+[English](README.md)
+
 `@zodapp/i18n-messages` の辞書のキーの直後に、基準の言語（既定は日本語）の文言をコメントで書かせる ESLint のプラグインです。コードを読むときに辞書を開かずに済み、コメントはビルドで消えるのでバンドルの大きさにも影響しません。
 
 ```ts

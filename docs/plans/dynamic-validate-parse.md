@@ -129,7 +129,7 @@ const dynamic = extendCustom(dynamicBase, "dynamic", …);
 
 - `schemaRegistry.ts` の `validate`・`parse` のコメントを書き直す（「検証は parse 前の値で行う」をやめる）
 - `docs/plans/unsupported-schemas.md` §2.2 の「検証（エラーの表示）は今のまま、parse 前の値で行う」に、このプランで変えたことを 1 行足す
-- CHANGELOG（日・英）の未リリースに書く
+- 変更の記録：ルートの CHANGELOG はやめ、各パッケージの CHANGELOG.md を changesets で作る。最初の公開（0.1.0）までは changeset を足さないので、下の内容は書かない（公開のあとなら、英語の changeset にする）
   - zod-form-react：**振る舞いの変更**：dynamic のある フォームの検証も、送信と同じく dynamic の output を差し込んでから行う。親の `.refine()` は変換後の値を受け取り、`path` で dynamic の欄を指す refine のエラーも出る。dynamic が不正・読み込み中・取得失敗のときは、親の refine を走らせない。同じ path で入れ子になった dynamic の外側の検査も効く。`FormRuntime.evaluate` を足した
   - zod-form：`zf.dynamic()` の土台に、評価の目印だけを弾く検査を足した（型は `unknown` のまま）
 - zod-form-react の README に dynamic の検証の説明があれば、合わせて直す

@@ -2,8 +2,8 @@
   "region": "us-east-1",
   "kind": "persistent",
   "assets": {
-    "bucketNamePrefix": "burmaculex-assets",
-    "repositoryName": "burmaculex/assets",
-    "publishingRoleName": "burmaculex-asset-publishing"
+    "bucketNamePrefix": "zodapp-assets",
+    "repositoryName": "zodapp/assets",
+    "publishingRoleName": "zodapp-asset-publishing"
   }
 }

@@ -54,7 +54,7 @@ const sts = new STSClient({ region: config.region });
 const { Credentials } = await sts.send(
   new AssumeRoleCommand({
     RoleArn: config.assetPublishingRoleArn,
-    RoleSessionName: `burmaculex-destroy-${envName}`,
+    RoleSessionName: `zodapp-destroy-${envName}`,
   }),
 );
 const credentials = {

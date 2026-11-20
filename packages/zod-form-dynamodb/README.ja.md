@@ -1,5 +1,7 @@
 # @zodapp/zod-form-dynamodb
 
+[English](README.md)
+
 zod-form の外部キーの項目（`zf.externalKey`）の選択肢を、`@zodapp/zod-dynamodb` の登録簿の名前付きクエリから読む Resolver です。ブラウザで動きます。
 
 ## 設定（共有の定義）

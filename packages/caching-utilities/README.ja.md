@@ -1,6 +1,6 @@
 # @zodapp/caching-utilities
 
-> この README は日本語版です。英語版は日本語レビュー・整合性チェック後に翻訳予定です。
+[English](README.md)
 
 ## 概要
 

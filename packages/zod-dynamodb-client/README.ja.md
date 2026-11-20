@@ -1,5 +1,7 @@
 # @zodapp/zod-dynamodb-client
 
+[English](README.md)
+
 `@zodapp/zod-dynamodb` の登録簿（`defineEndpoints`）から、ブラウザの API を作ります（仕様は [ブラウザの API](docs/client-api.ja.md) と [リアルタイムの同期](docs/live-sync.ja.md)）。関数の形はサーバーの API（`createServerApi`）と同じです。ブラウザでも Node.js でも動きます。
 
 ```ts
