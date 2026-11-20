@@ -13,15 +13,15 @@ PR #33 で form-demo のヘッダーに言語の切り替え（日本語 / Engli
 
 ### 2.1 何を辞書のキーで書くか
 
-| 対象 | 書き方 |
-| --- | --- |
-| アプリの枠（`top/home`・`form/list`・`form/Layout`・`detail` のタブ・`demos.tsx`・`CommonLayout` の aria-label・`E2eHarness`・`TryBehavior`・`fetchControl`・各デモの「外から書き込む」ボタンなど） | アプリの辞書（`src/messages`）のキーを `useMsg` で引く |
-| 各デモの `title`・`description` | アプリの辞書のキー。`detail`・`list`・サイドバーで `msg` を通して出す |
-| フォームの中身：meta の `label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`・`placeholder` | `msgKey(...)` |
-| フォームの中身：スキーマに書いたエラーの文言（`.min(3, "…")`・refine の message・`zf.literal(true, "…")`） | `msgKey(...)`。zod の既定のエラーで足りるものは、文言を書かずに既定に任せてよい |
-| フォームの中身：computed・formatter が返す文字列（説明文・badge・icon・link の label） | `msgKey(...)` を返す（§3.1 で訳されるようにする） |
-| データ：初期値・suggestions・resolver の選択肢（人・住所など） | 辞書にしない。英語の値に書き換える（§2.3） |
-| コード中のコメント | 訳さない（日本語のまま） |
+| 対象                                                                                                                                                                                                | 書き方                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| アプリの枠（`top/home`・`form/list`・`form/Layout`・`detail` のタブ・`demos.tsx`・`CommonLayout` の aria-label・`E2eHarness`・`TryBehavior`・`fetchControl`・各デモの「外から書き込む」ボタンなど） | アプリの辞書（`src/messages`）のキーを `useMsg` で引く                          |
+| 各デモの `title`・`description`                                                                                                                                                                     | アプリの辞書のキー。`detail`・`list`・サイドバーで `msg` を通して出す           |
+| フォームの中身：meta の `label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`・`placeholder`                                                                       | `msgKey(...)`                                                                   |
+| フォームの中身：スキーマに書いたエラーの文言（`.min(3, "…")`・refine の message・`zf.literal(true, "…")`）                                                                                          | `msgKey(...)`。zod の既定のエラーで足りるものは、文言を書かずに既定に任せてよい |
+| フォームの中身：computed・formatter が返す文字列（説明文・badge・icon・link の label）                                                                                                              | `msgKey(...)` を返す（§3.1 で訳されるようにする）                               |
+| データ：初期値・suggestions・resolver の選択肢（人・住所など）                                                                                                                                      | 辞書にしない。英語の値に書き換える（§2.3）                                      |
+| コード中のコメント                                                                                                                                                                                  | 訳さない（日本語のまま）                                                        |
 
 - `msgKey` のキーの直後のコメント（`/* i18n: … */`）は、ESLint（`@zodapp/i18n-messages/comment`）の自動修正で入れる。手で書かない。
 - コードのタブには `msgKey(...)` とコメントがそのまま出る。それでよい（i18n の書き方の例にもなる）。
@@ -45,10 +45,10 @@ PR #33 で form-demo のヘッダーに言語の切り替え（日本語 / Engli
 - 住所のカスケードは、言語で中身を切り替えない。米国の住所を主にし、日本の住所を別のサンプルとして残す。どちらも言語に関わらず出す。
   - topic はデータの種別ごとにフラットにし、国を接尾辞で付ける。
 
-    | 国 | 1 段目 | 2 段目 | 3 段目 |
-    | --- | --- | --- | --- |
-    | 米国 | `states_us` | `cities_us/<州>` | `neighborhoods_us/<市>` |
-    | 日本 | `prefectures_jp` | `cities_jp/<都道府県>` | `towns_jp/<市区町村>` |
+    | 国   | 1 段目           | 2 段目                 | 3 段目                  |
+    | ---- | ---------------- | ---------------------- | ----------------------- |
+    | 米国 | `states_us`      | `cities_us/<州>`       | `neighborhoods_us/<市>` |
+    | 日本 | `prefectures_jp` | `cities_jp/<都道府県>` | `towns_jp/<市区町村>`   |
 
   - 親が空のときの topic（今の `cities/`・`towns/`）も、それぞれの名前で持つ（`cities_us/`・`cities_jp/` など）。
   - カスケードを使う `selectAndExternalKey`・`dynamicAdvanced` に、米国の住所の欄と日本の住所の欄を並べる。
