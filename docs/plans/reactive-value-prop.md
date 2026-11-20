@@ -8,7 +8,7 @@
 - form を使わない部品（mantine-lite の reactiveComponents・tableComponents）：表示する値そのもの
 
 `docs/plans/same-path-experiment.md` の案F の第2段（`value`・`parent` を props で渡す）のうち、この名前の食い違いを直す部分だけを行う。
-`parent` を props で渡すことと、form を使う部品も `value` で読むことは、今は理由が無いので行わない（§6）。
+`parent` を props で渡すことと、form を使う部品も `value` で読むことは、今は理由が無いので行わない（§7）。
 npm に公開する前に直す。公開したあとでは破壊的変更になるため。互換のための別名は残さない。
 
 ## 2. 決まり
@@ -32,7 +32,8 @@ npm に公開する前に直す。公開したあとでは破壊的変更にな�
 
 ### 3.2 値を渡す側
 
-- `ReactiveAutoForm`（zod-form-widget）：根の Switch に `value={values}` を渡す（今は `defaultValue`）
+- `ReactiveAutoForm`（zod-form-widget）：props の `defaultValues` を `values` に変える（中身は表示する値で、外から変わると追従するため。部品の `defaultValue` と同じ食い違い）。
+  根の Switch に `value={values}` を渡す（今は `defaultValue`）。apps（form-demo・survey・taskmanager）の呼び出しも直す
 - `AutoTable`（zod-form-widget）：セルに `value` を渡す（今は `defaultValue`）
 - `array_table`（zod-form-mantine）：readOnly のとき、セルは tableComponents で描くので、セルの表示値を `value` で渡す。
   readOnly でないとき（form の部品で描く）は渡さない
@@ -63,17 +64,19 @@ npm に公開する前に直す。公開したあとでは破壊的変更にな�
 
 ## 5. 決めること
 
-1. **form を使わない部品で、`.default("x")` の欄の値が undefined のときに何を出すか。**
-   今は包みの部品が `defaultValue` を x で埋めるので、x が表示される。`value` はそのまま渡す決まりにすると、空で表示される。
-   - 案（おすすめ）：空で表示する。form を使わない部品は保存されている値をそのまま見せるもので、値が無いことを隠さない。
-     確定するときに書く値も、表示と同じになる
-   - 別案：今どおり x を表示する。`value` にも default の x を入れる
-2. **`ReactiveAutoForm` の `defaultValues` の props の名前。**
-   中身は「表示する値」で、外から変わると追従する（DB の購読など）。部品の `defaultValue` と同じ食い違いがある。
-   - 案（おすすめ）：`values` に変える。公開前なので、ここで合わせる
-   - 別案：今の名前のまま残す
+- **form を使わない部品で、`.default("x")` の欄の値が undefined のときに何を出すか。**
+  今は包みの部品が `defaultValue` を x で埋めるので、x が表示される。`value` はそのまま渡す決まりにすると、空で表示される。
+  - 案（おすすめ）：空で表示する。form を使わない部品は保存されている値をそのまま見せるもので、値が無いことを隠さない。
+    確定するときに書く値も、表示と同じになる
+  - 別案：今どおり x を表示する。`value` にも default の x を入れる
+  - 別のスレッドの `dynamic-validate-parse.md`（FormRuntime の validate と parse を 1 つの評価にそろえる）では直らない。
+    あちらは form の検証と送信する値の話で、ReactiveAutoForm は FormRuntime を使わず、表示の値にも触らない
 
-## 6. 行わないこと
+## 6. 決めたこと
+
+- `ReactiveAutoForm` の `defaultValues` は `values` に変える
+
+## 7. 行わないこと
 
 - `parent` を props で渡すこと。フォームの中は `useFnInput` が store から読み、表は `TableRowProvider` が行を渡していて、困っていない。
   入れ子のフォーム（実験 2）が入るときに、改めて考える
