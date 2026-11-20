@@ -15,11 +15,11 @@ PR #38 で全パッケージの README を英語（`README.md`）と日本語（
 
 ## 2. 方針
 
-| 種類 | 扱い |
-| --- | --- |
+| 種類                                            | 扱い                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------- |
 | 利用者向け（仕様・アプリの README・利用ガイド） | 英語の `<名前>.md` を作り、日本語の `<名前>.ja.md` を残す（日英 2 本） |
-| 開発者・エージェント向け | 英語 1 本に置き換える（2 本あると片方だけ直されてずれるため） |
-| `docs/plans/`・`docs/archive/` | 日本語のまま（plans は日本語で管理する） |
+| 開発者・エージェント向け                        | 英語 1 本に置き換える（2 本あると片方だけ直されてずれるため）          |
+| `docs/plans/`・`docs/archive/`                  | 日本語のまま（plans は日本語で管理する）                               |
 
 - 英語を正とする。今後、利用者向けの文書を直すときは英語と日本語の両方を直す
 - 訳は PR #38 の英語 README に文体と用語をそろえる（短い文、現在形、「〜である／〜する」の仕様の書き方はそのまま）
@@ -31,23 +31,23 @@ PR #38 で全パッケージの README を英語（`README.md`）と日本語（
 
 `packages/*/docs/*.ja.md` の 22 本（約 210KB）。英語版は同じディレクトリに `.ja` を外した名前で作る。
 
-| パッケージ | 文書 |
-| --- | --- |
-| `i18n-messages` | `library-messages` |
-| `zod-dynamodb` | `physical-layout`、`protocol`、`realtime`、`shared-definitions`、`table-definition` |
-| `zod-dynamodb-client` | `client-api`、`live-sync` |
-| `zod-dynamodb-node` | `queries`、`repository`、`server-api`、`vector-search`、`writes` |
-| `zod-dynamodb-realtime` | `gateway` |
-| `zod-form` | `default-value` |
-| `zod-form-mantine` | `badge`、`intersection`、`object`、`schema-types`、`union` |
-| `zod-form-react` | `container-touch`、`dynamic`、`errors` |
+| パッケージ              | 文書                                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `i18n-messages`         | `library-messages`                                                                  |
+| `zod-dynamodb`          | `physical-layout`、`protocol`、`realtime`、`shared-definitions`、`table-definition` |
+| `zod-dynamodb-client`   | `client-api`、`live-sync`                                                           |
+| `zod-dynamodb-node`     | `queries`、`repository`、`server-api`、`vector-search`、`writes`                    |
+| `zod-dynamodb-realtime` | `gateway`                                                                           |
+| `zod-form`              | `default-value`                                                                     |
+| `zod-form-mantine`      | `badge`、`intersection`、`object`、`schema-types`、`union`                          |
+| `zod-form-react`        | `container-touch`、`dynamic`、`errors`                                              |
 
 ほかに次の 3 本。
 
-| 今のファイル | 変更後 |
-| --- | --- |
-| `apps/taskmanager/README.md`（日本語） | `README.ja.md` に移し、英語の `README.md` を作る |
-| `apps/survey/README.md`（日本語） | 同上 |
+| 今のファイル                                      | 変更後                                               |
+| ------------------------------------------------- | ---------------------------------------------------- |
+| `apps/taskmanager/README.md`（日本語）            | `README.ja.md` に移し、英語の `README.md` を作る     |
+| `apps/survey/README.md`（日本語）                 | 同上                                                 |
 | `packages/zod-searchparams/tanstack.md`（日本語） | `tanstack.ja.md` に移し、英語の `tanstack.md` を作る |
 
 ### 3.2 英語 1 本に置き換える
@@ -87,13 +87,13 @@ PR #38 で全パッケージの README を英語（`README.md`）と日本語（
 
 ## 5. 書き方の決まりの変更（AGENT.md「文書の置き場所」）
 
-| 書くもの | 変更後の置き場所 |
-| --- | --- |
-| 使い方 | 各パッケージ・アプリの `README.md`（英語）と `README.ja.md`（日本語） |
-| 動きの決まり（仕様） | `packages/<名前>/docs/<テーマ>.md`（英語）と `<テーマ>.ja.md`（日本語）。README から節ごとにリンクする |
-| 実装前のプラン | `docs/plans/`（日本語）。実装したら、仕様を README か `docs/` に移し、プランは意図だけに絞って `docs/archive/` に移す |
-| 経緯（決めたことと理由） | `docs/archive/`（日本語）。コードに合わせて直さない |
-| 公開の手順 | `docs/releasing.md`（英語） |
+| 書くもの                 | 変更後の置き場所                                                                                                      |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 使い方                   | 各パッケージ・アプリの `README.md`（英語）と `README.ja.md`（日本語）                                                 |
+| 動きの決まり（仕様）     | `packages/<名前>/docs/<テーマ>.md`（英語）と `<テーマ>.ja.md`（日本語）。README から節ごとにリンクする                |
+| 実装前のプラン           | `docs/plans/`（日本語）。実装したら、仕様を README か `docs/` に移し、プランは意図だけに絞って `docs/archive/` に移す |
+| 経緯（決めたことと理由） | `docs/archive/`（日本語）。コードに合わせて直さない                                                                   |
+| 公開の手順               | `docs/releasing.md`（英語）                                                                                           |
 
 あわせて次を足す。
 
