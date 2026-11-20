@@ -103,10 +103,8 @@ const TaskDetailPage = () => {
   const handleReactiveBlur = useCallback(() => true, []);
 
   // ---- タスクの別プロジェクトへの移動（トランザクション） ----
-  const [
-    moveModalOpened,
-    { open: openMoveModal, close: closeMoveModal },
-  ] = useDisclosure(false);
+  const [moveModalOpened, { open: openMoveModal, close: closeMoveModal }] =
+    useDisclosure(false);
   const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
 
@@ -209,29 +207,29 @@ const TaskDetailPage = () => {
         <Group>
           {codeViewerTrigger}
           {canEdit && (
-          <Menu position="bottom-end" shadow="md">
-            <Menu.Target>
-              <ActionIcon variant="subtle" size="lg">
-                <IconDotsVertical size={20} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<IconArchive size={16} />}
-                onClick={openArchive}
-              >
-                アーカイブ
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<IconArrowsExchange size={16} />}
-                onClick={openMoveModal}
-              >
-                別プロジェクトへ移動
-              </Menu.Item>
-              <Menu.Divider />
-              <DeleteMenuItem label="タスクを削除" onClick={openDelete} />
-            </Menu.Dropdown>
-          </Menu>
+            <Menu position="bottom-end" shadow="md">
+              <Menu.Target>
+                <ActionIcon variant="subtle" size="lg">
+                  <IconDotsVertical size={20} />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  leftSection={<IconArchive size={16} />}
+                  onClick={openArchive}
+                >
+                  アーカイブ
+                </Menu.Item>
+                <Menu.Item
+                  leftSection={<IconArrowsExchange size={16} />}
+                  onClick={openMoveModal}
+                >
+                  別プロジェクトへ移動
+                </Menu.Item>
+                <Menu.Divider />
+                <DeleteMenuItem label="タスクを削除" onClick={openDelete} />
+              </Menu.Dropdown>
+            </Menu>
           )}
         </Group>
       </Group>
@@ -266,7 +264,7 @@ const TaskDetailPage = () => {
               <ReactiveAutoForm
                 readOnly={!canEdit}
                 schema={reactiveSchema}
-                defaultValues={task}
+                values={task}
                 onConfirm={handleReactiveConfirm}
                 onBlur={handleReactiveBlur}
                 externalKeyResolvers={externalKeyResolvers}

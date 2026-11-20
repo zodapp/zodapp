@@ -21,16 +21,16 @@ type DateSchema = SupportedDateSchema;
  * フォームの欄と同じ converter で読み、ピッカーと同じ unit の形
  * （例：秒までなら YYYY-MM-DD HH:mm:ss、日付だけなら YYYY-MM-DD）で出す
  */
-const DateComponent = ({ schema, defaultValue }: ZodFormProps<DateSchema>) => {
+const DateComponent = ({ schema, value }: ZodFormProps<DateSchema>) => {
   const { timezone } = useZodFormContext();
   const meta = getMeta(schema, "date");
   const unit = meta?.unit as DateUnit | undefined;
   const encoding = meta?.encoding as DateEncoding | undefined;
 
   const text = useMemo(() => {
-    if (defaultValue === undefined || defaultValue === null) return null;
+    if (value === undefined || value === null) return null;
     // 不正な Date は空として出す
-    if (defaultValue instanceof Date && Number.isNaN(defaultValue.getTime())) {
+    if (value instanceof Date && Number.isNaN(value.getTime())) {
       return null;
     }
     try {
@@ -39,12 +39,12 @@ const DateComponent = ({ schema, defaultValue }: ZodFormProps<DateSchema>) => {
         unit,
         encoding,
         timezone,
-      } as CreateDateConverterParams).toPickerValue(defaultValue);
+      } as CreateDateConverterParams).toPickerValue(value);
     } catch {
       // 日付として扱えないスキーマは、空として出す
       return null;
     }
-  }, [schema, unit, encoding, timezone, defaultValue]);
+  }, [schema, unit, encoding, timezone, value]);
 
   return (
     <Text size="sm" c={text ? undefined : "dimmed"}>

@@ -11,7 +11,11 @@ import React, {
   useState,
 } from "react";
 import { Table, Loader } from "@mantine/core";
-import { useVirtualizer, type VirtualItem, type Virtualizer } from "@tanstack/react-virtual";
+import {
+  useVirtualizer,
+  type VirtualItem,
+  type Virtualizer,
+} from "@tanstack/react-virtual";
 import {
   IconChevronDown,
   IconChevronUp,
@@ -35,7 +39,10 @@ import type {
   SetPreviewColumns,
 } from "./column-settings-controller";
 import { type ColumnEntry, getUnwrappedMeta } from "./table-types";
-import { extractSchemaColumns, type SchemaColumnDef } from "./extract-schema-columns";
+import {
+  extractSchemaColumns,
+  type SchemaColumnDef,
+} from "./extract-schema-columns";
 import { getDefaultOrderEntries } from "./default-column-order";
 import styles from "./AutoTable.module.css";
 import { useLocale } from "@zodapp/i18n-messages-react";
@@ -94,8 +101,6 @@ type AutoTableKeyField<TSchema extends z.ZodTypeAny> = Extract<
   string
 >;
 
-
-
 type AutoTableBaseProps<TSchema extends z.ZodTypeAny> = {
   data: AutoTableItem<TSchema>[];
   keyField: AutoTableKeyField<TSchema>;
@@ -147,11 +152,7 @@ export type AutoTableProps<TSchema extends z.ZodTypeAny> =
   | AutoTablePropsWithSchema<TSchema>
   | AutoTablePropsWithController<TSchema>;
 
-
-const getNestedValue = (
-  obj: TableRowData,
-  path: string,
-): unknown => {
+const getNestedValue = (obj: TableRowData, path: string): unknown => {
   if (!path.includes(".")) return obj[path];
   return path.split(".").reduce<unknown>((cur, key) => {
     if (cur == null || typeof cur !== "object") return undefined;
@@ -934,7 +935,7 @@ function BodyCellInner({
               <Switch
                 fieldPath={field.propertyName}
                 schema={field.schema}
-                defaultValue={getNestedValue(item, field.propertyName)}
+                value={getNestedValue(item, field.propertyName)}
               />
             </TableRowProvider>
           </Suspense>
@@ -994,7 +995,9 @@ const OVERSCAN_ROWS = 5;
 const measureRowHeight = (
   element: HTMLTableRowElement,
   entry: ResizeObserverEntry | undefined,
-) => entry?.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height;
+) =>
+  entry?.borderBoxSize?.[0]?.blockSize ??
+  element.getBoundingClientRect().height;
 
 type AutoTableVirtualizer = Virtualizer<HTMLElement, HTMLTableRowElement>;
 
@@ -1011,7 +1014,8 @@ const shouldAdjustScrollOnRowResize = (
   const element = instance.scrollElement;
   if (
     element &&
-    element.scrollHeight - element.clientHeight - element.scrollTop <= SCROLL_EDGE_THRESHOLD
+    element.scrollHeight - element.clientHeight - element.scrollTop <=
+      SCROLL_EDGE_THRESHOLD
   ) {
     return false;
   }
@@ -1051,7 +1055,13 @@ const TRAILING_ROW_KEY = "__autoTableTrailingRow";
 // 全列をまたぐ1つのセル。横にスクロールする表でも、中身はスクロール領域の見えている幅の中央に留める。
 // sticky の left の % はスクロール領域の見えている幅に対する割合なので、
 // 左端を見えている幅の中央に留め、自分の幅の半分だけ戻すと、いつも中央に来る
-function TrailingRowCell({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
+function TrailingRowCell({
+  colSpan,
+  children,
+}: {
+  colSpan: number;
+  children: React.ReactNode;
+}) {
   return (
     <td colSpan={colSpan} className={styles.trailingRowCell}>
       <div className={styles.trailingRowContent}>{children}</div>
@@ -1262,7 +1272,9 @@ function TableView<TItem extends TableRowData>({
             data-index={trailingIndex}
             role="presentation"
           >
-            <TrailingRowCell colSpan={fields.length}>{trailingRow}</TrailingRowCell>
+            <TrailingRowCell colSpan={fields.length}>
+              {trailingRow}
+            </TrailingRowCell>
           </tr>
         ) : null}
         <SpacerRow height={paddingBottom} colSpan={fields.length} />
@@ -1274,7 +1286,7 @@ function TableView<TItem extends TableRowData>({
 const noopSetPreviewColumns: SetPreviewColumns = () => {};
 const noopSetFocusedColumnId = (_columnId: string | undefined) => {};
 
-const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
+const AutoTableInner = <TSchema extends z.ZodTypeAny>(
   {
     schema: schemaProp,
     data,
@@ -1302,12 +1314,15 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
   ref: React.ForwardedRef<AutoTableHandle>,
 ) => {
   const schema = controller?.schema ?? schemaProp;
-  if (!schema) throw new Error("AutoTable: either controller or schema prop is required");
+  if (!schema)
+    throw new Error("AutoTable: either controller or schema prop is required");
   const defaultFieldPaths = controller?.defaultFieldPaths;
   const isPreviewing = controller?.isPreviewing ?? false;
-  const setPreviewColumns = controller?.setPreviewColumns ?? noopSetPreviewColumns;
+  const setPreviewColumns =
+    controller?.setPreviewColumns ?? noopSetPreviewColumns;
   const focusedColumnId = controller?.focusedColumnId;
-  const setFocusedColumnId = controller?.setFocusedColumnId ?? noopSetFocusedColumnId;
+  const setFocusedColumnId =
+    controller?.setFocusedColumnId ?? noopSetFocusedColumnId;
   const hasDirtyPreview = controller?.hasDirtyPreview ?? false;
   const storageColumns = hasDirtyPreview
     ? (controller?.previewColumns ?? null)
@@ -1392,7 +1407,9 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
         tbody.getBoundingClientRect().top -
         scrollParent.getBoundingClientRect().top +
         scrollParent.scrollTop;
-      setScrollMargin((current) => (Math.abs(current - next) < 0.5 ? current : next));
+      setScrollMargin((current) =>
+        Math.abs(current - next) < 0.5 ? current : next,
+      );
     };
     update();
     // 見出しの高さが変わる（列の幅が変わって折り返すなど）と、行の始まりも動く
@@ -1421,7 +1438,8 @@ const AutoTableInner = <TSchema extends z.ZodTypeAny,>(
     enabled: useVirtualized,
   });
 
-  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = shouldAdjustScrollOnRowResize;
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange =
+    shouldAdjustScrollOnRowResize;
 
   const getScrollElement = useCallback(
     () => scrollParent ?? tableRef.current?.parentElement ?? null,
@@ -1552,6 +1570,10 @@ type AutoTableComponent = <TSchema extends z.ZodTypeAny>(
   props: AutoTableProps<TSchema> & React.RefAttributes<AutoTableHandle>,
 ) => React.ReactElement | null;
 
-const ForwardedAutoTable = forwardRef(AutoTableInner) as unknown as AutoTableComponent;
+const ForwardedAutoTable = forwardRef(
+  AutoTableInner,
+) as unknown as AutoTableComponent;
 
-export const AutoTable = memo(ForwardedAutoTable) as unknown as AutoTableComponent;
+export const AutoTable = memo(
+  ForwardedAutoTable,
+) as unknown as AutoTableComponent;

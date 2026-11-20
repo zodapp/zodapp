@@ -8,10 +8,10 @@ type NumberSchema = z.ZodNumber;
 
 const NumberComponent = ({
   schema,
-  defaultValue,
+  value: valueProp,
 }: ZodFormProps<NumberSchema>) => {
   const { formatter } = getMeta(schema, "number") ?? {};
-  const value = typeof defaultValue === "number" ? defaultValue : null;
+  const value = typeof valueProp === "number" ? valueProp : null;
 
   if (value !== null && formatter) {
     return <>{renderComputedValue(formatter(value), "table")}</>;

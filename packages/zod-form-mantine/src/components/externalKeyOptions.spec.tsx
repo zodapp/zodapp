@@ -251,7 +251,7 @@ describe("useExternalKeyOptions を使う部品の失敗の表示", () => {
         <ReactiveExternalKeyComponent
           fieldPath="member"
           schema={member}
-          defaultValue="u1"
+          value="u1"
         />
       </Providers>,
     );
@@ -267,7 +267,7 @@ describe("useExternalKeyOptions を使う部品の失敗の表示", () => {
         <TableExternalKeyComponent
           fieldPath="member"
           schema={member}
-          defaultValue="u1"
+          value="u1"
         />
       </Providers>,
     );

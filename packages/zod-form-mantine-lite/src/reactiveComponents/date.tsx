@@ -38,7 +38,7 @@ const unitToValueFormat: Record<DateUnit, string> = {
 const DateComponent = React.memo(function DateComponent({
   schema,
   fieldPath,
-  defaultValue,
+  value: valueProp,
   label: labelFromParent,
   outer,
   readOnly: readOnlyProp,
@@ -66,8 +66,8 @@ const DateComponent = React.memo(function DateComponent({
   const valueFormat = unitToValueFormat[unit];
 
   const pickerDefault = useMemo(() => {
-    return converter.toPickerValue(defaultValue);
-  }, [converter, defaultValue]);
+    return converter.toPickerValue(valueProp);
+  }, [converter, valueProp]);
 
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(pickerDefault, fieldPath, {
@@ -75,7 +75,7 @@ const DateComponent = React.memo(function DateComponent({
       // ピッカーの文字列を、保存の形式（Date・数値・文字列）に直して渡す。
       // 元の値から変えていなければ、元の値をそのまま渡す（ピッカーの粒度で丸めない）
       toValue: (raw) =>
-        raw === pickerDefault ? defaultValue : converter.fromPickerValue(raw),
+        raw === pickerDefault ? valueProp : converter.fromPickerValue(raw),
     });
 
   if (readOnly) {

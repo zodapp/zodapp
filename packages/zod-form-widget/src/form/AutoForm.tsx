@@ -20,11 +20,8 @@ import {
   componentLibrary as defaultComponentLibrary,
   UnsupportedSchemaNotice,
 } from "@zodapp/zod-form-mantine";
-import {
-  getDefaultValue,
-  type ExternalKeyResolvers,
-  type FileResolvers,
-} from "@zodapp/zod-form";
+import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
+import { fillDefaultValues } from "./fillDefaultValues";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   MediaResolvers,
@@ -71,22 +68,6 @@ type AutoFormProps<T extends z.ZodTypeAny> = {
   readOnly?: boolean;
 };
 
-/**
- * defaultValues を schema の既定値で補う。補えなければ（optional の付かない z.lazy の無限の再帰など）、
- * 補わずに渡された値を使う
- */
-const fillDefaultValues = (schema: z.ZodTypeAny, defaultValues: unknown) => {
-  try {
-    return getDefaultValue(schema, defaultValues) ?? defaultValues ?? {};
-  } catch (error) {
-    console.error(
-      "[AutoForm] Could not fill the default values from the schema:",
-      error,
-    );
-    return defaultValues ?? {};
-  }
-};
-
 const AutoFormInner = <T extends z.ZodTypeAny>({
   schema,
   defaultValues,
@@ -118,7 +99,7 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
   // 開くときに、値が無いところを schema の既定値で補う（`.default()`・空の配列・値が 1 つの literal など）。
   // 補った値は既定値に入るので、開いただけでは「変更あり」にならない
   const initialValues = useMemo(
-    () => fillDefaultValues(schema, defaultValues) as z.input<T>,
+    () => fillDefaultValues(schema, defaultValues, "AutoForm") as z.input<T>,
     [schema, defaultValues],
   );
   const defaultSubmitHandlerRef = useRef(onSubmit);

@@ -36,7 +36,7 @@ const render = (
         <ExternalKeyComponent
           fieldPath="owner"
           schema={makeSchema(allowUnlisted) as never}
-          defaultValue={value as never}
+          value={value}
           readOnly={readOnly}
         />
       </I18nMessagesProvider>

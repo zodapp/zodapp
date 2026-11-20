@@ -12,7 +12,7 @@ import { useMemo } from "react";
 // 表では数値も HH:mm / HH:mm:ss の形で表示する
 const TimeComponent = ({
   schema,
-  defaultValue,
+  value,
 }: ZodFormProps<SupportedTimeSchema>) => {
   const meta = getMeta(schema) as
     | { unit?: TimeUnit; encoding?: TimeEncoding }
@@ -23,8 +23,8 @@ const TimeComponent = ({
       unit: meta?.unit,
       encoding: meta?.encoding,
     });
-    return converter.toPickerValue(defaultValue);
-  }, [schema, meta?.unit, meta?.encoding, defaultValue]);
+    return converter.toPickerValue(value);
+  }, [schema, meta?.unit, meta?.encoding, value]);
 
   return (
     <Text size="sm" c={text ? undefined : "dimmed"}>

@@ -16,19 +16,19 @@ type ComputedMeta = ComputedMetaDef<unknown>;
 
 /**
  * compute 関数に { value, parent, context } を渡してレンダリングする。
- * value は defaultValue（フィールド自身の値）、parent は TableRowProvider の値から取り出す。
+ * value は props の value（フィールド自身の値）、parent は TableRowProvider の値から取り出す。
  * tanstack 非依存。
  */
 const ComputedComponent = React.memo(function ComputedComponent({
   schema,
-  defaultValue,
+  value,
   fieldPath,
   label: labelFromParent,
 }: ZodFormProps<ComputedSchema>) {
   const meta = getMetaReact(schema, "computed") as ComputedMeta | undefined;
   const resolveText = useResolveText();
   const label = labelFromParent ?? resolveText(meta?.label);
-  const input = useTableFnInput(meta, fieldPath, defaultValue);
+  const input = useTableFnInput(meta, fieldPath, value);
 
   const content = useMemo(
     () =>

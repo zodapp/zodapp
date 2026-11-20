@@ -13,17 +13,17 @@ type ComputedRuntimeMeta = ComputedMetaDef<unknown>;
 
 /**
  * テーブル表示用 computed コンポーネント。
- * value はセルの値（defaultValue）、parent は行の値（TableRowProvider）から取り出す。
+ * value はセルの値（props の value）、parent は行の値（TableRowProvider）から取り出す。
  */
 const ComputedComponent = ({
   schema,
-  defaultValue,
+  value,
   fieldPath,
 }: ZodFormProps<ComputedSchema>) => {
   const meta = getMetaReact(schema, "computed") as
     | ComputedRuntimeMeta
     | undefined;
-  const input = useTableFnInput(meta, fieldPath, defaultValue);
+  const input = useTableFnInput(meta, fieldPath, value);
 
   const content = meta
     ? (meta.compute as (input: FnInput) => unknown)(input)

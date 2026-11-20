@@ -10,7 +10,7 @@ import {
 } from "@zodapp/zod-form";
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
-import { useFormApi } from "./form";
+import { useOptionalFormApi } from "./form";
 import { addOuter } from "./outer";
 
 const memoizeGetLazyComponentMap = new WeakMap<
@@ -62,7 +62,10 @@ export const Switch: ZodForm = (props: ZodFormProps) => {
  */
 const PreprocessSwitch = (props: ZodFormProps) => {
   const { schema, fieldPath, defaultValue } = props;
-  const form = useFormApi();
+  // form を使わない部品（reactive・表）では form が無い。そのときは何もそろえず、value をそのまま渡す。
+  // value をここでそろえると、ReactiveAutoForm の既定値の補い（getDefaultValue が preprocess を通す）と
+  // 合わせて 2 回かかり、冪等でない preprocess で値が変わる
+  const form = useOptionalFormApi();
   const displaySchema = useMemo(() => stripPreprocess(schema), [schema]);
   const normalizedDefaultValue = useMemo(
     () =>
@@ -73,6 +76,7 @@ const PreprocessSwitch = (props: ZodFormProps) => {
   );
 
   useEffect(() => {
+    if (!form) return;
     const isRoot = fieldPath === "";
     const read = () =>
       isRoot ? form.state.values : form.getFieldValue(fieldPath);

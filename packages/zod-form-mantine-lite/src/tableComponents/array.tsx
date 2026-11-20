@@ -6,11 +6,8 @@ import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type ArraySchema = z.ZodArray<z.ZodTypeAny>;
 
-const ArrayComponent = ({
-  schema,
-  defaultValue,
-}: ZodFormProps<ArraySchema>) => {
-  const items = Array.isArray(defaultValue) ? defaultValue : [];
+const ArrayComponent = ({ schema, value }: ZodFormProps<ArraySchema>) => {
+  const items = Array.isArray(value) ? value : [];
   const resolveText = useResolveText();
   const elementSchema = schema.element;
 
