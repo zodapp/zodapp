@@ -191,29 +191,28 @@ const moveInvalidKeyIssue = (issue: Issue): Issue => {
 };
 
 /**
- * issue の中の、目印を弾いた issue を除く。`invalid_union` の腕ごとの issue（`errors`）や、
- * record・map の中の issue（`issues`）の中も、たどって除く。
+ * issue から、目印を弾いた issue を除き、評価のために付けた `input` を外す。
+ * `invalid_union` の腕ごとの issue（`errors`）や、record・map の中の issue（`issues`）の中もたどる。
  * union の腕の中の dynamic が通らないと、zod はその腕を諦めて別の腕を試すので、目印の issue が
  * `invalid_union` の腕の issue に入る。残すと、union の部品が腕の欄のエラーとして出してしまう
  */
-const stripUnresolved = <T>(issue: T): T => {
+const cleanIssue = <T>(issue: T): T => {
   if (typeof issue !== "object" || issue === null) return issue;
-  const raw = issue as { errors?: unknown; issues?: unknown };
-  const strip = (list: unknown[]) =>
+  const { input: _input, ...rest } = issue as Record<string, unknown>;
+  const clean = (list: unknown[]) =>
     list
       .filter((child) => !isDynamicUnresolvedIssue(child))
-      .map((child) => stripUnresolved(child));
-  let next = issue;
-  if (Array.isArray(raw.errors)) {
-    next = {
-      ...next,
-      errors: raw.errors.map((arm) => (Array.isArray(arm) ? strip(arm) : arm)),
-    };
+      .map((child) => cleanIssue(child));
+  const next: Record<string, unknown> = rest;
+  if (Array.isArray(rest.errors)) {
+    next.errors = rest.errors.map((arm) =>
+      Array.isArray(arm) ? clean(arm) : arm,
+    );
   }
-  if (Array.isArray(raw.issues)) {
-    next = { ...next, issues: strip(raw.issues) };
+  if (Array.isArray(rest.issues)) {
+    next.issues = clean(rest.issues);
   }
-  return next;
+  return next as T;
 };
 
 /**
@@ -461,7 +460,11 @@ export class FormRuntime {
     | { success: true; data: unknown }
     | { success: false; error: { issues: z.core.$ZodIssue[] } } {
     try {
-      return schema.safeParse(value, { error: zodMsgKeyErrorMap }) as any;
+      // reportInput：目印を弾いた issue を、`input` で見分けるため（{@link cleanIssue} で外す）
+      return schema.safeParse(value, {
+        error: zodMsgKeyErrorMap,
+        reportInput: true,
+      }) as any;
     } catch (error) {
       // zod 4 は、object の中の z.promise() で $ZodAsyncError ではなく TypeError を投げることがある
       if (!(error instanceof z.core.$ZodAsyncError) && !containsPromise(schema))
@@ -526,7 +529,7 @@ export class FormRuntime {
           // 一番外の path だけを付け直す。invalid_union の errors（腕ごとの issue。
           // path はその union の値からの相対）は書き換えず、目印の issue だけを除く
           moveInvalidKeyIssue(
-            stripUnresolved({
+            cleanIssue({
               ...issue,
               path: [...prefix, ...normalizeIssuePath(issue.path)],
             } as Issue),

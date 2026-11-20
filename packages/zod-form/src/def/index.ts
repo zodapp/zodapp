@@ -481,12 +481,17 @@ export const DYNAMIC_UNRESOLVED: unique symbol = Symbol(
 /** 目印を弾いた issue の `params` に入る印 */
 const DYNAMIC_UNRESOLVED_PARAM = "dynamicUnresolved";
 
-/** issue が、dynamic の土台が目印を弾いたものか */
+/**
+ * issue が、目印（{@link DYNAMIC_UNRESOLVED}）を弾いたものか。
+ * dynamic の土台が弾いたもの（`params` の印）と、externalKey のように静的な schema が
+ * dynamic の土台でない欄が目印を弾いたもの（`reportInput` で付く `input` が目印）の両方を見る
+ */
 export const isDynamicUnresolvedIssue = (issue: unknown): boolean =>
   typeof issue === "object" &&
   issue !== null &&
-  (issue as { params?: { zodform?: unknown } }).params?.zodform ===
-    DYNAMIC_UNRESOLVED_PARAM;
+  ((issue as { input?: unknown }).input === DYNAMIC_UNRESOLVED ||
+    (issue as { params?: { zodform?: unknown } }).params?.zodform ===
+      DYNAMIC_UNRESOLVED_PARAM);
 
 // dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める。
 // 土台は z.unknown：静的な schema の parse では何でも通し（値の検証は実行時に決めた schema で行う）、

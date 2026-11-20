@@ -294,6 +294,29 @@ describe("FormRuntime.evaluate：検証と送信を同じ評価で行う", () =>
     expect(issues.some((issue) => issue.path.join(".") === "v.x")).toBe(true);
   });
 
+  it("静的な schema が dynamic の土台でない欄の登録（externalKey など）が通らなくても、静的な schema の目印のエラーを出さない", () => {
+    const runtime = new FormRuntime();
+    runtime.set("owner", 0, {
+      status: "resolved",
+      schema: z.enum(["u1"], { error: "pick one" }),
+    });
+    const refine = vi.fn(() => true);
+    const schema = z.object({ owner: z.string() }).refine(refine);
+
+    const { issues } = expectAgreement(runtime, schema, { owner: "gone" });
+    expect(messages(issues)).toEqual([["owner", "pick one"]]);
+    expect(refine).not.toHaveBeenCalled();
+  });
+
+  it("issue に評価のための input を残さない", () => {
+    const runtime = new FormRuntime();
+    const issues = runtime.validate(
+      z.object({ v: z.union([z.string(), z.number()]) }),
+      { v: true },
+    );
+    expect(JSON.stringify(issues)).not.toContain('"input"');
+  });
+
   it("フォームの値は書き換えない", () => {
     const runtime = new FormRuntime();
     runtime.set("a", 0, { status: "resolved", schema: z.string().min(3) });
