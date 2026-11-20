@@ -170,13 +170,14 @@ export const SurveyBuilder = ({
   // バリデーションを走らせ、成功時のみパース済みの値を返す
   const handleSubmit = useCallback(async () => {
     await form.handleSubmit();
-    const parsed = editorSchema.safeParse(form.state.values);
+    // 検証と同じ評価（FormRuntime）で parse する。文言のキーへの変換と dynamic の output も通す
+    const parsed = runtime.parse(editorSchema, form.state.values);
     if (!parsed.success) {
       console.warn("[SurveyBuilder] 入力エラー:", form.getAllErrors());
       return undefined;
     }
     return parsed.data as z.output<EditorSchema>;
-  }, [form, editorSchema]);
+  }, [form, editorSchema, runtime]);
 
   const actionComponents = useMemo(
     () => [
