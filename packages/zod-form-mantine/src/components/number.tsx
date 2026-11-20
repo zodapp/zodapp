@@ -38,8 +38,11 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
 }: ZodFormInternalProps<NumberSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta, formatter } =
-    useResolvedMeta(schema, "number") ?? {};
+  const {
+    label: labelFromMeta,
+    formatter,
+    placeholder,
+  } = useResolvedMeta(schema, "number") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const rawValue = field.value as unknown;
 
@@ -82,6 +85,7 @@ const NumberComponent = wrapComponent(function NumberComponentImplement({
       onBlur={field.onBlur}
       onFocus={onFocus}
       label={label || undefined}
+      placeholder={placeholder}
       error={error?.message}
       required={!(optional || nullable)}
       disabled={readOnly || field.disabled}

@@ -13,7 +13,7 @@ const TITLE = "z.discriminatedUnion";
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page, "discriminatedUnion", TITLE);
-  await expect(field(page, "住所")).toHaveValue("中央区 1-1");
+  await expect(field(page, "住所")).toHaveValue("100 Main St");
   // 上の連絡先の欄（メール）が出そろって、窓口の欄の位置が決まるまで待つ
   await expect(page.getByLabel(/^メール/)).toHaveCount(2);
 });

@@ -62,6 +62,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
+      placeholder={meta?.placeholder}
       required={!(optional || nullable)}
       autosize
       minRows={3}

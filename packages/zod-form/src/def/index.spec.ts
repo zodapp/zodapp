@@ -26,15 +26,18 @@ type StringMeta = CommonMeta & {
   formatter?: (value: string) => ComputedValue;
   suggestions?: StringSuggestion[];
   valueAction?: RegisteredValueActionConfig;
+  placeholder?: string;
 };
 type NumberMeta = CommonMeta & {
   formatter?: (value: number) => ComputedValue;
+  placeholder?: string;
 };
 type ObjectMeta = CommonMeta & { properties?: string[] };
 type EnumMeta = CommonMeta & {
   valueAction?: RegisteredValueActionConfig;
   unlisted?: "keep" | "clear";
   emptyMessage?: string;
+  placeholder?: string;
   schemas?: Record<string, z.ZodLiteral<string>>;
 };
 

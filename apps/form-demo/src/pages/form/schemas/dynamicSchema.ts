@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, asRegistrySchemaResolver } from "@zodapp/zod-form";
 import { IconBolt } from "@tabler/icons-react";
 
 export const formId = "dynamicSchema";
 export const title = "zf.dynamic";
-export const description =
-  "入力内容でスキーマを切り替える（通知方法ごとの設定項目）。決まったスキーマの既定値（.default()）は、値が無いところに補う（開いたときの「本文の形式」、Webhook に切り替えたときの「再試行の回数」）";
+export const description = msgKey(
+  "formDemo.page.dynamicSchema.description" /* i18n: 入力内容でスキーマを切り替える（通知方法ごとの設定項目）。決まったスキーマの既定値（.default()）は、値が無いところに補う（開いたときの「本文の形式」、Webhook に切り替えたときの「再試行の回数」） */,
+);
 export const icon = IconBolt;
 export const category = "Advanced";
 
@@ -13,11 +15,17 @@ type NotificationType = "email" | "slack" | "webhook";
 
 const typeField = zf
   .enum([
-    zf.literal("email").register(zf.literal.registry, { label: "メール" }),
+    zf.literal("email").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.dynamicSchema.typeField.email" /* i18n: メール */,
+      ),
+    }),
     zf.literal("slack").register(zf.literal.registry, { label: "Slack" }),
     zf.literal("webhook").register(zf.literal.registry, { label: "Webhook" }),
   ])
-  .register(zf.enum.registry, { label: "通知方法" });
+  .register(zf.enum.registry, {
+    label: msgKey("formDemo.dynamicSchema.typeField" /* i18n: 通知方法 */),
+  });
 
 // 通知方法ごとの設定スキーマ。type フィールド自身も含めることで、
 // フォーム内で type を変更 → dynamic の値が変わる → resolve が再実行 →
@@ -26,31 +34,50 @@ const notificationSchemas = {
   email: z
     .object({
       type: typeField,
-      to: zf
-        .string()
-        .register(zf.string.registry, { label: "宛先", uiType: "email" }),
-      subject: zf.string().register(zf.string.registry, { label: "件名" }),
+      to: zf.string().register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.dynamicSchema.notificationSchemas.email.to" /* i18n: 宛先 */,
+        ),
+        uiType: "email",
+      }),
+      subject: zf.string().register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.dynamicSchema.notificationSchemas.email.subject" /* i18n: 件名 */,
+        ),
+      }),
       // 初期値（defaultValues）には無い欄。開いてスキーマが決まると、既定値で補う
       format: zf
         .enum([
-          zf
-            .literal("text")
-            .register(zf.literal.registry, { label: "テキスト" }),
+          zf.literal("text").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.dynamicSchema.notificationSchemas.email.format.text" /* i18n: テキスト */,
+            ),
+          }),
           zf.literal("html").register(zf.literal.registry, { label: "HTML" }),
         ])
-        .register(zf.enum.registry, { label: "本文の形式" })
+        .register(zf.enum.registry, {
+          label: msgKey(
+            "formDemo.dynamicSchema.notificationSchemas.email.format" /* i18n: 本文の形式 */,
+          ),
+        })
         .default("text"),
     })
     .register(zf.object.registry, { uiType: "box" }),
   slack: z
     .object({
       type: typeField,
-      channel: zf
-        .string()
-        .register(zf.string.registry, { label: "チャンネル（#general など）" }),
+      channel: zf.string().register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.dynamicSchema.notificationSchemas.slack.channel" /* i18n: チャンネル（#general など） */,
+        ),
+      }),
       mention: zf
         .boolean()
-        .register(zf.boolean.registry, { label: "@channel メンション" })
+        .register(zf.boolean.registry, {
+          label: msgKey(
+            "formDemo.dynamicSchema.notificationSchemas.slack.mention" /* i18n: @channel メンション */,
+          ),
+        })
         .optional(),
     })
     .register(zf.object.registry, { uiType: "box" }),
@@ -63,12 +90,18 @@ const notificationSchemas = {
         .number()
         .int()
         .min(0)
-        .register(zf.number.registry, { label: "再試行の回数" })
+        .register(zf.number.registry, {
+          label: msgKey(
+            "formDemo.dynamicSchema.notificationSchemas.webhook.retries" /* i18n: 再試行の回数 */,
+          ),
+        })
         .default(3),
       secret: zf
         .string()
         .register(zf.string.registry, {
-          label: "署名シークレット",
+          label: msgKey(
+            "formDemo.dynamicSchema.notificationSchemas.webhook.secret" /* i18n: 署名シークレット */,
+          ),
           uiType: "password",
         })
         .optional(),
@@ -82,7 +115,9 @@ const fallbackSchema = z
 
 export const schema = z
   .object({
-    name: zf.string().register(zf.string.registry, { label: "ルール名" }),
+    name: zf.string().register(zf.string.registry, {
+      label: msgKey("formDemo.dynamicSchema.name" /* i18n: ルール名 */),
+    }),
     // zf.dynamic: resolve({ value, parent, context }) が返した { schema, key } で
     // 描画・検証される。key が変わると別の schema とみなし、利用者の操作が原因なら
     // 値を新しい schema に合わせて削る。resolve は Promise や購読を返してもよい
@@ -90,7 +125,9 @@ export const schema = z
     notification: zf
       .dynamic()
       .register(zf.dynamic.registry, {
-        label: "通知設定",
+        label: msgKey(
+          "formDemo.dynamicSchema.notification" /* i18n: 通知設定 */,
+        ),
         resolve: asRegistrySchemaResolver(({ value }) => {
           const type = (value as { type?: NotificationType } | undefined)?.type;
           return type
@@ -103,11 +140,11 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues = {
-  name: "障害通知",
+  name: "Outage alert",
   notification: {
     type: "email",
     to: "alert@example.com",
-    subject: "[ALERT] 障害が発生しました",
+    subject: "[ALERT] An outage occurred",
   },
 } satisfies z.input<typeof schema>;
 

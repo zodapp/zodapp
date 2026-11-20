@@ -1,12 +1,16 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "reactiveBasicInput";
-export const title = "基本 (Reactive)";
-export const description =
-  "reactiveComponentLibrary による基本入力。フィールド単位の確認UIあり。";
+export const title = msgKey(
+  "formDemo.page.reactiveBasicInput.title" /* i18n: 基本 (Reactive) */,
+);
+export const description = msgKey(
+  "formDemo.page.reactiveBasicInput.description" /* i18n: reactiveComponentLibrary による基本入力。フィールド単位の確認UIあり。 */,
+);
 export const icon = IconForms;
 export const category = "Reactive";
 export const reactive = true;
@@ -15,49 +19,87 @@ export const schema = z
   .object({
     firstName: zf
       .string()
-      .register(zf.string.registry, { label: "名(string)", uiType: "text" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.reactiveBasicInput.firstName" /* i18n: 名(string) */,
+        ),
+        uiType: "text",
+      })
       .optional(),
-    lastName: zf.string().min(1).register(zf.string.registry, {
-      label: "姓（string, 必須）",
-      uiType: "text",
-    }),
+    lastName: zf
+      .string()
+      .min(1)
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.reactiveBasicInput.lastName" /* i18n: 姓（string, 必須） */,
+        ),
+        uiType: "text",
+      }),
     note: zf.string().register(zf.string.registry, {
-      label: "メモ(string, 複数行)",
+      label: msgKey(
+        "formDemo.reactiveBasicInput.note" /* i18n: メモ(string, 複数行) */,
+      ),
       uiType: "multiline",
     }),
-    frequency: zf.number().max(7).min(0).register(zf.number.registry, {
-      label: "1週間にお酒を飲む日数(number, slider)",
-      uiType: "slider",
-    }),
+    frequency: zf
+      .number()
+      .max(7)
+      .min(0)
+      .register(zf.number.registry, {
+        label: msgKey(
+          "formDemo.reactiveBasicInput.frequency" /* i18n: 1週間にお酒を飲む日数(number, slider) */,
+        ),
+        uiType: "slider",
+      }),
     age: zf
       .number()
       .max(150)
       .min(0)
-      .register(zf.number.registry, { label: "年齢(number)" }),
-    birthday: zf.date().register(zf.date.registry, { label: "誕生日(date)" }),
-    isMember: zf
-      .boolean()
-      .register(zf.boolean.registry, { label: "会員(boolean)" }),
-    favoriteColor: zf
-      .literal("red")
-      .register(zf.literal.registry, { label: "固定データ(literal)" }),
+      .register(zf.number.registry, {
+        label: msgKey(
+          "formDemo.reactiveBasicInput.age" /* i18n: 年齢(number) */,
+        ),
+      }),
+    birthday: zf.date().register(zf.date.registry, {
+      label: msgKey(
+        "formDemo.reactiveBasicInput.birthday" /* i18n: 誕生日(date) */,
+      ),
+    }),
+    isMember: zf.boolean().register(zf.boolean.registry, {
+      label: msgKey(
+        "formDemo.reactiveBasicInput.isMember" /* i18n: 会員(boolean) */,
+      ),
+    }),
+    favoriteColor: zf.literal("red").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.reactiveBasicInput.favoriteColor" /* i18n: 固定データ(literal) */,
+      ),
+    }),
     isConfirmed: zf
-      .literal(true, "承認してください")
+      .literal(
+        true,
+        msgKey(
+          "formDemo.reactiveBasicInput.isConfirmed.literal" /* i18n: 承認してください */,
+        ),
+      )
       .register(zf.boolean.registry, {
-        label: "承認済(literal型+booleanコンポーネントを強制)",
+        label: msgKey(
+          "formDemo.reactiveBasicInput.isConfirmed" /* i18n: 承認済(literal型+booleanコンポーネントを強制) */,
+        ),
       }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => "これはReactive版の基本入力フォームサンプルです",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        msgKey(
+          "formDemo.reactiveBasicInput.message.compute" /* i18n: これはReactive版の基本入力フォームサンプルです */,
+        ),
+    }),
   })
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  firstName: "太郎",
-  lastName: "山田",
-  note: "これはメモです",
+  firstName: "John",
+  lastName: "Smith",
+  note: "This is a note",
   frequency: 3,
   age: 25,
   birthday: new Date("1999-01-01"),

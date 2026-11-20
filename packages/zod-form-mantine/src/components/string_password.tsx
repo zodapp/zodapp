@@ -27,7 +27,8 @@ const StringPasswordComponent = wrapComponent(
   }: ZodFormInternalProps<StringSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
+    const { label: labelFromMeta, placeholder } =
+      useResolvedMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const value = typeof field.value === "string" ? field.value : "";
 
@@ -61,6 +62,7 @@ const StringPasswordComponent = wrapComponent(
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
+        placeholder={placeholder}
         error={error?.message}
         required={!(optional || nullable)}
         disabled={readOnly || field.disabled}

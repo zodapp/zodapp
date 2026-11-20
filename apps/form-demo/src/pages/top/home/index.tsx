@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { Link } from "@tanstack/react-router";
 
 import styles from "../../../styles/page.module.css";
@@ -13,6 +14,7 @@ import {
 } from "@mantine/core";
 
 const HomePage = () => {
+  const msg = useMsg();
   return (
     <div className={styles.page}>
       <main className={styles.main}>
@@ -25,35 +27,55 @@ const HomePage = () => {
           />
         </h1>
         <p style={{ fontSize: "1.2rem", color: "#666", marginBottom: "2rem" }}>
-          AIネイティブなスキーマ駆動開発フレームワーク
+          {msg(
+            "formDemo.app.home.tagline" /* i18n: AIネイティブなスキーマ駆動開発フレームワーク */,
+          )}
         </p>
 
         <div style={{ maxWidth: "600px", textAlign: "left" }}>
-          <h2 style={{ fontSize: "1.3rem", marginBottom: "1rem" }}>特徴</h2>
+          <h2 style={{ fontSize: "1.3rem", marginBottom: "1rem" }}>
+            {msg("formDemo.app.home.features" /* i18n: 特徴 */)}
+          </h2>
           <ul style={{ lineHeight: "1.8", marginBottom: "2rem" }}>
             <li>
-              <strong>スキーマファースト開発</strong>
+              <strong>
+                {msg(
+                  "formDemo.app.home.schemaFirst.title" /* i18n: スキーマファースト開発 */,
+                )}
+              </strong>
               <br />
-              一つのスキーマから型定義・フォームUI・DynamoDB 連携を自動生成。
+              {msg(
+                "formDemo.app.home.schemaFirst.body" /* i18n: 一つのスキーマから型定義・フォームUI・DynamoDB 連携を自動生成。 */,
+              )}
             </li>
             <li style={{ marginTop: "1rem" }}>
-              <strong>メタデータ拡張システム</strong>
+              <strong>
+                {msg(
+                  "formDemo.app.home.metadata.title" /* i18n: メタデータ拡張システム */,
+                )}
+              </strong>
               <br />
-              Zodスキーマをベースに、ラベル、表示オプションなどのUI情報をスキーマに付与することで、Zodのエコシステムを最大限に活かします。
+              {msg(
+                "formDemo.app.home.metadata.body" /* i18n: Zodスキーマをベースに、ラベル、表示オプションなどのUI情報をスキーマに付与することで、Zodのエコシステムを最大限に活かします。 */,
+              )}
             </li>
             <li style={{ marginTop: "1rem" }}>
-              <strong>AIネイティブ設計</strong>
+              <strong>
+                {msg(
+                  "formDemo.app.home.aiNative.title" /* i18n: AIネイティブ設計 */,
+                )}
+              </strong>
               <br />
-              複数のスキーマの関係性を確認することを不要にし、
-              AI開発の効率を最大限に高めるとともに、AIコーディングの結果を人間がレビューするのを格段に容易にします。
-              AIコーディング時代の開発フレームワークです。
+              {msg(
+                "formDemo.app.home.aiNative.body" /* i18n: 複数のスキーマの関係性を確認することを不要にし、AI開発の効率を最大限に高めるとともに、AIコーディングの結果を人間がレビューするのを格段に容易にします。AIコーディング時代の開発フレームワークです。 */,
+              )}
             </li>
           </ul>
         </div>
 
         <Box style={{ width: "100%", maxWidth: "980px", textAlign: "left" }}>
           <Title order={2} size="1.3rem" mb="md">
-            収録デモ
+            {msg("formDemo.app.home.demos" /* i18n: 収録デモ */)}
           </Title>
           <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
             {demos.map((demo) => (
@@ -69,10 +91,10 @@ const HomePage = () => {
                   <ThemeIcon variant="light" size="lg" radius="md">
                     {demo.icon}
                   </ThemeIcon>
-                  <Text fw={600}>{demo.title}</Text>
+                  <Text fw={600}>{msg.resolve(demo.title)}</Text>
                 </Group>
                 <Text size="sm" c="dimmed">
-                  {demo.description}
+                  {msg.resolve(demo.description)}
                 </Text>
               </Card>
             ))}

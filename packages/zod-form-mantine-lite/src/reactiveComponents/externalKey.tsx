@@ -152,6 +152,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
       onChange={(next) => onChange(next)}
       onBlur={() => void onBlur()}
       label={label || undefined}
+      placeholder={meta?.placeholder}
       searchable
       required={!(optional || nullable)}
       allowDeselect

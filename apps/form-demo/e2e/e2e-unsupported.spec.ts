@@ -19,7 +19,7 @@ test("扱えない型の欄に注記を出し、ほかの欄は描く", async ({
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "見出し")).toHaveValue("見出し");
+  await expect(field(page, "見出し")).toHaveValue("Heading");
   await expect(field(page, "使える値")).toHaveValue("y");
   await expect(field(page, "ハンドル（async の refine）")).toHaveValue("me");
 

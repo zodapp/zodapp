@@ -46,7 +46,7 @@ test.describe("文字列・数値・オブジェクトの腕", () => {
     pageErrors: _,
   }) => {
     await expect(field(page, "値の種類")).toHaveValue("文字列");
-    await expect(armInput(page, VALUE)).toHaveValue("こんにちは");
+    await expect(armInput(page, VALUE)).toHaveValue("Hello");
 
     // 数値：今の値は数値の腕に通らないので空になる。打つと number で書く
     await choose(page, "値の種類", "数値");
@@ -162,14 +162,16 @@ test.describe("文字列・数値・オブジェクトの腕", () => {
         name: "本文",
         exact: true,
       }),
-    ).toHaveValue("外から書いた本文");
+    ).toHaveValue("Body written from outside");
 
     await page
       .getByRole("button", { name: "外から書き込む（値を文字列にする）" })
       .click();
     await expect(field(page, "値の種類")).toHaveValue("文字列");
-    await expect(armInput(page, VALUE)).toHaveValue("外から書いた文字列");
-    expect(await valueOf(page, "value")).toBe("外から書いた文字列");
+    await expect(armInput(page, VALUE)).toHaveValue(
+      "String written from outside",
+    );
+    expect(await valueOf(page, "value")).toBe("String written from outside");
   });
 });
 
@@ -370,7 +372,7 @@ test.describe("配列の中の union", () => {
     await expect(itemSelectors(page).nth(2)).toHaveValue("数値");
     await expect
       .poll(() => valueOf(page, "items"))
-      .toEqual([5, { text: "メモです" }, undefined]);
+      .toEqual([5, { text: "A note" }, undefined]);
   });
 });
 
@@ -383,7 +385,7 @@ test("読み取り専用の union は、腕ごとに腕の名前と値を出す"
     view("文字列の腕").getByText("文字列", { exact: true }),
   ).toBeVisible();
   await expect(
-    view("文字列の腕").getByText("読み取り専用の文字列"),
+    view("文字列の腕").getByText("A read-only string"),
   ).toBeVisible();
   await expect(
     view("数値の腕").getByText("数値", { exact: true }),
@@ -393,7 +395,7 @@ test("読み取り専用の union は、腕ごとに腕の名前と値を出す"
     view("オブジェクトの腕").getByText("オブジェクト", { exact: true }),
   ).toBeVisible();
   await expect(
-    view("オブジェクトの腕").getByText("読み取り専用の本文"),
+    view("オブジェクトの腕").getByText("A read-only body"),
   ).toBeVisible();
   await expect(
     view("真偽値の腕").getByText("はい・いいえ", { exact: true }),

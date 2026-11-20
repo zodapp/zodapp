@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useMemo } from "react";
 import { z } from "zod";
 import { zf, createMockFileResolver } from "@zodapp/zod-form";
@@ -13,9 +14,12 @@ import { AutoForm } from "../../../components/AutoForm";
 import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "mediaPreview";
-export const title = "zf.externalFile（プレビューの種類）";
-export const description =
-  "アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示）";
+export const title = msgKey(
+  "formDemo.page.mediaPreview.title" /* i18n: zf.externalFile（プレビューの種類） */,
+);
+export const description = msgKey(
+  "formDemo.page.mediaPreview.description" /* i18n: アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示） */,
+);
 export const icon = IconPhotoVideo;
 export const category = "Standard";
 
@@ -24,7 +28,9 @@ export const schema = z
     image: zf
       .string()
       .register(zf.externalFile.registry, {
-        label: "画像（imageMediaResolver → <img> プレビュー）",
+        label: msgKey(
+          "formDemo.mediaPreview.image" /* i18n: 画像（imageMediaResolver → <img> プレビュー） */,
+        ),
         fileConfig: {
           type: "mock",
           mimeTypes: ["image/png", "image/jpeg", "image/gif", "image/webp"],
@@ -34,7 +40,9 @@ export const schema = z
     audio: zf
       .string()
       .register(zf.externalFile.registry, {
-        label: "音声（audioMediaResolver → <audio> プレビュー）",
+        label: msgKey(
+          "formDemo.mediaPreview.audio" /* i18n: 音声（audioMediaResolver → <audio> プレビュー） */,
+        ),
         fileConfig: {
           type: "mock",
           mimeTypes: ["audio/mpeg", "audio/wav", "audio/ogg"],
@@ -44,7 +52,9 @@ export const schema = z
     textFile: zf
       .string()
       .register(zf.externalFile.registry, {
-        label: "テキスト（自作の data ベース resolver で内容を表示）",
+        label: msgKey(
+          "formDemo.mediaPreview.textFile" /* i18n: テキスト（自作の data ベース resolver で内容を表示） */,
+        ),
         fileConfig: {
           type: "mock",
           mimeTypes: ["text/plain", "text/csv", "text/markdown"],
@@ -54,7 +64,9 @@ export const schema = z
     anyFile: zf
       .string()
       .register(zf.externalFile.registry, {
-        label: "その他（genericMediaResolver → ダウンロードリンク）",
+        label: msgKey(
+          "formDemo.mediaPreview.anyFile" /* i18n: その他（genericMediaResolver → ダウンロードリンク） */,
+        ),
         fileConfig: {
           type: "mock",
         },

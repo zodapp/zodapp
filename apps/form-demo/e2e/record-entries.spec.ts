@@ -65,13 +65,13 @@ test("キーが複数の値の literal の record も、キーごとの固定の
 const section = (page: Page, label: string) =>
   page.locator(".mantine-InputWrapper-root").filter({ hasText: label }).last();
 
-/** 枠の中の行の名前（都道府県）を、並んでいる順に */
+/** 枠の中の行の名前（州）を、並んでいる順に */
 const rowNames = (box: ReturnType<typeof section>) =>
   box.locator("label").evaluateAll((labels) =>
     labels
       // 必須の印（*）を除く
       .map((label) => (label.textContent ?? "").replace(/\*/g, "").trim())
-      .filter((text) => /[都道府県]$/.test(text)),
+      .filter((text) => /^[A-Z][a-z]+( [A-Z][a-z]+)?$/.test(text)),
   );
 
 /** 枠のいちばん下の選択で、文字で絞り込んでキーを足す */
@@ -93,7 +93,7 @@ test("キーが enum の partialRecord（既定）は、候補のキーを label
 }) => {
   const text = (name: string) =>
     page.getByRole("textbox", { name, exact: true });
-  await expect(text("アリス")).toHaveValue("アリー");
+  await expect(text("アリス")).toHaveValue("Ally");
   await expect(text("ボブ")).toHaveValue("");
   await expect(text("キャロル")).toHaveValue("");
   // キーを打つ欄は出ない
@@ -107,7 +107,7 @@ test("キーが enum の partialRecord（既定）は、候補のキーを label
   await text("ボブ").fill("ボビー");
   await expect
     .poll(async () => (await previewValue(page)).nicknames)
-    .toEqual({ alice: "アリー", bob: "ボビー" });
+    .toEqual({ alice: "Ally", bob: "ボビー" });
 
   // 空にすると、undefined を入れずにキーごと消す
   await text("アリス").fill("");
@@ -142,29 +142,29 @@ test("uiType entries の partialRecord は、値にあるキーだけを並べ�
   pageErrors: _,
 }) => {
   const box = section(page, "支店の数（partialRecord・uiType: entries）");
-  // 定義順（東京都 → 大阪府）で並ぶ
-  await expect.poll(() => rowNames(box)).toEqual(["東京都", "大阪府"]);
+  // 定義順（California → Texas）で並ぶ
+  await expect.poll(() => rowNames(box)).toEqual(["California", "Texas"]);
 
   // 文字で絞り込んで足す。足した行には値の既定値が入る（数値なので空）
-  await addKey(page, box, "神奈", "神奈川県");
+  await addKey(page, box, "New Y", "New York");
   await expect
     .poll(() => rowNames(box))
-    .toEqual(["東京都", "神奈川県", "大阪府"]);
+    .toEqual(["California", "New York", "Texas"]);
   await expect
     .poll(async () =>
       readValue<string[]>(page, "return Object.keys(values.branches)"),
     )
-    .toEqual(["大阪府", "東京都", "神奈川県"]);
-  await box.getByRole("textbox", { name: "神奈川県", exact: true }).fill("3");
+    .toEqual(["Texas", "California", "New York"]);
+  await box.getByRole("textbox", { name: "New York", exact: true }).fill("3");
   await expect
     .poll(async () => (await previewValue(page)).branches)
-    .toEqual({ 大阪府: 2, 東京都: 5, 神奈川県: 3 });
+    .toEqual({ Texas: 2, California: 5, "New York": 3 });
 
   // もうあるキーは、選択の候補に出ない
   const select = box.getByRole("combobox", { name: "キーを追加" });
   await select.click();
-  await select.fill("東京");
-  await expect(page.getByRole("option", { name: "東京都" })).toHaveCount(0);
+  await select.fill("Calif");
+  await expect(page.getByRole("option", { name: "California" })).toHaveCount(0);
   await select.press("Escape");
 });
 
@@ -173,14 +173,14 @@ test("uiType entries の partialRecord の行を削除すると、キーごと�
   pageErrors: _,
 }) => {
   const box = section(page, "支店の数（partialRecord・uiType: entries）");
-  await box.getByRole("button", { name: "大阪府を削除" }).click();
-  await expect.poll(() => rowNames(box)).toEqual(["東京都"]);
+  await box.getByRole("button", { name: "Texasを削除" }).click();
+  await expect.poll(() => rowNames(box)).toEqual(["California"]);
   await expect
     .poll(async () => (await previewValue(page)).branches)
-    .toEqual({ 東京都: 5 });
+    .toEqual({ California: 5 });
 
-  await addKey(page, box, "大阪", "大阪府");
-  await expect.poll(() => rowNames(box)).toEqual(["東京都", "大阪府"]);
+  await addKey(page, box, "Tex", "Texas");
+  await expect.poll(() => rowNames(box)).toEqual(["California", "Texas"]);
 });
 
 test("keyOrder: value は、値の object の順に並べ、足したキーは末尾に並ぶ", async ({
@@ -188,16 +188,16 @@ test("keyOrder: value は、値の object の順に並べ、足したキーは�
   pageErrors: _,
 }) => {
   const box = section(page, "支店の数（keyOrder: value）");
-  await expect.poll(() => rowNames(box)).toEqual(["大阪府", "東京都"]);
-  await addKey(page, box, "北海", "北海道");
+  await expect.poll(() => rowNames(box)).toEqual(["Texas", "California"]);
+  await addKey(page, box, "Alab", "Alabama");
   await expect
     .poll(() => rowNames(box))
-    .toEqual(["大阪府", "東京都", "北海道"]);
+    .toEqual(["Texas", "California", "Alabama"]);
   await expect
     .poll(async () =>
       readValue<string[]>(page, "return Object.keys(values.branchesByValue)"),
     )
-    .toEqual(["大阪府", "東京都", "北海道"]);
+    .toEqual(["Texas", "California", "Alabama"]);
 });
 
 test("Map は record の entries と同じ見た目で、書き換えると Map に書く", async ({

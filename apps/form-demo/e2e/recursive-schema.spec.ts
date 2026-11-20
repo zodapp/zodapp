@@ -42,16 +42,16 @@ test("関数で深さを決めた optional なしの再帰（部 → 課 → 係
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "部の名前")).toHaveValue("営業部");
-  await expect(field(page, "課の名前")).toHaveValue("第一課");
-  await expect(field(page, "係の名前")).toHaveValue("法人係");
+  await expect(field(page, "部の名前")).toHaveValue("Sales");
+  await expect(field(page, "課の名前")).toHaveValue("Section 1");
+  await expect(field(page, "係の名前")).toHaveValue("Corporate");
   await expect(page.locator("[data-zod-form-unsupported]")).toHaveCount(0);
 
-  await field(page, "係の名前").fill("個人係");
+  await field(page, "係の名前").fill("Personal");
   await expect
     .poll(async () => (await previewValue(page)).organization)
     .toEqual({
-      name: "営業部",
-      child: { name: "第一課", child: { name: "個人係" } },
+      name: "Sales",
+      child: { name: "Section 1", child: { name: "Personal" } },
     });
 });

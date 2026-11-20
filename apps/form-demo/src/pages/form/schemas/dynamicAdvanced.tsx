@@ -1,3 +1,5 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
+import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
@@ -10,10 +12,8 @@ import {
   type HarnessWrite,
 } from "../../../components/E2eHarness";
 import {
-  cities,
+  addressOptionsOf,
   demoValueActionResolver,
-  prefectures,
-  towns,
 } from "../../../shared/demo/resolvers";
 import {
   FetchControlPanel,
@@ -24,9 +24,12 @@ import {
 import { TryBehavior } from "../../../shared/demo/TryBehavior";
 
 export const formId = "dynamicAdvanced";
-export const title = "zf.dynamic（読み込み・購読・連動）";
-export const description =
-  "スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、都道府県→市区町村→町名の連動。帳票の種類を変えると、帳票の項目だけを取り直す。取得を失敗させると「再試行」が出て送信が止まる。都道府県を変えると、市区町村・町名が順に消える。「動きを試す」で取得の時機を選び、止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める";
+export const title = msgKey(
+  "formDemo.page.dynamicAdvanced.title" /* i18n: zf.dynamic（読み込み・購読・連動） */,
+);
+export const description = msgKey(
+  "formDemo.page.dynamicAdvanced.description" /* i18n: スキーマをサーバーから読み込む（読み込み中・失敗・再試行）、変わり続ける上限、住所の連動（米国：州→市→地区、日本：都道府県→市区町村→町名）。帳票の種類を変えると、帳票の項目だけを取り直す。取得を失敗させると「再試行」が出て送信が止まる。住所の上の欄を変えると、下の欄が順に消える。「動きを試す」で取得の時機を選び、止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める */,
+);
 export const icon = IconBolt;
 export const category = "Advanced";
 
@@ -49,28 +52,58 @@ const templateFields: Record<Template, () => z.ZodTypeAny> = {
   invoice: () =>
     z
       .object({
-        dueDate: z.iso.date().register(zf.date.registry, { label: "支払期限" }),
+        dueDate: z.iso.date().register(zf.date.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.templateFields.invoice.dueDate" /* i18n: 支払期限 */,
+          ),
+        }),
         amount: zf
           .number()
           .min(1)
-          .register(zf.number.registry, { label: "請求額" }),
+          .register(zf.number.registry, {
+            label: msgKey(
+              "formDemo.dynamicAdvanced.templateFields.invoice.amount" /* i18n: 請求額 */,
+            ),
+          }),
       })
-      .register(zf.object.registry, { label: "請求書の項目", uiType: "box" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.dynamicAdvanced.templateFields.invoice" /* i18n: 請求書の項目 */,
+        ),
+        uiType: "box",
+      }),
   receipt: () =>
     z
       .object({
-        payer: zf.string().register(zf.string.registry, { label: "宛名" }),
+        payer: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.templateFields.receipt.payer" /* i18n: 宛名 */,
+          ),
+        }),
         note: zf
           .string()
-          .register(zf.string.registry, { label: "但し書き" })
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.dynamicAdvanced.templateFields.receipt.note" /* i18n: 但し書き */,
+            ),
+          })
           .optional(),
         // 領収書だけが使う部品（真偽）。初めて使う部品が出ても、ほかの欄は取り直さない
         reissued: zf
           .boolean()
-          .register(zf.boolean.registry, { label: "再発行" })
+          .register(zf.boolean.registry, {
+            label: msgKey(
+              "formDemo.dynamicAdvanced.templateFields.receipt.reissued" /* i18n: 再発行 */,
+            ),
+          })
           .optional(),
       })
-      .register(zf.object.registry, { label: "領収書の項目", uiType: "box" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.dynamicAdvanced.templateFields.receipt" /* i18n: 領収書の項目 */,
+        ),
+        uiType: "box",
+      }),
 };
 
 const templateFieldsSchema = z.unknown().register(
@@ -129,9 +162,18 @@ const quantitySchema = z.number().register(
             schema: zf
               .number()
               .min(1)
-              .max(stock, `在庫（${stock}）を超えています`)
+              .max(
+                stock,
+                msgKey(
+                  "formDemo.dynamicAdvanced.quantity.max" /* i18n: 在庫（${stock}）を超えています */,
+                  { stock },
+                ),
+              )
               .register(zf.number.registry, {
-                label: `数量（在庫 ${stock}）`,
+                label: msgKey(
+                  "formDemo.dynamicAdvanced.quantity" /* i18n: 数量（在庫 ${stock}） */,
+                  { stock },
+                ),
               }),
           });
         };
@@ -143,69 +185,129 @@ const quantitySchema = z.number().register(
 );
 
 // ============================================================
-// 3. 親の値で決まる dynamic の連鎖：都道府県 → 市区町村 → 町名
+// 3. 親の値で決まる dynamic の連鎖：州 → 市 → 地区（米国）、都道府県 → 市区町村 → 町名（日本）
 //    上の欄を変えると key が変わって選択肢を取り直し、選択肢に無くなった下の欄が順に消える
 // ============================================================
 
-const citySchema = z.string().register(
-  zf.dynamic.registry,
-  defineDynamicMeta<unknown, { prefecture?: string }>({
-    dependsOnValue: false,
-    dependsOnParent: true,
-    resolve: ({ parent }) => ({
-      key: parent?.prefecture ?? "",
-      schema: zf.string().register(zf.externalKey.registry, {
-        label: "市区町村",
-        externalKeyConfig: {
-          type: "mock",
-          topic: `cities/${parent?.prefecture ?? ""}`,
-        },
-        // 都道府県が未選択なら選択肢が0件になる。その理由を出す
-        emptyMessage: "先に都道府県を選んでください",
-      }),
+/** 親の値で topic が変わる外部キー。親が空なら選択肢は 0 件で、emptyMessage で理由を出す */
+const dependentKey = <P extends string>(
+  parentKey: P,
+  topicPrefix: string,
+  label: string,
+  emptyMessage: string,
+) =>
+  z.string().register(
+    zf.dynamic.registry,
+    defineDynamicMeta<unknown, Partial<Record<P, string>>>({
+      dependsOnValue: false,
+      dependsOnParent: true,
+      resolve: ({ parent }) => {
+        const parentValue = parent?.[parentKey] ?? "";
+        return {
+          key: parentValue,
+          schema: zf.string().register(zf.externalKey.registry, {
+            label,
+            externalKeyConfig: {
+              type: "mock",
+              topic: `${topicPrefix}/${parentValue}`,
+            },
+            emptyMessage,
+          }),
+        };
+      },
     }),
-  }),
-);
+  );
 
-const townSchema = z.string().register(
-  zf.dynamic.registry,
-  defineDynamicMeta<unknown, { city?: string }>({
-    dependsOnValue: false,
-    dependsOnParent: true,
-    resolve: ({ parent }) => ({
-      key: parent?.city ?? "",
-      schema: zf.string().register(zf.externalKey.registry, {
-        label: "町名",
-        externalKeyConfig: {
-          type: "mock",
-          topic: `towns/${parent?.city ?? ""}`,
-        },
-        emptyMessage: "先に市区町村を選んでください",
-      }),
+// 米国の住所
+const addressUsSchema = z
+  .object({
+    state: zf.string().register(zf.externalKey.registry, {
+      label: msgKey("formDemo.dynamicAdvanced.addressUs.state" /* i18n: 州 */),
+      externalKeyConfig: { type: "mock", topic: "states_us" },
     }),
-  }),
-);
+    city: dependentKey(
+      "state",
+      "cities_us",
+      msgKey("formDemo.dynamicAdvanced.addressUs.city" /* i18n: 市 */),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressUs.city.emptyMessage" /* i18n: 先に州を選んでください */,
+      ),
+    ),
+    neighborhood: dependentKey(
+      "city",
+      "neighborhoods_us",
+      msgKey(
+        "formDemo.dynamicAdvanced.addressUs.neighborhood" /* i18n: 地区 */,
+      ),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressUs.neighborhood.emptyMessage" /* i18n: 先に市を選んでください */,
+      ),
+    ),
+  })
+  .register(zf.object.registry, {
+    label: msgKey(
+      "formDemo.dynamicAdvanced.addressUs" /* i18n: 住所（米国） */,
+    ),
+    uiType: "box",
+  });
+
+// 日本の住所：別のサンプル。選択肢はデータなので、言語を切り替えても日本語のまま
+const addressJpSchema = z
+  .object({
+    prefecture: zf.string().register(zf.externalKey.registry, {
+      label: msgKey(
+        "formDemo.dynamicAdvanced.addressJp.prefecture" /* i18n: 都道府県 */,
+      ),
+      externalKeyConfig: { type: "mock", topic: "prefectures_jp" },
+    }),
+    city: dependentKey(
+      "prefecture",
+      "cities_jp",
+      msgKey("formDemo.dynamicAdvanced.addressJp.city" /* i18n: 市区町村 */),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressJp.city.emptyMessage" /* i18n: 先に都道府県を選んでください */,
+      ),
+    ),
+    town: dependentKey(
+      "city",
+      "towns_jp",
+      msgKey("formDemo.dynamicAdvanced.addressJp.town" /* i18n: 町名 */),
+      msgKey(
+        "formDemo.dynamicAdvanced.addressJp.town.emptyMessage" /* i18n: 先に市区町村を選んでください */,
+      ),
+    ),
+  })
+  .register(zf.object.registry, {
+    label: msgKey(
+      "formDemo.dynamicAdvanced.addressJp" /* i18n: 住所（日本。選択肢はデータなので、言語を切り替えても日本語のまま） */,
+    ),
+    uiType: "box",
+  });
 
 export const schema = z
   .object({
     template: zf
       .enum([
-        zf
-          .literal("invoice")
-          .register(zf.literal.registry, { label: "請求書" }),
-        zf
-          .literal("receipt")
-          .register(zf.literal.registry, { label: "領収書" }),
+        zf.literal("invoice").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.template.invoice" /* i18n: 請求書 */,
+          ),
+        }),
+        zf.literal("receipt").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.template.receipt" /* i18n: 領収書 */,
+          ),
+        }),
       ])
-      .register(zf.enum.registry, { label: "帳票の種類" }),
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.dynamicAdvanced.template" /* i18n: 帳票の種類 */,
+        ),
+      }),
     templateFields: templateFieldsSchema,
     quantity: quantitySchema,
-    prefecture: zf.string().register(zf.externalKey.registry, {
-      label: "都道府県",
-      externalKeyConfig: { type: "mock", topic: "prefectures" },
-    }),
-    city: citySchema,
-    town: townSchema,
+    addressUs: addressUsSchema,
+    addressJp: addressJpSchema,
   })
   .register(zf.object.registry, {});
 
@@ -213,24 +315,14 @@ export const defaultValues = {
   template: "invoice",
   templateFields: { dueDate: "2026-12-31", amount: 10000 },
   quantity: 2,
-  prefecture: "tokyo",
-  city: "shinjuku",
-  town: "nishi-shinjuku",
+  addressUs: { state: "ca", city: "san-francisco", neighborhood: "mission" },
+  addressJp: { prefecture: "tokyo", city: "shinjuku", town: "nishi-shinjuku" },
 } satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
 
-// 選択肢（都道府県・市区町村・町名）。親が空のとき（`cities/`・`towns/`）は 0 件を届ける
-const optionsOf = (topic: string) => {
-  if (topic === "prefectures") return prefectures;
-  const [kind, name = ""] = topic.split("/");
-  if (kind === "cities") return name ? cities[name] : [];
-  if (kind === "towns") return name ? towns[name] : [];
-  return undefined;
-};
-
 const { resolvers: externalKeyResolvers } =
-  createControlledExternalKeyResolvers(control, optionsOf);
+  createControlledExternalKeyResolvers(control, addressOptionsOf);
 
 // 帳票の種類を、今と違う方に書き込む
 const toggleTemplate: HarnessWrite["run"] = (form) =>
@@ -245,11 +337,15 @@ const harness = [
     formId,
     writes: [
       {
-        label: "外から書き込む（帳票の種類を切り替える）",
+        label: msgKey(
+          "formDemo.dynamicAdvanced.harness.toggle" /* i18n: 外から書き込む（帳票の種類を切り替える） */,
+        ),
         run: toggleTemplate,
       },
       {
-        label: "利用者の編集として書き込む（帳票の種類を切り替える）",
+        label: msgKey(
+          "formDemo.dynamicAdvanced.harness.toggleAsUser" /* i18n: 利用者の編集として書き込む（帳票の種類を切り替える） */,
+        ),
         asUser: true,
         run: toggleTemplate,
       },
@@ -258,6 +354,7 @@ const harness = [
 ];
 
 export const Component = () => {
+  const msg = useMsg();
   // 分け方・失敗・待っている取得はページをまたいで残るので、離れるときに戻す
   useEffect(
     () => () => {
@@ -280,11 +377,17 @@ export const Component = () => {
 
   return (
     <Stack>
-      <TryBehavior description="取得が届く時機を選ぶ・わざと失敗させる・在庫を変える。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める">
+      <TryBehavior
+        description={msg(
+          "formDemo.dynamicAdvanced.try.description" /* i18n: 取得が届く時機を選ぶ・わざと失敗させる・在庫を変える。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める */,
+        )}
+      >
         <FetchControlPanel control={control} />
         <Group gap="xs">
           <Switch
-            label="在庫を 3 秒ごとに変える"
+            label={msg(
+              "formDemo.dynamicAdvanced.try.rotate" /* i18n: 在庫を 3 秒ごとに変える */,
+            )}
             checked={rotating}
             onChange={(event) => setRotating(event.currentTarget.checked)}
           />
@@ -293,14 +396,18 @@ export const Component = () => {
             variant="default"
             onClick={() => stockStore.set(3)}
           >
-            在庫を 3 にする
+            {msg(
+              "formDemo.dynamicAdvanced.try.stock3" /* i18n: 在庫を 3 にする */,
+            )}
           </Button>
           <Button
             size="compact-xs"
             variant="default"
             onClick={() => stockStore.set(10)}
           >
-            在庫を 10 にする
+            {msg(
+              "formDemo.dynamicAdvanced.try.stock10" /* i18n: 在庫を 10 にする */,
+            )}
           </Button>
         </Group>
       </TryBehavior>

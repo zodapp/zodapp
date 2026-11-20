@@ -25,7 +25,7 @@ Provider が無いときは英語です。
 - **画面の文言**：`msg("キー" /* 基準の言語の文言 */)` で書きます。コメントは ESLint（`@zodapp/eslint-plugin-i18n-messages`）が辞書と突き合わせ、`--fix` で書き込みます
 - **エラーの文言**：`msgKey(...)` で詰めた文字列（`key?a=1&b=2`）を issue の message にし、表示するときに `msg.resolve` で訳します。経路を問わず、キーでなければそのまま出ます。部品の中で `safeParse` するときは `{ error: zodMsgKeyErrorMap }` を渡します
 - **throw する文言**：コード付きのエラーにし、表示する側でコードから訳します（`TabularImportError` の `message` は辞書のキー）
-- **meta の文言**：`label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`、選択肢のラベル、表の列の見出しは、zod-form-react の `useResolvedMeta`・`useResolveText` で訳します（キーなら訳し、普通の文字列ならそのまま）
+- **meta の文言**：`label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`・`placeholder`、選択肢のラベル、表の列の見出し、computed・formatter が返す文字列（badge などの `label` を含む）は、zod-form-react の `useResolvedMeta`・`useResolveText` で訳します（キーなら訳し、普通の文字列ならそのまま）
 - **開発者向けの文言**（`console.error`・設定の誤りで throw するもの）：辞書に入れず、英語で書きます
 - **ロケール**：日付の部品の `locale`、`toLocaleString`、`localeCompare` は `useLocale()` から取ります
 

@@ -174,6 +174,13 @@ While there are zero options, for example because an upper field is not selected
 - Optional fields: only disabled with the text shown; not an error
 - Multi-select fields: disabled with the text shown. The error of a required field stays the same text as other required arrays (it does not become `emptyMessage`)
 
+## Placeholder (`placeholder`)
+
+`placeholder` is the text shown while an input is empty. Write it in the meta of `zf.string`, `zf.number`, `zf.bigint`, `zf.date`, `zf.enum`, and `zf.externalKey`. If you write it as a dictionary key with `msgKey`, the components translate it.
+
+- While a component shows its own text (loading, no options, the label of the selected value while searching), the component's text takes precedence
+- `zf.time` does not have it (the time picker has no single input)
+
 ## API (excerpt)
 
 - `zf` / `getMeta`

@@ -1,3 +1,5 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
+import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta, hideSchemaFields } from "@zodapp/zod-form";
@@ -26,9 +28,12 @@ import { TryBehavior } from "../../../shared/demo/TryBehavior";
 import type { WebResolverContextMap } from "../../../shared/types/resolverContext";
 
 export const formId = "externalKeyFilter";
-export const title = "zf.externalKey（絞り込み）";
-export const description =
-  "ログイン中の部署などで一覧を絞る。条件を切り替えたときに一覧を取り直す。外れた値は消える（clear）か、残して「（不正な値）」とエラーを出す（keep）。複数選択の欄も同じ。「動きを試す」で、取得の時機を選ぶ・失敗させる・同じ購読のまま選択肢を 0 件にして戻す・無い topic の欄を出す";
+export const title = msgKey(
+  "formDemo.page.externalKeyFilter.title" /* i18n: zf.externalKey（絞り込み） */,
+);
+export const description = msgKey(
+  "formDemo.page.externalKeyFilter.description" /* i18n: ログイン中の部署などで一覧を絞る。条件を切り替えたときに一覧を取り直す。外れた値は消える（clear）か、残して「（不正な値）」とエラーを出す（keep）。複数選択の欄も同じ。「動きを試す」で、取得の時機を選ぶ・失敗させる・同じ購読のまま選択肢を 0 件にして戻す・無い topic の欄を出す */,
+);
 export const icon = IconFilter;
 export const category = "Advanced";
 
@@ -54,7 +59,9 @@ const { resolvers: externalKeyResolvers, republish } =
 // ============================================================
 
 const assignee = zf.string().register(zf.externalKey.registry, {
-  label: "担当者（画面上部で選んだ部署で絞る。context の filter）",
+  label: msgKey(
+    "formDemo.externalKeyFilter.assignee" /* i18n: 担当者（画面上部で選んだ部署で絞る。context の filter） */,
+  ),
   externalKeyConfig: {
     type: "mock",
     topic: "members",
@@ -66,7 +73,9 @@ const assignee = zf.string().register(zf.externalKey.registry, {
 // 特殊なオプション unlisted: "keep"：外れた値を消さずに残し、欄に「（不正な値）」と出してエラーにする。
 // 部署を戻せば値も戻る。条件の切り替えで、選んでいた値を失いたくないときに使う
 const assigneeKeep = zf.string().register(zf.externalKey.registry, {
-  label: "担当者（unlisted: keep。外れた値を残し、不正な値として出す）",
+  label: msgKey(
+    "formDemo.externalKeyFilter.assigneeKeep" /* i18n: 担当者（unlisted: keep。外れた値を残し、不正な値として出す） */,
+  ),
   externalKeyConfig: {
     type: "mock",
     topic: "members",
@@ -79,7 +88,7 @@ const assigneeKeep = zf.string().register(zf.externalKey.registry, {
 // 複数選択の欄。要素の externalKey に、単一選択と同じ filter と unlisted を書く
 const watcherKey = (unlisted?: "keep") =>
   zf.string().register(zf.externalKey.registry, {
-    label: "見守る人",
+    label: msgKey("formDemo.externalKeyFilter.watcherKey" /* i18n: 見守る人 */),
     externalKeyConfig: {
       type: "mock",
       topic: "members",
@@ -90,12 +99,16 @@ const watcherKey = (unlisted?: "keep") =>
   });
 
 const watchers = zf.array(watcherKey()).register(zf.array.registry, {
-  label: "見守る人（複数選択。画面上部で選んだ部署で絞る）",
+  label: msgKey(
+    "formDemo.externalKeyFilter.watchers" /* i18n: 見守る人（複数選択。画面上部で選んだ部署で絞る） */,
+  ),
   uiType: "multipleExternalKey",
 });
 
 const watchersKeep = zf.array(watcherKey("keep")).register(zf.array.registry, {
-  label: "見守る人（複数選択。unlisted: keep）",
+  label: msgKey(
+    "formDemo.externalKeyFilter.watchersKeep" /* i18n: 見守る人（複数選択。unlisted: keep） */,
+  ),
   uiType: "multipleExternalKey",
 });
 
@@ -116,7 +129,9 @@ const reviewer = z.string().register(
       return {
         key: team,
         schema: zf.string().register(zf.externalKey.registry, {
-          label: "レビュー担当（レビューする部署で絞る）",
+          label: msgKey(
+            "formDemo.externalKeyFilter.reviewer.resolve.schema" /* i18n: レビュー担当（レビューする部署で絞る） */,
+          ),
           externalKeyConfig: {
             type: "mock",
             topic: "members",
@@ -137,17 +152,31 @@ export const schema = z
     watchersKeep,
     reviewTeam: zf
       .enum([
-        zf.literal("sales").register(zf.literal.registry, { label: "営業" }),
-        zf.literal("dev").register(zf.literal.registry, { label: "開発" }),
+        zf.literal("sales").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.externalKeyFilter.reviewTeam.sales" /* i18n: 営業 */,
+          ),
+        }),
+        zf.literal("dev").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.externalKeyFilter.reviewTeam.dev" /* i18n: 開発 */,
+          ),
+        }),
       ])
-      .register(zf.enum.registry, { label: "レビューする部署" }),
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.externalKeyFilter.reviewTeam" /* i18n: レビューする部署 */,
+        ),
+      }),
     reviewer,
     // 3. 無い topic の欄。購読すると失敗して「再試行」が出て、送信を止める。
     //    「動きを試す」の「無い topic の欄を出す」をオンにしたときだけ描く
     missing: zf
       .string()
       .register(zf.externalKey.registry, {
-        label: "無い topic の欄",
+        label: msgKey(
+          "formDemo.externalKeyFilter.missing" /* i18n: 無い topic の欄 */,
+        ),
         externalKeyConfig: { type: "mock", topic: "no-such-topic" },
       })
       .optional(),
@@ -178,6 +207,7 @@ const setMembersEmpty = (empty: boolean) => {
 const schemaWithoutMissing = hideSchemaFields(schema, { paths: ["missing"] });
 
 export const Component = () => {
+  const msg = useMsg();
   const [team, setTeam] = useState<Team>("sales");
   const [showMissing, setShowMissing] = useState(false);
   const resolverContext = useMemo(() => ({ team: { team } }), [team]);
@@ -194,18 +224,36 @@ export const Component = () => {
   return (
     <Stack>
       <Stack gap={4}>
-        <Text size="sm">画面の部署（resolverContext の team）</Text>
+        <Text size="sm">
+          {msg(
+            "formDemo.externalKeyFilter.try.team" /* i18n: 画面の部署（resolverContext の team） */,
+          )}
+        </Text>
         <SegmentedControl
           value={team}
           onChange={(value) => setTeam(value as Team)}
           data={[
-            { label: "営業", value: "sales" },
-            { label: "開発", value: "dev" },
+            {
+              label: msg(
+                "formDemo.externalKeyFilter.try.team.sales" /* i18n: 営業 */,
+              ),
+              value: "sales",
+            },
+            {
+              label: msg(
+                "formDemo.externalKeyFilter.try.team.dev" /* i18n: 開発 */,
+              ),
+              value: "dev",
+            },
           ]}
           data-testid="team"
         />
       </Stack>
-      <TryBehavior description="選択肢が届く時機を選んだり、わざと失敗させたりできる。ふだんは「見やすい遅延」（0.4 秒）のまま使う。「選択肢を 0 件にする」「選択肢を戻す」は、購読を張り直さずに担当者・見守る人の選択肢を届け直す">
+      <TryBehavior
+        description={msg(
+          "formDemo.externalKeyFilter.try.description" /* i18n: 選択肢が届く時機を選んだり、わざと失敗させたりできる。ふだんは「見やすい遅延」（0.4 秒）のまま使う。「選択肢を 0 件にする」「選択肢を戻す」は、購読を張り直さずに担当者・見守る人の選択肢を届け直す */,
+        )}
+      >
         <FetchControlPanel control={control} />
         <Group gap="xs">
           <Button
@@ -213,18 +261,24 @@ export const Component = () => {
             variant="default"
             onClick={() => setMembersEmpty(true)}
           >
-            選択肢を 0 件にする
+            {msg(
+              "formDemo.externalKeyFilter.try.empty" /* i18n: 選択肢を 0 件にする */,
+            )}
           </Button>
           <Button
             size="xs"
             variant="default"
             onClick={() => setMembersEmpty(false)}
           >
-            選択肢を戻す
+            {msg(
+              "formDemo.externalKeyFilter.try.restore" /* i18n: 選択肢を戻す */,
+            )}
           </Button>
         </Group>
         <Switch
-          label="無い topic の欄を出す（出すと取得に失敗し、送信が止まる）"
+          label={msg(
+            "formDemo.externalKeyFilter.try.missing" /* i18n: 無い topic の欄を出す（出すと取得に失敗し、送信が止まる） */,
+          )}
           checked={showMissing}
           onChange={(event) => setShowMissing(event.currentTarget.checked)}
         />

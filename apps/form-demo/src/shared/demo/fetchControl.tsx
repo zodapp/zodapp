@@ -1,3 +1,5 @@
+import { msgKey } from "@zodapp/i18n-messages";
+import { useMsg } from "@zodapp/i18n-messages-react";
 /**
  * デモページで、取得の時機（遅延の分け方）と失敗を決める仕組み。
  *
@@ -30,12 +32,15 @@ import { logLoad, withFetchLog } from "./formDemoLog";
 
 export type DelayMode = "human" | "immediate" | "frame1" | "frame2" | "held";
 
+/** 分け方の名前（辞書のキー。出すときに msg.resolve で訳す） */
 export const delayModeLabels: Record<DelayMode, string> = {
-  human: "見やすい遅延",
-  immediate: "すぐ届く",
-  frame1: "1 フレーム後",
-  frame2: "2 フレーム後",
-  held: "止めておく",
+  human: msgKey("formDemo.shared.fetch.mode.human" /* i18n: 見やすい遅延 */),
+  immediate: msgKey(
+    "formDemo.shared.fetch.mode.immediate" /* i18n: すぐ届く */,
+  ),
+  frame1: msgKey("formDemo.shared.fetch.mode.frame1" /* i18n: 1 フレーム後 */),
+  frame2: msgKey("formDemo.shared.fetch.mode.frame2" /* i18n: 2 フレーム後 */),
+  held: msgKey("formDemo.shared.fetch.mode.held" /* i18n: 止めておく */),
 };
 
 /** 止めておく分け方で、待っている取得 */
@@ -170,7 +175,12 @@ export const createControlledExternalKeyResolvers = (
   const topics: Record<string, MockTopic<MockExternalKeyOption[]>> = {};
   const active = new Map<string, Set<MockTopic<MockExternalKeyOption[]>>>();
   const mock = createMockExternalKeyResolver({ topics });
-  const failError = () => new Error("取得に失敗しました（デモ）");
+  const failError = () =>
+    new Error(
+      msgKey(
+        "formDemo.shared.fetch.failedError" /* i18n: 取得に失敗しました（デモ） */,
+      ),
+    );
 
   const settleLater = (
     name: string,
@@ -250,14 +260,27 @@ export const controlledLoad = <T,>(
   logLoad(field, key, () => {
     if (control.getState().mode === "immediate") {
       return control.getState().failing
-        ? Promise.reject(new Error("取得に失敗しました（デモ）"))
+        ? Promise.reject(
+            new Error(
+              msgKey(
+                "formDemo.shared.fetch.failedError" /* i18n: 取得に失敗しました（デモ） */,
+              ),
+            ),
+          )
         : Promise.resolve(produce());
     }
     return new Promise<T>((resolve, reject) => {
       control.schedule(
         `load: ${field} key=${key}`,
         () => resolve(produce()),
-        () => reject(new Error("取得に失敗しました（デモ）")),
+        () =>
+          reject(
+            new Error(
+              msgKey(
+                "formDemo.shared.fetch.failedError" /* i18n: 取得に失敗しました（デモ） */,
+              ),
+            ),
+          ),
         HUMAN_DELAY_MS.load,
       );
     });
@@ -266,33 +289,49 @@ export const controlledLoad = <T,>(
 /** 分け方の選択・失敗させるスイッチ・止めておいた取得の一覧 */
 export const FetchControlPanel = ({ control }: { control: FetchControl }) => {
   const state = useFetchControl(control);
+  const msg = useMsg();
   return (
     <Stack gap="xs" data-testid="fetch-control">
       <Group gap="sm">
-        <Text size="sm">遅延の分け方</Text>
+        <Text size="sm">
+          {msg("formDemo.shared.fetch.delayMode" /* i18n: 遅延の分け方 */)}
+        </Text>
         <SegmentedControl
           size="xs"
           value={state.mode}
           onChange={(value) => control.setMode(value as DelayMode)}
           data={(Object.keys(delayModeLabels) as DelayMode[]).map((mode) => ({
             value: mode,
-            label: delayModeLabels[mode],
+            label: msg.resolve(delayModeLabels[mode]),
           }))}
         />
         <Text size="sm" data-testid="delay-mode">
-          選んだ分け方：{delayModeLabels[state.mode]}
+          {msg(
+            "formDemo.shared.fetch.selectedMode" /* i18n: 選んだ分け方：${mode} */,
+            {
+              mode: msg.resolve(delayModeLabels[state.mode]),
+            },
+          )}
         </Text>
       </Group>
       <Switch
-        label="取得を失敗させる（オンのあいだに届く取得は失敗する）"
+        label={msg(
+          "formDemo.shared.fetch.failing" /* i18n: 取得を失敗させる（オンのあいだに届く取得は失敗する） */,
+        )}
         checked={state.failing}
         onChange={(event) => control.setFailing(event.currentTarget.checked)}
       />
       {state.mode === "held" && (
         <Stack gap={4}>
           <Text size="sm">
-            待っている取得（{state.pending.length} 件）
-            {state.pending.length === 0 && "：なし"}
+            {msg(
+              "formDemo.shared.fetch.pending" /* i18n: 待っている取得（${count} 件） */,
+              {
+                count: String(state.pending.length),
+              },
+            )}
+            {state.pending.length === 0 &&
+              msg("formDemo.shared.fetch.pendingNone" /* i18n: ：なし */)}
           </Text>
           {state.pending.map((item) => (
             <Group key={item.id} gap="xs" data-testid="pending-fetch">
@@ -300,7 +339,7 @@ export const FetchControlPanel = ({ control }: { control: FetchControl }) => {
                 {item.name}
               </Text>
               <Button size="compact-xs" variant="light" onClick={item.deliver}>
-                届ける
+                {msg("formDemo.shared.fetch.deliver" /* i18n: 届ける */)}
               </Button>
               <Button
                 size="compact-xs"
@@ -308,7 +347,7 @@ export const FetchControlPanel = ({ control }: { control: FetchControl }) => {
                 color="red"
                 onClick={item.fail}
               >
-                失敗させる
+                {msg("formDemo.shared.fetch.fail" /* i18n: 失敗させる */)}
               </Button>
             </Group>
           ))}

@@ -40,11 +40,11 @@ test("外部キーの土台に z.email() を使え、選ぶとメールアドレ
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "連絡先メール")).toHaveValue("山田 太郎");
-  await choose(page, "連絡先メール", "佐藤 花子");
+  await expect(field(page, "連絡先メール")).toHaveValue("Alice Johnson");
+  await choose(page, "連絡先メール", "Bob Smith");
   await expect
     .poll(async () => (await previewValue(page)).contactEmail)
-    .toBe("sato@example.com");
+    .toBe("bob@example.com");
 });
 
 test("zf.date に z.coerce.date() を渡せ、送信すると Date になる", async ({
@@ -56,7 +56,7 @@ test("zf.date に z.coerce.date() を渡せ、送信すると Date になる", a
     page.getByRole("button", { name: "期限（z.coerce.date()）" }),
   ).toHaveText(/2026-04-01/);
   // 外部キーの選択肢が届くまでは送信が止まるので、届くのを待つ
-  await expect(field(page, "連絡先メール")).toHaveValue("山田 太郎");
+  await expect(field(page, "連絡先メール")).toHaveValue("Alice Johnson");
   await submit(page);
   await waitSubmitSettled(page, 1);
   expect((await formDemo(page)).submitted.count).toBe(1);

@@ -1,28 +1,39 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "readOnly";
-export const title = "閲覧専用の表示";
-export const description = "readOnlyモード";
+export const title = msgKey(
+  "formDemo.page.readOnly.title" /* i18n: 閲覧専用の表示 */,
+);
+export const description = msgKey(
+  "formDemo.page.readOnly.description" /* i18n: readOnlyモード */,
+);
 export const icon = IconForms;
 export const category = "Standard";
 
 // enum用のリテラル定義
 const hobbyLiterals = [
-  z
-    .literal("reading")
-    .register(zf.literal.registry, { label: "読書", color: "blue.6" }),
-  z
-    .literal("sports")
-    .register(zf.literal.registry, { label: "スポーツ", color: "green.6" }),
-  z
-    .literal("music")
-    .register(zf.literal.registry, { label: "音楽", color: "red.6" }),
-  z
-    .literal("gaming")
-    .register(zf.literal.registry, { label: "ゲーム", color: "grape.6" }),
+  z.literal("reading").register(zf.literal.registry, {
+    label: msgKey("formDemo.readOnly.hobbyLiterals.reading" /* i18n: 読書 */),
+    color: "blue.6",
+  }),
+  z.literal("sports").register(zf.literal.registry, {
+    label: msgKey(
+      "formDemo.readOnly.hobbyLiterals.sports" /* i18n: スポーツ */,
+    ),
+    color: "green.6",
+  }),
+  z.literal("music").register(zf.literal.registry, {
+    label: msgKey("formDemo.readOnly.hobbyLiterals.music" /* i18n: 音楽 */),
+    color: "red.6",
+  }),
+  z.literal("gaming").register(zf.literal.registry, {
+    label: msgKey("formDemo.readOnly.hobbyLiterals.gaming" /* i18n: ゲーム */),
+    color: "grape.6",
+  }),
 ] as const;
 
 // discriminatedUnion用のスキーマ定義
@@ -34,10 +45,22 @@ const contactSchema = z
           .literal("email")
           .register(zf.literal.registry, { hidden: true }),
         email: z
-          .email("有効なメールアドレスを入力してください")
-          .register(zf.string.registry, { label: "メール" }),
+          .email(
+            msgKey(
+              "formDemo.readOnly.contactSchema.email.email.email" /* i18n: 有効なメールアドレスを入力してください */,
+            ),
+          )
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.readOnly.contactSchema.email.email" /* i18n: メール */,
+            ),
+          }),
       })
-      .register(zf.object.registry, { label: "メール連絡" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.readOnly.contactSchema.email" /* i18n: メール連絡 */,
+        ),
+      }),
     z
       .object({
         type: z
@@ -47,49 +70,86 @@ const contactSchema = z
           .string()
           .min(10)
           .max(15)
-          .register(zf.string.registry, { label: "電話番号" }),
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.readOnly.contactSchema.phone.phone" /* i18n: 電話番号 */,
+            ),
+          }),
       })
-      .register(zf.object.registry, { label: "電話連絡" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.readOnly.contactSchema.phone" /* i18n: 電話連絡 */,
+        ),
+      }),
   ])
   .register(zf.union.registry, {
-    label: "連絡先",
-    selectorLabel: "連絡先タイプ",
+    label: msgKey("formDemo.readOnly.contactSchema" /* i18n: 連絡先 */),
+    selectorLabel: msgKey(
+      "formDemo.readOnly.contactSchema.selectorLabel" /* i18n: 連絡先タイプ */,
+    ),
   });
 
 export const schema = z
   .object({
     firstName: zf
       .string()
-      .register(zf.string.registry, { label: "名(string)", uiType: "text" })
+      .register(zf.string.registry, {
+        label: msgKey("formDemo.readOnly.firstName" /* i18n: 名(string) */),
+        uiType: "text",
+      })
       .optional(),
-    lastName: zf.string().min(1).register(zf.string.registry, {
-      label: "姓（string, 必須）",
-      uiType: "text",
-    }),
-    frequency: zf.number().max(7).min(0).register(zf.number.registry, {
-      label: "1週間にお酒を飲む日数(number, slider)",
-      uiType: "slider",
-    }),
+    lastName: zf
+      .string()
+      .min(1)
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.readOnly.lastName" /* i18n: 姓（string, 必須） */,
+        ),
+        uiType: "text",
+      }),
+    frequency: zf
+      .number()
+      .max(7)
+      .min(0)
+      .register(zf.number.registry, {
+        label: msgKey(
+          "formDemo.readOnly.frequency" /* i18n: 1週間にお酒を飲む日数(number, slider) */,
+        ),
+        uiType: "slider",
+      }),
     age: zf
       .number()
       .max(150)
       .min(0)
-      .register(zf.number.registry, { label: "年齢(number)" }),
-    birthday: zf.date().register(zf.date.registry, { label: "誕生日(date)" }),
-    isMember: zf
-      .boolean()
-      .register(zf.boolean.registry, { label: "会員(boolean)" }),
+      .register(zf.number.registry, {
+        label: msgKey("formDemo.readOnly.age" /* i18n: 年齢(number) */),
+      }),
+    birthday: zf.date().register(zf.date.registry, {
+      label: msgKey("formDemo.readOnly.birthday" /* i18n: 誕生日(date) */),
+    }),
+    isMember: zf.boolean().register(zf.boolean.registry, {
+      label: msgKey("formDemo.readOnly.isMember" /* i18n: 会員(boolean) */),
+    }),
     bigAmount: zf
       .bigint()
       .register(zf.bigint.registry, { label: "bigint" })
       .optional(),
-    favoriteColor: zf
-      .literal("red")
-      .register(zf.literal.registry, { label: "固定データ(literal)" }),
+    favoriteColor: zf.literal("red").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.readOnly.favoriteColor" /* i18n: 固定データ(literal) */,
+      ),
+    }),
     isConfirmed: zf
-      .literal(true, "承認してください")
+      .literal(
+        true,
+        msgKey(
+          "formDemo.readOnly.isConfirmed.literal" /* i18n: 承認してください */,
+        ),
+      )
       .register(zf.boolean.registry, {
-        label: "承認済(literal型+booleanコンポーネントを強制)",
+        label: msgKey(
+          "formDemo.readOnly.isConfirmed" /* i18n: 承認済(literal型+booleanコンポーネントを強制) */,
+        ),
       }),
     position: zf
       .tuple([
@@ -104,29 +164,34 @@ export const schema = z
           .max(100)
           .register(zf.number.registry, { label: "Y" }),
       ])
-      .register(zf.tuple.registry, { label: "座標(tuple)" }),
+      .register(zf.tuple.registry, {
+        label: msgKey("formDemo.readOnly.position" /* i18n: 座標(tuple) */),
+      }),
     // enum: 単一選択
-    favoriteHobby: zf
-      .enum(hobbyLiterals)
-      .register(zf.enum.registry, { label: "一番好きな趣味(enum)" }),
+    favoriteHobby: zf.enum(hobbyLiterals).register(zf.enum.registry, {
+      label: msgKey(
+        "formDemo.readOnly.favoriteHobby" /* i18n: 一番好きな趣味(enum) */,
+      ),
+    }),
     // enum: 複数選択
     hobbies: zf.array(zf.enum(hobbyLiterals)).register(zf.array.registry, {
-      label: "趣味(array enum)",
+      label: msgKey("formDemo.readOnly.hobbies" /* i18n: 趣味(array enum) */),
       uiType: "multipleEnum",
     }),
     // discriminatedUnion
     contact: contactSchema,
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => "これはreadOnlyモードのサンプルです",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        msgKey(
+          "formDemo.readOnly.message.compute" /* i18n: これはreadOnlyモードのサンプルです */,
+        ),
+    }),
   })
   .register(zf.object.registry, { readOnly: true });
 
 export const defaultValues: z.input<typeof schema> = {
-  firstName: "太郎",
-  lastName: "山田",
+  firstName: "John",
+  lastName: "Smith",
   frequency: 3,
   age: 25,
   birthday: new Date("1999-01-01"),

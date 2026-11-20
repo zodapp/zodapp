@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import type React from "react";
 import {
   ActionIcon,
@@ -21,7 +22,6 @@ import {
   useNavigate,
   type LinkOptions,
 } from "@tanstack/react-router";
-
 
 import styles from "../styles/page.module.css";
 import { LanguageSwitcher } from "./Language";
@@ -169,6 +169,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     );
   };
 
+  const msg = useMsg();
   const hasNavbar =
     navItems.length > 0 || backLink != null || extraNavContent != null;
 
@@ -204,7 +205,15 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 ml="md"
               />
               <Tooltip
-                label={desktopOpened ? "サイドバーを閉じる" : "サイドバーを開く"}
+                label={
+                  desktopOpened
+                    ? msg(
+                        "formDemo.app.layout.closeSidebar" /* i18n: サイドバーを閉じる */,
+                      )
+                    : msg(
+                        "formDemo.app.layout.openSidebar" /* i18n: サイドバーを開く */,
+                      )
+                }
                 position="bottom"
               >
                 <ActionIcon
@@ -242,7 +251,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               leftSection={demo.icon}
               style={{ cursor: "pointer", fontWeight: 700 }}
             >
-              {demo.label}
+              {msg.resolve(demo.label)}
             </Badge>
           ) : (
             <span style={{ fontSize: "0.8em" }}>

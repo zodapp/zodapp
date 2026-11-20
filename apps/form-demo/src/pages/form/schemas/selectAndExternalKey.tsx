@@ -1,3 +1,5 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
+import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
@@ -15,8 +17,9 @@ import {
 
 export const formId = "selectAndExternalKey";
 export const title = "zf.externalKey";
-export const description =
-  "担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、一覧が届き直したときの扱い、選んだ値の詳細ページへのリンク";
+export const description = msgKey(
+  "formDemo.page.selectAndExternalKey.description" /* i18n: 担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、一覧が届き直したときの扱い、選んだ値の詳細ページへのリンク */,
+);
 export const icon = IconListSearch;
 export const category = "Advanced";
 
@@ -33,27 +36,35 @@ const openUser = {
 };
 
 /**
- * 市区町村：親の都道府県で config が変わる外部キー。
+ * 親の値で config が変わる外部キー（州 → 市、都道府県 → 市区町村）。
  * config はただのデータなので、親の値で変えるときは dynamic で包んで externalKey の schema を返す。
- * 都道府県を変えると key が変わって選択肢を取り直し、新しい選択肢に無い市区町村は消える（unlisted の既定 clear）。
+ * 親を変えると key が変わって選択肢を取り直し、新しい選択肢に無い値は消える（unlisted の既定 clear）。
  */
-const citySchema = z.string().register(
-  zf.dynamic.registry,
-  defineDynamicMeta<unknown, { prefecture?: string }>({
-    dependsOnValue: false,
-    dependsOnParent: true,
-    resolve: ({ parent }) => ({
-      key: parent?.prefecture ?? "",
-      schema: zf.string().register(zf.externalKey.registry, {
-        label: "市区町村",
-        externalKeyConfig: {
-          type: "mock",
-          topic: `cities/${parent?.prefecture ?? ""}`,
-        },
-      }),
+const dependentKey = <P extends string>(
+  parentKey: P,
+  topicPrefix: string,
+  label: string,
+) =>
+  z.string().register(
+    zf.dynamic.registry,
+    defineDynamicMeta<unknown, Partial<Record<P, string>>>({
+      dependsOnValue: false,
+      dependsOnParent: true,
+      resolve: ({ parent }) => {
+        const parentValue = parent?.[parentKey] ?? "";
+        return {
+          key: parentValue,
+          schema: zf.string().register(zf.externalKey.registry, {
+            label,
+            externalKeyConfig: {
+              type: "mock",
+              topic: `${topicPrefix}/${parentValue}`,
+            },
+          }),
+        };
+      },
     }),
-  }),
-);
+  );
 
 export const schema = z
   .object({
@@ -64,17 +75,19 @@ export const schema = z
       label: 'string + uiType: "select" + valueAction',
       uiType: "select",
       suggestions: [
-        { label: "東京本社", value: "hq" },
-        { label: "大阪支社", value: "osaka" },
+        { label: "New York headquarters", value: "hq" },
+        { label: "Chicago office", value: "chicago" },
       ],
       valueAction: openOffice,
     }),
     officeLegacy: zf.string().register(zf.string.registry, {
-      label: 'string + uiType: "select"（選択肢に無い保存値もそのまま通る）',
+      label: msgKey(
+        "formDemo.selectAndExternalKey.officeLegacy" /* i18n: string + uiType: "select"（選択肢に無い保存値もそのまま通る） */,
+      ),
       uiType: "select",
       suggestions: [
-        { label: "東京本社", value: "hq" },
-        { label: "大阪支社", value: "osaka" },
+        { label: "New York headquarters", value: "hq" },
+        { label: "Chicago office", value: "chicago" },
       ],
     }),
     // ============================================================
@@ -82,8 +95,16 @@ export const schema = z
     // ============================================================
     status: zf
       .enum([
-        zf.literal("open").register(zf.literal.registry, { label: "対応中" }),
-        zf.literal("done").register(zf.literal.registry, { label: "完了" }),
+        zf.literal("open").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.selectAndExternalKey.status.open" /* i18n: 対応中 */,
+          ),
+        }),
+        zf.literal("done").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.selectAndExternalKey.status.done" /* i18n: 完了 */,
+          ),
+        }),
       ])
       .register(zf.enum.registry, {
         label: "enum + valueAction",
@@ -97,18 +118,23 @@ export const schema = z
     // externalKey：選択肢は resolver から届く（デモでは 0.4 秒待たせる）
     // ============================================================
     assignee: zf.string().register(zf.externalKey.registry, {
-      label: "externalKey（既定：選択肢に無い値は誤り）+ valueAction",
+      label: msgKey(
+        "formDemo.selectAndExternalKey.assignee" /* i18n: externalKey（既定：選択肢に無い値は誤り）+ valueAction */,
+      ),
       externalKeyConfig: { type: "mock", topic: "users" },
       valueAction: openUser,
     }),
     assigneeFree: zf.string().register(zf.externalKey.registry, {
-      label: "externalKey + allowUnlisted（選択肢に無い値も通す）",
+      label: msgKey(
+        "formDemo.selectAndExternalKey.assigneeFree" /* i18n: externalKey + allowUnlisted（選択肢に無い値も通す） */,
+      ),
       externalKeyConfig: { type: "mock", topic: "users" },
       allowUnlisted: true,
     }),
     slowAssignee: zf.string().register(zf.externalKey.registry, {
-      label:
-        "externalKey（取得に 3 秒かかる。読み込み中は選べず、送信も止まる）",
+      label: msgKey(
+        "formDemo.selectAndExternalKey.slowAssignee" /* i18n: externalKey（取得に 3 秒かかる。読み込み中は選べず、送信も止まる） */,
+      ),
       externalKeyConfig: { type: "mock", topic: "users", demoDelayMs: 3000 },
     }),
     // ============================================================
@@ -116,24 +142,65 @@ export const schema = z
     // key は変わらないので購読は張り直さない。届いた選択肢に値が無いときは unlisted に従う
     // ============================================================
     onDuty: zf.string().register(zf.externalKey.registry, {
-      label:
-        "当番（既定の clear。選んだ人が選択肢から外れると値が消え、戻っても値は戻らない）",
+      label: msgKey(
+        "formDemo.selectAndExternalKey.onDuty" /* i18n: 当番（既定の clear。選んだ人が選択肢から外れると値が消え、戻っても値は戻らない） */,
+      ),
       externalKeyConfig: { type: "mock", topic: "onDuty" },
     }),
     onDutyKeep: zf.string().register(zf.externalKey.registry, {
-      label:
-        "当番（unlisted: keep。外れると値を残して「（不正な値）」とエラーを出し、戻れば元の表示に戻る）",
+      label: msgKey(
+        "formDemo.selectAndExternalKey.onDutyKeep" /* i18n: 当番（unlisted: keep。外れると値を残して「（不正な値）」とエラーを出し、戻れば元の表示に戻る） */,
+      ),
       externalKeyConfig: { type: "mock", topic: "onDuty" },
       unlisted: "keep",
     }),
     // ============================================================
     // 親の値で選択肢を変える externalKey（dynamic で包む）
     // ============================================================
-    prefecture: zf.string().register(zf.externalKey.registry, {
-      label: "都道府県",
-      externalKeyConfig: { type: "mock", topic: "prefectures" },
-    }),
-    city: citySchema,
+    // 米国の住所：州を変えると、新しい選択肢に無い市が消える
+    addressUs: z
+      .object({
+        state: zf.string().register(zf.externalKey.registry, {
+          label: msgKey(
+            "formDemo.selectAndExternalKey.addressUs.state" /* i18n: 州 */,
+          ),
+          externalKeyConfig: { type: "mock", topic: "states_us" },
+        }),
+        city: dependentKey(
+          "state",
+          "cities_us",
+          msgKey("formDemo.selectAndExternalKey.addressUs.city" /* i18n: 市 */),
+        ),
+      })
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.selectAndExternalKey.addressUs" /* i18n: 住所（米国） */,
+        ),
+        uiType: "box",
+      }),
+    // 日本の住所：別のサンプル。選択肢はデータなので、言語を切り替えても日本語のまま
+    addressJp: z
+      .object({
+        prefecture: zf.string().register(zf.externalKey.registry, {
+          label: msgKey(
+            "formDemo.selectAndExternalKey.addressJp.prefecture" /* i18n: 都道府県 */,
+          ),
+          externalKeyConfig: { type: "mock", topic: "prefectures_jp" },
+        }),
+        city: dependentKey(
+          "prefecture",
+          "cities_jp",
+          msgKey(
+            "formDemo.selectAndExternalKey.addressJp.city" /* i18n: 市区町村 */,
+          ),
+        ),
+      })
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.selectAndExternalKey.addressJp" /* i18n: 住所（日本。選択肢はデータなので、言語を切り替えても日本語のまま） */,
+        ),
+        uiType: "box",
+      }),
   })
   .register(zf.object.registry, {});
 
@@ -146,8 +213,8 @@ export const defaultValues = {
   slowAssignee: "u-002",
   onDuty: "u-002",
   onDutyKeep: "u-002",
-  prefecture: "tokyo",
-  city: "shinjuku",
+  addressUs: { state: "ca", city: "san-francisco" },
+  addressJp: { prefecture: "tokyo", city: "shinjuku" },
 } satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
@@ -160,6 +227,7 @@ const deliverOnDuty = (without?: string) =>
 const harness = [createE2eHarness({ formId })];
 
 export const Component = () => {
+  const msg = useMsg();
   const [rotating, setRotating] = useState(false);
 
   // topic はページをまたいで残るので、離れるときに全員へ戻す
@@ -180,19 +248,31 @@ export const Component = () => {
     <Stack>
       <Stack gap={4}>
         <Text size="sm">
-          当番の選択肢を届け直す（2 つの「当番」の欄が同じ topic
-          を購読している）
+          {msg(
+            "formDemo.selectAndExternalKey.try.heading" /* i18n: 当番の選択肢を届け直す（2 つの「当番」の欄が同じ topic を購読している） */,
+          )}
         </Text>
         <Group>
           <Button variant="default" onClick={() => deliverOnDuty()}>
-            全員を届け直す
+            {msg(
+              "formDemo.selectAndExternalKey.try.all" /* i18n: 全員を届け直す */,
+            )}
           </Button>
           <Button variant="default" onClick={() => deliverOnDuty("u-002")}>
-            佐藤 花子を外して届け直す
+            {msg(
+              "formDemo.selectAndExternalKey.try.without" /* i18n: ${name}を外して届け直す */,
+              {
+                name:
+                  users.find((user) => user.value === "u-002")?.label ??
+                  "u-002",
+              },
+            )}
           </Button>
         </Group>
         <Switch
-          label="5 秒ごとに一人ずつ外して届け直す"
+          label={msg(
+            "formDemo.selectAndExternalKey.try.rotate" /* i18n: 5 秒ごとに一人ずつ外して届け直す */,
+          )}
           checked={rotating}
           onChange={(event) => setRotating(event.currentTarget.checked)}
         />

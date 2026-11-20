@@ -12,7 +12,7 @@ import {
 // zf.intersection：両側を同じ path に並べ、flat の子は枠を付けずに並べる
 test.beforeEach(async ({ page }) => {
   await openDemo(page, "intersection", "zf.intersection");
-  await expect(field(page, "品名")).toHaveValue("本");
+  await expect(field(page, "品名")).toHaveValue("Book");
 });
 
 /** 見出し（legend・ラベル）の付いた枠 */
@@ -148,7 +148,7 @@ test("object と union の intersection で、届け方を切り替えると欄�
   await expect(field(page, "住所")).toHaveCount(0);
   await expect
     .poll(async () => valueOf(page, "order"))
-    .toMatchObject({ item: "本", method: "mail" });
+    .toMatchObject({ item: "Book", method: "mail" });
   expect(await valueOf(page, "order")).not.toHaveProperty("address");
 });
 

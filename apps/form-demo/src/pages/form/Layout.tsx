@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { ActionIcon, NavLink, Tooltip, Divider, Text } from "@mantine/core";
 import { useMediaQuery, useLocalStorage } from "@mantine/hooks";
 import { IconChevronLeft, IconList } from "@tabler/icons-react";
@@ -20,16 +21,17 @@ const MainLayout = () => {
     defaultValue: true,
   });
   const isMobile = useMediaQuery("(max-width: 48em)");
+  const msg = useMsg();
 
   const backLink: BackLink = {
-    label: "トップに戻る",
+    label: msg("formDemo.app.nav.backToTop" /* i18n: トップに戻る */),
     icon: <IconChevronLeft size={20} />,
     to: homeRoute.to,
   };
 
   const navItems: NavItem[] = [
     {
-      label: "一覧",
+      label: msg("formDemo.app.nav.list" /* i18n: 一覧 */),
       icon: <IconList size={20} />,
       to: formListRoute.to,
       exact: true,
@@ -38,7 +40,7 @@ const MainLayout = () => {
 
   // スキーマ一覧のナビゲーションアイテム
   const schemaNavItems = formIds.map((formId) => ({
-    label: formSchemas[formId].title,
+    label: msg.resolve(formSchemas[formId].title),
     icon: formSchemas[formId].icon,
     formId,
   }));
@@ -97,7 +99,7 @@ const MainLayout = () => {
       <Divider my="sm" />
       {(isMobile || desktopOpened) && (
         <Text size="xs" c="dimmed" fw={500} mb="xs" px="xs">
-          スキーマ一覧
+          {msg("formDemo.app.nav.schemas" /* i18n: スキーマ一覧 */)}
         </Text>
       )}
       {schemaNavItems.map((item) => renderSchemaNavItem(item, closeMobile))}

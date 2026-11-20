@@ -32,7 +32,8 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
 }: ZodFormInternalProps<BigIntSchema>) {
   const { optional, nullable } = emptinessOf(outer);
   const { onFocus, ref } = useValidatePrecedingFields(field);
-  const { label: labelFromMeta } = useResolvedMeta(schema) ?? {};
+  const { label: labelFromMeta, placeholder } =
+    useResolvedMeta(schema, "bigint") ?? {};
   const label = labelFromParent ?? labelFromMeta;
 
   const displayValue =
@@ -110,6 +111,7 @@ const BigIntComponent = wrapComponent(function BigIntComponentImplement({
       onBlur={onBlur}
       onFocus={onFocus}
       label={label || undefined}
+      placeholder={placeholder}
       error={error?.message}
       required={!(optional || nullable)}
       disabled={readOnly || field.disabled}

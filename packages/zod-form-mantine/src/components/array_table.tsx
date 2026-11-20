@@ -1,4 +1,7 @@
-import { useResolvedMeta } from "@zodapp/zod-form-react/common";
+import {
+  useResolveText,
+  useResolvedMeta,
+} from "@zodapp/zod-form-react/common";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, InputWrapper, Table, Text } from "@mantine/core";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";
@@ -382,6 +385,7 @@ const ArrayTableComponent = wrapComponent(
     const canInsert = !value || value.length < (maxLength?.maximum ?? Infinity);
     const canRemove = value && value.length > (minLength?.minimum ?? 0);
     const label = labelFromParent ?? labelFromMeta;
+    const resolveText = useResolveText();
     const isDisabled = readOnly === true || field.disabled === true;
 
     const { items, insert, remove, append, move } = useArray(
@@ -547,7 +551,7 @@ const ArrayTableComponent = wrapComponent(
                               ),
                             }}
                           >
-                            {column.label}
+                            {resolveText(column.label)}
                           </Table.Th>
                         ))}
                       </Table.Tr>

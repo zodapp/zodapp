@@ -53,6 +53,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
     uiType,
     unlisted,
     emptyMessage,
+    placeholder,
   } = useResolvedMeta(schema) ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const { onFocus, ref } = useValidatePrecedingFields(field);
@@ -226,6 +227,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
           onBlur={field.onBlur}
           onFocus={onFocus}
           label={label || undefined}
+          placeholder={placeholder}
           error={errorMessage}
           required={!(optional || nullable)}
           disabled={readOnly || field.disabled}
@@ -246,6 +248,7 @@ const EnumComponent = wrapComponent(function EnumComponentImplement({
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
+        placeholder={placeholder}
         searchable={true}
         error={errorMessage}
         required={!(optional || nullable)}

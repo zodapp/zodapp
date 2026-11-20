@@ -9,12 +9,19 @@ import {
   logOf,
   openDemo,
   pendingFetch,
+  jpAddress,
   previewValue,
   setDelayMode,
   submit,
   test,
   waitSubmitSettled,
 } from "./helpers";
+
+// 見るための部品に残るエラーは、訳す前のメッセージキー（画面には訳して出す）
+const CITY_EMPTY_KEY =
+  "formDemo.dynamicAdvanced.addressJp.city.emptyMessage"; /* i18n: 先に都道府県を選んでください */
+const TOWN_EMPTY_KEY =
+  "formDemo.dynamicAdvanced.addressJp.town.emptyMessage"; /* i18n: 先に市区町村を選んでください */
 
 // zf.dynamic（読み込み・購読・連動）
 test.beforeEach(async ({ page }) => {
@@ -53,13 +60,9 @@ test("都道府県を変えると、選択肢に無くなった下の欄を順�
 }) => {
   await expect(field(page, "市区町村")).toHaveValue("新宿区");
   await choose(page, "都道府県", "大阪府");
-  await expect
-    .poll(async () => (await previewValue(page)).city)
-    .toBeUndefined();
-  await expect
-    .poll(async () => (await previewValue(page)).town)
-    .toBeUndefined();
-  expect((await previewValue(page)).prefecture).toBe("osaka");
+  await expect.poll(async () => (await jpAddress(page)).city).toBeUndefined();
+  await expect.poll(async () => (await jpAddress(page)).town).toBeUndefined();
+  expect((await jpAddress(page)).prefecture).toBe("osaka");
 });
 
 test("都道府県を消すと、市区町村・町名は選択肢が0件になり、理由を出して選べなくなる。必須エラーは出さない", async ({
@@ -76,14 +79,10 @@ test("都道府県を消すと、市区町村・町名は選択肢が0件にな�
     .first()
     .click();
   await expect
-    .poll(async () => (await previewValue(page)).prefecture)
+    .poll(async () => (await jpAddress(page)).prefecture)
     .toBeUndefined();
-  await expect
-    .poll(async () => (await previewValue(page)).city)
-    .toBeUndefined();
-  await expect
-    .poll(async () => (await previewValue(page)).town)
-    .toBeUndefined();
+  await expect.poll(async () => (await jpAddress(page)).city).toBeUndefined();
+  await expect.poll(async () => (await jpAddress(page)).town).toBeUndefined();
   await expect(field(page, "市区町村")).toBeDisabled();
   await expect(field(page, "市区町村")).toHaveAttribute(
     "placeholder",
@@ -127,8 +126,9 @@ test("在庫が変わると、在庫を超えたときだけエラーになり�
 // ============================================================
 test.describe("取得の時機・失敗・連鎖", () => {
   test.beforeEach(async ({ page }) => {
-    // 開いたときの取得（見やすい遅延）が終わるまで待つ
+    // 開いたときの取得（見やすい遅延）が終わるまで待つ。米国と日本の住所の両方
     await expect(field(page, "町名")).toHaveValue("西新宿");
+    await expect(field(page, "地区")).toHaveValue("Mission District");
   });
 
   /** ログの件数を数えて、その後に増えた分だけを読む */
@@ -232,7 +232,7 @@ test.describe("取得の時機・失敗・連鎖", () => {
     await expect(retry).toHaveCount(1);
     expect(
       (await logOf(page, "fetch")).filter(
-        (entry) => entry.key === "cities/osaka" && entry.result === "failed",
+        (entry) => entry.key === "cities_jp/osaka" && entry.result === "failed",
       ),
     ).toHaveLength(1);
 
@@ -247,7 +247,7 @@ test.describe("取得の時機・失敗・連鎖", () => {
     await choose(page, "市区町村", "堺市");
     await choose(page, "町名", "堺東");
     await expect
-      .poll(async () => (await previewValue(page)).town)
+      .poll(async () => (await jpAddress(page)).town)
       .toBe("sakaihigashi");
   });
 
@@ -308,7 +308,7 @@ test.describe("取得の時機・失敗・連鎖", () => {
       await choose(page, "都道府県", "大阪府");
       await expect
         .poll(async () => {
-          const values = await previewValue(page);
+          const values = await jpAddress(page);
           return [values.prefecture, values.city, values.town];
         })
         .toEqual(["osaka", undefined, undefined]);
@@ -317,7 +317,7 @@ test.describe("取得の時機・失敗・連鎖", () => {
       await choose(page, "町名", "梅田");
       await expect
         .poll(async () => {
-          const values = await previewValue(page);
+          const values = await jpAddress(page);
           return [values.prefecture, values.city, values.town];
         })
         .toEqual(["osaka", "osaka-shi", "umeda"]);
@@ -326,7 +326,7 @@ test.describe("取得の時機・失敗・連鎖", () => {
       await clearSelect(page, "都道府県");
       await expect
         .poll(async () => {
-          const values = await previewValue(page);
+          const values = await jpAddress(page);
           return [values.prefecture, values.city, values.town];
         })
         .toEqual([undefined, undefined, undefined]);
@@ -353,7 +353,7 @@ test.describe("取得の時機・失敗・連鎖", () => {
     await clearSelect(page, "都道府県");
     await expect
       .poll(async () => {
-        const values = await previewValue(page);
+        const values = await jpAddress(page);
         return [values.prefecture, values.city, values.town];
       })
       .toEqual([undefined, undefined, undefined]);
@@ -362,12 +362,9 @@ test.describe("取得の時機・失敗・連鎖", () => {
     await expect
       .poll(async () => {
         const { fields } = (await formDemo(page)).errors;
-        return [fields.city, fields.town];
+        return [fields["addressJp.city"], fields["addressJp.town"]];
       })
-      .toEqual([
-        ["先に都道府県を選んでください"],
-        ["先に市区町村を選んでください"],
-      ]);
+      .toEqual([[CITY_EMPTY_KEY], [TOWN_EMPTY_KEY]]);
     // 触る前・送信する前は、ほかの必須の欄と同じく画面には出さない
     await expect(fieldError(page, "市区町村")).toHaveCount(0);
 
@@ -384,8 +381,8 @@ test.describe("取得の時機・失敗・連鎖", () => {
       "入力に誤りがあるため、送信できませんでした",
     );
     const { fields } = (await formDemo(page)).errors;
-    expect(fields.city).toEqual(["先に都道府県を選んでください"]);
-    expect(fields.town).toEqual(["先に市区町村を選んでください"]);
+    expect(fields["addressJp.city"]).toEqual([CITY_EMPTY_KEY]);
+    expect(fields["addressJp.town"]).toEqual([TOWN_EMPTY_KEY]);
   });
 
   test("外から書き込んで帳票の種類が変わっても、帳票の項目の値は削らない", async ({

@@ -6,6 +6,7 @@ import {
   field,
   openDemo,
   optionsOf,
+  jpAddress,
   previewValue,
   test,
 } from "./helpers";
@@ -19,14 +20,14 @@ test("一覧が届くと、保存している値をラベルで出す", async ({
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "externalKey（既定")).toHaveValue("山田 太郎");
+  await expect(field(page, "externalKey（既定")).toHaveValue("Alice Johnson");
 });
 
 test("allowUnlisted の欄は、一覧に無い値もそのまま持つ", async ({
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "externalKey（既定")).toHaveValue("山田 太郎");
+  await expect(field(page, "externalKey（既定")).toHaveValue("Alice Johnson");
   expect((await previewValue(page)).assigneeFree).toBe("u-999");
 });
 
@@ -36,10 +37,8 @@ test("都道府県を変えると、新しい一覧に無い市区町村が消�
 }) => {
   await expect(field(page, "市区町村")).toHaveValue("新宿区");
   await choose(page, "都道府県", "大阪府");
-  await expect
-    .poll(async () => (await previewValue(page)).city)
-    .toBeUndefined();
-  expect((await previewValue(page)).prefecture).toBe("osaka");
+  await expect.poll(async () => (await jpAddress(page)).city).toBeUndefined();
+  expect((await jpAddress(page)).prefecture).toBe("osaka");
 });
 
 // 同じ購読のまま選択肢が届き直す：画面のボタンで当番の topic を変える
@@ -54,9 +53,9 @@ test("既定（clear）の欄は、届き直した一覧から外れた値を消
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, ON_DUTY)).toHaveValue("佐藤 花子");
+  await expect(field(page, ON_DUTY)).toHaveValue("Bob Smith");
 
-  await redeliver(page, "佐藤 花子を外して届け直す");
+  await redeliver(page, "Bob Smithを外して届け直す");
   await expect
     .poll(async () => (await previewValue(page)).onDuty)
     .toBeUndefined();
@@ -65,7 +64,7 @@ test("既定（clear）の欄は、届き直した一覧から外れた値を消
   await redeliver(page, "全員を届け直す");
   await expect
     .poll(() => optionsOf(page, ON_DUTY))
-    .toEqual(["山田 太郎", "佐藤 花子", "鈴木 一郎"]);
+    .toEqual(["Alice Johnson", "Bob Smith", "Carol Davis"]);
   expect((await previewValue(page)).onDuty).toBeUndefined();
   await expect(field(page, ON_DUTY)).toHaveValue("");
 });
@@ -74,15 +73,15 @@ test("unlisted: keep の欄は、届き直した一覧から外れた値を残�
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("佐藤 花子");
+  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("Bob Smith");
 
-  await redeliver(page, "佐藤 花子を外して届け直す");
+  await redeliver(page, "Bob Smithを外して届け直す");
   await expect(field(page, ON_DUTY_KEEP)).toHaveValue("（不正な値）");
   await expect(page.getByText(UNLISTED_ERROR)).toBeVisible();
   expect((await previewValue(page)).onDutyKeep).toBe("u-002");
 
   await redeliver(page, "全員を届け直す");
-  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("佐藤 花子");
+  await expect(field(page, ON_DUTY_KEEP)).toHaveValue("Bob Smith");
   await expect(page.getByText(UNLISTED_ERROR)).toBeHidden();
   expect((await previewValue(page)).onDutyKeep).toBe("u-002");
 });

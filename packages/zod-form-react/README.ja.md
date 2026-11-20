@@ -199,7 +199,7 @@ import { ja } from "@zodapp/zod-form-react/messages";
 ```
 
 - `FormRuntime`（`wrapValidator`・`validate`）は、zod のエラーを辞書のキーにして検証します。schema に書いた文言（`.min(3, "…")`）はそのまま出し、辞書のキーなら訳します。schema を validator に直接渡したときは zod の既定の文言のままです。
-- meta の文言（`label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`）が辞書のキーなら、部品で訳します（`useResolvedMeta`・`useResolveText`）。
+- meta の文言（`label`・`trueLabel`・`falseLabel`・`emptyMessage`・`selectorLabel`・`unselectedLabel`・`placeholder`）が辞書のキーなら、部品で訳します（`useResolvedMeta`・`useResolveText`）。computed・formatter が返す文字列と、badge・icon・link・title の `label` も、辞書のキーなら訳します。
 - 部品を作るときは、`createUseMsg` で自分の辞書を既定にした `useMsg` を作ります。
 
 ## API（抜粋）

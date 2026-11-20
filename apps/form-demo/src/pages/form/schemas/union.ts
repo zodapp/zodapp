@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,8 +6,9 @@ import { IconUsers } from "@tabler/icons-react";
 
 export const formId = "union";
 export const title = "zf.union";
-export const description =
-  "電話番号かメールアドレスのどちらかを入力する";
+export const description = msgKey(
+  "formDemo.page.union.description" /* i18n: 電話番号かメールアドレスのどちらかを入力する */,
+);
 export const icon = IconUsers;
 export const category = "Advanced";
 
@@ -15,8 +17,16 @@ export const schema = z
     contact: zf
       .union([
         z
-          .email("有効なメールアドレスを入力してください")
-          .register(zf.string.registry, { label: "メールアドレス(文字列)" }),
+          .email(
+            msgKey(
+              "formDemo.union.contact.arm0.email" /* i18n: 有効なメールアドレスを入力してください */,
+            ),
+          )
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.union.contact.arm0" /* i18n: メールアドレス(文字列) */,
+            ),
+          }),
         zf
           .object({
             type: zf
@@ -24,42 +34,62 @@ export const schema = z
               .register(zf.literal.registry, { hidden: true }),
             phoneType: zf
               .enum([
-                zf
-                  .literal("mobile")
-                  .register(zf.literal.registry, { label: "携帯電話" }),
-                zf
-                  .literal("landline")
-                  .register(zf.literal.registry, { label: "固定電話" }),
+                zf.literal("mobile").register(zf.literal.registry, {
+                  label: msgKey(
+                    "formDemo.union.contact.phone.phoneType.mobile" /* i18n: 携帯電話 */,
+                  ),
+                }),
+                zf.literal("landline").register(zf.literal.registry, {
+                  label: msgKey(
+                    "formDemo.union.contact.phone.phoneType.landline" /* i18n: 固定電話 */,
+                  ),
+                }),
               ])
-              .register(zf.enum.registry, { label: "電話番号タイプ" }),
+              .register(zf.enum.registry, {
+                label: msgKey(
+                  "formDemo.union.contact.phone.phoneType" /* i18n: 電話番号タイプ */,
+                ),
+              }),
             phone: zf
               .string()
               .min(10)
               .max(15)
-              .register(zf.string.registry, { label: "電話番号" }),
+              .register(zf.string.registry, {
+                label: msgKey(
+                  "formDemo.union.contact.phone.phone" /* i18n: 電話番号 */,
+                ),
+              }),
           })
-          .register(zf.object.registry, { label: "電話" }),
+          .register(zf.object.registry, {
+            label: msgKey("formDemo.union.contact.phone" /* i18n: 電話 */),
+          }),
         zf
           .object({
             type: zf
               .literal("address")
               .register(zf.literal.registry, { hidden: true }),
-            address: zf
-              .string()
-              .register(zf.string.registry, { label: "住所" }),
+            address: zf.string().register(zf.string.registry, {
+              label: msgKey(
+                "formDemo.union.contact.address.address" /* i18n: 住所 */,
+              ),
+            }),
           })
-          .register(zf.object.registry, { label: "住所" }),
+          .register(zf.object.registry, {
+            label: msgKey("formDemo.union.contact.address" /* i18n: 住所 */),
+          }),
       ])
       .register(zf.union.registry, {
-        label: "連絡先",
-        selectorLabel: "連絡先タイプ",
+        label: msgKey("formDemo.union.contact" /* i18n: 連絡先 */),
+        selectorLabel: msgKey(
+          "formDemo.union.contact.selectorLabel" /* i18n: 連絡先タイプ */,
+        ),
       }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        msgKey(
+          "formDemo.union.message.compute" /* i18n: Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。 */,
+        ),
+    }),
   })
   .register(zf.object.registry, {});
 

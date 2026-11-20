@@ -7,6 +7,8 @@ import type { AnyFormApi } from "@tanstack/react-form";
 import { z } from "zod";
 
 import { zf } from "@zodapp/zod-form";
+import { encodeMsgKey } from "@zodapp/i18n-messages";
+import { I18nMessagesProvider } from "@zodapp/i18n-messages-react";
 import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import {
   Switch,
@@ -57,7 +59,10 @@ const componentLibrary = {
 const renderForm = (
   schema: z.ZodTypeAny,
   defaultValues: unknown,
-  options: { resolverContext?: RegisteredResolverContext } = {},
+  options: {
+    resolverContext?: RegisteredResolverContext;
+    messages?: Record<string, string>;
+  } = {},
 ) => {
   let formApi: AnyFormApi | undefined;
   const FormUnderTest = () => {
@@ -80,7 +85,15 @@ const renderForm = (
       </MantineProvider>
     );
   };
-  render(<FormUnderTest />);
+  render(
+    options.messages ? (
+      <I18nMessagesProvider locale="en" messages={options.messages}>
+        <FormUnderTest />
+      </I18nMessagesProvider>
+    ) : (
+      <FormUnderTest />
+    ),
+  );
   return () => formApi!;
 };
 
@@ -92,6 +105,27 @@ describe("computed", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+  });
+
+  it("label と string の表示値を msgKey で書くと、辞書で訳す", async () => {
+    const schema = z.object({
+      note: zf.computed().register(zf.computed.registry, {
+        label: encodeMsgKey("test.computed.label"),
+        compute: () => encodeMsgKey("test.computed.text"),
+      }),
+    });
+    renderForm(
+      schema,
+      {},
+      {
+        messages: {
+          "test.computed.label": "Note",
+          "test.computed.text": "Translated text",
+        },
+      },
+    );
+    expect(await screen.findByText("Note")).toBeTruthy();
+    expect(await screen.findByText("Translated text")).toBeTruthy();
   });
 
   it("値を持つ欄では、自分の値から表示を作る", async () => {
@@ -110,12 +144,10 @@ describe("computed", () => {
     const schema = z.object({
       first: zf.string().register(zf.string.registry, { label: "名" }),
       last: zf.string().register(zf.string.registry, { label: "姓" }),
-      full: zf
-        .computed()
-        .register(zf.computed.registry, {
-          dependsOnParent: true,
-          compute: ({ parent }) => `${parent.last} ${parent.first}`,
-        }),
+      full: zf.computed().register(zf.computed.registry, {
+        dependsOnParent: true,
+        compute: ({ parent }) => `${parent.last} ${parent.first}`,
+      }),
     });
     const form = renderForm(schema, { first: "太郎", last: "山田" });
     expect(await screen.findByText("山田 太郎")).toBeTruthy();
@@ -157,13 +189,11 @@ describe("computed", () => {
 
   it("contextId を指定すると resolverContext の該当部分を context として渡す", async () => {
     const schema = z.object({
-      who: zf
-        .computed()
-        .register(zf.computed.registry, {
-          contextId: "auth",
-          compute: ({ context }) =>
-            `${(context as { userName: string }).userName} さんとして編集しています`,
-        }),
+      who: zf.computed().register(zf.computed.registry, {
+        contextId: "auth",
+        compute: ({ context }) =>
+          `${(context as { userName: string }).userName} さんとして編集しています`,
+      }),
     });
     renderForm(
       schema,

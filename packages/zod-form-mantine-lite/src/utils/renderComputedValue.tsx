@@ -7,6 +7,15 @@ import { ReadonlyText } from "./text";
 import { ColorBadge } from "./selectOption";
 import { useMsg } from "../messages/useMsg";
 
+/**
+ * 文言（`msgKey` で詰めたキーか、普通の文字列）を辞書で引き直して出す。
+ * キーの形でない文字列・辞書に無いキーは、受け取った文字列のまま出す
+ */
+function ResolvedText({ text }: { text: string | undefined }) {
+  const msg = useMsg();
+  return <>{msg.resolve(text)}</>;
+}
+
 export type RenderComputedValueVariant = "table" | "readOnly";
 type LinkComputedValue = { type: "link"; label: string; href: string };
 
@@ -28,18 +37,22 @@ export function renderComputedValue(
 
   if (typeof content === "string") {
     if (variant === "readOnly") {
-      return <ReadonlyText>{content}</ReadonlyText>;
+      return (
+        <ReadonlyText>
+          <ResolvedText text={content} />
+        </ReadonlyText>
+      );
     }
     if (variant === "table") {
       return (
         <Text component="div" size="sm" lineClamp={1}>
-          {content}
+          <ResolvedText text={content} />
         </Text>
       );
     }
     return (
       <Text component="div" size="sm">
-        {content}
+        <ResolvedText text={content} />
       </Text>
     );
   }
@@ -51,7 +64,7 @@ export function renderComputedValue(
     }
     return (
       <Anchor href={link.href} target="_blank" rel="noopener noreferrer">
-        {link.label}
+        <ResolvedText text={link.label} />
       </Anchor>
     );
   }
@@ -72,7 +85,11 @@ export function renderComputedValue(
  */
 export function renderComputedFieldValue(content: unknown): React.ReactNode {
   if (typeof content === "string") {
-    return <ReadonlyText>{content}</ReadonlyText>;
+    return (
+      <ReadonlyText>
+        <ResolvedText text={content} />
+      </ReadonlyText>
+    );
   }
 
   const link = getLinkValue(content);
@@ -95,8 +112,9 @@ function getLinkValue(content: unknown): LinkComputedValue | undefined {
   return content as LinkComputedValue;
 }
 
-function ReadonlyLink({ label, href }: LinkComputedValue) {
+function ReadonlyLink({ label: rawLabel, href }: LinkComputedValue) {
   const msg = useMsg();
+  const label = msg.resolve(rawLabel);
   return (
     <Group gap="0" wrap="nowrap" align="center">
       <ReadonlyText style={{ flex: 1 }}>{label}</ReadonlyText>
@@ -133,7 +151,11 @@ function renderStructured(content: unknown): React.ReactNode {
 
   if (obj.type === "badge") {
     const { label, color } = obj as Extract<ComputedValue, { type: "badge" }>;
-    return <ColorBadge color={color}>{label}</ColorBadge>;
+    return (
+      <ColorBadge color={color}>
+        <ResolvedText text={label} />
+      </ColorBadge>
+    );
   }
 
   if (obj.type === "icon") {
@@ -144,7 +166,12 @@ function renderStructured(content: unknown): React.ReactNode {
     return (
       <Text component="div" size="sm" style={{ color }}>
         <span className={icon} />
-        {label && <> {label}</>}
+        {label && (
+          <>
+            {" "}
+            <ResolvedText text={label} />
+          </>
+        )}
       </Text>
     );
   }
@@ -153,7 +180,7 @@ function renderStructured(content: unknown): React.ReactNode {
     const { label, level } = obj as Extract<ComputedValue, { type: "title" }>;
     return (
       <Title size={level} mt="12px">
-        {label}
+        <ResolvedText text={label} />
       </Title>
     );
   }

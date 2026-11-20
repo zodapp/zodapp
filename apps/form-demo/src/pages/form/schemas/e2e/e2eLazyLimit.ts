@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-lazy-limit";
-export const title = "e2e：再帰の上限";
-export const description =
-  "optional の付かない再帰（鎖）は maxDepth: 2 で、3 段目に「これより深い階層は表示できません」の注記を出す。注記の先の値は消さない（鎖は終わりの無い型なので、送信は検証で止まる）。optional な再帰（木）は maxDepth: 2 でも、値のある所まで注記なしで描く";
+export const title = msgKey(
+  "formDemo.page.e2eLazyLimit.title" /* i18n: e2e：再帰の上限 */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eLazyLimit.description" /* i18n: optional の付かない再帰（鎖）は maxDepth: 2 で、3 段目に「これより深い階層は表示できません」の注記を出す。注記の先の値は消さない（鎖は終わりの無い型なので、送信は検証で止まる）。optional な再帰（木）は maxDepth: 2 でも、値のある所まで注記なしで描く */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 
@@ -16,7 +20,11 @@ const chain: z.ZodType<Chain> = z.lazy(() =>
     .object({
       name: z
         .string()
-        .register(zf.string.registry, { label: "鎖の名前" })
+        .register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.e2eLazyLimit.chain.name" /* i18n: 鎖の名前 */,
+          ),
+        })
         .optional(),
       next: chain,
     })
@@ -28,7 +36,9 @@ type Tree = { name: string; child?: Tree };
 const tree: z.ZodType<Tree> = z.lazy(() =>
   z
     .object({
-      name: z.string().register(zf.string.registry, { label: "木の名前" }),
+      name: z.string().register(zf.string.registry, {
+        label: msgKey("formDemo.e2eLazyLimit.tree.name" /* i18n: 木の名前 */),
+      }),
       child: tree.optional(),
     })
     .register(zf.object.registry, {}),
@@ -37,11 +47,15 @@ const tree: z.ZodType<Tree> = z.lazy(() =>
 export const schema = z
   .object({
     chain: chain.register(zf.common.registry, {
-      label: "鎖（optional なし。maxDepth: 2）",
+      label: msgKey(
+        "formDemo.e2eLazyLimit.chain" /* i18n: 鎖（optional なし。maxDepth: 2） */,
+      ),
       maxDepth: 2,
     }),
     tree: tree.register(zf.common.registry, {
-      label: "木（optional。maxDepth: 2）",
+      label: msgKey(
+        "formDemo.e2eLazyLimit.tree" /* i18n: 木（optional。maxDepth: 2） */,
+      ),
       maxDepth: 2,
     }),
   })

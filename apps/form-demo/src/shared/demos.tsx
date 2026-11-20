@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { IconForms } from "@tabler/icons-react";
 import type { LinkOptions } from "@tanstack/react-router";
 import type React from "react";
@@ -9,6 +10,7 @@ import { formListRoute } from "../pages/form/list.route";
  *
  * トップページのカードと、各画面のヘッダーに出す「いまどのデモにいるか」の
  * 表示で同じ定義を使う。デモを増やしたらここに 1 件足せば両方に反映される。
+ * 文言は辞書のキー（msgKey）で書き、出すときに msg.resolve で訳す。
  */
 export interface Demo extends Pick<LinkOptions, "to"> {
   /** ヘッダーのバッジに出す短い名前 */
@@ -22,13 +24,14 @@ export interface Demo extends Pick<LinkOptions, "to"> {
 }
 
 export const formDemo: Demo = {
-  label: "フォーム",
-  title: "フォームデモ",
+  label: msgKey("formDemo.app.demo.form.label" /* i18n: フォーム */),
+  title: msgKey("formDemo.app.demo.form.title" /* i18n: フォームデモ */),
   to: formListRoute.to,
   icon: <IconForms size={16} />,
   color: "cyan",
-  description:
-    "1 つの Zod スキーマから生成されるフォーム UI のカタログ。入力型・レイアウト・カスタムウィジェット・動的スキーマなど。",
+  description: msgKey(
+    "formDemo.app.demo.form.description" /* i18n: 1 つの Zod スキーマから生成されるフォーム UI のカタログ。入力型・レイアウト・カスタムウィジェット・動的スキーマなど。 */,
+  ),
 };
 
 export const demos: Demo[] = [formDemo];

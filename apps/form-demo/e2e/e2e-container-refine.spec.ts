@@ -39,12 +39,12 @@ test("array：メンバーを重複させて離すとエラーが出て、直す
   page,
   pageErrors: _,
 }) => {
-  const second = page.locator('input[value="佐藤"]');
-  await second.fill("山田");
+  const second = page.locator('input[value="Brown"]');
+  await second.fill("Smith");
   await page.keyboard.press("Tab");
   await expect(message(page, "メンバーが重複しています")).toBeVisible();
-  const again = page.locator('input[value="山田"]').nth(1);
-  await again.fill("鈴木");
+  const again = page.locator('input[value="Smith"]').nth(1);
+  await again.fill("Davis");
   await page.keyboard.press("Tab");
   await expect(message(page, "メンバーが重複しています")).toHaveCount(0);
 });

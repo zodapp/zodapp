@@ -78,7 +78,7 @@ test("どちらも、送信する値には固定値が入る", async ({
   const expected = {
     kind: "article",
     version: 2,
-    title: "お知らせ",
+    title: "Announcement",
     deletedAt: null,
     contact: { type: "email", email: "info@example.com" },
   };
