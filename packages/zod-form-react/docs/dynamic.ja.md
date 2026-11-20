@@ -35,16 +35,24 @@ AutoForm は、フォームを開くときに静的な schema でも `getDefault
 
 `zf.dynamic()` の土台は `z.unknown()` です。静的な schema のまま parse でき、隣の欄の `.refine()` も走ります。値の検証は、dynamic が決めて登録した schema で行います。読み込み中・取得の失敗は、登録した印の issue で送信を止めます。CSV の書き出し・読み込み（zod-tabular）では、dynamic の欄を飛ばします。
 
-## 送信する値（`FormRuntime.parse`）
+土台には、フォームの評価が差し込む目印（`DYNAMIC_UNRESOLVED`）だけを弾く `abort: true` の検査が付いています。目印はフォームの評価の中でだけ使うので、サーバーなどで同じ schema を parse しても、この検査は必ず通ります。
 
-AutoForm の `onSubmit` には、parse した値（`z.output`）を渡します。dynamic の output を先に値へ差し込んでから、静的な schema で parse します。
+## 検証と送信する値（`FormRuntime.evaluate`）
+
+エラーの表示（`FormRuntime.validate`）と送信する値（`FormRuntime.parse`）は、どちらも `FormRuntime.evaluate` の 1 回の評価を読みます。dynamic の output を先に値へ差し込んでから、静的な schema で parse します。
 
 1. 登録された path を、深い順に並べる
-2. それぞれ、今の値のその path を、その path の一番深い登録の schema で parse する。失敗したら送信しない（読み込み中・取得の失敗も失敗）
-3. その path に output を差し込む（値はコピーで、フォームの値は変えない）
-4. 差し込んだ値を静的な schema で parse し、その output を渡す
+2. それぞれ、今の値のその path を、その path の一番深い登録の schema で parse する
+   - 通った：その path に output を差し込む（値はコピーで、フォームの値は変えない）
+   - 通らない・読み込み中・取得の失敗：issue を集め、その path に目印を差し込む
+3. 差し込んだ値を静的な schema で parse する
+4. 目印を弾いた issue（`invalid_union` の腕の中も）を捨て、残りの issue を返す。issue が無ければ 3 の output が送信する値になる
 
+- 「エラーが出ないのに送信できない」「エラーが出ているのに送信できる」は起きません
 - 外側の transform・refine は、dynamic を parse した後の値を受け取ります（zod で親が子の output を受け取るのと同じ）。差し込み先は入力の値の path なので、外側に transform があっても必ずあります
+- dynamic が通らない・読み込み中・取得の失敗のときは、目印が土台の検査で弾かれるので、外側の refine は走りません（zod で子の型が合わないときと同じ。子の失敗が `min()` のような続けられる種類でも走らせません）
+- 親の `.refine(..., { path: [...] })` が dynamic の欄を指すと、そのエラーは dynamic の欄に出ます
 - dynamic の中の dynamic は、内側を先に差し込みます。外側から見ると内側の土台は `z.unknown()` なので、output は素通りします
-- エラーの表示（`FormRuntime.validate`）は、今のところ parse 前の値で行います。2 つの評価をそろえる見直しは [docs/plans/dynamic-validate-parse.md](../../../docs/plans/dynamic-validate-parse.md) にあります
+- 同じ path で dynamic が入れ子になったときは、一番深い登録だけを使います。内側の dynamic は外側の包みと検査を足して登録する（上の「schema が決まったときの値」）ので、外側の `.refine()` も効きます
+- union の腕の中の dynamic が通らないと、zod はその腕を諦めて別の腕を試します。別の腕で通ることもありますが、dynamic 自身の issue で送信は止まります
 - `onCancel` には、フォームの値（`z.input`）を渡します
