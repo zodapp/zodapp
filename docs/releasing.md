@@ -1,7 +1,7 @@
 # `@zodapp/*` の公開
 
-公開する `@zodapp/*` の23個（`packages/` のうち private でないもの）を npm に出す手順です。
-23個は同じバージョンで出します（`.changeset/config.json` の `fixed`）。
+公開する `@zodapp/*` の27個（`packages/` のうち private でないもの）を npm に出す手順です。
+27個は同じバージョンで出します（`.changeset/config.json` の `fixed`）。
 `@repo/*` と apps は公開しません。
 `@zodapp/zod-form-widget` を使う利用者は、`@zodapp/zod-form-widget/styles.css`（または `@layer zodapp` 付きの `styles.layer.css`）を自分で import します。
 
@@ -27,9 +27,9 @@
 
 ## 公開するパッケージの形
 
-23個は同じ形にそろえます。新しいパッケージを足すときも、この形にします。
+27個は同じ形にそろえます。新しいパッケージを足すときも、この形にします。
 
-- **バージョン**：23個は同じバージョンです（changesets の `fixed`）。`@repo/*` と apps は公開しません
+- **バージョン**：27個は同じバージョンです（changesets の `fixed`）。`@repo/*` と apps は公開しません
 - **中身**：`files` は `dist`、`README.md`、`README.ja.md`、`LICENSE` です。`src`、テスト、設定ファイル、`docs/`（手書きの仕様と typedoc の出力）は入れません。`LICENSE` は直下のものを各パッケージにコピーして置きます（npm は親ディレクトリのファイルを入れられないため）
 - **ビルド**：tsup で、ESM は `.mjs` / `.d.mts`、CJS は `.cjs` / `.d.ts` に出し、exports の `import` / `require` でそれぞれの型を指します。`"type": "module"` にしないのは、ソースの相対 import に拡張子が要らないようにするためです。ワークスペースの中でも dist を使います（apps の dev の前に `^build`、パッケージの変更は `watch` で追う）
 - **メタデータ**：`repository`（`directory` 付き）、`homepage`、`bugs`、`publishConfig.access: "public"`、`license: "MIT"`、`engines.node: ">=22"` をそろえます。trusted publishing は `repository.url` の完全一致を見るので、公開先を変えたら `tools/set-repository.mjs` でまとめて直します
@@ -54,7 +54,7 @@
 ### 0. 前提をそろえる
 
 - [ ] 公開するリポジトリが決まっている。
-- [ ] 23個の `repository.url`、`homepage`、`bugs` を、公開するリポジトリに合わせる。
+- [ ] 27個の `repository.url`、`homepage`、`bugs` を、公開するリポジトリに合わせる。
       npm の trusted publishing は `repository.url` が GitHub のリポジトリと完全に一致していることを見ます。
       `node tools/set-repository.mjs <owner>/<repo>` でまとめて書き換えられます。
 - [ ] 英語の README（`README.md`）を各パッケージに置く（`files` に入っているので、置けば npm に入る）。
@@ -64,9 +64,11 @@
 
 ### 1. 最初のバージョンを決める（0.1.0）
 
+changeset は `.changeset/initial-release.md`（27個すべてを minor、本文は「Initial release.」）だけにしてあります。
+最初の公開までに公開するパッケージを変えても、changeset は足さずにこの1件で出します（未公開の変更の履歴は利用者に意味がないため）。
+
 ```bash
-pnpm changeset            # 23個のどれか1つを選び、minor を選ぶ（fixed なので23個とも 0.1.0 になる）
-pnpm version-packages     # package.json と CHANGELOG.md を 0.1.0 にする
+pnpm version-packages     # package.json と各パッケージの CHANGELOG.md を 0.1.0 にする
 ```
 
 これを PR にして main にマージします。
@@ -94,7 +96,7 @@ git push --follow-tags        # changeset publish が打った @zodapp/<name>@0.
 
 1. `.github/workflows/release.yml` の `on` に `push: branches: [main]` を足して、main にマージする。
    （以後、main への push で「Version Packages」の PR が作られる）
-2. 23個に trusted publisher を登録する。
+2. 27個に trusted publisher を登録する。
    ```bash
    tools/npm-trust-all.sh <owner>/<repo> --dry-run   # 実行するコマンドを確かめる
    tools/npm-trust-all.sh <owner>/<repo>             # 最初の 2FA で「5分間省く」を選ぶ
@@ -114,7 +116,7 @@ git push --follow-tags        # changeset publish が打った @zodapp/<name>@0.
   さらに挟むなら、GitHub の environment に承認者を付ける。changesets がそのまま使える。
 - **承認してから出す**（`--allow-stage-publish`）：CI は `npm stage publish` で出し、npm 上で 2FA を使って承認するまで公開されない。
   CI が乗っ取られても勝手に公開されないが、`changeset publish` は `npm stage publish` に対応していないので自前のスクリプトが要り、
-  リリースのたびに23個の承認が要る。
+  リリースのたびに27個の承認が要る。
 
 ### 公開するリポジトリが private の場合
 
