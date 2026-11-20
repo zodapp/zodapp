@@ -1,6 +1,7 @@
-import { previewReplacer } from './previewReplacer';
-import { Suspense, memo, useCallback, useEffect, useState } from 'react';
-import { Code, LoadingOverlay, Loader, Stack } from '@mantine/core';
+import { previewReplacer } from "./previewReplacer";
+import { fillDefaultValues } from "./fillDefaultValues";
+import { Suspense, memo, useCallback, useEffect, useState } from "react";
+import { Code, LoadingOverlay, Loader, Stack } from "@mantine/core";
 import {
   ReactiveFormContextProvider,
   Switch,
@@ -8,17 +9,17 @@ import {
   ZodFormContextProvider,
   reactiveComponentLibrary as defaultReactiveComponentLibrary,
   UnsupportedSchemaNotice,
-  type ReactiveFieldEvent
-} from '@zodapp/zod-form-mantine';
-import type { ExternalKeyResolvers, FileResolvers } from '@zodapp/zod-form';
-import type { RegisteredResolverContext } from '@zodapp/zod-form/resolverContext/types';
+  type ReactiveFieldEvent,
+} from "@zodapp/zod-form-mantine";
+import type { ExternalKeyResolvers, FileResolvers } from "@zodapp/zod-form";
+import type { RegisteredResolverContext } from "@zodapp/zod-form/resolverContext/types";
 import type {
   MediaResolvers,
   ValueActionResolver,
   CollectionReferenceActionEntry,
-  ComponentLibrary
-} from '@zodapp/zod-form-react';
-import type { z } from 'zod';
+  ComponentLibrary,
+} from "@zodapp/zod-form-react";
+import type { z } from "zod";
 
 /**
  * ドット区切りパスでネストされた値を immutable に更新する。
@@ -28,11 +29,11 @@ import type { z } from 'zod';
 export const setNestedValue = (
   obj: Record<string, unknown>,
   path: string,
-  value: unknown
+  value: unknown,
 ): Record<string, unknown> => {
-  if (path === '') return value as Record<string, unknown>;
+  if (path === "") return value as Record<string, unknown>;
 
-  const keys = path.split('.');
+  const keys = path.split(".");
   const result = { ...obj };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let current: any = result;
@@ -48,7 +49,11 @@ export const setNestedValue = (
 
 type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   schema: T;
-  defaultValues?: Partial<z.input<T>>;
+  /**
+   * 表示する値。DB の購読などで変わると、確定していない変更の無い欄はそれに追従する。
+   * 来たときに schema の既定値（`.default()` など）で補ってから表示する（AutoForm と同じ）
+   */
+  values?: Partial<z.input<T>>;
   /**
    * フィールド値の確定時に呼ばれるコールバック。
    * 親側で DB への保存等を行う。
@@ -61,7 +66,7 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
   onBlur?: (
     fieldPath: string,
     value: unknown,
-    previousValue: unknown
+    previousValue: unknown,
   ) => boolean | undefined | Promise<boolean | undefined>;
   isLoading?: boolean;
   showPreview?: boolean;
@@ -81,7 +86,7 @@ type ReactiveAutoFormProps<T extends z.ZodObject<z.ZodRawShape>> = {
 
 const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   schema,
-  defaultValues,
+  values: valuesProp,
   onConfirm,
   onBlur,
   isLoading = false,
@@ -93,31 +98,38 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   mediaResolvers,
   resolverContext,
   collectionReferenceActions,
-  readOnly = false
+  readOnly = false,
 }: ReactiveAutoFormProps<T>) => {
-  const [values, setValues] = useState<Record<string, unknown>>(
-    () => (defaultValues ?? {}) as Record<string, unknown>
+  // 外から値が来たときだけ既定値で補う（AutoForm と同じ。描くたびには補わない）
+  const fill = useCallback(
+    () =>
+      fillDefaultValues(schema, valuesProp ?? {}, "ReactiveAutoForm") as Record<
+        string,
+        unknown
+      >,
+    [schema, valuesProp],
   );
+  const [values, setValues] = useState<Record<string, unknown>>(fill);
 
-  // 外部からの defaultValues 変更（DB の購読など）を反映
+  // 外からの値の変更（DB の購読など）を反映
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 外部 defaultValues の変更を内部の楽観更新 state に同期する
-    setValues((defaultValues ?? {}) as Record<string, unknown>);
-  }, [defaultValues]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 外の値の変更を内部の楽観更新 state に同期する
+    setValues(fill());
+  }, [fill]);
 
   const handleConfirm = useCallback(
     async ({ fieldPath, value }: ReactiveFieldEvent) => {
       await onConfirm?.(fieldPath, value);
       setValues((prev) => setNestedValue(prev, fieldPath, value));
     },
-    [onConfirm]
+    [onConfirm],
   );
 
   const handleBlur = useCallback(
     ({ fieldPath, value, previousValue }: ReactiveFieldEvent) => {
       return onBlur?.(fieldPath, value, previousValue);
     },
-    [onBlur]
+    [onBlur],
   );
 
   return (
@@ -144,18 +156,14 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
               <Switch
                 fieldPath=""
                 schema={schema}
-                defaultValue={values as z.input<T>}
+                value={values}
                 readOnly={readOnly}
               />
             </TableRowProvider>
 
             {showPreview && (
-              <Code block style={{ maxHeight: 200, overflow: 'auto' }}>
-                {JSON.stringify(
-                  values,
-                  previewReplacer,
-                  2
-                )}
+              <Code block style={{ maxHeight: 200, overflow: "auto" }}>
+                {JSON.stringify(values, previewReplacer, 2)}
               </Code>
             )}
           </Stack>
@@ -165,4 +173,6 @@ const ReactiveAutoFormInner = <T extends z.ZodObject<z.ZodRawShape>>({
   );
 };
 
-export const ReactiveAutoForm = memo(ReactiveAutoFormInner) as typeof ReactiveAutoFormInner;
+export const ReactiveAutoForm = memo(
+  ReactiveAutoFormInner,
+) as typeof ReactiveAutoFormInner;

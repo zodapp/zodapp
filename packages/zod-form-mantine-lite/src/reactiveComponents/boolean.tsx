@@ -15,7 +15,7 @@ type BooleanSchema = ReturnType<typeof zf.boolean>;
 const BooleanComponent = React.memo(function BooleanComponent({
   schema,
   fieldPath,
-  defaultValue,
+  value: valueProp,
   label: labelFromParent,
   outer,
   readOnly: readOnlyProp,
@@ -27,7 +27,7 @@ const BooleanComponent = React.memo(function BooleanComponent({
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
-  const rawValue = !!defaultValue;
+  const rawValue = !!valueProp;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath);
 

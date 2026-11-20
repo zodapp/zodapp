@@ -72,7 +72,7 @@ AutoForm は、外からデータ（`defaultValues`）が来たときに一度�
 - zod-form-mantine-lite の README（英・日）：例の `<Dynamic ... defaultValue={item} />` を `value={item}` にし、「親からの `value` の変更に追従します」に直す
 - zod-form-react の README（英・日）の「部品の props」：`value` と `defaultValue` の意味を書く。
   ついでに、案F の第1段で消えた `optional`・`nullable` の props の説明が残っているので、`outer` と `emptinessOf(outer)` の説明に直す
-- zod-form-mantine の `docs/intersection.ja.md`：子に渡すものに `value` を足す
+- zod-form-mantine の `docs/intersection.ja.md` は変えない（intersection は form の部品で、`value` は渡らない）
 
 ## 4. テスト
 

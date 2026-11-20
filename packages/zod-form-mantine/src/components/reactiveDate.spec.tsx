@@ -51,7 +51,7 @@ const renderDate = (schema: z.ZodTypeAny, defaultValue: unknown) => {
         <DateComponent
           fieldPath="day"
           schema={schema as never}
-          defaultValue={defaultValue as never}
+          value={defaultValue}
         />
       </ReactiveFormContextProvider>
     </MantineProvider>,

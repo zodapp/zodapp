@@ -41,16 +41,18 @@ import {
 <ZodFormContextProvider componentLibrary={reactiveComponentLibrary}>
   <ReactiveFormContextProvider
     onConfirm={async ({ fieldPath, value }) => save(fieldPath, value)}
-    onBlur={({ value, previousValue }) => (value === previousValue ? false : undefined)}
+    onBlur={({ value, previousValue }) =>
+      value === previousValue ? false : undefined
+    }
   >
-    <Dynamic fieldPath="" schema={schema} defaultValue={item} />
+    <Dynamic fieldPath="" schema={schema} value={item} />
   </ReactiveFormContextProvider>
 </ZodFormContextProvider>;
 ```
 
 - `onConfirm({ fieldPath, value, previousValue })`：変えた欄を確定したときに呼びます
 - `onBlur(...)`：確定していない変更のある欄からフォーカスが外れたときに呼びます。`true` を返すと確定、`false` なら元に戻し、`undefined` なら編集中のまま残します
-- 確定していない変更が無いあいだは、親からの `defaultValue` の変更に追従します
+- 確定していない変更が無いあいだは、親からの `value` の変更に追従します
 
 `@zodapp/zod-form-widget` の `ReactiveAutoForm` は、これにレイアウトを付けたものです。
 

@@ -28,7 +28,7 @@ type ExternalKeySchema = z.ZodString;
 const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
   schema,
   fieldPath,
-  defaultValue,
+  value: valueProp,
   label: labelFromParent,
   outer,
   readOnly: readOnlyProp,
@@ -41,7 +41,7 @@ const ExternalKeyComponent = React.memo(function ExternalKeyComponent({
 
   const { options, isLoading, retry } = useExternalKeyOptions(schema);
 
-  const rawValue = (defaultValue as string | undefined) ?? null;
+  const rawValue = (valueProp as string | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath, {
       emptyValue: emptyValueOf({ optional, nullable }),

@@ -19,7 +19,7 @@ type NumberSchema = ReturnType<typeof zf.number>;
 const NumberComponent = React.memo(function NumberComponent({
   schema,
   fieldPath,
-  defaultValue,
+  value: valueProp,
   label: labelFromParent,
   outer,
   readOnly: readOnlyProp,
@@ -31,7 +31,7 @@ const NumberComponent = React.memo(function NumberComponent({
   const label = labelFromParent ?? labelFromMeta;
 
   const rawValue =
-    typeof defaultValue === "number" ? defaultValue : ("" as string | number);
+    typeof valueProp === "number" ? valueProp : ("" as string | number);
   const {
     value,
     onChange,

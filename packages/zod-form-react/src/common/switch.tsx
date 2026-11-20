@@ -10,7 +10,7 @@ import {
 } from "@zodapp/zod-form";
 import { DynamicZodFormDef, useZodFormContext } from "./context";
 import { LazyComponentFactory, useLazyFactory } from "./lazyContext";
-import { useFormApi } from "./form";
+import { useOptionalFormApi } from "./form";
 import { addOuter } from "./outer";
 
 const memoizeGetLazyComponentMap = new WeakMap<
@@ -61,8 +61,9 @@ export const Switch: ZodForm = (props: ZodFormProps) => {
  * schema で描画する。preprocess に付けた meta は中の schema に移す。
  */
 const PreprocessSwitch = (props: ZodFormProps) => {
-  const { schema, fieldPath, defaultValue } = props;
-  const form = useFormApi();
+  const { schema, fieldPath, defaultValue, value } = props;
+  // form を使わない部品（reactive・表）では form が無い。そのときは value をそろえるだけにする
+  const form = useOptionalFormApi();
   const displaySchema = useMemo(() => stripPreprocess(schema), [schema]);
   const normalizedDefaultValue = useMemo(
     () =>
@@ -71,8 +72,15 @@ const PreprocessSwitch = (props: ZodFormProps) => {
         : normalizePreprocessValue(schema, defaultValue),
     [schema, defaultValue],
   );
+  // form を使わない部品が表示する値も、同じようにそろえる
+  const normalizedValue = useMemo(
+    () =>
+      value === undefined ? undefined : normalizePreprocessValue(schema, value),
+    [schema, value],
+  );
 
   useEffect(() => {
+    if (!form) return;
     const isRoot = fieldPath === "";
     const read = () =>
       isRoot ? form.state.values : form.getFieldValue(fieldPath);
@@ -104,6 +112,7 @@ const PreprocessSwitch = (props: ZodFormProps) => {
       {...props}
       schema={displaySchema}
       defaultValue={normalizedDefaultValue}
+      value={normalizedValue}
       // preprocess の pipe 自体に付いた検査（.refine() など）を、内の dynamic が包み直せるように渡す
       outer={addOuter(props.outer, schema)}
     />

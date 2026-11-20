@@ -85,7 +85,18 @@ import { ja } from "@zodapp/zod-form-widget/messages";
 - 必須の object・intersection・配列は `{}`・`[]` で始まります（空で始めることはできません）
 - `onSubmit`・`onCancel` に渡る値にも、補ったキー（空の配列など）が入ります
 - 補えない schema（optional の付かない `z.lazy` の再帰など）では、補わずに渡された値を使い、`console.error` を出します
-- `AutoSearch` と `ReactiveAutoForm` は補いません
+- `AutoSearch` は補いません
+
+## 表示する値（`ReactiveAutoForm`）
+
+`ReactiveAutoForm` は、表示する値を `values` で受け取ります。
+
+- `values` が来たとき（最初と、DB の購読などで変わったとき）に、`AutoForm` と同じく `getDefaultValue(schema, values)` で補ってから表示します。描くたびには補いません
+  - 値が undefined の `.default("x")` の欄には x が出ます（zod が undefined を x にするのと同じ）
+  - 外へ書くのは利用者が確定した欄だけです。触っていない欄は、保存されている値（undefined など）のままです
+  - 触っていない `.default("x")` の欄を確定するときの `previousValue` は x です
+- 補えない schema では、補わずに渡された値を使い、`console.error` を出します
+- 確定していない変更の無い欄は、`values` の変更に追従します
 
 ## 送信が止まったとき（`AutoForm`）
 

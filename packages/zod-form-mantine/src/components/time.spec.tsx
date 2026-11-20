@@ -311,7 +311,7 @@ describe("zf.time", () => {
           <TableTimeComponent
             schema={schema as never}
             fieldPath="start"
-            defaultValue={570}
+            value={570}
           />
         </I18nMessagesProvider>
       </MantineProvider>,

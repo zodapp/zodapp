@@ -20,12 +20,16 @@ const joinFieldPath = (fieldPath: string, propertyName: string) => {
 const ObjectComponent = React.memo(function ObjectComponent({
   fieldPath,
   schema,
-  defaultValue,
+  value: valueProp,
   outer,
   readOnly: readOnlyProp,
   label: labelFromParent,
 }: ZodFormProps<ObjectSchema>) {
   const { optional, nullable } = emptinessOf(outer);
+  const value =
+    valueProp !== null && typeof valueProp === "object"
+      ? (valueProp as Record<string, unknown>)
+      : undefined;
   const meta = useResolvedMeta(schema);
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const order: string[] = meta?.properties ?? Object.keys(schema.shape);
@@ -49,9 +53,9 @@ const ObjectComponent = React.memo(function ObjectComponent({
       property: { propertyName: string; schema: z.ZodTypeAny },
       index: number,
     ) => {
-      const fieldDefaultValue =
-        defaultValue && property.propertyName in defaultValue
-          ? defaultValue[property.propertyName]
+      const fieldValue =
+        value && property.propertyName in value
+          ? value[property.propertyName]
           : undefined;
       return (
         <div
@@ -63,7 +67,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
           <Switch
             fieldPath={joinFieldPath(fieldPath, property.propertyName)}
             schema={property.schema}
-            defaultValue={fieldDefaultValue}
+            value={fieldValue}
             outer={undefined}
             readOnly={readOnly}
           />

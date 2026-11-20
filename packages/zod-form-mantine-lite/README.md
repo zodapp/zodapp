@@ -41,16 +41,18 @@ import {
 <ZodFormContextProvider componentLibrary={reactiveComponentLibrary}>
   <ReactiveFormContextProvider
     onConfirm={async ({ fieldPath, value }) => save(fieldPath, value)}
-    onBlur={({ value, previousValue }) => (value === previousValue ? false : undefined)}
+    onBlur={({ value, previousValue }) =>
+      value === previousValue ? false : undefined
+    }
   >
-    <Dynamic fieldPath="" schema={schema} defaultValue={item} />
+    <Dynamic fieldPath="" schema={schema} value={item} />
   </ReactiveFormContextProvider>
 </ZodFormContextProvider>;
 ```
 
 - `onConfirm({ fieldPath, value, previousValue })`: called when a changed field is confirmed
 - `onBlur(...)`: called when a field with an unconfirmed change loses focus. Return `true` to confirm, `false` to revert, and `undefined` to keep the edit pending
-- While a field has no pending change, it follows changes to `defaultValue` from the parent
+- While a field has no pending change, it follows changes to `value` from the parent
 
 `ReactiveAutoForm` in `@zodapp/zod-form-widget` wraps this with a ready-made layout.
 

@@ -17,9 +17,9 @@ import { useMsg } from "../messages/useMsg";
  * 子の部品を読み込むあいだは、このセルだけを読み込み中にする。
  */
 const DynamicComponent = (props: ZodFormProps<z.ZodTypeAny>) => {
-  const { schema, fieldPath, defaultValue } = props;
+  const { schema, fieldPath, value } = props;
   const meta = getMeta(schema, "dynamic");
-  const input = useTableFnInput(meta, fieldPath, defaultValue);
+  const input = useTableFnInput(meta, fieldPath, value);
   const state = useResolvedSchema(meta, input);
   const msg = useMsg();
 

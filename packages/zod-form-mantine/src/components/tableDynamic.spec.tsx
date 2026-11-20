@@ -26,7 +26,7 @@ const renderCell = (
             <Switch
               fieldPath={fieldPath}
               schema={schema}
-              defaultValue={row[fieldPath]}
+              value={row[fieldPath]}
             />
           </Suspense>
         </TableRowProvider>

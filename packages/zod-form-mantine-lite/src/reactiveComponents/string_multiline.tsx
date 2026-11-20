@@ -19,7 +19,7 @@ type StringSchema = z.ZodString;
 const StringMultilineComponent = React.memo(function StringMultilineComponent({
   schema,
   fieldPath,
-  defaultValue,
+  value: valueProp,
   label: labelFromParent,
   outer,
   readOnly: readOnlyProp,
@@ -30,7 +30,7 @@ const StringMultilineComponent = React.memo(function StringMultilineComponent({
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
-  const rawValue = typeof defaultValue === "string" ? defaultValue : "";
+  const rawValue = typeof valueProp === "string" ? valueProp : "";
   const {
     value,
     onChange,

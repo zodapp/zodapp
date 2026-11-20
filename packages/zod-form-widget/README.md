@@ -85,7 +85,18 @@ When a CSV cannot be read, `parseDynamicTabularFile` throws `TabularImportError`
 - Required objects, intersections, and arrays start as `{}` / `[]` (they cannot start empty)
 - The values passed to `onSubmit` / `onCancel` also include the filled keys (such as empty arrays)
 - For schemas that cannot be filled (such as a recursive `z.lazy` without optional), the passed value is used without filling, and `console.error` is logged
-- `AutoSearch` and `ReactiveAutoForm` do not fill
+- `AutoSearch` does not fill
+
+## Displayed values (`ReactiveAutoForm`)
+
+`ReactiveAutoForm` receives the values to display as `values`.
+
+- When `values` arrives (initially, and when it changes, e.g. from a DB subscription), it is passed through `getDefaultValue(schema, values)` before display, the same as `AutoForm`. It is not filled on every render
+  - A `.default("x")` field whose value is undefined shows x (the same as zod turning undefined into x)
+  - Only fields the user confirms are written out. Untouched fields keep their stored value (such as undefined)
+  - The `previousValue` when confirming an untouched `.default("x")` field is x
+- For schemas that cannot be filled, the passed value is used without filling, and `console.error` is logged
+- Fields with no pending change follow changes to `values`
 
 ## When submission is blocked (`AutoForm`)
 
