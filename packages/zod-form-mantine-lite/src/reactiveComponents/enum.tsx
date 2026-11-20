@@ -93,6 +93,7 @@ const EnumComponent = React.memo(function EnumComponent({
         onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
         onBlur={() => void onBlur()}
         label={label || undefined}
+        placeholder={meta?.placeholder}
         required={!(optional || nullable)}
         style={inputWrapperStyle}
         actions={
@@ -115,6 +116,7 @@ const EnumComponent = React.memo(function EnumComponent({
       onChange={(next) => onChange(fromEnumOptionValue(schema, next) ?? null)}
       onBlur={() => void onBlur()}
       label={label || undefined}
+      placeholder={meta?.placeholder}
       searchable
       required={!(optional || nullable)}
       allowDeselect

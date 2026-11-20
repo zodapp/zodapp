@@ -70,6 +70,7 @@ const NumberComponent = React.memo(function NumberComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
+      placeholder={meta?.placeholder}
       required={!(optional || nullable)}
       min={schema.minValue ?? undefined}
       max={schema.maxValue ?? undefined}

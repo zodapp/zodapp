@@ -62,6 +62,7 @@ const StringComponent = React.memo(function StringComponent({
       onBlur={() => void onBlur()}
       onKeyDown={onKeyDown}
       label={label || undefined}
+      placeholder={meta?.placeholder}
       required={!(optional || nullable)}
       style={inputWrapperStyle}
       {...confirmableRightSectionProps(hasPendingChange, onConfirm, onCancel)}

@@ -34,6 +34,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
     label: labelFromMeta,
     formatter,
     suggestions,
+    placeholder,
   } = useResolvedMeta(schema, "string") ?? {};
   const label = labelFromParent ?? labelFromMeta;
   const suggestionData = normalizeStringSuggestions(suggestions);
@@ -88,6 +89,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
+        placeholder={placeholder}
         error={error?.message}
         required={!(optional || nullable)}
         disabled={readOnly || field.disabled}
@@ -101,6 +103,7 @@ const StringComponent = wrapComponent(function StringComponentImplement({
         onBlur={field.onBlur}
         onFocus={onFocus}
         label={label || undefined}
+        placeholder={placeholder}
         error={error?.message}
         required={!(optional || nullable)}
         disabled={readOnly || field.disabled}

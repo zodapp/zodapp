@@ -177,6 +177,13 @@ const fileResolvers = [createMockFileResolver()];
 - optional の欄: 無効にして文言を出すだけで、エラーにはしません
 - 複数選択の欄: 無効にして文言を出します。必須の欄のエラーは、ほかの必須の配列と同じ文言のままです（`emptyMessage` にはなりません）
 
+## 入力欄が空のときの文言（`placeholder`）
+
+`placeholder` は、入力欄が空のあいだに出す文言です。`zf.string`・`zf.number`・`zf.bigint`・`zf.date`・`zf.enum`・`zf.externalKey` の meta に書きます。`msgKey` で辞書のキーにすれば、部品で訳します。
+
+- 部品が自分の文言（読み込み中、選択肢がありません、検索中に出す選択済みの値のラベル）を出しているあいだは、部品の文言を優先します
+- `zf.time` にはありません（時刻の部品は 1 つの入力欄ではないため）
+
 ## API（抜粋）
 
 - `zf` / `getMeta`
@@ -197,4 +204,3 @@ const fileResolvers = [createMockFileResolver()];
 ## ライセンス
 
 MIT（[`LICENSE`](../../LICENSE)）
-

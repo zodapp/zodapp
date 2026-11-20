@@ -45,6 +45,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
   const meta = useResolvedMeta(schema) as
     | {
         label?: string;
+        placeholder?: string;
         unit?: DateUnit;
         encoding?: DateEncoding;
       }
@@ -112,6 +113,7 @@ const DateComponent = wrapComponent(function DateComponentImplement({
     onBlur: field.onBlur,
     onFocus,
     label: label || undefined,
+    placeholder: meta?.placeholder,
     error: error?.message,
     required: !(optional || nullable),
     disabled: readOnly || field.disabled,

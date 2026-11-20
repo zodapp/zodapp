@@ -98,6 +98,7 @@ const DateComponent = React.memo(function DateComponent({
       valueFormat={valueFormat}
       locale={locale}
       label={label || undefined}
+      placeholder={meta?.placeholder}
       required={!(optional || nullable)}
       clearable
       style={inputWrapperStyle}

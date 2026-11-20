@@ -25,7 +25,7 @@ Without a Provider, texts are in English.
 - **Screen texts**: written as `msg("key" /* text in the reference language */)`. ESLint (`@zodapp/eslint-plugin-i18n-messages`) checks the comment against the dictionary and writes it with `--fix`
 - **Error texts**: a string packed with `msgKey(...)` (`key?a=1&b=2`) becomes the issue's message, and is translated with `msg.resolve` when displayed. Whatever the route, it is shown as is if it is not a key. When a component runs `safeParse`, pass `{ error: zodMsgKeyErrorMap }`
 - **Thrown texts**: make them errors with codes, and the displaying side translates from the code (the `message` of `TabularImportError` is a dictionary key)
-- **meta texts**: `label`, `trueLabel`, `falseLabel`, `emptyMessage`, `selectorLabel`, `unselectedLabel`, option labels, and table column headers are translated with `useResolvedMeta` and `useResolveText` of zod-form-react (translated if they are keys, shown as is if they are plain strings)
+- **meta texts**: `label`, `trueLabel`, `falseLabel`, `emptyMessage`, `selectorLabel`, `unselectedLabel`, `placeholder`, option labels, table column headers, and strings returned by computed and formatter (including the `label` of badge and other values) are translated with `useResolvedMeta` and `useResolveText` of zod-form-react (translated if they are keys, shown as is if they are plain strings)
 - **Texts for developers** (`console.error`, and throws for configuration mistakes): not put in dictionaries; written in English
 - **Locale**: `locale` of date components, `toLocaleString`, and `localeCompare` take it from `useLocale()`
 

@@ -57,6 +57,8 @@ const zodExtendableObjectDefSchema = zodExtendableCommonDefSchema.extend({
 // 注意: unit/encoding のデフォルト値はスキーマ型によって異なるため、
 //       メタスキーマでは省略可能とし、createDateConverter 内で自動推論する
 const dateMetaSchema = zodExtendableCommonDefSchema.extend({
+  /** 入力欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+  placeholder: z.string().optional(),
   // 粒度（省略時はスキーマから自動推論）
   // - z.date(), z.number(), z.iso.datetime() → second
   // - z.iso.datetime({ precision }) → -1: minute、0: second、1 以上: millisecond
@@ -276,6 +278,8 @@ export type ExternalKeyMetaDef = z.infer<
    * optional の欄は、無効にして文言を出すだけでエラーにしない
    */
   emptyMessage?: string;
+  /** 選択欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+  placeholder?: string;
 } & ExternalKeyUnlistedOptions;
 
 /**
@@ -340,6 +344,8 @@ const valueActionSchema = z.custom<RegisteredValueActionConfig>().optional();
 // string 専用メタスキーマ（formatter で表示時の整形を指定可能）
 // uiType: "select" を指定すると suggestions から選ぶ形で描画する（検証は string のまま）
 const stringMetaSchema = zodExtendableCommonDefSchema.extend({
+  /** 入力欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+  placeholder: z.string().optional(),
   formatter: z
     .function({
       input: [z.string()],
@@ -353,6 +359,8 @@ const stringMetaSchema = zodExtendableCommonDefSchema.extend({
 
 // number 専用メタスキーマ（formatter で表示時の整形を指定可能）
 const numberMetaSchema = zodExtendableCommonDefSchema.extend({
+  /** 入力欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+  placeholder: z.string().optional(),
   formatter: z
     .function({
       input: [z.number()],
@@ -391,6 +399,8 @@ const unlistedSchema = z.enum(["keep", "clear"]).optional();
 
 // 外部キー用設定スキーマ
 const externalKeyConfigSchema = zodExtendableCommonDefSchema.extend({
+  /** 入力欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+  placeholder: z.string().optional(),
   // RegisteredExternalKeyConfig を使用（declare module で拡張可能）
   externalKeyConfig: z.custom<RegisteredExternalKeyConfig>(),
   // 選んだ値に対する操作（リンクで開くなど）
@@ -522,7 +532,12 @@ const zf = {
   literal: extendLiteral(zodExtendableCommonDefSchema),
   string: extendString(stringMetaSchema),
   number: extendNumber(numberMetaSchema),
-  bigint: extendBigint(zodExtendableCommonDefSchema),
+  bigint: extendBigint(
+    zodExtendableCommonDefSchema.extend({
+      /** 入力欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+      placeholder: z.string().optional(),
+    }),
+  ),
   date, // extendCustom パターンに変更
   time,
   boolean: extendBoolean(booleanMetaSchema),
@@ -548,6 +563,8 @@ const zf = {
   set: extendSet(zodExtendableCommonDefSchema),
   enum: extendEnum(
     zodExtendableCommonDefSchema.extend({
+      /** 選択欄が空のときに出す文言。`msgKey` で書けば辞書で訳す */
+      placeholder: z.string().optional(),
       /** 選んだ値に対する操作（リンクで開くなど） */
       valueAction: valueActionSchema,
       /**

@@ -205,7 +205,7 @@ import { ja } from "@zodapp/zod-form-react/messages";
 ```
 
 - `FormRuntime` (`wrapValidator`, `validate`) validates by turning Zod errors into dictionary keys. Texts written in the schema (`.min(3, "…")`) are shown as they are, and dictionary keys are translated. When a schema is passed directly to a validator, Zod's default texts are used.
-- When metadata texts (`label`, `trueLabel`, `falseLabel`, `emptyMessage`, `selectorLabel`, `unselectedLabel`) are dictionary keys, components translate them (`useResolvedMeta`, `useResolveText`).
+- When metadata texts (`label`, `trueLabel`, `falseLabel`, `emptyMessage`, `selectorLabel`, `unselectedLabel`, `placeholder`) are dictionary keys, components translate them (`useResolvedMeta`, `useResolveText`). Strings returned by computed and formatter, and the `label` of badge, icon, link, and title values, are also translated when they are dictionary keys.
 - When building components, create a `useMsg` with your own dictionary as the default using `createUseMsg`.
 
 ## API (excerpt)

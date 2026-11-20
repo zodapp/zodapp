@@ -34,8 +34,11 @@ const StringLazyComponent = wrapComponent(
   }: ZodFormInternalProps<StringSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, formatter } =
-      useResolvedMeta(schema, "string") ?? {};
+    const {
+      label: labelFromMeta,
+      formatter,
+      placeholder,
+    } = useResolvedMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
 
     const value = typeof field.value === "string" ? field.value : "";
@@ -94,6 +97,7 @@ const StringLazyComponent = wrapComponent(
         onBlur={onBlur}
         onFocus={onFocus}
         label={label || undefined}
+        placeholder={placeholder}
         error={error?.message}
         required={!(optional || nullable)}
         disabled={disabled}

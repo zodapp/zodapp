@@ -35,8 +35,11 @@ const StringSelectComponent = wrapComponent(
   }: ZodFormInternalProps<StringSchema>) {
     const { optional, nullable } = emptinessOf(outer);
     const { onFocus, ref } = useValidatePrecedingFields(field);
-    const { label: labelFromMeta, suggestions } =
-      useResolvedMeta(schema, "string") ?? {};
+    const {
+      label: labelFromMeta,
+      suggestions,
+      placeholder,
+    } = useResolvedMeta(schema, "string") ?? {};
     const label = labelFromParent ?? labelFromMeta;
     const value = typeof field.value === "string" ? field.value : null;
     const actionWrapper = useSchemaValueAction(schema, value);
@@ -91,6 +94,7 @@ const StringSelectComponent = wrapComponent(
           onBlur={field.onBlur}
           onFocus={onFocus}
           label={label || undefined}
+          placeholder={placeholder}
           searchable={true}
           error={error?.message}
           required={!(optional || nullable)}

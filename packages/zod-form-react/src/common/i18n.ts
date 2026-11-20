@@ -15,6 +15,7 @@ export const TEXT_META_KEYS = [
   "emptyMessage",
   "selectorLabel",
   "unselectedLabel",
+  "placeholder",
 ] as const;
 
 /** meta の文言（{@link TEXT_META_KEYS}）を msg.resolve に通したコピーを返す */
