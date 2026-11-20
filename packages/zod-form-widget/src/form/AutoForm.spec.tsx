@@ -165,6 +165,71 @@ describe("AutoForm の onSubmit は parse した値を受け取る", () => {
   });
 });
 
+describe("AutoForm の検証は、送信と同じく dynamic の output を受け取る", () => {
+  beforeEach(() => {
+    setupDomMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it("変換後の値を前提にする親の refine があっても、送信できる", async () => {
+    const schema = z
+      .object({
+        a: dynamicOf(z.string().transform(Number)),
+        b: z.number(),
+      })
+      .refine(
+        (value) => typeof value.a === "number" && value.a < value.b,
+        "a < b",
+      );
+    const { onSubmit, submit } = renderAutoForm(schema, {
+      a: "3",
+      b: 5,
+    } as z.input<typeof schema>);
+    await submit();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ a: 3, b: 5 }));
+    expect(screen.queryByTestId("form-submit-blocked")).toBeNull();
+  });
+
+  it("dynamic が通らないときは、親の refine を走らせずに入力の誤りとして止める", async () => {
+    const refine = vi.fn(() => false);
+    const schema = z
+      .object({ a: dynamicOf(z.string().min(3, "too short")) })
+      .refine(refine, "parent");
+    const { onSubmit, submit } = renderAutoForm(schema, { a: "x" });
+    await submit();
+    const blocked = await screen.findByTestId("form-submit-blocked");
+    expect(blocked.textContent).toContain("some fields have errors");
+    expect(await screen.findByText("too short")).toBeTruthy();
+    expect(screen.queryByText("parent")).toBeNull();
+    expect(refine).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("読み込み中の dynamic があれば、読み込み中として止める", async () => {
+    const schema = z.object({
+      a: zf.dynamic().register(
+        zf.dynamic.registry,
+        defineDynamicMeta({
+          resolve: () => ({
+            key: "slow",
+            load: () => new Promise<undefined>(() => {}),
+          }),
+        }),
+      ),
+    });
+    const { onSubmit, submit } = renderAutoForm(schema, { a: "x" });
+    await submit();
+    const blocked = await screen.findByTestId("form-submit-blocked");
+    expect(blocked.textContent).toContain("still loading");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
 describe("AutoForm は開くときに、値が無いところを schema の既定値で補う（#10）", () => {
   beforeEach(() => {
     setupDomMocks();
