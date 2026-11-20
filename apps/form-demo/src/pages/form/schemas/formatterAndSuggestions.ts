@@ -23,19 +23,19 @@ export const schema = z
         label: msgKey(
           "formDemo.formatterAndSuggestions.company" /* i18n: 会社名（suggestions: string[]） */,
         ),
-        suggestions: ["株式会社サンプル", "サンプル工業", "Example Inc."],
+        suggestions: ["Acme Corp.", "Globex", "Example Inc."],
       })
       .optional(),
     prefecture: zf
       .string()
       .register(zf.string.registry, {
         label: msgKey(
-          "formDemo.formatterAndSuggestions.prefecture" /* i18n: 都道府県（suggestions: {label, value}[]） */,
+          "formDemo.formatterAndSuggestions.prefecture" /* i18n: 州（suggestions: {label, value}[]） */,
         ),
         suggestions: [
-          { label: "東京都 (13)", value: "13" },
-          { label: "大阪府 (27)", value: "27" },
-          { label: "北海道 (01)", value: "01" },
+          { label: "California (CA)", value: "CA" },
+          { label: "New York (NY)", value: "NY" },
+          { label: "Texas (TX)", value: "TX" },
         ],
       })
       .optional(),
@@ -45,14 +45,14 @@ export const schema = z
       ),
       readOnly: true,
       formatter: (value: string) =>
-        value.replace(/^(\d{2,3})(\d{4})(\d{4})$/, "$1-$2-$3"),
+        value.replace(/^(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3"),
     }),
     amount: zf.number().register(zf.number.registry, {
       label: msgKey(
         "formDemo.formatterAndSuggestions.amount" /* i18n: 金額（number formatter, readOnly表示で整形） */,
       ),
       readOnly: true,
-      formatter: (value: number) => `¥${value.toLocaleString("ja-JP")}`,
+      formatter: (value: number) => `$${value.toLocaleString("en-US")}`,
     }),
     status: zf.string().register(zf.string.registry, {
       label: msgKey(
@@ -62,13 +62,7 @@ export const schema = z
       formatter: (value: string) => ({
         type: "badge",
         label: value,
-        color:
-          value ===
-          msgKey(
-            "formDemo.formatterAndSuggestions.status.formatter" /* i18n: 有効 */,
-          )
-            ? "green"
-            : "gray",
+        color: value === "Active" ? "green" : "gray",
       }),
     }),
   })
@@ -77,9 +71,9 @@ export const schema = z
 export const defaultValues: z.input<typeof schema> = {
   company: "",
   prefecture: "",
-  phone: "0312345678",
+  phone: "2125550100",
   amount: 1234567,
-  status: "有効",
+  status: "Active",
 };
 
 export type SchemaType = z.infer<typeof schema>;

@@ -30,7 +30,7 @@ test("開くと、初期値に無い欄を既定値で補い、入っている�
   expect(await notificationOf(page)).toEqual({
     type: "email",
     to: "alert@example.com",
-    subject: "[ALERT] 障害が発生しました",
+    subject: "[ALERT] An outage occurred",
     format: "text",
   });
 });

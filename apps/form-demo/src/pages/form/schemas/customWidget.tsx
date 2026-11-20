@@ -60,16 +60,16 @@ const RatingComponent = wrapComponent(function RatingImplement({
 });
 
 // ---------------------------------------------------------------------------
-// 2. 複合カスタムウィジェット: カスケード選択（都道府県 → 市区町村）
+// 2. 複合カスタムウィジェット: カスケード選択（州 → 市）
 //    - object フィールド全体を1つのウィジェットが担当し、
 //      サブフィールドは useZodField(パス) で個別に登録する
 //    - 親の選択が変わったら子の値をリセットする
 // ---------------------------------------------------------------------------
 
 const CITY_OPTIONS: Record<string, string[]> = {
-  東京都: ["千代田区", "新宿区", "渋谷区"],
-  大阪府: ["大阪市", "堺市", "枚方市"],
-  北海道: ["札幌市", "函館市", "旭川市"],
+  California: ["Los Angeles", "San Francisco", "San Diego"],
+  "New York": ["New York City", "Buffalo", "Rochester"],
+  Texas: ["Houston", "Austin", "Dallas"],
 };
 
 const joinFieldPath = (fieldPath: string, name: string) =>
@@ -80,16 +80,14 @@ const regionShape = {
     .string()
     .register(zf.string.registry, {
       label: msgKey(
-        "formDemo.customWidget.regionShape.prefecture" /* i18n: 都道府県 */,
+        "formDemo.customWidget.regionShape.prefecture" /* i18n: 州 */,
       ),
     })
     .optional(),
   city: zf
     .string()
     .register(zf.string.registry, {
-      label: msgKey(
-        "formDemo.customWidget.regionShape.city" /* i18n: 市区町村 */,
-      ),
+      label: msgKey("formDemo.customWidget.regionShape.city" /* i18n: 市 */),
     })
     .optional(),
 };
@@ -192,9 +190,9 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  productName: "サンプル商品",
+  productName: "Sample product",
   rating: 3,
-  region: { prefecture: "東京都", city: "新宿区" },
+  region: { prefecture: "California", city: "San Francisco" },
 };
 
 // 見るための部品（値・エラー・送信・ログ）

@@ -15,7 +15,7 @@ import {
 // nullable・optional：空にしたときに書く値と、object の＋・削除
 test.beforeEach(async ({ page }) => {
   await openDemo(page, "nullableFields", "nullable・optional");
-  await expect(field(page, "文字（nullable）")).toHaveValue("入力済み");
+  await expect(field(page, "文字（nullable）")).toHaveValue("Filled in");
 });
 
 /** ラベルの付いた object の欄（一番内側の枠） */
@@ -129,7 +129,7 @@ test("optional の object は、削除で undefined に戻り、＋でまた開�
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "メモ")).toHaveValue("メモ");
+  await expect(field(page, "メモ")).toHaveValue("Note");
   await objectField(page, "補足（optional）")
     .getByRole("button", { name: "削除" })
     .click();

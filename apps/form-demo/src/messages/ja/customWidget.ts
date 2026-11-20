@@ -6,8 +6,8 @@ export const ja = {
   "formDemo.page.customWidget.title": "カスタムウィジェット",
   "formDemo.page.customWidget.description":
     "wrapComponent + useZodField による自作フィールドコンポーネントと、componentLibrary への {zodType}_{uiType} キーでの登録（星評価・カスケード選択）",
-  "formDemo.customWidget.regionShape.prefecture": "都道府県",
-  "formDemo.customWidget.regionShape.city": "市区町村",
+  "formDemo.customWidget.regionShape.prefecture": "州",
+  "formDemo.customWidget.regionShape.city": "市",
   "formDemo.customWidget.productName": "商品名",
   "formDemo.customWidget.rating.min": "評価を選択してください",
   "formDemo.customWidget.rating": "評価（number_rating カスタムウィジェット）",

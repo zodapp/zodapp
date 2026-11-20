@@ -87,12 +87,12 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues = {
-  title: "見出し",
+  title: "Heading",
   scores: ["a", 1, 2],
   numbers: [1, 2],
   points: new Set([{ x: 1 }]),
   settings: { "a.b": "x", ok: "y" },
-  tags: { "x.y": "保存済み", safe: "ok" },
+  tags: { "x.y": "saved", safe: "ok" },
   handle: "me",
 } as unknown as z.input<typeof schema>;
 

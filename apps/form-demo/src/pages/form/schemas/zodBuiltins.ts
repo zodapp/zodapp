@@ -145,14 +145,14 @@ export const defaultValues: z.input<typeof schema> = {
     ["daily", 10],
     ["monthly", 100],
   ]),
-  author: { name: "山田" },
+  author: { name: "Smith" },
   outline: {
-    name: "第1章",
+    name: "Chapter 1",
     child: {
-      name: "第1節",
+      name: "Section 1",
       child: {
-        name: "第1項",
-        child: { name: "第1目", child: { name: "その1" } },
+        name: "Article 1",
+        child: { name: "Item 1", child: { name: "Part 1" } },
       },
     },
   },

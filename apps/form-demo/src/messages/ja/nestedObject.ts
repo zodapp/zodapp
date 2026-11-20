@@ -5,9 +5,9 @@ import type { en } from "../en/nestedObject";
 export const ja = {
   "formDemo.page.nestedObject.description":
     "通常フィールドとネストしたオブジェクトの組み合わせ",
-  "formDemo.nestedObject.addressSchema.postalCode": "郵便番号",
-  "formDemo.nestedObject.addressSchema.prefecture": "都道府県",
-  "formDemo.nestedObject.addressSchema.city": "市区町村",
+  "formDemo.nestedObject.addressSchema.postalCode": "ZIP コード",
+  "formDemo.nestedObject.addressSchema.prefecture": "州",
+  "formDemo.nestedObject.addressSchema.city": "市",
   "formDemo.nestedObject.addressSchema.street": "番地",
   "formDemo.nestedObject.addressSchema": "住所",
   "formDemo.nestedObject.emergencyContactSchema.name": "氏名",

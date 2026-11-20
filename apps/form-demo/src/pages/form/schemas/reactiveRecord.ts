@@ -41,7 +41,7 @@ export const schema = z
   });
 
 export const defaultValues: z.input<typeof schema> = {
-  projectName: "サンプルプロジェクト",
+  projectName: "Sample project",
   settings: {
     apiEndpoint: "https://api.example.com",
     timeout: "30",

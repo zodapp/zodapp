@@ -117,8 +117,8 @@ export const defaultValues: z.input<typeof schema> = {
     },
   },
   organization: {
-    name: "営業部",
-    child: { name: "第一課", child: { name: "法人係" } },
+    name: "Sales",
+    child: { name: "Section 1", child: { name: "Corporate" } },
   },
 };
 

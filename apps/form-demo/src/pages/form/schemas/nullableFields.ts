@@ -118,14 +118,14 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  nullableText: "入力済み",
+  nullableText: "Filled in",
   nullableNumber: 3,
   nullableColor: "red",
   nullableDate: "2026-11-17",
-  optionalNullableText: "入力済み",
-  optionalText: "入力済み",
+  optionalNullableText: "Filled in",
+  optionalText: "Filled in",
   nullableDetail: null,
-  optionalDetail: { memo: "メモ" },
+  optionalDetail: { memo: "Note" },
 };
 
 export type SchemaType = z.infer<typeof schema>;

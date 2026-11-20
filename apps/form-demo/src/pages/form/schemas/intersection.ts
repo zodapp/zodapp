@@ -585,11 +585,11 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  boxed: { lastName: "山本", firstName: "花子", email: "", phone: "" },
+  boxed: { lastName: "Brown", firstName: "Emily", email: "", phone: "" },
   flat: { lastName: "", firstName: "", email: "", phone: "" },
   horizontal: { lastName: "", firstName: "", email: "", phone: "" },
-  order: { item: "本", method: "post", address: "" },
-  period: { from: "4月", to: "4月" },
+  order: { item: "Book", method: "post", address: "" },
+  period: { from: "April", to: "April" },
   account: { password: "a", confirm: "b" },
   childRefine: {
     password: "a",

@@ -240,20 +240,20 @@ export const defaultValues: z.input<typeof schema> = {
   tags2: ["tag1", "tag2"],
   tagsReadOnly: ["tag1", "tag2", "tag3"],
   friends: [
-    { id: "1", name: "田中", comment: "同僚" },
-    { id: "2", name: "佐藤", comment: "友人" },
+    { id: "1", name: "Alice", comment: "Colleague" },
+    { id: "2", name: "Bob", comment: "Friend" },
   ],
   friendsTable: [
-    { id: "1", name: "田中", age: 32, isMember: true, comment: "同僚" },
-    { id: "2", name: "佐藤", age: 28, isMember: false, comment: "友人" },
+    { id: "1", name: "Alice", age: 32, isMember: true, comment: "Colleague" },
+    { id: "2", name: "Bob", age: 28, isMember: false, comment: "Friend" },
   ],
   friendsTableReadOnly: [
-    { id: "1", name: "田中", age: 32, isMember: true, comment: "同僚" },
-    { id: "2", name: "佐藤", age: 28, isMember: false, comment: "友人" },
+    { id: "1", name: "Alice", age: 32, isMember: true, comment: "Colleague" },
+    { id: "2", name: "Bob", age: 28, isMember: false, comment: "Friend" },
   ],
   friendsReadOnly: [
-    { id: "1", name: "田中", comment: "同僚" },
-    { id: "2", name: "佐藤", comment: "友人" },
+    { id: "1", name: "Alice", comment: "Colleague" },
+    { id: "2", name: "Bob", comment: "Friend" },
   ],
 };
 

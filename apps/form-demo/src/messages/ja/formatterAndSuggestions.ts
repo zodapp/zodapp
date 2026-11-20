@@ -7,12 +7,11 @@ export const ja = {
     "入力候補と、readOnly で表示するときの値の整形",
   "formDemo.formatterAndSuggestions.company": "会社名（suggestions: string[]）",
   "formDemo.formatterAndSuggestions.prefecture":
-    "都道府県（suggestions: {label, value}[]）",
+    "州（suggestions: {label, value}[]）",
   "formDemo.formatterAndSuggestions.phone":
     "電話番号（formatter, readOnly表示で整形）",
   "formDemo.formatterAndSuggestions.amount":
     "金額（number formatter, readOnly表示で整形）",
   "formDemo.formatterAndSuggestions.status":
     "ステータス（formatterでbadgeを返す）",
-  "formDemo.formatterAndSuggestions.status.formatter": "有効",
 } satisfies MessagesOf<typeof en>;

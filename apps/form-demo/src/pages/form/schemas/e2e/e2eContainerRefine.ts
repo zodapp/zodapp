@@ -144,7 +144,7 @@ export const schema = z
 
 export const defaultValues: z.input<typeof schema> = {
   period: { start: 1, end: 5 },
-  members: ["山田", "佐藤"],
+  members: ["Smith", "Brown"],
   shares: { a: 40, b: 40 },
   contact: { type: "email", email: "info@example.com" },
   memo: "",

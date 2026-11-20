@@ -347,18 +347,18 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues = {
-  value: "こんにちは",
+  value: "Hello",
   code: "42",
   size: "M",
   answer: true,
   memo: undefined,
   note: null,
   required: undefined,
-  items: ["りんご", 5, { text: "メモです" }],
+  items: ["apple", 5, { text: "A note" }],
   readOnlyView: {
-    text: "読み取り専用の文字列",
+    text: "A read-only string",
     number: 15,
-    object: { text: "読み取り専用の本文" },
+    object: { text: "A read-only body" },
     boolean: true,
     literal: "unknown",
   },
@@ -390,13 +390,13 @@ const harness = [
         label: msgKey(
           "formDemo.unionArms.harness.writeObject" /* i18n: 外から書き込む（値をオブジェクトにする） */,
         ),
-        run: writeValue({ text: "外から書いた本文" }),
+        run: writeValue({ text: "Body written from outside" }),
       },
       {
         label: msgKey(
           "formDemo.unionArms.harness.writeString" /* i18n: 外から書き込む（値を文字列にする） */,
         ),
-        run: writeValue("外から書いた文字列"),
+        run: writeValue("String written from outside"),
       },
     ],
   }),

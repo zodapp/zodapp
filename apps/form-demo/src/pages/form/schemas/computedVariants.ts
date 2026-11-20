@@ -138,8 +138,8 @@ export const schema = z
 export const defaultValues: z.input<typeof schema> = {
   status: "active",
   statusBadge: "active",
-  firstName: "太郎",
-  lastName: "山田",
+  firstName: "John",
+  lastName: "Smith",
   homepage: "https://example.com",
   homepageLink: "https://example.com",
 };

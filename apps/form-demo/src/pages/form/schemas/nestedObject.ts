@@ -17,20 +17,18 @@ const addressSchema = z
   .object({
     postalCode: zf.string().register(zf.string.registry, {
       label: msgKey(
-        "formDemo.nestedObject.addressSchema.postalCode" /* i18n: 郵便番号 */,
+        "formDemo.nestedObject.addressSchema.postalCode" /* i18n: ZIP コード */,
       ),
       uiType: "text",
     }),
     prefecture: zf.string().register(zf.string.registry, {
       label: msgKey(
-        "formDemo.nestedObject.addressSchema.prefecture" /* i18n: 都道府県 */,
+        "formDemo.nestedObject.addressSchema.prefecture" /* i18n: 州 */,
       ),
       uiType: "text",
     }),
     city: zf.string().register(zf.string.registry, {
-      label: msgKey(
-        "formDemo.nestedObject.addressSchema.city" /* i18n: 市区町村 */,
-      ),
+      label: msgKey("formDemo.nestedObject.addressSchema.city" /* i18n: 市 */),
       uiType: "text",
     }),
     street: zf
@@ -122,19 +120,19 @@ export const schema = z
   });
 
 export const defaultValues: z.input<typeof schema> = {
-  fullName: "山田 太郎",
-  email: "taro@example.com",
-  phone: "090-1234-5678",
+  fullName: "John Smith",
+  email: "john@example.com",
+  phone: "212-555-0100",
   address: {
-    postalCode: "100-0001",
-    prefecture: "東京都",
-    city: "千代田区",
-    street: "千代田1-1-1",
+    postalCode: "94105",
+    prefecture: "California",
+    city: "San Francisco",
+    street: "1 Market St",
   },
   emergencyContact: {
-    name: "山田 花子",
-    phone: "090-8765-4321",
-    relationship: "配偶者",
+    name: "Jane Smith",
+    phone: "212-555-0199",
+    relationship: "Spouse",
   },
 };
 

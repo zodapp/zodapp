@@ -115,7 +115,7 @@ export const schema = z
 const initial = {
   kind: "article",
   version: 2,
-  title: "お知らせ",
+  title: "Announcement",
   deletedAt: null,
   contact: { type: "email", email: "info@example.com" },
 } as const;

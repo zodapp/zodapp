@@ -140,11 +140,11 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues = {
-  name: "障害通知",
+  name: "Outage alert",
   notification: {
     type: "email",
     to: "alert@example.com",
-    subject: "[ALERT] 障害が発生しました",
+    subject: "[ALERT] An outage occurred",
   },
 } satisfies z.input<typeof schema>;
 

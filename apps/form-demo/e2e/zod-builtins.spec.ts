@@ -70,10 +70,10 @@ test("optional な再帰は、深くしても上限の注記を出さずに全�
   page,
   pageErrors: _,
 }) => {
-  await expect(inputWithValue(page, "第1目")).toBeVisible();
-  await expect(inputWithValue(page, "その1")).toBeVisible();
+  await expect(inputWithValue(page, "Item 1")).toBeVisible();
+  await expect(inputWithValue(page, "Part 1")).toBeVisible();
   await expect(page.locator("[data-zod-form-unsupported]")).toHaveCount(0);
-  await inputWithValue(page, "その1").fill("その2");
+  await inputWithValue(page, "Part 1").fill("Part 2");
   await expect
     .poll(() =>
       readValue<string>(
@@ -81,5 +81,5 @@ test("optional な再帰は、深くしても上限の注記を出さずに全�
         "return values.outline.child.child.child.child.name",
       ),
     )
-    .toBe("その2");
+    .toBe("Part 2");
 });

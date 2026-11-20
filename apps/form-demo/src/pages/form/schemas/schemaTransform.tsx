@@ -67,11 +67,11 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  name: "山田 太郎",
-  email: "taro@example.com",
+  name: "John Smith",
+  email: "john@example.com",
   plan: "pro",
   rateLimit: 1000,
-  internalMemo: "移行済みアカウント",
+  internalMemo: "Migrated account",
 };
 
 const ADMIN_ONLY_PATHS = ["rateLimit", "internalMemo"] as const;

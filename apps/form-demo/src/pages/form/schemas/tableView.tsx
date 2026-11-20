@@ -58,8 +58,8 @@ export const schema = z
       label: msgKey("formDemo.tableView.office" /* i18n: 拠点（select） */),
       uiType: "select",
       suggestions: [
-        { label: "東京本社", value: "hq" },
-        { label: "大阪支社", value: "osaka" },
+        { label: "New York headquarters", value: "hq" },
+        { label: "Chicago office", value: "chicago" },
       ],
       valueAction: {
         getActionParams: ({ value }) => ({
@@ -158,7 +158,7 @@ const rows = [
   },
   {
     id: "r2",
-    office: "osaka",
+    office: "chicago",
     status: "done",
     assignee: "u-002",
     due: "2026-04-01",

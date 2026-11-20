@@ -17,7 +17,7 @@ test("any・unknown・custom・symbol・function・never・nan は欄を出さ�
   page,
   pageErrors: _,
 }) => {
-  await expect(field(page, "見出し")).toHaveValue("見出し");
+  await expect(field(page, "見出し")).toHaveValue("Heading");
   for (const label of [
     "any の値",
     "unknown の値",

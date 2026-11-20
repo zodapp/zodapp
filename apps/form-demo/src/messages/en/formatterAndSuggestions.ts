@@ -14,5 +14,4 @@ export const en = defineMessages({
     "Amount (number formatter, formatted in readOnly)",
   "formDemo.formatterAndSuggestions.status":
     "Status (formatter returns a badge)",
-  "formDemo.formatterAndSuggestions.status.formatter": "Active",
 });

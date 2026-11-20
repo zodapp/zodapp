@@ -69,13 +69,11 @@ export const schema = z
         // ラベルの無い入れ子 object：中の欄は、外の欄と同じ高さに並ぶ
         period: z
           .object({
-            from: zf
-              .string()
-              .register(zf.string.registry, {
-                label: msgKey(
-                  "formDemo.objectLayout.horizontalErrors.period.from" /* i18n: 開始 */,
-                ),
-              }),
+            from: zf.string().register(zf.string.registry, {
+              label: msgKey(
+                "formDemo.objectLayout.horizontalErrors.period.from" /* i18n: 開始 */,
+              ),
+            }),
             to: zf
               .string()
               .min(1)
@@ -128,8 +126,8 @@ export const schema = z
   .register(zf.object.registry, {});
 
 const nameDefaults = {
-  lastName: "山田",
-  firstName: "太郎",
+  lastName: "Smith",
+  firstName: "John",
   lastNameKana: "ヤマダ",
   firstNameKana: "タロウ",
 };
@@ -139,7 +137,7 @@ export const defaultValues: z.input<typeof schema> = {
   horizontalWrap: nameDefaults,
   horizontalErrors: {
     keyword: "a",
-    period: { from: "4月", to: "" },
+    period: { from: "April", to: "" },
     filter: { activeOnly: false },
   },
   boxed: nameDefaults,

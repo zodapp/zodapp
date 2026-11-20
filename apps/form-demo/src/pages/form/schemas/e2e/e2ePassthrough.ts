@@ -82,7 +82,7 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues = {
-  title: "見出し",
+  title: "Heading",
   anyValue: { a: 1 },
   unknownValue: [1, 2],
   customValue: { id: 7 },

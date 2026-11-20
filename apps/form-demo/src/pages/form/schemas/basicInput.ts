@@ -100,8 +100,8 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  firstName: "太郎",
-  lastName: "山田",
+  firstName: "John",
+  lastName: "Smith",
   frequency: 3,
   age: 25,
   birthday: new Date("1999-01-01"),

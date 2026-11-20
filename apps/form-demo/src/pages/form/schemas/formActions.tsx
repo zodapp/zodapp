@@ -41,8 +41,8 @@ export const schema = z
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  title: "初めての記事",
-  body: "ここに本文を書きます。",
+  title: "My first article",
+  body: "Write the body here.",
 };
 
 type SchemaType = z.infer<typeof schema>;

@@ -5,9 +5,9 @@ import type { en } from "../en/reactiveNestedObject";
 export const ja = {
   "formDemo.page.reactiveNestedObject.description":
     "reactiveComponentLibrary によるネストオブジェクト。フィールド単位の確認UIあり。",
-  "formDemo.reactiveNestedObject.addressSchema.postalCode": "郵便番号",
-  "formDemo.reactiveNestedObject.addressSchema.prefecture": "都道府県",
-  "formDemo.reactiveNestedObject.addressSchema.city": "市区町村",
+  "formDemo.reactiveNestedObject.addressSchema.postalCode": "ZIP コード",
+  "formDemo.reactiveNestedObject.addressSchema.prefecture": "州",
+  "formDemo.reactiveNestedObject.addressSchema.city": "市",
   "formDemo.reactiveNestedObject.addressSchema.street": "番地",
   "formDemo.reactiveNestedObject.addressSchema": "住所",
   "formDemo.reactiveNestedObject.emergencyContactSchema.name": "氏名",

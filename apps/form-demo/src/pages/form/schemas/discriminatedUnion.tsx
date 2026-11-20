@@ -139,8 +139,8 @@ const legacyContactSchema = z.preprocess(
 // ============================================================
 
 const channels: MockExternalKeyOption[] = [
-  { label: "チャット", value: "chat" },
-  { label: "メール", value: "mail" },
+  { label: "Chat", value: "chat" },
+  { label: "Email", value: "mail" },
 ];
 
 // チャネルの選択肢。「動きを試す」のボタンで届け直す
@@ -245,9 +245,9 @@ export const defaultValues: z.input<typeof schema> = {
   // 店舗で開く。オンラインのチャネルの値も持たせておく（選ばれていない種類の欄）
   desk: {
     type: "store",
-    name: "本店",
+    name: "Main store",
     note: "",
-    address: "中央区 1-1",
+    address: "100 Main St",
     channel: "chat",
   } as z.input<typeof deskSchema>,
 };
