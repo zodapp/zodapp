@@ -4,13 +4,16 @@ import { zodMsgKeyErrorMap } from "@zodapp/i18n-messages-zod";
 import "../messages/types";
 import type { AnyFormApi, StandardSchemaV1 } from "@tanstack/react-form";
 import { z } from "zod";
-import { getDefaultValue } from "@zodapp/zod-form";
+import {
+  DYNAMIC_UNRESOLVED,
+  getDefaultValue,
+  isDynamicUnresolvedIssue,
+} from "@zodapp/zod-form";
 import { isEqualValue } from "../utils/equal";
 import {
   getValueAt,
   normalizeIssuePath,
   parseFieldPath,
-  pathStartsWith,
   type PathSegment,
 } from "../utils/path";
 
@@ -185,6 +188,32 @@ const moveInvalidKeyIssue = (issue: Issue): Issue => {
     message: raw.issues?.[0]?.message ?? issue.message,
     key: String(key),
   } as Issue;
+};
+
+/**
+ * issue の中の、目印を弾いた issue を除く。`invalid_union` の腕ごとの issue（`errors`）や、
+ * record・map の中の issue（`issues`）の中も、たどって除く。
+ * union の腕の中の dynamic が通らないと、zod はその腕を諦めて別の腕を試すので、目印の issue が
+ * `invalid_union` の腕の issue に入る。残すと、union の部品が腕の欄のエラーとして出してしまう
+ */
+const stripUnresolved = <T>(issue: T): T => {
+  if (typeof issue !== "object" || issue === null) return issue;
+  const raw = issue as { errors?: unknown; issues?: unknown };
+  const strip = (list: unknown[]) =>
+    list
+      .filter((child) => !isDynamicUnresolvedIssue(child))
+      .map((child) => stripUnresolved(child));
+  let next = issue;
+  if (Array.isArray(raw.errors)) {
+    next = {
+      ...next,
+      errors: raw.errors.map((arm) => (Array.isArray(arm) ? strip(arm) : arm)),
+    };
+  }
+  if (Array.isArray(raw.issues)) {
+    next = { ...next, issues: strip(raw.issues) };
+  }
+  return next;
 };
 
 /**
@@ -462,158 +491,120 @@ export class FormRuntime {
   }
 
   /**
-   * 静的な schema と、登録された schema の両方で値を検証する。
+   * 値を 1 回評価して、issue と output を返す。{@link validate}（エラーの表示と送信の可否）と
+   * {@link parse}（送信する値）は、どちらもこの結果を読む。
    *
-   * 登録された path の下は、静的な schema（や、より浅い登録）の issue を捨て、
-   * その path の一番深い登録の issue を使う。
+   * 1. 登録のある path を深い順に並べ、それぞれ今の値（前の手順で差し込んだ後の値）のその path を、
+   *    その path の一番深い登録の schema で parse する
+   *    - 通った：output をその path に差し込む（値はコピーで、フォームの値は変えない）
+   *    - 通らない：issue を集め、その path に目印（{@link DYNAMIC_UNRESOLVED}）を差し込む
+   *    - 読み込み中・取得の失敗：印の issue を集め、目印を差し込む
+   * 2. 差し込んだ値を静的な schema で parse する
+   * 3. 目印を弾いた issue（`invalid_union` の腕の中も）を捨て、残りを返す。issue が無ければ 2 の output を `data` に入れる
+   *
+   * 外側の transform・refine は、dynamic を parse した後の値を受け取る（zod で親が子の output を受け取るのと同じ）。
+   * dynamic が通らなかったときは、dynamic の土台が目印を abort で弾くので、外側の refine は走らない
+   * （zod で子の型が合わないときと同じ）。issue は、静的な schema のものを先に、登録のものを後に並べる
    */
-  validate(staticSchema: z.ZodTypeAny, value: unknown): Issue[] {
-    const registered = Array.from(this.entries.keys()).map((path) => ({
-      path,
-      segments: parseFieldPath(path),
-    }));
-
-    // source より具体的な登録が issue の path を覆っていれば捨てる。
-    // 静的な schema は、ルートの登録よりも浅いものとして扱う（sourceSegments が null）
-    const isCovered = (
-      sourceSegments: readonly PathSegment[] | null,
-      issuePath: readonly PathSegment[],
-    ) =>
-      registered.some(
-        ({ segments }) =>
-          (sourceSegments === null ||
-            (segments.length > sourceSegments.length &&
-              pathStartsWith(segments, sourceSegments))) &&
-          pathStartsWith(issuePath, segments),
-      );
-
-    const issues: Issue[] = [];
-    const collect = (
-      sourceSegments: readonly PathSegment[] | null,
-      result: { success: boolean; error?: { issues: z.core.$ZodIssue[] } },
-    ) => {
-      if (result.success || !result.error) return;
-      for (const issue of result.error.issues) {
-        const path = [
-          ...(sourceSegments ?? []),
-          ...normalizeIssuePath(issue.path),
-        ];
-        if (isCovered(sourceSegments, path)) continue;
-        // 一番外の path だけを付け直し、ほかの欄は残す。invalid_union の errors
-        // （腕ごとの issue。path はその union の値からの相対）は書き換えない
-        issues.push(moveInvalidKeyIssue({ ...issue, path }));
-      }
-    };
-
-    collect(null, this.safeParseSync(staticSchema, value));
-    for (const { path, segments } of registered) {
-      const entry = this.get(path);
-      if (!entry) continue;
-      if (entry.status === "pending") {
-        if (!isCovered(segments, segments)) {
-          issues.push({
-            message: msgKey(
-              "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
-            ),
-            path: segments,
-            code: PENDING_ISSUE_CODE,
-          });
-        }
-        continue;
-      }
-      if (entry.status === "error") {
-        if (!isCovered(segments, segments)) {
-          issues.push({
-            message: msgKey(
-              "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
-            ),
-            path: segments,
-            code: RESOLVE_ERROR_ISSUE_CODE,
-          });
-        }
-        continue;
-      }
-      collect(
-        segments,
-        this.safeParseSync(entry.schema, getValueAt(value, segments)),
-      );
-    }
-    return issues;
-  }
-
-  /**
-   * 送信する値を parse して、output（`.transform()`・`.default()`・`z.coerce` などを通した値）を返す。
-   *
-   * dynamic の output を先に値へ差し込んでから、静的な schema で parse する。
-   * 1. 登録された path を深い順に並べ、それぞれ今の値のその path を、その path の一番深い登録の schema で parse する。
-   *    読み込み中・取得の失敗・parse の失敗は、送信しない（`success: false`）
-   * 2. その path に output を差し込む（内側の dynamic が先なので、外側の dynamic は内側の output を受け取る。
-   *    外側から見ると内側の土台は `z.unknown()` なので、output がそのまま通る）
-   * 3. 差し込んだ値を静的な schema で parse し、その output を返す
-   *
-   * 外側の transform・refine は、dynamic を parse した後の値を受け取る（zod で親が子の output を受け取るのと同じ）
-   */
-  parse(
+  evaluate(
     staticSchema: z.ZodTypeAny,
     value: unknown,
-  ): { success: true; data: unknown } | { success: false; issues: Issue[] } {
-    const registered = Array.from(this.entries.keys())
+  ): { issues: Issue[]; data?: unknown } {
+    const paths = Array.from(this.entries.keys());
+    const order = new Map(paths.map((path, index) => [path, index]));
+    const registered = paths
       .map((path) => ({ path, segments: parseFieldPath(path) }))
       .sort((a, b) => b.segments.length - a.segments.length);
 
+    const toIssues = (
+      prefix: readonly PathSegment[],
+      issues: readonly z.core.$ZodIssue[],
+    ): Issue[] =>
+      issues
+        .filter((issue) => !isDynamicUnresolvedIssue(issue))
+        .map((issue) =>
+          // 一番外の path だけを付け直す。invalid_union の errors（腕ごとの issue。
+          // path はその union の値からの相対）は書き換えず、目印の issue だけを除く
+          moveInvalidKeyIssue(
+            stripUnresolved({
+              ...issue,
+              path: [...prefix, ...normalizeIssuePath(issue.path)],
+            } as Issue),
+          ),
+        );
+
+    const registeredIssues = new Map<string, Issue[]>();
     let current = value;
     for (const { path, segments } of registered) {
       const entry = this.get(path);
       if (!entry) continue;
       if (entry.status !== "resolved") {
-        return {
-          success: false,
-          issues: [
-            entry.status === "pending"
-              ? {
-                  message: msgKey(
-                    "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
-                  ),
-                  path: segments,
-                  code: PENDING_ISSUE_CODE,
-                }
-              : {
-                  message: msgKey(
-                    "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
-                  ),
-                  path: segments,
-                  code: RESOLVE_ERROR_ISSUE_CODE,
-                },
-          ],
-        };
+        registeredIssues.set(path, [
+          entry.status === "pending"
+            ? {
+                message: msgKey(
+                  "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */,
+                ),
+                path: segments,
+                code: PENDING_ISSUE_CODE,
+              }
+            : {
+                message: msgKey(
+                  "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */,
+                ),
+                path: segments,
+                code: RESOLVE_ERROR_ISSUE_CODE,
+              },
+        ]);
+        current = fillAt(current, segments, () => DYNAMIC_UNRESOLVED);
+        continue;
       }
       const result = this.safeParseSync(
         entry.schema,
         getValueAt(current, segments),
       );
-      if (!result.success) {
-        return {
-          success: false,
-          issues: result.error.issues.map((issue) => ({
-            ...issue,
-            path: [...segments, ...normalizeIssuePath(issue.path)],
-          })) as Issue[],
-        };
+      if (result.success) {
+        current = fillAt(current, segments, () => result.data);
+      } else {
+        registeredIssues.set(path, toIssues(segments, result.error.issues));
+        current = fillAt(current, segments, () => DYNAMIC_UNRESOLVED);
       }
-      current = fillAt(current, segments, () => result.data);
     }
 
     const result = this.safeParseSync(staticSchema, current);
-    if (!result.success) {
-      return {
-        success: false,
-        issues: result.error.issues.map((issue) => ({
-          ...issue,
-          path: normalizeIssuePath(issue.path),
-        })) as Issue[],
-      };
+    const issues = [
+      ...(result.success ? [] : toIssues([], result.error.issues)),
+      ...Array.from(registeredIssues)
+        .sort(([a], [b]) => order.get(a)! - order.get(b)!)
+        .flatMap(([, list]) => list),
+    ];
+    // 登録が通らなかったのに issue が残らないこと（目印の issue だけだったなど）は無いはずだが、
+    // 念のため、登録の失敗があれば data を返さない
+    if (issues.length > 0 || registeredIssues.size > 0 || !result.success) {
+      return { issues };
     }
-    return { success: true, data: result.data };
+    return { issues, data: result.data };
+  }
+
+  /**
+   * 静的な schema と、登録された schema の両方で値を検証する（{@link evaluate} の issue）。
+   */
+  validate(staticSchema: z.ZodTypeAny, value: unknown): Issue[] {
+    return this.evaluate(staticSchema, value).issues;
+  }
+
+  /**
+   * 送信する値を parse して、output（`.transform()`・`.default()`・`z.coerce` などを通した値）を返す
+   * （{@link evaluate} の結果）。issue があれば、すべての issue を返して送信しない
+   */
+  parse(
+    staticSchema: z.ZodTypeAny,
+    value: unknown,
+  ): { success: true; data: unknown } | { success: false; issues: Issue[] } {
+    const result = this.evaluate(staticSchema, value);
+    return "data" in result
+      ? { success: true, data: result.data }
+      : { success: false, issues: result.issues };
   }
 
   /**

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
+import { zf } from "@zodapp/zod-form";
 import { ASYNC_VALIDATION_ISSUE_CODE, FormRuntime } from "./schemaRegistry";
 
 describe("FormRuntime.validate", () => {
@@ -141,9 +142,9 @@ describe("FormRuntime（非同期の検証）", () => {
       expect(issues[0]!.path).toEqual([]);
       const parsed = runtime.parse(schema, value);
       expect(parsed.success).toBe(false);
-      expect(
-        !parsed.success && parsed.issues[0]!.code,
-      ).toBe(ASYNC_VALIDATION_ISSUE_CODE);
+      expect(!parsed.success && parsed.issues[0]!.code).toBe(
+        ASYNC_VALIDATION_ISSUE_CODE,
+      );
       expect(error).toHaveBeenCalledTimes(1);
       error.mockRestore();
     });
@@ -160,5 +161,144 @@ describe("FormRuntime（非同期の検証）", () => {
     }) as { issues?: unknown[] };
     expect(result.issues).toHaveLength(1);
     vi.restoreAllMocks();
+  });
+});
+
+describe("FormRuntime.evaluate：検証と送信を同じ評価で行う", () => {
+  /** validate が issue を返さないことと、parse が通ることが一致する */
+  const expectAgreement = (
+    runtime: FormRuntime,
+    schema: z.ZodTypeAny,
+    value: unknown,
+  ) => {
+    const issues = runtime.validate(schema, value);
+    const parsed = runtime.parse(schema, value);
+    expect(parsed.success).toBe(issues.length === 0);
+    if (!parsed.success) expect(parsed.issues).toEqual(issues);
+    return { issues, parsed };
+  };
+  const messages = (issues: { path: PropertyKey[]; message: string }[]) =>
+    issues.map((issue) => [issue.path.join("."), issue.message]);
+
+  it("親の refine は、変換した dynamic の output を受け取る", () => {
+    const runtime = new FormRuntime();
+    runtime.set("a", 0, {
+      status: "resolved",
+      schema: z.string().transform(Number),
+    });
+    const schema = z
+      .object({ a: zf.dynamic(), b: z.number() })
+      .refine((v) => typeof v.a === "number" && v.a < v.b, "a < b");
+
+    const ok = expectAgreement(runtime, schema, { a: "3", b: 5 });
+    expect(ok.issues).toEqual([]);
+    expect(ok.parsed).toEqual({ success: true, data: { a: 3, b: 5 } });
+
+    const ng = expectAgreement(runtime, schema, { a: "7", b: 5 });
+    expect(messages(ng.issues)).toEqual([["", "a < b"]]);
+  });
+
+  it("path で dynamic の欄を指す親の refine のエラーを、その欄に出す", () => {
+    const runtime = new FormRuntime();
+    runtime.set("a", 0, { status: "resolved", schema: z.string() });
+    const schema = z
+      .object({ a: zf.dynamic(), b: z.string() })
+      .refine((v) => v.a === v.b, { message: "mismatch", path: ["a"] });
+
+    const { issues } = expectAgreement(runtime, schema, { a: "x", b: "y" });
+    expect(messages(issues)).toEqual([["a", "mismatch"]]);
+  });
+
+  it("dynamic の中の dynamic：外側の schema の refine は、内側の output を受け取る", () => {
+    const runtime = new FormRuntime();
+    runtime.set("outer", 0, {
+      status: "resolved",
+      schema: z
+        .object({ inner: zf.dynamic() })
+        .refine((v) => v.inner === 10, "inner must be 10"),
+    });
+    runtime.set("outer.inner", 0, {
+      status: "resolved",
+      schema: z.string().transform((v) => Number(v) * 10),
+    });
+    const schema = z.object({ outer: zf.dynamic() });
+
+    const ok = expectAgreement(runtime, schema, { outer: { inner: "1" } });
+    expect(ok.parsed).toEqual({
+      success: true,
+      data: { outer: { inner: 10 } },
+    });
+    const ng = expectAgreement(runtime, schema, { outer: { inner: "2" } });
+    expect(messages(ng.issues)).toEqual([["outer", "inner must be 10"]]);
+  });
+
+  it.each([
+    [
+      "通らない",
+      { status: "resolved", schema: z.string().min(3, "short") } as const,
+      [["a", "short"]],
+    ],
+    [
+      "読み込み中の",
+      { status: "pending" } as const,
+      [["a", "zodFormReact.dynamic.loading" /* i18n: 読み込み中 */]],
+    ],
+    [
+      "取得に失敗した",
+      { status: "error", error: new Error("x"), retry: () => {} } as const,
+      [["a", "zodFormReact.dynamic.failed" /* i18n: 取得できませんでした */]],
+    ],
+  ])(
+    "dynamic が%sときは、親の refine を走らせず、目印の issue も出さない",
+    (_name, entry, expected) => {
+      const runtime = new FormRuntime();
+      runtime.set("a", 0, entry);
+      const refine = vi.fn(() => false);
+      const schema = z
+        .object({ a: zf.dynamic(), b: z.number() })
+        .refine(refine, "parent");
+
+      const { issues } = expectAgreement(runtime, schema, { a: "x", b: 1 });
+      expect(messages(issues)).toEqual(expected);
+      expect(refine).not.toHaveBeenCalled();
+    },
+  );
+
+  it("配列の要素ごとに違う schema の dynamic を、それぞれの output で評価する", () => {
+    const runtime = new FormRuntime();
+    runtime.set("items[0]", 0, {
+      status: "resolved",
+      schema: z.string().transform(Number),
+    });
+    runtime.set("items[1]", 0, { status: "resolved", schema: z.boolean() });
+    const schema = z.object({ items: z.array(zf.dynamic()) });
+
+    const { parsed } = expectAgreement(runtime, schema, {
+      items: ["4", true],
+    });
+    expect(parsed).toEqual({ success: true, data: { items: [4, true] } });
+    const ng = expectAgreement(runtime, schema, { items: ["4", "x"] });
+    expect(ng.issues.map((issue) => issue.path)).toEqual([["items", 1]]);
+  });
+
+  it("union の腕の中の dynamic が通らないとき、目印の issue を invalid_union の中にも残さない", () => {
+    const runtime = new FormRuntime();
+    runtime.set("v.x", 0, { status: "resolved", schema: z.string().min(3) });
+    const schema = z.object({
+      v: z.union([z.object({ x: zf.dynamic() }), z.object({ y: z.number() })]),
+    });
+
+    const { issues } = expectAgreement(runtime, schema, { v: { x: "a" } });
+    const text = JSON.stringify(issues);
+    expect(text).not.toContain("dynamicUnresolved");
+    expect(issues.some((issue) => issue.path.join(".") === "v.x")).toBe(true);
+  });
+
+  it("フォームの値は書き換えない", () => {
+    const runtime = new FormRuntime();
+    runtime.set("a", 0, { status: "resolved", schema: z.string().min(3) });
+    const value = { a: "x" };
+    runtime.validate(z.object({ a: zf.dynamic() }), value);
+    expect(value).toEqual({ a: "x" });
   });
 });
