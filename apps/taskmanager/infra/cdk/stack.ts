@@ -6,7 +6,7 @@
  *   Fargate ── DynamoDB、S3（添付ファイル。ブラウザは署名付き URL で直接読み書き）、
  *              Cognito（ID トークンの検証）、IoT Core（変更の配送。SigV4 の WebSocket）
  *
- * 名前・タグは `burmaculex`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、NAT なし）。
+ * 名前・タグは `zodapp`（AWS アカウントの利用ガイド §3）。VPC は自分のもの（10.40.0.0/16、NAT なし）。
  * ALB はインターネットに出さず、隔離のサブネットに置いて、CloudFront の VPC オリジンからだけ受ける。
  * 試験環境は、消し忘れに備えて、作成・更新から ttlMinutes 分で EventBridge Scheduler がこのスタックを消す。
  * 永続環境は、データを残し（keepData）、自分を消さない。
@@ -135,9 +135,9 @@ export class TaskmanagerStack extends Stack {
     const logRetention = props.persistent
       ? logs.RetentionDays.ONE_MONTH
       : logs.RetentionDays.ONE_DAY;
-    const prefix = `burmaculex-${envName}`;
-    Tags.of(this).add("burmaculex:env", envName);
-    Tags.of(this).add("burmaculex:app", "taskmanager");
+    const prefix = `zodapp-${envName}`;
+    Tags.of(this).add("zodapp:env", envName);
+    Tags.of(this).add("zodapp:app", "taskmanager");
 
     /**
      * デプロイの識別子：スタック ID の UUID の先頭 8 文字。更新では変わらず、作り直すと変わる。
@@ -148,7 +148,7 @@ export class TaskmanagerStack extends Stack {
       0,
       Fn.split("-", Fn.select(2, Fn.split("/", this.stackId))),
     );
-    const logPrefix = `/burmaculex/${envName}/taskmanager-${deployId}`;
+    const logPrefix = `/zodapp/${envName}/taskmanager-${deployId}`;
 
     /**
      * スタックの Lambda（カスタムリソースなど）のログ。スタックと一緒に消す。
@@ -272,7 +272,7 @@ export class TaskmanagerStack extends Stack {
       runtime: cloudfront.FunctionRuntime.JS_2_0,
     });
     const distribution = new cloudfront.Distribution(this, "Distribution", {
-      comment: `burmaculex taskmanager (${envName})`,
+      comment: `zodapp taskmanager (${envName})`,
       defaultRootObject: "index.html",
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       defaultBehavior: {
@@ -380,7 +380,7 @@ export class TaskmanagerStack extends Stack {
 
     // カーソルの署名の鍵（秘密の値。出力に出さない）
     const cursorSecret = new secrets.Secret(this, "CursorSecret", {
-      description: `burmaculex taskmanager (${envName}) cursor secret`,
+      description: `zodapp taskmanager (${envName}) cursor secret`,
       generateSecretString: { excludePunctuation: true, passwordLength: 48 },
       removalPolicy: RemovalPolicy.DESTROY,
     });
@@ -597,7 +597,7 @@ export class TaskmanagerStack extends Stack {
         }),
       );
       new scheduler.CfnSchedule(this, "SelfDestruct", {
-        description: `Delete ${this.stackName} (burmaculex test environment)`,
+        description: `Delete ${this.stackName} (zodapp test environment)`,
         scheduleExpression: `at(${expiresAt.toISOString().slice(0, 19)})`,
         scheduleExpressionTimezone: "UTC",
         flexibleTimeWindow: { mode: "OFF" },
@@ -630,7 +630,7 @@ export class TaskmanagerStack extends Stack {
     // バケットより先に消える（バケットの名前を受け取るので、バケットに依存する）
     new CustomResource(this, "EmptyBuckets", {
       serviceToken: bucketCleaner.functionArn,
-      resourceType: "Custom::BurmaculexEmptyBuckets",
+      resourceType: "Custom::ZodappEmptyBuckets",
       properties: { Buckets: bucketsToEmpty.map((b) => b.bucketName) },
     });
 

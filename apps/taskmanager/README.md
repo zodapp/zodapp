@@ -108,7 +108,7 @@ Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークン
 
 | 役割 | ローカル版 | AWS |
 |---|---|---|
-| データベース | DynamoDB Local | DynamoDB（`burmaculex-<環境名>-taskmanager`） |
+| データベース | DynamoDB Local | DynamoDB（`zodapp-<環境名>-taskmanager`） |
 | 認証 | magnito | Cognito（確認メールは Cognito の既定の送信。1 日 50 通まで） |
 | ファイル | S3Proxy | S3（ブラウザが署名付き URL で直接読み書き） |
 | リアルタイムの配送 | aedes | IoT Core（タスクロールで SigV4 の署名をした WebSocket。証明書は使わない。`src/server/iot.ts`） |
@@ -120,7 +120,7 @@ Fargate ── DynamoDB、S3（添付ファイル）、Cognito（ID トークン
 - VPC は自分のもの（`10.40.0.0/16`、NAT Gateway なし）です
 - ALB は内部向けで、インターネットへの経路のない隔離のサブネットに置きます。CloudFront の VPC オリジンからだけ受けます（ALB のセキュリティグループは、CloudFront が VPC に作るセキュリティグループ `CloudFront-VPCOrigins-Service-SG` からだけ許可）
 - Fargate のタスクは公開サブネットに置き、公開 IP は外へ出るためだけに使います。受けるのは ALB からの 4000 番だけ、外へは HTTPS（443）だけです
-- 名前とタグは `burmaculex` で始めます（スタック `burmaculex-taskmanager-<環境名>`、タグ `burmaculex:env`）
+- 名前とタグは `zodapp` で始めます（スタック `zodapp-taskmanager-<環境名>`、タグ `zodapp:env`）
 - リージョン、試験環境か永続環境か（`kind`）、デプロイのファイルとイメージの置き場（`assets`）は `infra/cdk/config/<環境名>.json` に置きます（環境名の既定は `test`。ほかの環境は `pnpm aws:deploy -- -c env=<環境名>`）
 - AWS のアカウント ID はリポジトリに置かず、環境変数 `AWS_ACCOUNT_ID` で渡します。置き場のバケット名とロールの ARN は、そこから組み立てます。CDK が書き出す `infra/cdk/cdk.context.json` もアカウント ID を含むので、コミットしません（.gitignore 済み）
 
@@ -147,10 +147,10 @@ CDK は、デプロイに使うファイル（テンプレート、フロント�
 
 | もの | 置き場 | 試験環境（`kind: test`） | 永続環境（`kind: persistent`） |
 |---|---|---|---|
-| ファイル | S3 `burmaculex-assets-<アカウント>-<リージョン>` | `test/<環境名>/…`。1 日で自動的に消える | `env/<環境名>/…`。消さない |
-| イメージ | ECR `burmaculex/assets` | タグ `test-<環境名>-…`。1 日で自動的に消える | タグ `env-<環境名>-…`。消さない |
+| ファイル | S3 `zodapp-assets-<アカウント>-<リージョン>` | `test/<環境名>/…`。1 日で自動的に消える | `env/<環境名>/…`。消さない |
+| イメージ | ECR `zodapp/assets` | タグ `test-<環境名>-…`。1 日で自動的に消える | タグ `env-<環境名>-…`。消さない |
 
-置き場と、そこに書き込むロール（`burmaculex-asset-publishing`）は、`burmaculex-assets` のスタック（`infra/assets/`）が作ります。アカウントとリージョンに 1 つだけ置く恒久のスタックで、削除保護を付けています。バケットとリポジトリは、スタックを消しても残ります。CloudFormation のデプロイそのものは、bootstrap の deploy ロールで行います。
+置き場と、そこに書き込むロール（`zodapp-asset-publishing`）は、`zodapp-assets` のスタック（`infra/assets/`）が作ります。アカウントとリージョンに 1 つだけ置く恒久のスタックで、削除保護を付けています。バケットとリポジトリは、スタックを消しても残ります。CloudFormation のデプロイそのものは、bootstrap の deploy ロールで行います。
 
 ```bash
 cd apps/taskmanager
@@ -161,7 +161,7 @@ AWS_ACCOUNT_ID=<デプロイ先のアカウント ID> pnpm aws:assets:deploy   #
 
 ### デプロイする
 
-必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier）、置き場（上）、bootstrap の deploy ロールと `burmaculex-asset-publishing` を引き受けられる認証情報。
+必要なもの：Docker（イメージを作る）、CDK の bootstrap 済みのアカウント（既定の qualifier）、置き場（上）、bootstrap の deploy ロールと `zodapp-asset-publishing` を引き受けられる認証情報。
 
 ```bash
 cd apps/taskmanager
@@ -202,7 +202,7 @@ pnpm aws:destroy -- demo --with-assets
 
 `scripts/aws-destroy.mts` が、`cdk destroy` のあとに、その環境のファイルとイメージ（`test/<環境名>/`、`test-<環境名>-`）を消します。スタックが自分を消したときや、消し忘れたときも、置き場の寿命の決まりで 1 日後に消えます。永続環境のもの（`env/<環境名>/`、`env-<環境名>-`）は、`--with-assets` を付けたときだけ消します。永続環境を `releaseData` なしで消すと、データ（テーブル・ユーザープール・添付のバケット）はスタックの外に残ります。
 
-スタックのほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループ（`/burmaculex/<環境名>/taskmanager-<識別子>/functions`。識別子はスタック ID の先頭 8 文字）に出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
+スタックのほかのものは、スタックと一緒に消えます。バケットは、スタックを消すときに自前の Lambda で空にします。Lambda のログはスタックのロググループ（`/zodapp/<環境名>/taskmanager-<識別子>/functions`。識別子はスタック ID の先頭 8 文字）に出し、消したあとに遅れて届いたログでロググループが作り直されないように、Lambda にはロググループを作る権限を与えていません。
 
 ### 本番で使うときに足すとよいもの
 

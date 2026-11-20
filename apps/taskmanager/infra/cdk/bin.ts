@@ -3,7 +3,7 @@
  *
  * 環境名は `-c env=<名前>`（既定 `test`）。リージョンなどは `config/<環境名>.json`、
  * アカウント ID は環境変数 `AWS_ACCOUNT_ID`。
- * スタック名は `burmaculex-taskmanager-<環境名>`。使い方は ../README.md の「AWS で動かす」。
+ * スタック名は `zodapp-taskmanager-<環境名>`。使い方は ../README.md の「AWS で動かす」。
  */
 import { App, DefaultStackSynthesizer } from "aws-cdk-lib";
 import { assetPrefixes, loadEnvConfig } from "./config";
@@ -25,7 +25,7 @@ const isTest = (config.kind ?? "test") === "test";
 // 永続環境の片付け：`-c releaseData=true` でデプロイすると、データを消せる設定になる（そのあと aws:destroy）
 const releaseData = app.node.tryGetContext("releaseData") === "true";
 
-// デプロイのファイルとイメージを、burmaculex 専用の置き場に入れる（試験環境の分は 1 日で消える）。
+// デプロイのファイルとイメージを、zodapp 専用の置き場に入れる（試験環境の分は 1 日で消える）。
 // CloudFormation のデプロイは、今までどおり bootstrap の deploy ロールで行う
 const synthesizer = new DefaultStackSynthesizer({
   fileAssetsBucketName: config.assetBucketName,
@@ -35,7 +35,7 @@ const synthesizer = new DefaultStackSynthesizer({
   ...assetPrefixes(envName, config),
 });
 
-new TaskmanagerStack(app, `burmaculex-taskmanager-${envName}`, {
+new TaskmanagerStack(app, `zodapp-taskmanager-${envName}`, {
   env: { account: config.account, region: config.region },
   synthesizer,
   envName,
