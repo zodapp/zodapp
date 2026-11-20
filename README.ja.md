@@ -1,6 +1,6 @@
 # zodapp
 
-> この README は日本語版です。英語版は日本語レビュー・整合性チェック後に翻訳予定です。
+[English](README.md)
 
 **AIネイティブなスキーマ駆動開発フレームワーク**
 
@@ -126,15 +126,25 @@ API層を省略し、DBのドキュメント構造とUIフォームの構造を�
 | [`@zodapp/zod-form`](packages/zod-form/README.ja.md) | React非依存のスキーマ拡張（`zf`） |
 | [`@zodapp/zod-form-react`](packages/zod-form-react/README.ja.md) | React基盤（`Dynamic` / hooks / `zfReact`） |
 | [`@zodapp/zod-form-mantine`](packages/zod-form-mantine/README.ja.md) | Mantine UIの componentLibrary / tableComponentLibrary |
-| `@zodapp/zod-form-mantine-lite` | TanStack Form に依存しない Mantine のコンポーネント |
-| `@zodapp/zod-tabular` | Zod スキーマと表形式データ（2 次元配列。CSV / Excel 向け）の相互変換 |
+| [`@zodapp/zod-form-mantine-lite`](packages/zod-form-mantine-lite/README.ja.md) | TanStack Form に依存しない Mantine のコンポーネント |
+| [`@zodapp/zod-form-widget`](packages/zod-form-widget/README.ja.md) | zod-form-mantine の上に作った、そのまま使えるウィジェット（`AutoForm`・`AutoTable`・`AutoSearch`・取り込みと書き出しなど） |
+| [`@zodapp/zod-tabular`](packages/zod-tabular/README.ja.md) | Zod スキーマと表形式データ（2 次元配列。CSV / Excel 向け）の相互変換 |
 | [`@zodapp/zod-extendable`](packages/zod-extendable/README.ja.md) | Zodにメタデータを付与する拡張機能（zfの土台） |
 | [`@zodapp/zod-propagating-registry`](packages/zod-propagating-registry/README.ja.md) | Zod v4 registry の薄いラッパー |
 | [`@zodapp/zod-searchparams`](packages/zod-searchparams/README.ja.md) | URLSearchParams と複雑な型（Date/Set/Map等）の相互変換 |
 | [`@zodapp/zod-transform`](packages/zod-transform/README.ja.md) | Zodスキーマをベースにした値変換（preprocess/postprocess） |
-| `@zodapp/zod-transport-json` | Zod スキーマに沿った JSON の送受信（Date などを戻す） |
+| [`@zodapp/zod-transport-json`](packages/zod-transport-json/README.ja.md) | Zod スキーマに沿った JSON の送受信（Date などを戻す） |
 | [`@zodapp/caching-utilities`](packages/caching-utilities/README.ja.md) | subscription共有などのキャッシュユーティリティ |
-| `@zodapp/react-storage` | ブラウザのストレージに保存する React の state |
+| [`@zodapp/react-storage`](packages/react-storage/README.ja.md) | ブラウザのストレージに保存する React の state |
+
+### メッセージ（i18n）
+
+| パッケージ | 説明 |
+| --- | --- |
+| [`@zodapp/i18n-messages`](packages/i18n-messages/README.ja.md) | 文字列に符号化したキー（`msgKey`）で引く、型付きのメッセージの辞書（UI の文言と検証のエラー） |
+| [`@zodapp/i18n-messages-react`](packages/i18n-messages-react/README.ja.md) | `@zodapp/i18n-messages` の React の Provider と hooks |
+| [`@zodapp/i18n-messages-zod`](packages/i18n-messages-zod/README.ja.md) | zod の issue をメッセージのキーに変える error map と、日本語・英語の辞書 |
+| [`@zodapp/eslint-plugin-i18n-messages`](packages/eslint-plugin-i18n-messages/README.ja.md) | メッセージのキーの横に、基準の言語の文言をコメントで保つ ESLint のルール |
 
 ### DynamoDB
 
