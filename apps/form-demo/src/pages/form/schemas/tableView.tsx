@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
@@ -30,14 +31,16 @@ type Currency = "JPY" | "USD";
 const amountSchema = z.number().register(
   zf.dynamic.registry,
   defineDynamicMeta<number, { currency?: Currency }>({
-    label: "金額（dynamic）",
+    label: msgKey("formDemo.tableView.amount" /* i18n: 金額（dynamic） */),
     dependsOnParent: true,
     resolve: ({ parent }) => {
       const currency = parent?.currency ?? "JPY";
       return {
         key: currency,
         schema: zf.number().register(zf.number.registry, {
-          label: "金額",
+          label: msgKey(
+            "formDemo.tableView.amountSchema.resolve.schema" /* i18n: 金額 */,
+          ),
           formatter: (value) =>
             currency === "JPY"
               ? `¥${value.toLocaleString()}`
@@ -52,7 +55,7 @@ export const schema = z
   .object({
     id: zf.string().register(zf.string.registry, { label: "ID", width: 70 }),
     office: zf.string().register(zf.string.registry, {
-      label: "拠点（select）",
+      label: msgKey("formDemo.tableView.office" /* i18n: 拠点（select） */),
       uiType: "select",
       suggestions: [
         { label: "東京本社", value: "hq" },
@@ -67,12 +70,20 @@ export const schema = z
     // 並べ替えは選択肢を定義した順（未着手・対応中・完了）。選択肢に無い値は「（不正な値）」と出し、最後に並ぶ
     status: zf
       .enum([
-        zf.literal("todo").register(zf.literal.registry, { label: "未着手" }),
-        zf.literal("open").register(zf.literal.registry, { label: "対応中" }),
-        zf.literal("done").register(zf.literal.registry, { label: "完了" }),
+        zf.literal("todo").register(zf.literal.registry, {
+          label: msgKey("formDemo.tableView.status.todo" /* i18n: 未着手 */),
+        }),
+        zf.literal("open").register(zf.literal.registry, {
+          label: msgKey("formDemo.tableView.status.open" /* i18n: 対応中 */),
+        }),
+        zf.literal("done").register(zf.literal.registry, {
+          label: msgKey("formDemo.tableView.status.done" /* i18n: 完了 */),
+        }),
       ])
       .register(zf.enum.registry, {
-        label: "状態（valueAction）",
+        label: msgKey(
+          "formDemo.tableView.status" /* i18n: 状態（valueAction） */,
+        ),
         valueAction: {
           getActionParams: ({ value }) => ({
             href: `https://example.com/status/${value}`,
@@ -80,24 +91,30 @@ export const schema = z
         },
       }),
     assignee: zf.string().register(zf.externalKey.registry, {
-      label: "担当（externalKey）",
+      label: msgKey(
+        "formDemo.tableView.assignee" /* i18n: 担当（externalKey） */,
+      ),
       externalKeyConfig: { type: "mock", topic: "users" },
     }),
-    due: z.iso.date().register(zf.date.registry, { label: "期限" }),
+    due: z.iso.date().register(zf.date.registry, {
+      label: msgKey("formDemo.tableView.due" /* i18n: 期限 */),
+    }),
     start: z.number().register(zf.time.registry, {
-      label: "開始（time）",
+      label: msgKey("formDemo.tableView.start" /* i18n: 開始（time） */),
       encoding: "minutesOfDay",
       width: 90,
     }),
-    unitPrice: zf
-      .number()
-      .register(zf.number.registry, { label: "単価", width: 80 }),
-    quantity: zf
-      .number()
-      .register(zf.number.registry, { label: "数量", width: 70 }),
+    unitPrice: zf.number().register(zf.number.registry, {
+      label: msgKey("formDemo.tableView.unitPrice" /* i18n: 単価 */),
+      width: 80,
+    }),
+    quantity: zf.number().register(zf.number.registry, {
+      label: msgKey("formDemo.tableView.quantity" /* i18n: 数量 */),
+      width: 70,
+    }),
     // computed は計算した値で並べる（ここでは文字の値なので文字の順）
     total: zfReact.computed().register(zf.computed.registry, {
-      label: "小計（computed）",
+      label: msgKey("formDemo.tableView.total" /* i18n: 小計（computed） */),
       dependsOnParent: true,
       compute: ({
         parent,
@@ -107,10 +124,17 @@ export const schema = z
     }),
     currency: zf
       .enum([
-        zf.literal("JPY").register(zf.literal.registry, { label: "円" }),
-        zf.literal("USD").register(zf.literal.registry, { label: "ドル" }),
+        zf.literal("JPY").register(zf.literal.registry, {
+          label: msgKey("formDemo.tableView.currency.JPY" /* i18n: 円 */),
+        }),
+        zf.literal("USD").register(zf.literal.registry, {
+          label: msgKey("formDemo.tableView.currency.USD" /* i18n: ドル */),
+        }),
       ])
-      .register(zf.enum.registry, { label: "通貨", width: 70 }),
+      .register(zf.enum.registry, {
+        label: msgKey("formDemo.tableView.currency" /* i18n: 通貨 */),
+        width: 70,
+      }),
     amount: amountSchema,
   })
   .register(zf.object.registry, {});
@@ -171,11 +195,21 @@ const rows = [
   },
 ] as unknown as Row[];
 
+const TableViewNote = () => {
+  const msg = useMsg();
+  return (
+    <>
+      {msg(
+        "formDemo.tableView.note" /* i18n: 「拠点」は suggestions のラベルで表示し、選択肢に無い値はそのまま出します。「状態」「担当」の選択肢に無い値は「（不正な値）」と出します。「金額」は行の通貨で表示が変わります。見出しを押すと並べ替え、押すたびに昇順・降順が切り替わります（「金額」は並べ替えません）。 */,
+      )}
+    </>
+  );
+};
+
 export const Component = () => (
   <Stack>
     <Text size="sm" c="dimmed">
-      「拠点」は suggestions
-      のラベルで表示し、選択肢に無い値はそのまま出します。「状態」「担当」の選択肢に無い値は「（不正な値）」と出します。「金額」は行の通貨で表示が変わります。見出しを押すと並べ替え、押すたびに昇順・降順が切り替わります（「金額」は並べ替えません）。
+      <TableViewNote />
     </Text>
     <AutoTable
       schema={schema}

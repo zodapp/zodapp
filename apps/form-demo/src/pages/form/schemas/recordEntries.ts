@@ -14,8 +14,18 @@ export const category = "Standard";
 // キーに使える文字を制限（record_entries はキー入力のバリデーションも通す）
 const envKeySchema = zf
   .string()
-  .min(1, "キーを入力してください")
-  .regex(/^[A-Z][A-Z0-9_]*$/, "大文字英数字とアンダースコアのみ使用できます");
+  .min(
+    1,
+    msgKey(
+      "formDemo.recordEntries.envKeySchema.min" /* i18n: キーを入力してください */,
+    ),
+  )
+  .regex(
+    /^[A-Z][A-Z0-9_]*$/,
+    msgKey(
+      "formDemo.recordEntries.envKeySchema.regex" /* i18n: 大文字英数字とアンダースコアのみ使用できます */,
+    ),
+  );
 
 // 都道府県（キーの多い enum の例）
 const prefecture = z.enum([
@@ -75,7 +85,9 @@ export const schema = z
     envVars: z
       .record(envKeySchema, zf.string().register(zf.string.registry, {}))
       .register(zf.record.registry, {
-        label: "環境変数（uiType: entries）",
+        label: msgKey(
+          "formDemo.recordEntries.envVars" /* i18n: 環境変数（uiType: entries） */,
+        ),
         uiType: "entries",
       }),
     labels: z
@@ -84,20 +96,38 @@ export const schema = z
         zf.number().min(0).register(zf.number.registry, {}),
       )
       .register(zf.record.registry, {
-        label: "数値の Record（値の型も任意のスキーマにできる）",
+        label: msgKey(
+          "formDemo.recordEntries.labels" /* i18n: 数値の Record（値の型も任意のスキーマにできる） */,
+        ),
         uiType: "entries",
       }),
     // キーが enum：列挙したキーを、選択肢の label を名前にした固定の欄として並べる
     greeting: z
       .record(
         zf.enum([
-          zf.literal("ja").register(zf.literal.registry, { label: "日本語" }),
-          zf.literal("en").register(zf.literal.registry, { label: "英語" }),
-          zf.literal("zh").register(zf.literal.registry, { label: "中国語" }),
+          zf.literal("ja").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.recordEntries.greeting.key.ja" /* i18n: 日本語 */,
+            ),
+          }),
+          zf.literal("en").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.recordEntries.greeting.key.en" /* i18n: 英語 */,
+            ),
+          }),
+          zf.literal("zh").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.recordEntries.greeting.key.zh" /* i18n: 中国語 */,
+            ),
+          }),
         ]),
         zf.string().min(1).register(zf.string.registry, {}),
       )
-      .register(zf.record.registry, { label: "挨拶（キーが enum）" }),
+      .register(zf.record.registry, {
+        label: msgKey(
+          "formDemo.recordEntries.greeting" /* i18n: 挨拶（キーが enum） */,
+        ),
+      }),
     // キーが値を複数持つ literal：同じく固定の欄（名前はキーの値）
     stock: z
       .record(
@@ -105,24 +135,36 @@ export const schema = z
         zf.number().min(0).register(zf.number.registry, {}),
       )
       .register(zf.record.registry, {
-        label: "サイズ別の在庫（キーが複数の値の literal）",
+        label: msgKey(
+          "formDemo.recordEntries.stock" /* i18n: サイズ別の在庫（キーが複数の値の literal） */,
+        ),
       }),
     // キーが enum の partialRecord（既定）：候補のキーを全部並べ、各欄は optional。空にするとキーごと消す
     nicknames: z
       .partialRecord(
         zf.enum([
-          zf
-            .literal("alice")
-            .register(zf.literal.registry, { label: "アリス" }),
-          zf.literal("bob").register(zf.literal.registry, { label: "ボブ" }),
+          zf.literal("alice").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.recordEntries.nicknames.key.alice" /* i18n: アリス */,
+            ),
+          }),
+          zf.literal("bob").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.recordEntries.nicknames.key.bob" /* i18n: ボブ */,
+            ),
+          }),
           zf.literal("carol").register(zf.literal.registry, {
-            label: "キャロル",
+            label: msgKey(
+              "formDemo.recordEntries.nicknames.key.carol" /* i18n: キャロル */,
+            ),
           }),
         ]),
         zf.string().register(zf.string.registry, {}),
       )
       .register(zf.record.registry, {
-        label: "あだ名（キーが enum の partialRecord）",
+        label: msgKey(
+          "formDemo.recordEntries.nicknames" /* i18n: あだ名（キーが enum の partialRecord） */,
+        ),
       }),
     // キーの多い partialRecord（uiType: entries）：値にあるキーだけを並べ、下の選択でキーを足す。並びは定義順
     branches: z
@@ -131,7 +173,9 @@ export const schema = z
         zf.number().min(1).register(zf.number.registry, {}),
       )
       .register(zf.record.registry, {
-        label: "支店の数（partialRecord・uiType: entries）",
+        label: msgKey(
+          "formDemo.recordEntries.branches" /* i18n: 支店の数（partialRecord・uiType: entries） */,
+        ),
         uiType: "entries",
       }),
     // 同じ形で keyOrder: "value"：値の object の順（足したキーは末尾）
@@ -141,14 +185,20 @@ export const schema = z
         zf.number().min(1).register(zf.number.registry, {}),
       )
       .register(zf.record.registry, {
-        label: "支店の数（keyOrder: value）",
+        label: msgKey(
+          "formDemo.recordEntries.branchesByValue" /* i18n: 支店の数（keyOrder: value） */,
+        ),
         uiType: "entries",
         keyOrder: "value",
       }),
     // Map：record の entries と同じ見た目で、Map を書く
     quota: z
       .map(z.string().min(1), z.number().min(0))
-      .register(zf.common.registry, { label: "上限（Map<string, number>）" }),
+      .register(zf.common.registry, {
+        label: msgKey(
+          "formDemo.recordEntries.quota" /* i18n: 上限（Map<string, number>） */,
+        ),
+      }),
   })
   .register(zf.object.registry, {});
 

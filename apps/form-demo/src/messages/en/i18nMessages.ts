@@ -19,4 +19,6 @@ export const en = defineMessages({
   "formDemo.i18nMessages.phone": "Phone number",
   "formDemo.i18nMessages.birthday": "Birthday",
   "formDemo.i18nMessages.note": "Notes",
+  "formDemo.i18nMessages.message.compute":
+    "Labels, options, and errors are written as dictionary keys. Switching to 日本語 in the header shows them with the Japanese dictionary. Submitting shows errors for the name (a key with params) and the email address (zod's default error).",
 });

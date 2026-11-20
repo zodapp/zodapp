@@ -16,56 +16,106 @@ export const category = "Reactive";
 export const reactive = true;
 
 const hobbyLiterals = [
-  z
-    .literal("reading")
-    .register(zf.literal.registry, { label: "読書", color: "blue.6" }),
-  z
-    .literal("sports")
-    .register(zf.literal.registry, { label: "スポーツ", color: "green.6" }),
-  z
-    .literal("music")
-    .register(zf.literal.registry, { label: "音楽", color: "red.6" }),
-  z
-    .literal("gaming")
-    .register(zf.literal.registry, { label: "ゲーム", color: "grape.6" }),
+  z.literal("reading").register(zf.literal.registry, {
+    label: msgKey(
+      "formDemo.reactiveReadOnly.hobbyLiterals.reading" /* i18n: 読書 */,
+    ),
+    color: "blue.6",
+  }),
+  z.literal("sports").register(zf.literal.registry, {
+    label: msgKey(
+      "formDemo.reactiveReadOnly.hobbyLiterals.sports" /* i18n: スポーツ */,
+    ),
+    color: "green.6",
+  }),
+  z.literal("music").register(zf.literal.registry, {
+    label: msgKey(
+      "formDemo.reactiveReadOnly.hobbyLiterals.music" /* i18n: 音楽 */,
+    ),
+    color: "red.6",
+  }),
+  z.literal("gaming").register(zf.literal.registry, {
+    label: msgKey(
+      "formDemo.reactiveReadOnly.hobbyLiterals.gaming" /* i18n: ゲーム */,
+    ),
+    color: "grape.6",
+  }),
 ] as const;
 
 export const schema = z
   .object({
     firstName: zf
       .string()
-      .register(zf.string.registry, { label: "名(string)", uiType: "text" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.reactiveReadOnly.firstName" /* i18n: 名(string) */,
+        ),
+        uiType: "text",
+      })
       .optional(),
-    lastName: zf.string().min(1).register(zf.string.registry, {
-      label: "姓（string, 必須）",
-      uiType: "text",
-    }),
-    frequency: zf.number().max(7).min(0).register(zf.number.registry, {
-      label: "1週間にお酒を飲む日数(number, slider)",
-      uiType: "slider",
-    }),
+    lastName: zf
+      .string()
+      .min(1)
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.reactiveReadOnly.lastName" /* i18n: 姓（string, 必須） */,
+        ),
+        uiType: "text",
+      }),
+    frequency: zf
+      .number()
+      .max(7)
+      .min(0)
+      .register(zf.number.registry, {
+        label: msgKey(
+          "formDemo.reactiveReadOnly.frequency" /* i18n: 1週間にお酒を飲む日数(number, slider) */,
+        ),
+        uiType: "slider",
+      }),
     age: zf
       .number()
       .max(150)
       .min(0)
-      .register(zf.number.registry, { label: "年齢(number)" }),
-    birthday: zf.date().register(zf.date.registry, { label: "誕生日(date)" }),
-    isMember: zf
-      .boolean()
-      .register(zf.boolean.registry, { label: "会員(boolean)" }),
-    favoriteColor: zf
-      .literal("red")
-      .register(zf.literal.registry, { label: "固定データ(literal)" }),
-    isConfirmed: zf
-      .literal(true, "承認してください")
-      .register(zf.boolean.registry, {
-        label: "承認済(literal型+booleanコンポーネントを強制)",
+      .register(zf.number.registry, {
+        label: msgKey("formDemo.reactiveReadOnly.age" /* i18n: 年齢(number) */),
       }),
-    favoriteHobby: zf
-      .enum(hobbyLiterals)
-      .register(zf.enum.registry, { label: "一番好きな趣味(enum)" }),
+    birthday: zf.date().register(zf.date.registry, {
+      label: msgKey(
+        "formDemo.reactiveReadOnly.birthday" /* i18n: 誕生日(date) */,
+      ),
+    }),
+    isMember: zf.boolean().register(zf.boolean.registry, {
+      label: msgKey(
+        "formDemo.reactiveReadOnly.isMember" /* i18n: 会員(boolean) */,
+      ),
+    }),
+    favoriteColor: zf.literal("red").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.reactiveReadOnly.favoriteColor" /* i18n: 固定データ(literal) */,
+      ),
+    }),
+    isConfirmed: zf
+      .literal(
+        true,
+        msgKey(
+          "formDemo.reactiveReadOnly.isConfirmed.literal" /* i18n: 承認してください */,
+        ),
+      )
+      .register(zf.boolean.registry, {
+        label: msgKey(
+          "formDemo.reactiveReadOnly.isConfirmed" /* i18n: 承認済(literal型+booleanコンポーネントを強制) */,
+        ),
+      }),
+    favoriteHobby: zf.enum(hobbyLiterals).register(zf.enum.registry, {
+      label: msgKey(
+        "formDemo.reactiveReadOnly.favoriteHobby" /* i18n: 一番好きな趣味(enum) */,
+      ),
+    }),
     message: zfReact.computed().register(zf.computed.registry, {
-      compute: () => "これはReactive版のreadOnlyモードサンプルです",
+      compute: () =>
+        msgKey(
+          "formDemo.reactiveReadOnly.message.compute" /* i18n: これはReactive版のreadOnlyモードサンプルです */,
+        ),
     }),
   })
   .register(zf.object.registry, { readOnly: true });

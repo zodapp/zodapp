@@ -15,11 +15,17 @@ export const category = "e2e";
 
 export const schema = z
   .object({
-    title: zf.string().register(zf.string.registry, { label: "見出し" }),
-    anyValue: z.any().register(zf.common.registry, { label: "any の値" }),
-    unknownValue: z
-      .unknown()
-      .register(zf.common.registry, { label: "unknown の値" }),
+    title: zf.string().register(zf.string.registry, {
+      label: msgKey("formDemo.e2ePassthrough.title" /* i18n: 見出し */),
+    }),
+    anyValue: z.any().register(zf.common.registry, {
+      label: msgKey("formDemo.e2ePassthrough.anyValue" /* i18n: any の値 */),
+    }),
+    unknownValue: z.unknown().register(zf.common.registry, {
+      label: msgKey(
+        "formDemo.e2ePassthrough.unknownValue" /* i18n: unknown の値 */,
+      ),
+    }),
     customValue: z
       .custom<{
         id: number;
@@ -29,27 +35,47 @@ export const schema = z
           value !== null &&
           typeof (value as { id?: unknown }).id === "number",
       )
-      .register(zf.common.registry, { label: "custom の値" }),
-    symbolValue: z
-      .symbol()
-      .register(zf.common.registry, { label: "symbol の値" }),
-    callback: z
-      .function()
-      .register(zf.common.registry, { label: "function の値" }),
+      .register(zf.common.registry, {
+        label: msgKey(
+          "formDemo.e2ePassthrough.customValue" /* i18n: custom の値 */,
+        ),
+      }),
+    symbolValue: z.symbol().register(zf.common.registry, {
+      label: msgKey(
+        "formDemo.e2ePassthrough.symbolValue" /* i18n: symbol の値 */,
+      ),
+    }),
+    callback: z.function().register(zf.common.registry, {
+      label: msgKey(
+        "formDemo.e2ePassthrough.callback" /* i18n: function の値 */,
+      ),
+    }),
     nothing: z
       .never()
       .optional()
-      .register(zf.common.registry, { label: "never の値" }),
-    notANumber: z.nan().register(zf.common.registry, { label: "nan の値" }),
+      .register(zf.common.registry, {
+        label: msgKey("formDemo.e2ePassthrough.nothing" /* i18n: never の値 */),
+      }),
+    notANumber: z.nan().register(zf.common.registry, {
+      label: msgKey("formDemo.e2ePassthrough.notANumber" /* i18n: nan の値 */),
+    }),
     // templateLiteral：文字列の欄。形（user-<数>）に合わないとエラー
     userId: z
       .templateLiteral(["user-", z.number()])
-      .register(zf.common.registry, { label: "利用者 ID（templateLiteral）" }),
+      .register(zf.common.registry, {
+        label: msgKey(
+          "formDemo.e2ePassthrough.userId" /* i18n: 利用者 ID（templateLiteral） */,
+        ),
+      }),
     // nonoptional：optional を打ち消し、必須の欄として描く
     memo: z
       .string()
       .min(1)
-      .register(zf.string.registry, { label: "メモ（nonoptional）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.e2ePassthrough.memo" /* i18n: メモ（nonoptional） */,
+        ),
+      })
       .optional()
       .nonoptional(),
   })

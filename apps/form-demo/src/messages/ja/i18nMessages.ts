@@ -20,4 +20,6 @@ export const ja = {
   "formDemo.i18nMessages.phone": "電話番号",
   "formDemo.i18nMessages.birthday": "誕生日",
   "formDemo.i18nMessages.note": "メモ",
+  "formDemo.i18nMessages.message.compute":
+    "ラベル・選択肢・エラーは辞書のキーで書いています。ヘッダーで English に切り替えると、英語の辞書で表示します。送信すると、名前（params 付きのキー）とメールアドレス（zod の既定のエラー）のエラーが出ます。",
 } satisfies MessagesOf<typeof en>;

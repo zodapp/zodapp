@@ -16,36 +16,63 @@ export const schema = z
   .object({
     firstName: zf
       .string()
-      .register(zf.string.registry, { label: "名(string)", uiType: "text" })
+      .register(zf.string.registry, {
+        label: msgKey("formDemo.basicInput.firstName" /* i18n: 名(string) */),
+        uiType: "text",
+      })
       .optional(),
-    lastName: zf.string().min(1).register(zf.string.registry, {
-      label: "姓（string, 必須）",
-      uiType: "text",
-    }),
-    frequency: zf.number().max(7).min(0).register(zf.number.registry, {
-      label: "1週間にお酒を飲む日数(number, slider)",
-      uiType: "slider",
-    }),
+    lastName: zf
+      .string()
+      .min(1)
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.basicInput.lastName" /* i18n: 姓（string, 必須） */,
+        ),
+        uiType: "text",
+      }),
+    frequency: zf
+      .number()
+      .max(7)
+      .min(0)
+      .register(zf.number.registry, {
+        label: msgKey(
+          "formDemo.basicInput.frequency" /* i18n: 1週間にお酒を飲む日数(number, slider) */,
+        ),
+        uiType: "slider",
+      }),
     age: zf
       .number()
       .max(150)
       .min(0)
-      .register(zf.number.registry, { label: "年齢(number)" }),
-    birthday: zf.date().register(zf.date.registry, { label: "誕生日(date)" }),
-    isMember: zf
-      .boolean()
-      .register(zf.boolean.registry, { label: "会員(boolean)" }),
+      .register(zf.number.registry, {
+        label: msgKey("formDemo.basicInput.age" /* i18n: 年齢(number) */),
+      }),
+    birthday: zf.date().register(zf.date.registry, {
+      label: msgKey("formDemo.basicInput.birthday" /* i18n: 誕生日(date) */),
+    }),
+    isMember: zf.boolean().register(zf.boolean.registry, {
+      label: msgKey("formDemo.basicInput.isMember" /* i18n: 会員(boolean) */),
+    }),
     bigAmount: zf
       .bigint()
       .register(zf.bigint.registry, { label: "bigint" })
       .optional(),
-    favoriteColor: zf
-      .literal("red")
-      .register(zf.literal.registry, { label: "固定データ(literal)" }),
+    favoriteColor: zf.literal("red").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.basicInput.favoriteColor" /* i18n: 固定データ(literal) */,
+      ),
+    }),
     isConfirmed: zf
-      .literal(true, "承認してください")
+      .literal(
+        true,
+        msgKey(
+          "formDemo.basicInput.isConfirmed.literal" /* i18n: 承認してください */,
+        ),
+      )
       .register(zf.boolean.registry, {
-        label: "承認済(literal型+booleanコンポーネントを強制)",
+        label: msgKey(
+          "formDemo.basicInput.isConfirmed" /* i18n: 承認済(literal型+booleanコンポーネントを強制) */,
+        ),
       }),
     position: zf
       .tuple([
@@ -60,9 +87,14 @@ export const schema = z
           .max(100)
           .register(zf.number.registry, { label: "Y" }),
       ])
-      .register(zf.tuple.registry, { label: "座標(tuple)" }),
+      .register(zf.tuple.registry, {
+        label: msgKey("formDemo.basicInput.position" /* i18n: 座標(tuple) */),
+      }),
     message: zfReact.computed().register(zf.computed.registry, {
-      compute: () => "これは基本入力フォームのサンプルです",
+      compute: () =>
+        msgKey(
+          "formDemo.basicInput.message.compute" /* i18n: これは基本入力フォームのサンプルです */,
+        ),
     }),
   })
   .register(zf.object.registry, {});

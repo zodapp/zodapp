@@ -16,10 +16,17 @@ export const schema = z.object({
   unitPrice: zf
     .number()
     .min(0)
-    .register(zf.number.registry, { label: "単価（円）" }),
-  quantity: zf.number().min(0).register(zf.number.registry, { label: "数量" }),
+    .register(zf.number.registry, {
+      label: msgKey("formDemo.computed.unitPrice" /* i18n: 単価（円） */),
+    }),
+  quantity: zf
+    .number()
+    .min(0)
+    .register(zf.number.registry, {
+      label: msgKey("formDemo.computed.quantity" /* i18n: 数量 */),
+    }),
   total: zfReact.computed().register(zf.computed.registry, {
-    label: "合計金額",
+    label: msgKey("formDemo.computed.total" /* i18n: 合計金額 */),
     dependsOnParent: true,
     compute: ({ parent }) => {
       const unitPrice = parent?.unitPrice ?? 0;
@@ -32,13 +39,19 @@ export const schema = z.object({
       unitPrice: zf
         .number()
         .min(0)
-        .register(zf.number.registry, { label: "単価（円）" }),
+        .register(zf.number.registry, {
+          label: msgKey(
+            "formDemo.computed.other.unitPrice" /* i18n: 単価（円） */,
+          ),
+        }),
       quantity: zf
         .number()
         .min(0)
-        .register(zf.number.registry, { label: "数量" }),
+        .register(zf.number.registry, {
+          label: msgKey("formDemo.computed.other.quantity" /* i18n: 数量 */),
+        }),
       total: zfReact.computed().register(zf.computed.registry, {
-        label: "合計金額",
+        label: msgKey("formDemo.computed.other.total" /* i18n: 合計金額 */),
         dependsOnParent: true,
         compute: ({ parent }) => {
           const unitPrice = parent?.unitPrice ?? 0;
@@ -47,7 +60,10 @@ export const schema = z.object({
         },
       }),
     })
-    .register(zf.object.registry, { label: "入れ子の場合", uiType: "box" }),
+    .register(zf.object.registry, {
+      label: msgKey("formDemo.computed.other" /* i18n: 入れ子の場合 */),
+      uiType: "box",
+    }),
 });
 
 export const defaultValues: z.input<typeof schema> = {

@@ -13,8 +13,12 @@ export const category = "Basic";
 
 const colorField = () =>
   zf.enum([
-    zf.literal("red").register(zf.literal.registry, { label: "赤" }),
-    zf.literal("blue").register(zf.literal.registry, { label: "青" }),
+    zf.literal("red").register(zf.literal.registry, {
+      label: msgKey("formDemo.nullableFields.colorField.red" /* i18n: 赤 */),
+    }),
+    zf.literal("blue").register(zf.literal.registry, {
+      label: msgKey("formDemo.nullableFields.colorField.blue" /* i18n: 青 */),
+    }),
   ]);
 
 export const schema = z
@@ -22,51 +26,91 @@ export const schema = z
     // nullable だけ：空にすると null
     nullableText: zf
       .string()
-      .register(zf.string.registry, { label: "文字（nullable）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.nullableFields.nullableText" /* i18n: 文字（nullable） */,
+        ),
+      })
       .nullable(),
     nullableNumber: zf
       .number()
-      .register(zf.number.registry, { label: "数値（nullable）" })
+      .register(zf.number.registry, {
+        label: msgKey(
+          "formDemo.nullableFields.nullableNumber" /* i18n: 数値（nullable） */,
+        ),
+      })
       .nullable(),
     nullableColor: colorField()
-      .register(zf.enum.registry, { label: "色（nullable）" })
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.nullableFields.nullableColor" /* i18n: 色（nullable） */,
+        ),
+      })
       .nullable(),
     nullableDate: z.iso
       .date()
-      .register(zf.date.registry, { label: "日付（nullable）" })
+      .register(zf.date.registry, {
+        label: msgKey(
+          "formDemo.nullableFields.nullableDate" /* i18n: 日付（nullable） */,
+        ),
+      })
       .nullable(),
     // optional と nullable の両方：空にすると undefined
     optionalNullableText: zf
       .string()
-      .register(zf.string.registry, { label: "文字（optional・nullable）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.nullableFields.optionalNullableText" /* i18n: 文字（optional・nullable） */,
+        ),
+      })
       .optional()
       .nullable(),
     // optional だけ：空にすると undefined
     optionalText: zf
       .string()
-      .register(zf.string.registry, { label: "文字（optional）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.nullableFields.optionalText" /* i18n: 文字（optional） */,
+        ),
+      })
       .optional(),
     // nullable の object：初期値は null（＋の行）。＋で開き、削除で null に戻る
     nullableDetail: z
       .object({
-        note: zf.string().register(zf.string.registry, { label: "備考" }),
+        note: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.nullableFields.nullableDetail.note" /* i18n: 備考 */,
+          ),
+        }),
         count: zf
           .number()
-          .register(zf.number.registry, { label: "件数" })
+          .register(zf.number.registry, {
+            label: msgKey(
+              "formDemo.nullableFields.nullableDetail.count" /* i18n: 件数 */,
+            ),
+          })
           .default(1),
       })
       .register(zf.object.registry, {
-        label: "詳細（nullable）",
+        label: msgKey(
+          "formDemo.nullableFields.nullableDetail" /* i18n: 詳細（nullable） */,
+        ),
         uiType: "box",
       })
       .nullable(),
     // optional の object：削除で undefined に戻る
     optionalDetail: z
       .object({
-        memo: zf.string().register(zf.string.registry, { label: "メモ" }),
+        memo: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.nullableFields.optionalDetail.memo" /* i18n: メモ */,
+          ),
+        }),
       })
       .register(zf.object.registry, {
-        label: "補足（optional）",
+        label: msgKey(
+          "formDemo.nullableFields.optionalDetail" /* i18n: 補足（optional） */,
+        ),
         uiType: "box",
       })
       .optional(),

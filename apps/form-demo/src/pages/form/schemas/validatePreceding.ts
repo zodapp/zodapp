@@ -26,26 +26,51 @@ export const schema = z
   .object({
     name: zf
       .string()
-      .min(1, "氏名を入力してください")
-      .register(zf.string.registry, { label: "氏名（必須）" }),
+      .min(
+        1,
+        msgKey(
+          "formDemo.validatePreceding.name.min" /* i18n: 氏名を入力してください */,
+        ),
+      )
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.validatePreceding.name" /* i18n: 氏名（必須） */,
+        ),
+      }),
     email: zf
       .string()
-      .min(1, "メールアドレスを入力してください")
+      .min(
+        1,
+        msgKey(
+          "formDemo.validatePreceding.email.min" /* i18n: メールアドレスを入力してください */,
+        ),
+      )
       .register(zf.string.registry, {
-        label: "メールアドレス（必須）",
+        label: msgKey(
+          "formDemo.validatePreceding.email" /* i18n: メールアドレス（必須） */,
+        ),
         uiType: "email",
       }),
     tel: zf
       .string()
-      .min(1, "電話番号を入力してください")
+      .min(
+        1,
+        msgKey(
+          "formDemo.validatePreceding.tel.min" /* i18n: 電話番号を入力してください */,
+        ),
+      )
       .register(zf.string.registry, {
-        label: "電話番号（必須）",
+        label: msgKey(
+          "formDemo.validatePreceding.tel" /* i18n: 電話番号（必須） */,
+        ),
         uiType: "tel",
       }),
     note: zf
       .string()
       .register(zf.string.registry, {
-        label: "備考（任意）",
+        label: msgKey(
+          "formDemo.validatePreceding.note" /* i18n: 備考（任意） */,
+        ),
         uiType: "multiline",
       })
       .optional(),

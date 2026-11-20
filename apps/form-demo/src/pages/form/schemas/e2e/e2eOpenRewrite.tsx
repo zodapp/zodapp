@@ -18,8 +18,16 @@ export const category = "e2e";
 
 const officeOptions = () =>
   [
-    zf.literal("hq").register(zf.literal.registry, { label: "東京本社" }),
-    zf.literal("osaka").register(zf.literal.registry, { label: "大阪支社" }),
+    zf.literal("hq").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.e2eOpenRewrite.officeOptions.hq" /* i18n: 東京本社 */,
+      ),
+    }),
+    zf.literal("osaka").register(zf.literal.registry, {
+      label: msgKey(
+        "formDemo.e2eOpenRewrite.officeOptions.osaka" /* i18n: 大阪支社 */,
+      ),
+    }),
   ] as const;
 
 // 判別子（type）の無い古い形のデータに type を補う
@@ -39,23 +47,41 @@ const contactSchema = z.preprocess(
           type: z
             .literal("email")
             .register(zf.literal.registry, { hidden: true }),
-          email: zf.string().register(zf.string.registry, { label: "メール" }),
+          email: zf.string().register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.e2eOpenRewrite.contactSchema.email.email" /* i18n: メール */,
+            ),
+          }),
         })
-        .register(zf.object.registry, { label: "メール" }),
+        .register(zf.object.registry, {
+          label: msgKey(
+            "formDemo.e2eOpenRewrite.contactSchema.email" /* i18n: メール */,
+          ),
+        }),
       z
         .object({
           type: z
             .literal("phone")
             .register(zf.literal.registry, { hidden: true }),
-          phone: zf
-            .string()
-            .register(zf.string.registry, { label: "電話番号" }),
+          phone: zf.string().register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.e2eOpenRewrite.contactSchema.phone.phone" /* i18n: 電話番号 */,
+            ),
+          }),
         })
-        .register(zf.object.registry, { label: "電話" }),
+        .register(zf.object.registry, {
+          label: msgKey(
+            "formDemo.e2eOpenRewrite.contactSchema.phone" /* i18n: 電話 */,
+          ),
+        }),
     ])
     .register(zf.union.registry, {
-      label: "連絡先（preprocess の union）",
-      selectorLabel: "連絡先の種類",
+      label: msgKey(
+        "formDemo.e2eOpenRewrite.contactSchema" /* i18n: 連絡先（preprocess の union） */,
+      ),
+      selectorLabel: msgKey(
+        "formDemo.e2eOpenRewrite.contactSchema.selectorLabel" /* i18n: 連絡先の種類 */,
+      ),
     }),
 );
 
@@ -63,22 +89,37 @@ export const schema = z
   .object({
     officeClear: zf
       .enum(officeOptions())
-      .register(zf.enum.registry, { label: "拠点（clear）" })
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.e2eOpenRewrite.officeClear" /* i18n: 拠点（clear） */,
+        ),
+      })
       .optional(),
     officeKeep: zf
       .enum(officeOptions())
-      .register(zf.enum.registry, { label: "拠点（keep）", unlisted: "keep" })
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.e2eOpenRewrite.officeKeep" /* i18n: 拠点（keep） */,
+        ),
+        unlisted: "keep",
+      })
       .optional(),
     contact: contactSchema,
-    updatedAt: z.iso
-      .datetime({ precision: 0 })
-      .register(zf.date.registry, { label: "更新日時（precision 0）" }),
-    openAt: z.iso
-      .time({ precision: -1 })
-      .register(zf.time.registry, { label: "開店時刻（precision -1）" }),
+    updatedAt: z.iso.datetime({ precision: 0 }).register(zf.date.registry, {
+      label: msgKey(
+        "formDemo.e2eOpenRewrite.updatedAt" /* i18n: 更新日時（precision 0） */,
+      ),
+    }),
+    openAt: z.iso.time({ precision: -1 }).register(zf.time.registry, {
+      label: msgKey(
+        "formDemo.e2eOpenRewrite.openAt" /* i18n: 開店時刻（precision -1） */,
+      ),
+    }),
     memo: zf
       .string()
-      .register(zf.string.registry, { label: "メモ" })
+      .register(zf.string.registry, {
+        label: msgKey("formDemo.e2eOpenRewrite.memo" /* i18n: メモ */),
+      })
       .optional(),
   })
   .register(zf.object.registry, {});

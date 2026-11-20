@@ -20,9 +20,27 @@ type Status = "active" | "archived" | "draft";
 // satisfies を使うと、Status のキー漏れ・ComputedValue に合わない値を
 // コンパイル時に検出できる。
 const statusBadges = {
-  active: { type: "badge", label: "有効", color: "green" },
-  archived: { type: "badge", label: "アーカイブ", color: "gray" },
-  draft: { type: "badge", label: "下書き", color: "yellow" },
+  active: {
+    type: "badge",
+    label: msgKey(
+      "formDemo.computedVariants.statusBadge.active" /* i18n: 有効 */,
+    ),
+    color: "green",
+  },
+  archived: {
+    type: "badge",
+    label: msgKey(
+      "formDemo.computedVariants.statusBadge.archived" /* i18n: アーカイブ */,
+    ),
+    color: "gray",
+  },
+  draft: {
+    type: "badge",
+    label: msgKey(
+      "formDemo.computedVariants.statusBadge.draft" /* i18n: 下書き */,
+    ),
+    color: "yellow",
+  },
 } satisfies Record<Status, Extract<ComputedValue, { type: "badge" }>>;
 
 export const schema = z
@@ -30,7 +48,9 @@ export const schema = z
     heading: zfReact.computed().register(zf.computed.registry, {
       compute: () => ({
         type: "title",
-        label: "ComputedValue の表示型デモ",
+        label: msgKey(
+          "formDemo.computedVariants.heading.compute" /* i18n: ComputedValue の表示型デモ */,
+        ),
         level: "h3",
       }),
     }),
@@ -40,27 +60,49 @@ export const schema = z
     // 整形するのが主用途）。
     status: zf
       .enum([
-        zf.literal("active").register(zf.literal.registry, { label: "有効" }),
-        zf
-          .literal("archived")
-          .register(zf.literal.registry, { label: "アーカイブ" }),
-        zf.literal("draft").register(zf.literal.registry, { label: "下書き" }),
+        zf.literal("active").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.computedVariants.status.active" /* i18n: 有効 */,
+          ),
+        }),
+        zf.literal("archived").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.computedVariants.status.archived" /* i18n: アーカイブ */,
+          ),
+        }),
+        zf.literal("draft").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.computedVariants.status.draft" /* i18n: 下書き */,
+          ),
+        }),
       ])
-      .register(zf.enum.registry, { label: "ステータス（編集用）" }),
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.computedVariants.status" /* i18n: ステータス（編集用） */,
+        ),
+      }),
     statusBadge: zf
       .string()
       .register(zf.computed.registry, {
-        label: "ステータス（computedでバッジ表示）",
+        label: msgKey(
+          "formDemo.computedVariants.statusBadge" /* i18n: ステータス（computedでバッジ表示） */,
+        ),
         compute: ({ value }: { value: string }) =>
           statusBadges[value as Status] ?? { type: "badge", label: value },
       })
       .optional(),
-    firstName: zf.string().register(zf.string.registry, { label: "名" }),
-    lastName: zf.string().register(zf.string.registry, { label: "姓" }),
+    firstName: zf.string().register(zf.string.registry, {
+      label: msgKey("formDemo.computedVariants.firstName" /* i18n: 名 */),
+    }),
+    lastName: zf.string().register(zf.string.registry, {
+      label: msgKey("formDemo.computedVariants.lastName" /* i18n: 姓 */),
+    }),
     // dependsOnParent: true の computed: 「親オブジェクト全体」を受け取って算出する。
     // 複数フィールドを跨いだ計算はこちらを使う。
     fullName: zfReact.computed().register(zf.computed.registry, {
-      label: "氏名（computedで結合）",
+      label: msgKey(
+        "formDemo.computedVariants.fullName" /* i18n: 氏名（computedで結合） */,
+      ),
       dependsOnParent: true,
       compute: ({ parent }) =>
         `${parent?.lastName ?? ""} ${parent?.firstName ?? ""}`,
@@ -69,18 +111,24 @@ export const schema = z
     homepageLink: zf
       .string()
       .register(zf.computed.registry, {
-        label: "リンク（type: link）",
+        label: msgKey(
+          "formDemo.computedVariants.homepageLink" /* i18n: リンク（type: link） */,
+        ),
         compute: ({ value }: { value: string }) =>
           value ? { type: "link", label: value, href: value } : "",
       })
       .optional(),
     // icon は CSS クラス名として描画される（アイコンフォント利用時に有効）
     priority: zfReact.computed().register(zf.computed.registry, {
-      label: "アイコン（type: icon）",
+      label: msgKey(
+        "formDemo.computedVariants.priority" /* i18n: アイコン（type: icon） */,
+      ),
       compute: () => ({
         type: "icon",
         icon: "ti ti-flag",
-        label: "高",
+        label: msgKey(
+          "formDemo.computedVariants.priority.compute" /* i18n: 高 */,
+        ),
         color: "red",
       }),
     }),

@@ -96,7 +96,9 @@ export const schema = z
       .optional(),
     message: zfReact.computed().register(zf.computed.registry, {
       compute: () =>
-        "ラベル・選択肢・エラーは辞書のキーで書いています。ヘッダーで English に切り替えると、英語の辞書で表示します（アプリの見出しや説明は日本語のままです）。送信すると、名前（params 付きのキー）とメールアドレス（zod の既定のエラー）のエラーが出ます。",
+        msgKey(
+          "formDemo.i18nMessages.message.compute" /* i18n: ラベル・選択肢・エラーは辞書のキーで書いています。ヘッダーで English に切り替えると、英語の辞書で表示します。送信すると、名前（params 付きのキー）とメールアドレス（zod の既定のエラー）のエラーが出ます。 */,
+        ),
     }),
   })
   .register(zf.object.registry, {});

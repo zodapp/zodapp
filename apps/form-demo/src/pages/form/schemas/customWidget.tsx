@@ -1,3 +1,5 @@
+import { useResolveText } from "@zodapp/zod-form-react/common";
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, getMeta } from "@zodapp/zod-form";
@@ -40,7 +42,8 @@ const RatingComponent = wrapComponent(function RatingImplement({
   error,
 }: ZodFormInternalProps<NumberSchema>) {
   const meta = getMeta(schema, "number");
-  const label = labelFromParent ?? meta?.label;
+  const resolveText = useResolveText();
+  const label = labelFromParent ?? resolveText(meta?.label);
   const value = typeof field.value === "number" ? field.value : 0;
 
   return (
@@ -75,11 +78,19 @@ const joinFieldPath = (fieldPath: string, name: string) =>
 const regionShape = {
   prefecture: zf
     .string()
-    .register(zf.string.registry, { label: "都道府県" })
+    .register(zf.string.registry, {
+      label: msgKey(
+        "formDemo.customWidget.regionShape.prefecture" /* i18n: 都道府県 */,
+      ),
+    })
     .optional(),
   city: zf
     .string()
-    .register(zf.string.registry, { label: "市区町村" })
+    .register(zf.string.registry, {
+      label: msgKey(
+        "formDemo.customWidget.regionShape.city" /* i18n: 市区町村 */,
+      ),
+    })
     .optional(),
 };
 
@@ -92,7 +103,9 @@ const RegionSelectorComponent = wrapComponent(function RegionSelectorImplement({
   readOnly,
 }: ZodFormInternalProps<RegionSchema>) {
   const meta = getMeta(schema, "object");
-  const label = labelFromParent ?? meta?.label;
+  const resolveText = useResolveText();
+  const msg = useMsg();
+  const label = labelFromParent ?? resolveText(meta?.label);
 
   // サブフィールドを個別に登録する。バリデーションやタッチ状態も
   // フィールド単位で管理される。
@@ -110,7 +123,7 @@ const RegionSelectorComponent = wrapComponent(function RegionSelectorImplement({
     <InputWrapper label={label || undefined}>
       <Group grow>
         <Select
-          placeholder="都道府県"
+          placeholder={msg("formDemo.customWidget.region.state" /* i18n: 州 */)}
           data={Object.keys(CITY_OPTIONS)}
           value={prefecture}
           onChange={(next) => {
@@ -123,7 +136,7 @@ const RegionSelectorComponent = wrapComponent(function RegionSelectorImplement({
           clearable
         />
         <Select
-          placeholder="市区町村"
+          placeholder={msg("formDemo.customWidget.region.city" /* i18n: 市 */)}
           data={prefecture ? (CITY_OPTIONS[prefecture] ?? []) : []}
           value={city}
           onChange={(next) => cityField.handleChange(next ?? undefined)}
@@ -151,17 +164,28 @@ const customComponentLibrary: ComponentLibrary = {
 
 export const schema = z
   .object({
-    productName: zf.string().register(zf.string.registry, { label: "商品名" }),
+    productName: zf.string().register(zf.string.registry, {
+      label: msgKey("formDemo.customWidget.productName" /* i18n: 商品名 */),
+    }),
     rating: zf
       .number()
-      .min(1, "評価を選択してください")
+      .min(
+        1,
+        msgKey(
+          "formDemo.customWidget.rating.min" /* i18n: 評価を選択してください */,
+        ),
+      )
       .max(5)
       .register(zf.number.registry, {
-        label: "評価（number_rating カスタムウィジェット）",
+        label: msgKey(
+          "formDemo.customWidget.rating" /* i18n: 評価（number_rating カスタムウィジェット） */,
+        ),
         uiType: "rating",
       }),
     region: z.object(regionShape).register(zf.object.registry, {
-      label: "地域（object_regionSelector カスタムウィジェット）",
+      label: msgKey(
+        "formDemo.customWidget.region" /* i18n: 地域（object_regionSelector カスタムウィジェット） */,
+      ),
       uiType: "regionSelector",
     }),
   })

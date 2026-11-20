@@ -21,13 +21,28 @@ export const schema = z
           .literal("email")
           .register(zf.literal.registry, { hidden: true }),
         email: z
-          .email("有効なメールアドレスを入力してください")
-          .register(zf.string.registry, { label: "メール" }),
-        note: zf
-          .string()
-          .register(zf.string.registry, { label: "備考", uiType: "multiline" }),
+          .email(
+            msgKey(
+              "formDemo.discriminatedUnionAsTopLevel.email.email.email" /* i18n: 有効なメールアドレスを入力してください */,
+            ),
+          )
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnionAsTopLevel.email.email" /* i18n: メール */,
+            ),
+          }),
+        note: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.discriminatedUnionAsTopLevel.email.note" /* i18n: 備考 */,
+          ),
+          uiType: "multiline",
+        }),
       })
-      .register(zf.object.registry, { label: "メール連絡" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.discriminatedUnionAsTopLevel.email" /* i18n: メール連絡 */,
+        ),
+      }),
     z
       .object({
         type: z
@@ -35,28 +50,51 @@ export const schema = z
           .register(zf.literal.registry, { hidden: true }),
         phoneType: zf
           .enum([
-            zf
-              .literal("mobile")
-              .register(zf.literal.registry, { label: "携帯電話" }),
-            zf
-              .literal("landline")
-              .register(zf.literal.registry, { label: "固定電話" }),
+            zf.literal("mobile").register(zf.literal.registry, {
+              label: msgKey(
+                "formDemo.discriminatedUnionAsTopLevel.phone.phoneType.mobile" /* i18n: 携帯電話 */,
+              ),
+            }),
+            zf.literal("landline").register(zf.literal.registry, {
+              label: msgKey(
+                "formDemo.discriminatedUnionAsTopLevel.phone.phoneType.landline" /* i18n: 固定電話 */,
+              ),
+            }),
           ])
-          .register(zf.enum.registry, { label: "電話番号タイプ" }),
+          .register(zf.enum.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnionAsTopLevel.phone.phoneType" /* i18n: 電話番号タイプ */,
+            ),
+          }),
         phone: zf
           .string()
           .min(10)
           .max(15)
-          .register(zf.string.registry, { label: "電話番号" }),
-        note: zf
-          .string()
-          .register(zf.string.registry, { label: "備考", uiType: "multiline" }),
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnionAsTopLevel.phone.phone" /* i18n: 電話番号 */,
+            ),
+          }),
+        note: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.discriminatedUnionAsTopLevel.phone.note" /* i18n: 備考 */,
+          ),
+          uiType: "multiline",
+        }),
       })
-      .register(zf.object.registry, { label: "電話連絡" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.discriminatedUnionAsTopLevel.phone" /* i18n: 電話連絡 */,
+        ),
+      }),
   ])
   .register(zf.union.registry, {
-    label: "連絡先",
-    selectorLabel: "連絡先タイプ",
+    label: msgKey(
+      "formDemo.discriminatedUnionAsTopLevel.root" /* i18n: 連絡先 */,
+    ),
+    selectorLabel: msgKey(
+      "formDemo.discriminatedUnionAsTopLevel.selectorLabel" /* i18n: 連絡先タイプ */,
+    ),
   });
 
 export const defaultValues: z.input<typeof schema> = {

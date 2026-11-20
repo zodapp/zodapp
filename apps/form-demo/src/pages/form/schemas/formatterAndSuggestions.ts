@@ -20,14 +20,18 @@ export const schema = z
     company: zf
       .string()
       .register(zf.string.registry, {
-        label: "会社名（suggestions: string[]）",
+        label: msgKey(
+          "formDemo.formatterAndSuggestions.company" /* i18n: 会社名（suggestions: string[]） */,
+        ),
         suggestions: ["株式会社サンプル", "サンプル工業", "Example Inc."],
       })
       .optional(),
     prefecture: zf
       .string()
       .register(zf.string.registry, {
-        label: "都道府県（suggestions: {label, value}[]）",
+        label: msgKey(
+          "formDemo.formatterAndSuggestions.prefecture" /* i18n: 都道府県（suggestions: {label, value}[]） */,
+        ),
         suggestions: [
           { label: "東京都 (13)", value: "13" },
           { label: "大阪府 (27)", value: "27" },
@@ -36,23 +40,35 @@ export const schema = z
       })
       .optional(),
     phone: zf.string().register(zf.string.registry, {
-      label: "電話番号（formatter, readOnly表示で整形）",
+      label: msgKey(
+        "formDemo.formatterAndSuggestions.phone" /* i18n: 電話番号（formatter, readOnly表示で整形） */,
+      ),
       readOnly: true,
       formatter: (value: string) =>
         value.replace(/^(\d{2,3})(\d{4})(\d{4})$/, "$1-$2-$3"),
     }),
     amount: zf.number().register(zf.number.registry, {
-      label: "金額（number formatter, readOnly表示で整形）",
+      label: msgKey(
+        "formDemo.formatterAndSuggestions.amount" /* i18n: 金額（number formatter, readOnly表示で整形） */,
+      ),
       readOnly: true,
       formatter: (value: number) => `¥${value.toLocaleString("ja-JP")}`,
     }),
     status: zf.string().register(zf.string.registry, {
-      label: "ステータス（formatterでbadgeを返す）",
+      label: msgKey(
+        "formDemo.formatterAndSuggestions.status" /* i18n: ステータス（formatterでbadgeを返す） */,
+      ),
       readOnly: true,
       formatter: (value: string) => ({
         type: "badge",
         label: value,
-        color: value === "有効" ? "green" : "gray",
+        color:
+          value ===
+          msgKey(
+            "formDemo.formatterAndSuggestions.status.formatter" /* i18n: 有効 */,
+          )
+            ? "green"
+            : "gray",
       }),
     }),
   })

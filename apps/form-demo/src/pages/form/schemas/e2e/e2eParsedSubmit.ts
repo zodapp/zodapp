@@ -19,29 +19,49 @@ export const schema = z
     name: z
       .string()
       .trim()
-      .register(zf.string.registry, { label: "名前（trim）" }),
+      .register(zf.string.registry, {
+        label: msgKey("formDemo.e2eParsedSubmit.name" /* i18n: 名前（trim） */),
+      }),
     // .default()：値が無ければ、開くときに既定値で補う
     role: z
       .string()
-      .register(zf.string.registry, { label: "役割（default）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.e2eParsedSubmit.role" /* i18n: 役割（default） */,
+        ),
+      })
       .default("member"),
     // .prefault()：値が無ければ、開くときに prefault の値で補う
     nickname: z
       .string()
-      .register(zf.string.registry, { label: "ニックネーム（prefault）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.e2eParsedSubmit.nickname" /* i18n: ニックネーム（prefault） */,
+        ),
+      })
       .prefault("guest"),
     // z.coerce.number()：数の欄
-    count: z.coerce
-      .number()
-      .register(zf.common.registry, { label: "個数（coerce）" }),
+    count: z.coerce.number().register(zf.common.registry, {
+      label: msgKey(
+        "formDemo.e2eParsedSubmit.count" /* i18n: 個数（coerce） */,
+      ),
+    }),
     // .pipe()：入口の string で描き、送信では大文字にする
     code: z
       .string()
-      .register(zf.string.registry, { label: "コード（pipe で大文字）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.e2eParsedSubmit.code" /* i18n: コード（pipe で大文字） */,
+        ),
+      })
       .pipe(z.transform((text: string) => text.toUpperCase())),
     // z.codec()：入口の string で描き、送信では数にする
     amount: z.codec(
-      z.string().register(zf.string.registry, { label: "数（codec）" }),
+      z.string().register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.e2eParsedSubmit.amount" /* i18n: 数（codec） */,
+        ),
+      }),
       z.number(),
       {
         decode: (text) => Number(text),
@@ -49,14 +69,20 @@ export const schema = z
       },
     ),
     // z.stringbool()：文字列の欄。送信では true / false にする
-    agree: z
-      .stringbool()
-      .register(zf.common.registry, { label: "同意（stringbool）" }),
+    agree: z.stringbool().register(zf.common.registry, {
+      label: msgKey(
+        "formDemo.e2eParsedSubmit.agree" /* i18n: 同意（stringbool） */,
+      ),
+    }),
     // .catch()：検証に落ちる値は、送信で catch の値にする
     shortName: z
       .string()
       .min(3)
-      .register(zf.string.registry, { label: "略称（catch）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.e2eParsedSubmit.shortName" /* i18n: 略称（catch） */,
+        ),
+      })
       .catch("n/a"),
   })
   .register(zf.object.registry, {});

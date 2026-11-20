@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { msgKey } from "@zodapp/i18n-messages";
 import { useState } from "react";
 import { z } from "zod";
@@ -23,10 +24,17 @@ export const schema = z
   .object({
     title: zf
       .string()
-      .min(1, "タイトルを入力してください")
-      .register(zf.string.registry, { label: "タイトル" }),
+      .min(
+        1,
+        msgKey(
+          "formDemo.formActions.title.min" /* i18n: タイトルを入力してください */,
+        ),
+      )
+      .register(zf.string.registry, {
+        label: msgKey("formDemo.formActions.title" /* i18n: タイトル */),
+      }),
     body: zf.string().register(zf.string.registry, {
-      label: "本文",
+      label: msgKey("formDemo.formActions.body" /* i18n: 本文 */),
       uiType: "multiline",
     }),
   })
@@ -43,6 +51,7 @@ type SchemaType = z.infer<typeof schema>;
 const harness = [createE2eHarness<typeof schema>({ formId, submit: false })];
 
 export const Component = () => {
+  const msg = useMsg();
   // 下書きとして保存済みの値。AutoForm の defaultValues に渡すことで、
   // 「保存済みの状態と等しいか」を formState.isDefaultValue で判定できる。
   const [draft, setDraft] = useState<z.input<typeof schema>>(defaultValues);
@@ -57,14 +66,16 @@ export const Component = () => {
   const actions: readonly AutoFormAction<typeof schema>[] = [
     {
       type: "reset",
-      label: "変更を破棄",
+      label: msg("formDemo.formActions.actions.reset" /* i18n: 変更を破棄 */),
       variant: "light",
       color: "orange",
       disabled: ({ formState }) => formState.isDefaultValue,
     },
     {
       type: "submit",
-      label: "下書き保存",
+      label: msg(
+        "formDemo.formActions.actions.saveDraft" /* i18n: 下書き保存 */,
+      ),
       variant: "default",
       disabled: ({ formState }) => formState.isDefaultValue,
       onSubmit: (data) => {
@@ -74,7 +85,7 @@ export const Component = () => {
     },
     {
       type: "submit",
-      label: "公開する",
+      label: msg("formDemo.formActions.actions.publish" /* i18n: 公開する */),
       color: "green",
       disabled: ({ formState }) => !formState.isDefaultValue,
       onSubmit: (data) => {
@@ -86,7 +97,10 @@ export const Component = () => {
       type: "custom",
       render: () => (
         <Text size="sm" c="dimmed">
-          保存 v{draftVersion}
+          {msg(
+            "formDemo.formActions.actions.savedVersion" /* i18n: 保存 v${version} */,
+            { version: String(draftVersion) },
+          )}
         </Text>
       ),
     },
@@ -102,9 +116,16 @@ export const Component = () => {
         actionComponents={harness}
       />
       {published && (
-        <Alert color="green" title="公開済みの内容">
+        <Alert
+          color="green"
+          title={msg(
+            "formDemo.formActions.published.title" /* i18n: 公開済みの内容 */,
+          )}
+        >
           <Group gap="xs">
-            <Badge color="green">公開中</Badge>
+            <Badge color="green">
+              {msg("formDemo.formActions.published.badge" /* i18n: 公開中 */)}
+            </Badge>
             <Text size="sm">{published.title}</Text>
           </Group>
           <Text size="sm" c="dimmed">

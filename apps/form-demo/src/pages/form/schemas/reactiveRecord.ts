@@ -22,15 +22,23 @@ export const schema = z
       .string()
       .min(1)
       .register(zf.string.registry, {
-        label: "プロジェクト名",
+        label: msgKey(
+          "formDemo.reactiveRecord.projectName" /* i18n: プロジェクト名 */,
+        ),
         uiType: "text",
       }),
 
     settings: z
       .record(z.string(), settingValueSchema)
-      .register(zf.record.registry, { label: "設定値", uiType: "box" }),
+      .register(zf.record.registry, {
+        label: msgKey("formDemo.reactiveRecord.settings" /* i18n: 設定値 */),
+        uiType: "box",
+      }),
   })
-  .register(zf.object.registry, { uiType: "box", label: "Record サンプル" });
+  .register(zf.object.registry, {
+    uiType: "box",
+    label: msgKey("formDemo.reactiveRecord.root" /* i18n: Record サンプル */),
+  });
 
 export const defaultValues: z.input<typeof schema> = {
   projectName: "サンプルプロジェクト",

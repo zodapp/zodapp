@@ -20,7 +20,11 @@ const chain: z.ZodType<Chain> = z.lazy(() =>
     .object({
       name: z
         .string()
-        .register(zf.string.registry, { label: "鎖の名前" })
+        .register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.e2eLazyLimit.chain.name" /* i18n: 鎖の名前 */,
+          ),
+        })
         .optional(),
       next: chain,
     })
@@ -32,7 +36,9 @@ type Tree = { name: string; child?: Tree };
 const tree: z.ZodType<Tree> = z.lazy(() =>
   z
     .object({
-      name: z.string().register(zf.string.registry, { label: "木の名前" }),
+      name: z.string().register(zf.string.registry, {
+        label: msgKey("formDemo.e2eLazyLimit.tree.name" /* i18n: 木の名前 */),
+      }),
       child: tree.optional(),
     })
     .register(zf.object.registry, {}),
@@ -41,11 +47,15 @@ const tree: z.ZodType<Tree> = z.lazy(() =>
 export const schema = z
   .object({
     chain: chain.register(zf.common.registry, {
-      label: "鎖（optional なし。maxDepth: 2）",
+      label: msgKey(
+        "formDemo.e2eLazyLimit.chain" /* i18n: 鎖（optional なし。maxDepth: 2） */,
+      ),
       maxDepth: 2,
     }),
     tree: tree.register(zf.common.registry, {
-      label: "木（optional。maxDepth: 2）",
+      label: msgKey(
+        "formDemo.e2eLazyLimit.tree" /* i18n: 木（optional。maxDepth: 2） */,
+      ),
       maxDepth: 2,
     }),
   })

@@ -5,4 +5,7 @@ import type { en } from "../en/reactiveRecord";
 export const ja = {
   "formDemo.page.reactiveRecord.description":
     "z.record(z.string(), ...) によるキー・バリュー形式のフォーム。キー名がラベルになります。",
+  "formDemo.reactiveRecord.projectName": "プロジェクト名",
+  "formDemo.reactiveRecord.settings": "設定値",
+  "formDemo.reactiveRecord.root": "Record サンプル",
 } satisfies MessagesOf<typeof en>;

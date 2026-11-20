@@ -24,7 +24,9 @@ enum Priority {
 type Tree = { name: string; child?: Tree };
 const treeNode = (): z.ZodType<Tree> =>
   z.object({
-    name: z.string().register(zf.string.registry, { label: "名前" }),
+    name: z.string().register(zf.string.registry, {
+      label: msgKey("formDemo.zodBuiltins.treeNode.name" /* i18n: 名前 */),
+    }),
     child: z.lazy(() => treeNode()).optional(),
   });
 
@@ -34,12 +36,18 @@ export const schema = z
     kind: z.literal("article"),
     // literal（値が複数）：選択肢として出す
     visibility: z.literal(["public", "private"]).register(zf.literal.registry, {
-      label: "公開範囲（literal の複数の値）",
+      label: msgKey(
+        "formDemo.zodBuiltins.visibility" /* i18n: 公開範囲（literal の複数の値） */,
+      ),
     }),
     // pipe・transform：入力側の schema で欄を出し、送信では変換した値を渡す
     tags: z
       .string()
-      .register(zf.string.registry, { label: "タグ（カンマ区切り → 配列）" })
+      .register(zf.string.registry, {
+        label: msgKey(
+          "formDemo.zodBuiltins.tags" /* i18n: タグ（カンマ区切り → 配列） */,
+        ),
+      })
       .transform((text) =>
         text
           .split(",")
@@ -49,48 +57,78 @@ export const schema = z
     // set：選択肢があれば複数選択、文字列ならタグ入力
     channels: z
       .set(z.enum(["mail", "slack", "sms"]))
-      .register(zf.set.registry, { label: "通知先（Set<enum>）" }),
-    keywords: z
-      .set(z.string())
-      .register(zf.set.registry, { label: "キーワード（Set<string>）" }),
+      .register(zf.set.registry, {
+        label: msgKey(
+          "formDemo.zodBuiltins.channels" /* i18n: 通知先（Set<enum>） */,
+        ),
+      }),
+    keywords: z.set(z.string()).register(zf.set.registry, {
+      label: msgKey(
+        "formDemo.zodBuiltins.keywords" /* i18n: キーワード（Set<string>） */,
+      ),
+    }),
     // キーの決まった record：列挙したキーを固定の欄として並べる
     title: z
       .record(
         zf.enum([
-          zf.literal("ja").register(zf.literal.registry, { label: "日本語" }),
-          zf.literal("en").register(zf.literal.registry, { label: "英語" }),
+          zf.literal("ja").register(zf.literal.registry, {
+            label: msgKey(
+              "formDemo.zodBuiltins.title.key.ja" /* i18n: 日本語 */,
+            ),
+          }),
+          zf.literal("en").register(zf.literal.registry, {
+            label: msgKey("formDemo.zodBuiltins.title.key.en" /* i18n: 英語 */),
+          }),
         ]),
         z.string().min(1),
       )
       .register(zf.record.registry, {
-        label: "タイトル（キーの決まった record）",
+        label: msgKey(
+          "formDemo.zodBuiltins.title" /* i18n: タイトル（キーの決まった record） */,
+        ),
       }),
     // 数値の enum：object の形の enum・TS enum は、キーを選択肢の名前にする
-    priority: z
-      .enum(Priority)
-      .register(zf.enum.registry, { label: "優先度（数値の TS enum）" }),
+    priority: z.enum(Priority).register(zf.enum.registry, {
+      label: msgKey(
+        "formDemo.zodBuiltins.priority" /* i18n: 優先度（数値の TS enum） */,
+      ),
+    }),
     // map：record の entries と同じ見た目で Map を書く
-    limits: z
-      .map(z.string(), z.number())
-      .register(zf.common.registry, { label: "上限（Map<string, number>）" }),
+    limits: z.map(z.string(), z.number()).register(zf.common.registry, {
+      label: msgKey(
+        "formDemo.zodBuiltins.limits" /* i18n: 上限（Map<string, number>） */,
+      ),
+    }),
     // file：File を値に持つファイルの入力欄
     attachment: z
       .file()
       .optional()
-      .register(zf.common.registry, { label: "添付（z.file()）" }),
+      .register(zf.common.registry, {
+        label: msgKey(
+          "formDemo.zodBuiltins.attachment" /* i18n: 添付（z.file()） */,
+        ),
+      }),
     // readonly：中をそのまま描く（zod の readonly は値を凍らせるだけ）
     author: z
       .object({
-        name: z.string().register(zf.string.registry, { label: "著者名" }),
+        name: z.string().register(zf.string.registry, {
+          label: msgKey("formDemo.zodBuiltins.author.name" /* i18n: 著者名 */),
+        }),
       })
       .readonly()
-      .register(zf.common.registry, { label: "著者（readonly）" }),
+      .register(zf.common.registry, {
+        label: msgKey(
+          "formDemo.zodBuiltins.author" /* i18n: 著者（readonly） */,
+        ),
+      }),
     // optional な再帰：値のある所まで描く。optional を通るたびに、入れ子の深さの数え直しになるので、
     // 深くしても上限（既定 10）の注記は出ない
     outline: z
       .lazy(() => treeNode())
       .register(zf.common.registry, {
-        label: "目次（optional な再帰）",
+        label: msgKey(
+          "formDemo.zodBuiltins.outline" /* i18n: 目次（optional な再帰） */,
+        ),
       }),
   })
   .register(zf.object.registry, {});

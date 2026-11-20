@@ -14,28 +14,46 @@ export const category = "Basic";
 export const schema = z
   .object({
     defaultSwitch: zf.boolean().register(zf.boolean.registry, {
-      label: "既定（Switch）",
+      label: msgKey(
+        "formDemo.booleanVariants.defaultSwitch" /* i18n: 既定（Switch） */,
+      ),
     }),
     checkbox: zf.boolean().register(zf.boolean.registry, {
-      label: "チェックボックス（uiType: checkbox）",
+      label: msgKey(
+        "formDemo.booleanVariants.checkbox" /* i18n: チェックボックス（uiType: checkbox） */,
+      ),
       uiType: "checkbox",
     }),
     select: zf.boolean().register(zf.boolean.registry, {
-      label: "セレクト（uiType: select）",
+      label: msgKey(
+        "formDemo.booleanVariants.select" /* i18n: セレクト（uiType: select） */,
+      ),
       uiType: "select",
     }),
     // trueLabel / falseLabel は select や readOnly 表示での表示文言になる
     withLabels: zf.boolean().register(zf.boolean.registry, {
-      label: "表示文言つき（trueLabel / falseLabel）",
+      label: msgKey(
+        "formDemo.booleanVariants.withLabels" /* i18n: 表示文言つき（trueLabel / falseLabel） */,
+      ),
       uiType: "select",
-      trueLabel: "公開する",
-      falseLabel: "非公開にする",
+      trueLabel: msgKey(
+        "formDemo.booleanVariants.withLabels.trueLabel" /* i18n: 公開する */,
+      ),
+      falseLabel: msgKey(
+        "formDemo.booleanVariants.withLabels.falseLabel" /* i18n: 非公開にする */,
+      ),
     }),
     readOnlyWithLabels: zf.boolean().register(zf.boolean.registry, {
-      label: "読み取り表示（trueLabel / falseLabel が使われる）",
+      label: msgKey(
+        "formDemo.booleanVariants.readOnlyWithLabels" /* i18n: 読み取り表示（trueLabel / falseLabel が使われる） */,
+      ),
       readOnly: true,
-      trueLabel: "公開する",
-      falseLabel: "非公開にする",
+      trueLabel: msgKey(
+        "formDemo.booleanVariants.readOnlyWithLabels.trueLabel" /* i18n: 公開する */,
+      ),
+      falseLabel: msgKey(
+        "formDemo.booleanVariants.readOnlyWithLabels.falseLabel" /* i18n: 非公開にする */,
+      ),
     }),
   })
   .register(zf.object.registry, {});

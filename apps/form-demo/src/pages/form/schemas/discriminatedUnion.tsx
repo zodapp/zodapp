@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect } from "react";
 import { z } from "zod";
@@ -32,13 +33,28 @@ const contactSchema = z
           .literal("email")
           .register(zf.literal.registry, { hidden: true }),
         email: z
-          .email("有効なメールアドレスを入力してください")
-          .register(zf.string.registry, { label: "メール" }),
-        note: zf
-          .string()
-          .register(zf.string.registry, { label: "備考", uiType: "multiline" }),
+          .email(
+            msgKey(
+              "formDemo.discriminatedUnion.contactSchema.email.email.email" /* i18n: 有効なメールアドレスを入力してください */,
+            ),
+          )
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnion.contactSchema.email.email" /* i18n: メール */,
+            ),
+          }),
+        note: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.discriminatedUnion.contactSchema.email.note" /* i18n: 備考 */,
+          ),
+          uiType: "multiline",
+        }),
       })
-      .register(zf.object.registry, { label: "メール連絡" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.discriminatedUnion.contactSchema.email" /* i18n: メール連絡 */,
+        ),
+      }),
     z
       .object({
         type: z
@@ -46,28 +62,51 @@ const contactSchema = z
           .register(zf.literal.registry, { hidden: true }),
         phoneType: zf
           .enum([
-            zf
-              .literal("mobile")
-              .register(zf.literal.registry, { label: "携帯電話" }),
-            zf
-              .literal("landline")
-              .register(zf.literal.registry, { label: "固定電話" }),
+            zf.literal("mobile").register(zf.literal.registry, {
+              label: msgKey(
+                "formDemo.discriminatedUnion.contactSchema.phone.phoneType.mobile" /* i18n: 携帯電話 */,
+              ),
+            }),
+            zf.literal("landline").register(zf.literal.registry, {
+              label: msgKey(
+                "formDemo.discriminatedUnion.contactSchema.phone.phoneType.landline" /* i18n: 固定電話 */,
+              ),
+            }),
           ])
-          .register(zf.enum.registry, { label: "電話番号タイプ" }),
+          .register(zf.enum.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnion.contactSchema.phone.phoneType" /* i18n: 電話番号タイプ */,
+            ),
+          }),
         phone: zf
           .string()
           .min(10)
           .max(15)
-          .register(zf.string.registry, { label: "電話番号" }),
-        note: zf
-          .string()
-          .register(zf.string.registry, { label: "備考", uiType: "multiline" }),
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnion.contactSchema.phone.phone" /* i18n: 電話番号 */,
+            ),
+          }),
+        note: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.discriminatedUnion.contactSchema.phone.note" /* i18n: 備考 */,
+          ),
+          uiType: "multiline",
+        }),
       })
-      .register(zf.object.registry, { label: "電話連絡" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.discriminatedUnion.contactSchema.phone" /* i18n: 電話連絡 */,
+        ),
+      }),
   ])
   .register(zf.union.registry, {
-    label: "連絡先",
-    selectorLabel: "連絡先タイプ",
+    label: msgKey(
+      "formDemo.discriminatedUnion.contactSchema" /* i18n: 連絡先 */,
+    ),
+    selectorLabel: msgKey(
+      "formDemo.discriminatedUnion.contactSchema.selectorLabel" /* i18n: 連絡先タイプ */,
+    ),
   });
 
 // 判別子（type）の無い古い形のデータに type を補う。
@@ -84,9 +123,12 @@ const legacyContactSchema = z.preprocess(
   z
     .discriminatedUnion("type", contactSchema.options)
     .register(zf.union.registry, {
-      label:
-        "連絡先（z.preprocess で包んだ union。初期値は type の無い古い形）",
-      selectorLabel: "連絡先タイプ",
+      label: msgKey(
+        "formDemo.discriminatedUnion.legacyContactSchema" /* i18n: 連絡先（z.preprocess で包んだ union。初期値は type の無い古い形） */,
+      ),
+      selectorLabel: msgKey(
+        "formDemo.discriminatedUnion.legacyContactSchema.selectorLabel" /* i18n: 連絡先タイプ */,
+      ),
     }),
 );
 
@@ -109,8 +151,22 @@ const externalKeyResolvers = withFetchLog([
 ]);
 
 const deskCommon = {
-  name: zf.string().min(1).register(zf.string.registry, { label: "名前" }),
-  note: zf.string().register(zf.string.registry, { label: "備考" }).optional(),
+  name: zf
+    .string()
+    .min(1)
+    .register(zf.string.registry, {
+      label: msgKey(
+        "formDemo.discriminatedUnion.deskCommon.name" /* i18n: 名前 */,
+      ),
+    }),
+  note: zf
+    .string()
+    .register(zf.string.registry, {
+      label: msgKey(
+        "formDemo.discriminatedUnion.deskCommon.note" /* i18n: 備考 */,
+      ),
+    })
+    .optional(),
 };
 
 const deskSchema = z
@@ -124,9 +180,17 @@ const deskSchema = z
         address: zf
           .string()
           .min(1)
-          .register(zf.string.registry, { label: "住所" }),
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.discriminatedUnion.deskSchema.store.address" /* i18n: 住所 */,
+            ),
+          }),
       })
-      .register(zf.object.registry, { label: "店舗" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.discriminatedUnion.deskSchema.store" /* i18n: 店舗 */,
+        ),
+      }),
     z
       .object({
         type: z
@@ -135,15 +199,25 @@ const deskSchema = z
         ...deskCommon,
         url: zf.string().min(1).register(zf.string.registry, { label: "URL" }),
         channel: zf.string().register(zf.externalKey.registry, {
-          label: "チャネル",
+          label: msgKey(
+            "formDemo.discriminatedUnion.deskSchema.online.channel" /* i18n: チャネル */,
+          ),
           externalKeyConfig: { type: "mock", topic: "channels" },
         }),
       })
-      .register(zf.object.registry, { label: "オンライン" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.discriminatedUnion.deskSchema.online" /* i18n: オンライン */,
+        ),
+      }),
   ])
   .register(zf.union.registry, {
-    label: "窓口（種類どうしで共通の項目を持つ）",
-    selectorLabel: "窓口の種類",
+    label: msgKey(
+      "formDemo.discriminatedUnion.deskSchema" /* i18n: 窓口（種類どうしで共通の項目を持つ） */,
+    ),
+    selectorLabel: msgKey(
+      "formDemo.discriminatedUnion.deskSchema.selectorLabel" /* i18n: 窓口の種類 */,
+    ),
   });
 
 export const schema = z
@@ -153,7 +227,9 @@ export const schema = z
     desk: deskSchema,
     message: zfReact.computed().register(zf.computed.registry, {
       compute: () =>
-        "Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。",
+        msgKey(
+          "formDemo.discriminatedUnion.message.compute" /* i18n: Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。 */,
+        ),
     }),
   })
   .register(zf.object.registry, {});
@@ -182,12 +258,17 @@ export type SchemaType = z.infer<typeof schema>;
 const harness = [createE2eHarness<typeof schema>({ formId })];
 
 export const Component = () => {
+  const msg = useMsg();
   // topic はページをまたいで残るので、離れるときに戻す
   useEffect(() => () => channelTopic.set(channels), []);
 
   return (
     <Stack>
-      <TryBehavior description="オンラインの窓口のチャネルの選択肢を届け直す。店舗を選んでいるあいだは、チャネルの欄は描かれていないので、値は消えない">
+      <TryBehavior
+        description={msg(
+          "formDemo.discriminatedUnion.try.description" /* i18n: オンラインの窓口のチャネルの選択肢を届け直す。店舗を選んでいるあいだは、チャネルの欄は描かれていないので、値は消えない */,
+        )}
+      >
         <Group gap="xs">
           <Button
             size="xs"
@@ -196,14 +277,18 @@ export const Component = () => {
               channelTopic.set(channels.filter((c) => c.value !== "chat"))
             }
           >
-            チャットを選択肢から外す
+            {msg(
+              "formDemo.discriminatedUnion.try.removeChat" /* i18n: チャットを選択肢から外す */,
+            )}
           </Button>
           <Button
             size="xs"
             variant="default"
             onClick={() => channelTopic.set(channels)}
           >
-            選択肢を戻す
+            {msg(
+              "formDemo.discriminatedUnion.try.restore" /* i18n: 選択肢を戻す */,
+            )}
           </Button>
         </Group>
       </TryBehavior>

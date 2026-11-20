@@ -16,16 +16,22 @@ export const category = "e2e";
 export const schema = z
   .object({
     // object の形の enum：キーを選択肢の名前にする
-    size: z
-      .enum({ Small: "s", Large: "l" })
-      .register(zf.enum.registry, { label: "サイズ（object の形の enum）" }),
+    size: z.enum({ Small: "s", Large: "l" }).register(zf.enum.registry, {
+      label: msgKey(
+        "formDemo.e2eMisc.size" /* i18n: サイズ（object の形の enum） */,
+      ),
+    }),
     // zf.date に z.coerce.date()
-    dueDate: z.coerce
-      .date()
-      .register(zf.date.registry, { label: "期限（z.coerce.date()）" }),
+    dueDate: z.coerce.date().register(zf.date.registry, {
+      label: msgKey(
+        "formDemo.e2eMisc.dueDate" /* i18n: 期限（z.coerce.date()） */,
+      ),
+    }),
     // 外部キーの土台に z.email()
     contactEmail: z.email().register(zf.externalKey.registry, {
-      label: "連絡先メール（externalKey + z.email()）",
+      label: msgKey(
+        "formDemo.e2eMisc.contactEmail" /* i18n: 連絡先メール（externalKey + z.email()） */,
+      ),
       externalKeyConfig: { type: "mock", topic: "userEmails" },
       allowUnlisted: true,
     }),
@@ -33,7 +39,9 @@ export const schema = z
     colors: z
       .array(z.literal(["red", "green", "blue"]))
       .register(zf.array.registry, {
-        label: "色（literal の複数の値 × multipleEnum）",
+        label: msgKey(
+          "formDemo.e2eMisc.colors" /* i18n: 色（literal の複数の値 × multipleEnum） */,
+        ),
         uiType: "multipleEnum",
       }),
   })

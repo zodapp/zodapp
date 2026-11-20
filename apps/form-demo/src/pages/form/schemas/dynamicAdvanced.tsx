@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -53,28 +54,58 @@ const templateFields: Record<Template, () => z.ZodTypeAny> = {
   invoice: () =>
     z
       .object({
-        dueDate: z.iso.date().register(zf.date.registry, { label: "支払期限" }),
+        dueDate: z.iso.date().register(zf.date.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.templateFields.invoice.dueDate" /* i18n: 支払期限 */,
+          ),
+        }),
         amount: zf
           .number()
           .min(1)
-          .register(zf.number.registry, { label: "請求額" }),
+          .register(zf.number.registry, {
+            label: msgKey(
+              "formDemo.dynamicAdvanced.templateFields.invoice.amount" /* i18n: 請求額 */,
+            ),
+          }),
       })
-      .register(zf.object.registry, { label: "請求書の項目", uiType: "box" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.dynamicAdvanced.templateFields.invoice" /* i18n: 請求書の項目 */,
+        ),
+        uiType: "box",
+      }),
   receipt: () =>
     z
       .object({
-        payer: zf.string().register(zf.string.registry, { label: "宛名" }),
+        payer: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.templateFields.receipt.payer" /* i18n: 宛名 */,
+          ),
+        }),
         note: zf
           .string()
-          .register(zf.string.registry, { label: "但し書き" })
+          .register(zf.string.registry, {
+            label: msgKey(
+              "formDemo.dynamicAdvanced.templateFields.receipt.note" /* i18n: 但し書き */,
+            ),
+          })
           .optional(),
         // 領収書だけが使う部品（真偽）。初めて使う部品が出ても、ほかの欄は取り直さない
         reissued: zf
           .boolean()
-          .register(zf.boolean.registry, { label: "再発行" })
+          .register(zf.boolean.registry, {
+            label: msgKey(
+              "formDemo.dynamicAdvanced.templateFields.receipt.reissued" /* i18n: 再発行 */,
+            ),
+          })
           .optional(),
       })
-      .register(zf.object.registry, { label: "領収書の項目", uiType: "box" }),
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.dynamicAdvanced.templateFields.receipt" /* i18n: 領収書の項目 */,
+        ),
+        uiType: "box",
+      }),
 };
 
 const templateFieldsSchema = z.unknown().register(
@@ -133,9 +164,18 @@ const quantitySchema = z.number().register(
             schema: zf
               .number()
               .min(1)
-              .max(stock, `在庫（${stock}）を超えています`)
+              .max(
+                stock,
+                msgKey(
+                  "formDemo.dynamicAdvanced.quantity.max" /* i18n: 在庫（${stock}）を超えています */,
+                  { stock },
+                ),
+              )
               .register(zf.number.registry, {
-                label: `数量（在庫 ${stock}）`,
+                label: msgKey(
+                  "formDemo.dynamicAdvanced.quantity" /* i18n: 数量（在庫 ${stock}） */,
+                  { stock },
+                ),
               }),
           });
         };
@@ -159,13 +199,17 @@ const citySchema = z.string().register(
     resolve: ({ parent }) => ({
       key: parent?.prefecture ?? "",
       schema: zf.string().register(zf.externalKey.registry, {
-        label: "市区町村",
+        label: msgKey(
+          "formDemo.dynamicAdvanced.citySchema.resolve.schema" /* i18n: 市区町村 */,
+        ),
         externalKeyConfig: {
           type: "mock",
           topic: `cities/${parent?.prefecture ?? ""}`,
         },
         // 都道府県が未選択なら選択肢が0件になる。その理由を出す
-        emptyMessage: "先に都道府県を選んでください",
+        emptyMessage: msgKey(
+          "formDemo.dynamicAdvanced.citySchema.resolve.schema.emptyMessage" /* i18n: 先に都道府県を選んでください */,
+        ),
       }),
     }),
   }),
@@ -179,12 +223,16 @@ const townSchema = z.string().register(
     resolve: ({ parent }) => ({
       key: parent?.city ?? "",
       schema: zf.string().register(zf.externalKey.registry, {
-        label: "町名",
+        label: msgKey(
+          "formDemo.dynamicAdvanced.townSchema.resolve.schema" /* i18n: 町名 */,
+        ),
         externalKeyConfig: {
           type: "mock",
           topic: `towns/${parent?.city ?? ""}`,
         },
-        emptyMessage: "先に市区町村を選んでください",
+        emptyMessage: msgKey(
+          "formDemo.dynamicAdvanced.townSchema.resolve.schema.emptyMessage" /* i18n: 先に市区町村を選んでください */,
+        ),
       }),
     }),
   }),
@@ -194,18 +242,26 @@ export const schema = z
   .object({
     template: zf
       .enum([
-        zf
-          .literal("invoice")
-          .register(zf.literal.registry, { label: "請求書" }),
-        zf
-          .literal("receipt")
-          .register(zf.literal.registry, { label: "領収書" }),
+        zf.literal("invoice").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.template.invoice" /* i18n: 請求書 */,
+          ),
+        }),
+        zf.literal("receipt").register(zf.literal.registry, {
+          label: msgKey(
+            "formDemo.dynamicAdvanced.template.receipt" /* i18n: 領収書 */,
+          ),
+        }),
       ])
-      .register(zf.enum.registry, { label: "帳票の種類" }),
+      .register(zf.enum.registry, {
+        label: msgKey(
+          "formDemo.dynamicAdvanced.template" /* i18n: 帳票の種類 */,
+        ),
+      }),
     templateFields: templateFieldsSchema,
     quantity: quantitySchema,
     prefecture: zf.string().register(zf.externalKey.registry, {
-      label: "都道府県",
+      label: msgKey("formDemo.dynamicAdvanced.prefecture" /* i18n: 都道府県 */),
       externalKeyConfig: { type: "mock", topic: "prefectures" },
     }),
     city: citySchema,
@@ -249,11 +305,15 @@ const harness = [
     formId,
     writes: [
       {
-        label: "外から書き込む（帳票の種類を切り替える）",
+        label: msgKey(
+          "formDemo.dynamicAdvanced.harness.toggle" /* i18n: 外から書き込む（帳票の種類を切り替える） */,
+        ),
         run: toggleTemplate,
       },
       {
-        label: "利用者の編集として書き込む（帳票の種類を切り替える）",
+        label: msgKey(
+          "formDemo.dynamicAdvanced.harness.toggleAsUser" /* i18n: 利用者の編集として書き込む（帳票の種類を切り替える） */,
+        ),
         asUser: true,
         run: toggleTemplate,
       },
@@ -262,6 +322,7 @@ const harness = [
 ];
 
 export const Component = () => {
+  const msg = useMsg();
   // 分け方・失敗・待っている取得はページをまたいで残るので、離れるときに戻す
   useEffect(
     () => () => {
@@ -284,11 +345,17 @@ export const Component = () => {
 
   return (
     <Stack>
-      <TryBehavior description="取得が届く時機を選ぶ・わざと失敗させる・在庫を変える。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める">
+      <TryBehavior
+        description={msg(
+          "formDemo.dynamicAdvanced.try.description" /* i18n: 取得が届く時機を選ぶ・わざと失敗させる・在庫を変える。ふだんは「見やすい遅延」（帳票の項目は 1 秒、選択肢は 0.4 秒）のまま使う。止めておく分け方では「届ける」「失敗させる」で 1 回ずつ進める */,
+        )}
+      >
         <FetchControlPanel control={control} />
         <Group gap="xs">
           <Switch
-            label="在庫を 3 秒ごとに変える"
+            label={msg(
+              "formDemo.dynamicAdvanced.try.rotate" /* i18n: 在庫を 3 秒ごとに変える */,
+            )}
             checked={rotating}
             onChange={(event) => setRotating(event.currentTarget.checked)}
           />
@@ -297,14 +364,18 @@ export const Component = () => {
             variant="default"
             onClick={() => stockStore.set(3)}
           >
-            在庫を 3 にする
+            {msg(
+              "formDemo.dynamicAdvanced.try.stock3" /* i18n: 在庫を 3 にする */,
+            )}
           </Button>
           <Button
             size="compact-xs"
             variant="default"
             onClick={() => stockStore.set(10)}
           >
-            在庫を 10 にする
+            {msg(
+              "formDemo.dynamicAdvanced.try.stock10" /* i18n: 在庫を 10 にする */,
+            )}
           </Button>
         </Group>
       </TryBehavior>
