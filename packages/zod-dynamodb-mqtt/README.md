@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Delivery over MQTT (the specification is [Realtime delivery](../zod-dynamodb/docs/realtime.ja.md), in Japanese). It connects to anything [MQTT.js](https://github.com/mqttjs/MQTT.js) can connect to, such as Mosquitto and AWS IoT Core.
+Delivery over MQTT (the specification is [Realtime delivery](../zod-dynamodb/docs/realtime.md)). It connects to anything [MQTT.js](https://github.com/mqttjs/MQTT.js) can connect to, such as Mosquitto and AWS IoT Core.
 
 ```ts
 import { mqttPublisher, mqttTransport } from "@zodapp/zod-dynamodb-mqtt";

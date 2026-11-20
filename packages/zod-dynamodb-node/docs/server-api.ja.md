@@ -1,5 +1,7 @@
 # サーバーの API と認証コンテキスト
 
+[English](server-api.md)
+
 ## 使用例
 
 ```ts
@@ -38,7 +40,8 @@ export const serverApi = createServerApi(endpoints, {
   // リクエストから認証の情報を取り出す。型はアプリが決める（トークンの文字列、セッション ID、証明書の情報など）
   credential: (req: IncomingMessage) => bearerTokenOf(req),
   // 認証の情報から認証コンテキストを作る。正しくなければ UnauthenticatedError
-  context: async (token: string | undefined) => (token ? await verify(token) : anonymous),
+  context: async (token: string | undefined) =>
+    token ? await verify(token) : anonymous,
   // 認証コンテキストの期限（ミリ秒の時刻）。操作の認可の前に毎回確かめ、Gateway は期限の前に作り直す
   expiresAt: (ctx: Auth) => ctx.expiresAt,
   // 期限のほかの確認（アカウントの停止など）。任意
@@ -50,11 +53,11 @@ export const serverApi = createServerApi(endpoints, {
 
 認証は 3 段で考える。
 
-| 段 | 作り方 | 期限 | 入れ替え・作り直し |
-|---|---|---|---|
-| 認証の情報（credential） | 利用者が送ったものから、同期か非同期で得る（`credential(req)`、Gateway の `credentialOf`） | あり（長い） | Gateway の `auth` メッセージで入れ替える。ブラウザから値を送れない方式（HttpOnly の Cookie）だけ、つながり直す |
-| 認証コンテキスト（context） | 認証の情報から、同期か非同期で作る（`context(credential)`）。認可に要るデータ（ロールなど）はここで読む | あり（`expiresAt`）。認証の情報の期限を超えないように作る | Gateway は期限の前に、認証の情報から作り直す。`revalidate` でも作り直す |
-| 認可（authorize） | `expiresAt` と `checkContext` の確認、操作の `authorize` | — | 操作のたびに同期で呼ぶ。データベースは読まない |
+| 段                          | 作り方                                                                                                  | 期限                                                      | 入れ替え・作り直し                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 認証の情報（credential）    | 利用者が送ったものから、同期か非同期で得る（`credential(req)`、Gateway の `credentialOf`）              | あり（長い）                                              | Gateway の `auth` メッセージで入れ替える。ブラウザから値を送れない方式（HttpOnly の Cookie）だけ、つながり直す |
+| 認証コンテキスト（context） | 認証の情報から、同期か非同期で作る（`context(credential)`）。認可に要るデータ（ロールなど）はここで読む | あり（`expiresAt`）。認証の情報の期限を超えないように作る | Gateway は期限の前に、認証の情報から作り直す。`revalidate` でも作り直す                                        |
+| 認可（authorize）           | `expiresAt` と `checkContext` の確認、操作の `authorize`                                                | —                                                         | 操作のたびに同期で呼ぶ。データベースは読まない                                                                 |
 
 - 取り消しは、認可だけなら `revalidate`（[Realtime Gateway](../../zod-dynamodb-realtime/docs/gateway.ja.md)）で認証コンテキストを作り直す。認証の取り消し（サインアウトさせる、アカウントを止める）は、アプリの `context(credential)` が失敗するようにする。JWT は署名で検証するだけなので、取り消しの状態（セッションの保存先、取り消しの一覧）を見るのはアプリの責任である
 - 認証コンテキストの寿命を短くしておく（たとえば 5 分）と、`revalidate` を呼び忘れても、権限の古さはその時間までに収まる

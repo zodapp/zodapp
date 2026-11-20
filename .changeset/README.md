@@ -1,9 +1,9 @@
 # Changesets
 
-公開する `@zodapp/*` に変更を入れたら、`pnpm changeset` で changeset を足してください。
-27個は同じバージョンで出します（`config.json` の `fixed`）。
-changeset は英語で書きます（npm の CHANGELOG に載るため）。
+When you change a published `@zodapp/*` package, add a changeset with `pnpm changeset`.
+All 27 are released with the same version (`fixed` in `config.json`).
+Changesets are written in English (they go into the CHANGELOG on npm).
 
-最初の公開（0.1.0）までは changeset を足しません。`initial-release.md`（27個すべてを minor、本文は「Initial release.」）の1件で出します。
+Until the first release (0.1.0), changesets are not added. It is released with a single `initial-release.md` (all 27 as minor, with the body "Initial release.").
 
-公開の流れは [docs/releasing.md](../docs/releasing.md) を参照してください。
+For the release flow, see [docs/releasing.md](../docs/releasing.md).

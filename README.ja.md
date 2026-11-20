@@ -63,7 +63,9 @@ const schema = z
     role: zf
       .enum([
         zf.literal("admin").register(zf.literal.registry, { label: "管理者" }),
-        zf.literal("user").register(zf.literal.registry, { label: "一般ユーザー" }),
+        zf
+          .literal("user")
+          .register(zf.literal.registry, { label: "一般ユーザー" }),
       ])
       .register(zf.enum.registry, { label: "ロール" }),
   })
@@ -85,7 +87,9 @@ export const taskOps = createOps(tasks, (o) => ({
     index: "byStatus",
     params: z.object({ workspaceId: z.string(), status: taskStatusSchema }),
     authorize: (ctx, { params }) => isMember(ctx, params.workspaceId),
-    where: (p) => ({ partition: { workspaceId: p.workspaceId, status: p.status } }),
+    where: (p) => ({
+      partition: { workspaceId: p.workspaceId, status: p.status },
+    }),
   }),
 }));
 
@@ -121,58 +125,58 @@ API層を省略し、DBのドキュメント構造とUIフォームの構造を�
 
 ### スキーマとフォーム（DB に依存しない）
 
-| パッケージ | 説明 |
-| --- | --- |
-| [`@zodapp/zod-form`](packages/zod-form/README.ja.md) | React非依存のスキーマ拡張（`zf`） |
-| [`@zodapp/zod-form-react`](packages/zod-form-react/README.ja.md) | React基盤（`Dynamic` / hooks / `zfReact`） |
-| [`@zodapp/zod-form-mantine`](packages/zod-form-mantine/README.ja.md) | Mantine UIの componentLibrary / tableComponentLibrary |
-| [`@zodapp/zod-form-mantine-lite`](packages/zod-form-mantine-lite/README.ja.md) | TanStack Form に依存しない Mantine のコンポーネント |
-| [`@zodapp/zod-form-widget`](packages/zod-form-widget/README.ja.md) | zod-form-mantine の上に作った、そのまま使えるウィジェット（`AutoForm`・`AutoTable`・`AutoSearch`・取り込みと書き出しなど） |
-| [`@zodapp/zod-tabular`](packages/zod-tabular/README.ja.md) | Zod スキーマと表形式データ（2 次元配列。CSV / Excel 向け）の相互変換 |
-| [`@zodapp/zod-extendable`](packages/zod-extendable/README.ja.md) | Zodにメタデータを付与する拡張機能（zfの土台） |
-| [`@zodapp/zod-propagating-registry`](packages/zod-propagating-registry/README.ja.md) | Zod v4 registry の薄いラッパー |
-| [`@zodapp/zod-searchparams`](packages/zod-searchparams/README.ja.md) | URLSearchParams と複雑な型（Date/Set/Map等）の相互変換 |
-| [`@zodapp/zod-transform`](packages/zod-transform/README.ja.md) | Zodスキーマをベースにした値変換（preprocess/postprocess） |
-| [`@zodapp/zod-transport-json`](packages/zod-transport-json/README.ja.md) | Zod スキーマに沿った JSON の送受信（Date などを戻す） |
-| [`@zodapp/caching-utilities`](packages/caching-utilities/README.ja.md) | subscription共有などのキャッシュユーティリティ |
-| [`@zodapp/react-storage`](packages/react-storage/README.ja.md) | ブラウザのストレージに保存する React の state |
+| パッケージ                                                                           | 説明                                                                                                                       |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| [`@zodapp/zod-form`](packages/zod-form/README.ja.md)                                 | React非依存のスキーマ拡張（`zf`）                                                                                          |
+| [`@zodapp/zod-form-react`](packages/zod-form-react/README.ja.md)                     | React基盤（`Dynamic` / hooks / `zfReact`）                                                                                 |
+| [`@zodapp/zod-form-mantine`](packages/zod-form-mantine/README.ja.md)                 | Mantine UIの componentLibrary / tableComponentLibrary                                                                      |
+| [`@zodapp/zod-form-mantine-lite`](packages/zod-form-mantine-lite/README.ja.md)       | TanStack Form に依存しない Mantine のコンポーネント                                                                        |
+| [`@zodapp/zod-form-widget`](packages/zod-form-widget/README.ja.md)                   | zod-form-mantine の上に作った、そのまま使えるウィジェット（`AutoForm`・`AutoTable`・`AutoSearch`・取り込みと書き出しなど） |
+| [`@zodapp/zod-tabular`](packages/zod-tabular/README.ja.md)                           | Zod スキーマと表形式データ（2 次元配列。CSV / Excel 向け）の相互変換                                                       |
+| [`@zodapp/zod-extendable`](packages/zod-extendable/README.ja.md)                     | Zodにメタデータを付与する拡張機能（zfの土台）                                                                              |
+| [`@zodapp/zod-propagating-registry`](packages/zod-propagating-registry/README.ja.md) | Zod v4 registry の薄いラッパー                                                                                             |
+| [`@zodapp/zod-searchparams`](packages/zod-searchparams/README.ja.md)                 | URLSearchParams と複雑な型（Date/Set/Map等）の相互変換                                                                     |
+| [`@zodapp/zod-transform`](packages/zod-transform/README.ja.md)                       | Zodスキーマをベースにした値変換（preprocess/postprocess）                                                                  |
+| [`@zodapp/zod-transport-json`](packages/zod-transport-json/README.ja.md)             | Zod スキーマに沿った JSON の送受信（Date などを戻す）                                                                      |
+| [`@zodapp/caching-utilities`](packages/caching-utilities/README.ja.md)               | subscription共有などのキャッシュユーティリティ                                                                             |
+| [`@zodapp/react-storage`](packages/react-storage/README.ja.md)                       | ブラウザのストレージに保存する React の state                                                                              |
 
 ### メッセージ（i18n）
 
-| パッケージ | 説明 |
-| --- | --- |
-| [`@zodapp/i18n-messages`](packages/i18n-messages/README.ja.md) | 文字列に符号化したキー（`msgKey`）で引く、型付きのメッセージの辞書（UI の文言と検証のエラー） |
-| [`@zodapp/i18n-messages-react`](packages/i18n-messages-react/README.ja.md) | `@zodapp/i18n-messages` の React の Provider と hooks |
-| [`@zodapp/i18n-messages-zod`](packages/i18n-messages-zod/README.ja.md) | zod の issue をメッセージのキーに変える error map と、日本語・英語の辞書 |
-| [`@zodapp/eslint-plugin-i18n-messages`](packages/eslint-plugin-i18n-messages/README.ja.md) | メッセージのキーの横に、基準の言語の文言をコメントで保つ ESLint のルール |
+| パッケージ                                                                                 | 説明                                                                                          |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| [`@zodapp/i18n-messages`](packages/i18n-messages/README.ja.md)                             | 文字列に符号化したキー（`msgKey`）で引く、型付きのメッセージの辞書（UI の文言と検証のエラー） |
+| [`@zodapp/i18n-messages-react`](packages/i18n-messages-react/README.ja.md)                 | `@zodapp/i18n-messages` の React の Provider と hooks                                         |
+| [`@zodapp/i18n-messages-zod`](packages/i18n-messages-zod/README.ja.md)                     | zod の issue をメッセージのキーに変える error map と、日本語・英語の辞書                      |
+| [`@zodapp/eslint-plugin-i18n-messages`](packages/eslint-plugin-i18n-messages/README.ja.md) | メッセージのキーの横に、基準の言語の文言をコメントで保つ ESLint のルール                      |
 
 ### DynamoDB
 
-| パッケージ | 説明 |
-| --- | --- |
-| [`@zodapp/zod-dynamodb`](packages/zod-dynamodb/README.ja.md) | Table 定義、キーのエンコーディング、名前付きの操作、登録簿（ブラウザとサーバーで共有） |
-| [`@zodapp/zod-dynamodb-node`](packages/zod-dynamodb-node/README.ja.md) | DynamoDB の Repository（サーバー） |
-| [`@zodapp/zod-dynamodb-express`](packages/zod-dynamodb-express/README.ja.md) | 登録簿を配信する Express の router |
-| [`@zodapp/zod-dynamodb-client`](packages/zod-dynamodb-client/README.ja.md) | 登録簿から作る型付きの HTTP / リアルタイムの Client |
-| [`@zodapp/zod-dynamodb-react`](packages/zod-dynamodb-react/README.ja.md) | 一覧と Item の React の hooks |
-| [`@zodapp/zod-dynamodb-realtime`](packages/zod-dynamodb-realtime/README.ja.md) | リアルタイムの購読を配る WebSocket の Gateway |
-| [`@zodapp/zod-dynamodb-mqtt`](packages/zod-dynamodb-mqtt/README.ja.md) | 変更の発行と購読の MQTT の transport（ローカルは aedes、本番は IoT Core など） |
+| パッケージ                                                                     | 説明                                                                                   |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| [`@zodapp/zod-dynamodb`](packages/zod-dynamodb/README.ja.md)                   | Table 定義、キーのエンコーディング、名前付きの操作、登録簿（ブラウザとサーバーで共有） |
+| [`@zodapp/zod-dynamodb-node`](packages/zod-dynamodb-node/README.ja.md)         | DynamoDB の Repository（サーバー）                                                     |
+| [`@zodapp/zod-dynamodb-express`](packages/zod-dynamodb-express/README.ja.md)   | 登録簿を配信する Express の router                                                     |
+| [`@zodapp/zod-dynamodb-client`](packages/zod-dynamodb-client/README.ja.md)     | 登録簿から作る型付きの HTTP / リアルタイムの Client                                    |
+| [`@zodapp/zod-dynamodb-react`](packages/zod-dynamodb-react/README.ja.md)       | 一覧と Item の React の hooks                                                          |
+| [`@zodapp/zod-dynamodb-realtime`](packages/zod-dynamodb-realtime/README.ja.md) | リアルタイムの購読を配る WebSocket の Gateway                                          |
+| [`@zodapp/zod-dynamodb-mqtt`](packages/zod-dynamodb-mqtt/README.ja.md)         | 変更の発行と購読の MQTT の transport（ローカルは aedes、本番は IoT Core など）         |
 
 ### フォームの Resolver（外部キーとファイル）
 
-| パッケージ | 説明 |
-| --- | --- |
-| [`@zodapp/zod-form-dynamodb`](packages/zod-form-dynamodb/README.ja.md) | 外部キーの選択肢を、登録簿の名前付きクエリから読む |
-| [`@zodapp/zod-form-s3`](packages/zod-form-s3/README.ja.md) | ファイルを、サーバーが発行した署名付き URL で S3 に直接アップロードする（ブラウザ） |
-| [`@zodapp/zod-form-s3-node`](packages/zod-form-s3-node/README.ja.md) | 署名付き URL を発行する、認可つきの Express の router（サーバー） |
+| パッケージ                                                             | 説明                                                                                |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`@zodapp/zod-form-dynamodb`](packages/zod-form-dynamodb/README.ja.md) | 外部キーの選択肢を、登録簿の名前付きクエリから読む                                  |
+| [`@zodapp/zod-form-s3`](packages/zod-form-s3/README.ja.md)             | ファイルを、サーバーが発行した署名付き URL で S3 に直接アップロードする（ブラウザ） |
+| [`@zodapp/zod-form-s3-node`](packages/zod-form-s3-node/README.ja.md)   | 署名付き URL を発行する、認可つきの Express の router（サーバー）                   |
 
 ## サンプル
 
-| アプリ | 内容 |
-| --- | --- |
-| [`apps/form-demo`](apps/form-demo/README.ja.md) | フォームと表のカタログ。DB に依存しない（GitHub Pages で公開） |
-| [`apps/taskmanager`](apps/taskmanager/README.md) | タスク管理。DynamoDB・Cognito・S3・リアルタイムの一覧を、ブラウザからデータベースまで通して動かす |
-| [`apps/survey`](apps/survey/README.md) | アンケート。質問をデータとして保存し、実行時にフォームと表のスキーマを組み立てる |
+| アプリ                                              | 内容                                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [`apps/form-demo`](apps/form-demo/README.ja.md)     | フォームと表のカタログ。DB に依存しない（GitHub Pages で公開）                                    |
+| [`apps/taskmanager`](apps/taskmanager/README.ja.md) | タスク管理。DynamoDB・Cognito・S3・リアルタイムの一覧を、ブラウザからデータベースまで通して動かす |
+| [`apps/survey`](apps/survey/README.ja.md)           | アンケート。質問をデータとして保存し、実行時にフォームと表のスキーマを組み立てる                  |
 
 DB を使うサンプルは、DynamoDB Local・Cognito のエミュレーター（magnito）などを Docker で動かします。手順は各アプリの README にあります。
 

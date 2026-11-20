@@ -1,5 +1,7 @@
 # リアルタイムの配信
 
+[English](realtime.md)
+
 ## 目的
 
 DynamoDBのItem変更を、購読中のフロントエンドへ配信する。
@@ -22,7 +24,11 @@ Subscriptionは、登録簿（[登録簿](shared-definitions.ja.md)）でクエ�
 export const endpoints = defineEndpoints({
   tasks: [
     // イベントとSnapshotに含めるフィールド（[読み取るフィールドの指定](../../zod-dynamodb-node/docs/queries.ja.md)、「配送基盤」）。絞らないなら live: true
-    { op: taskOps.byStatus, path: "/tasks/by-status", live: { fields: { omit: ["description"] } } },
+    {
+      op: taskOps.byStatus,
+      path: "/tasks/by-status",
+      live: { fields: { omit: ["description"] } },
+    },
   ],
 });
 ```
@@ -153,10 +159,10 @@ ADDED / MODIFIED / REMOVED をクライアントに送る
 ## Before / Afterの判定
 
 | 更新前 | 更新後 | イベント |
-|---|---|---|
-| 対象外 | 対象内 | ADDED |
+| ------ | ------ | -------- |
+| 対象外 | 対象内 | ADDED    |
 | 対象内 | 対象内 | MODIFIED |
-| 対象内 | 対象外 | REMOVED |
+| 対象内 | 対象外 | REMOVED  |
 | 対象外 | 対象外 | 配信不要 |
 
 この判定は、Itemの物理的なCreate/Update/Deleteとは分けて考える。

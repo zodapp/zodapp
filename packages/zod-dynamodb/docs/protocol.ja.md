@@ -1,16 +1,18 @@
 # 通信の入出力とエラー
 
+[English](protocol.md)
+
 ## リクエストとレスポンス
 
-| 操作 | 入力 | 出力 |
-|---|---|---|
-| Get | キー | `{ item: Item \| null, token? }`（トークンは常に返す。[書き込み](../../zod-dynamodb-node/docs/writes.ja.md)） |
-| Create | `{ key, input }`（生成するキーの場合は `{ args, input }`） | `{ item }` |
-| Set | `{ key, input }`（`input` はItem全体） | `{ item }` |
-| Mutation | `{ key, params, ifUnchanged? }` | `{ item }`（After） |
-| Delete | `{ key }` | `{}` |
-| Query | `{ params, cursor?, limit?, fields? }` | `{ items, cursor? }` |
-| Search | `{ params, fields? }` | `{ results: { item, score }[] }` |
+| 操作     | 入力                                                       | 出力                                                                                                          |
+| -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Get      | キー                                                       | `{ item: Item \| null, token? }`（トークンは常に返す。[書き込み](../../zod-dynamodb-node/docs/writes.ja.md)） |
+| Create   | `{ key, input }`（生成するキーの場合は `{ args, input }`） | `{ item }`                                                                                                    |
+| Set      | `{ key, input }`（`input` はItem全体）                     | `{ item }`                                                                                                    |
+| Mutation | `{ key, params, ifUnchanged? }`                            | `{ item }`（After）                                                                                           |
+| Delete   | `{ key }`                                                  | `{}`                                                                                                          |
+| Query    | `{ params, cursor?, limit?, fields? }`                     | `{ items, cursor? }`                                                                                          |
+| Search   | `{ params, fields? }`                                      | `{ results: { item, score }[] }`                                                                              |
 
 - 入力は、受け取った側（サーバー）で操作のSchemaで検証する。Clientも、送る前に同じSchemaで検証する
 - ブラウザの API の位置引数（[ブラウザの API](../../zod-dynamodb-client/docs/client-api.ja.md)）は、Clientがこの入力の形に直して送る
@@ -32,16 +34,16 @@ JSONでは `Date`、`bigint`、`Set`、`Map` を表せない。HTTPの入出力�
 
 エラーは、HTTPステータスと、bodyの `{ code, message, issues? }` で返す。WAF、ログ、監視がHTTPステータスで判断できるようにするためである。
 
-| code | HTTP | 元のエラー |
-|---|---|---|
-| `INVALID_INPUT` | 400 | 入力の検証の失敗（`ValidationError`）。`issues` にZodのissueを入れる |
-| `INVALID_CURSOR` | 400 | `InvalidCursorError` |
-| `UNAUTHENTICATED` | 401 | `UnauthenticatedError`（認証の情報がない、正しくない、期限が切れている。サーバーの API の `context` や `checkContext` が投げる。[サーバーの API](../../zod-dynamodb-node/docs/server-api.ja.md)） |
-| `FORBIDDEN` | 403 | `authorize` が拒否した |
-| `NOT_FOUND` | 404 | `ItemNotFoundError` と `ConditionFailedError`。メッセージは「Itemが存在しないか、条件を満たしていない」とする（[書き込み](../../zod-dynamodb-node/docs/writes.ja.md)） |
-| `ALREADY_EXISTS` | 409 | `ItemAlreadyExistsError` |
-| `CONFLICT` | 409 | `ConflictError`（再試行の上限）と、`ifUnchanged` の不一致 |
-| `INTERNAL` | 500 | それ以外。メッセージは返さない |
+| code              | HTTP | 元のエラー                                                                                                                                                                                        |
+| ----------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_INPUT`   | 400  | 入力の検証の失敗（`ValidationError`）。`issues` にZodのissueを入れる                                                                                                                              |
+| `INVALID_CURSOR`  | 400  | `InvalidCursorError`                                                                                                                                                                              |
+| `UNAUTHENTICATED` | 401  | `UnauthenticatedError`（認証の情報がない、正しくない、期限が切れている。サーバーの API の `context` や `checkContext` が投げる。[サーバーの API](../../zod-dynamodb-node/docs/server-api.ja.md)） |
+| `FORBIDDEN`       | 403  | `authorize` が拒否した                                                                                                                                                                            |
+| `NOT_FOUND`       | 404  | `ItemNotFoundError` と `ConditionFailedError`。メッセージは「Itemが存在しないか、条件を満たしていない」とする（[書き込み](../../zod-dynamodb-node/docs/writes.ja.md)）                            |
+| `ALREADY_EXISTS`  | 409  | `ItemAlreadyExistsError`                                                                                                                                                                          |
+| `CONFLICT`        | 409  | `ConflictError`（再試行の上限）と、`ifUnchanged` の不一致                                                                                                                                         |
+| `INTERNAL`        | 500  | それ以外。メッセージは返さない                                                                                                                                                                    |
 
 - `FORBIDDEN` を返しても、Itemの有無は漏れない。`authorize` はItemを読まずに、パラメーターと認証コンテキストだけで判定するためである（[認証と認可](shared-definitions.ja.md)）
 - アプリケーションが `authorize` などの中で投げた独自のエラーは、変換せずにExpressの次のエラーハンドラーに渡す

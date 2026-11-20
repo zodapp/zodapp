@@ -1,5 +1,7 @@
 # ベクトル検索
 
+[English](vector-search.md)
+
 ## ベクトル検索
 
 DynamoDBのベクトルインデックス（`SearchVectors` API）を、名前付きクエリと同じ考え方で扱う。どのembeddingモデルを使うかはライブラリでは扱わず、アプリケーションが決める。
@@ -51,7 +53,9 @@ GSIと同じく、ベクトルインデックスの属性名（ベクトル、`H
 export const appTable = physicalTable({
   name: "app",
   primary: { pk: "PK", sk: "SK" },
-  indexes: { /* GSI のスロット（[物理レイアウト](../../zod-dynamodb/docs/physical-layout.ja.md)） */ },
+  indexes: {
+    /* GSI のスロット（[物理レイアウト](../../zod-dynamodb/docs/physical-layout.ja.md)） */
+  },
   vectorIndexes: {
     VEC1: {
       vector: "V1",
@@ -210,7 +214,8 @@ export const rowOps = createOps(rows, (o) => ({
       dataSourceVersionId: p.dataSourceVersionId,
     }),
     // vectorConfig は partition から引いた実行時の設定
-    filters: (p, _ctx, { vectorConfig }) => buildFilters(vectorConfig?.filters, p.filterValues ?? {}),
+    filters: (p, _ctx, { vectorConfig }) =>
+      buildFilters(vectorConfig?.filters, p.filterValues ?? {}),
   }),
 }));
 

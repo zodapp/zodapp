@@ -80,7 +80,7 @@ Keys without a translation fall back to each package's default texts.
 
 ### Rules for libraries that own texts
 
-How the `@zodapp/*` packages decide keys, dictionaries, and precedence is described in [docs/library-messages.ja.md](docs/library-messages.ja.md) (Japanese).
+How the `@zodapp/*` packages decide keys, dictionaries, and precedence is described in [Rules for `@zodapp/*` packages that have texts](docs/library-messages.md).
 
 ## API
 

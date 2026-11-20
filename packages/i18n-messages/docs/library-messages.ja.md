@@ -1,5 +1,7 @@
 # `@zodapp/*` のパッケージが文言を持つときの決まり
 
+[English](library-messages.md)
+
 zod-form-react・zod-form-mantine・zod-form-mantine-lite・zod-form-widget など、画面に文言を出す `@zodapp/*` のパッケージは、次の決まりで i18n-messages を使います。新しく文言を持つパッケージも、これに合わせます。
 
 ## キーと辞書

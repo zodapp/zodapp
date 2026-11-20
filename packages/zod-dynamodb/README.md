@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Shared definitions for working with DynamoDB in a type-safe way, starting from table definitions written in Zod. Usable in both the browser and the server (the specifications are in [docs/](docs/), in Japanese).
+Shared definitions for working with DynamoDB in a type-safe way, starting from table definitions written in Zod. Usable in both the browser and the server (the specifications are in [docs/](docs/)).
 
 - `physicalTable()`: the physical layout of a single table (GSI and vector index slots)
 - `tableConfig()`: a table definition that keeps the item / create schemas as they are. Key and index fields are checked by type and at definition time. Hooks (`onCreate` / `onWrite`) and `generateKey` are also written here
@@ -75,7 +75,7 @@ export const endpoints = defineEndpoints({
 });
 ```
 
-Only rules you do not want to expose to the browser, and logic that uses server-only modules, are overridden on the server ([Shared definitions and server-only overrides](docs/shared-definitions.ja.md), Japanese).
+Only rules you do not want to expose to the browser, and logic that uses server-only modules, are overridden on the server ([Shared definitions and server-only overrides](docs/shared-definitions.md)).
 
 ```ts
 // Server only. Pass to createRepository({ overrides })
@@ -88,7 +88,7 @@ export const overrides = [
 ```
 
 - `authorize` in the shared definitions is synchronous and returns a `boolean` (because it is also used by `can` in the browser). The override's `authorize` is synchronous only as well (returning a `Promise` is a `DefinitionError`), and it receives the shared check (`shared`) as the last argument. Read the data needed for authorization when building the authentication context
-- The schemas of `item`, `create`, and operation `params` are limited to ones whose output passes when run through them again. `transform`, `pipe`, and `preprocess` are errors at definition time (`default` and `coerce` can be used). The library validates once before authorization, and uses that value for both authorization and the write ([Table definitions](docs/table-definition.ja.md), Japanese)
+- The schemas of `item`, `create`, and operation `params` are limited to ones whose output passes when run through them again. `transform`, `pipe`, and `preprocess` are errors at definition time (`default` and `coerce` can be used). The library validates once before authorization, and uses that value for both authorization and the write ([Table definitions](docs/table-definition.md))
 - `authorize` of `get`, `create`, and `set` can only see the key, the input, and the authentication context, not the stored item. For writes that should be decided by stored values, use `where` on mutations and deletes (DynamoDB conditional writes). `get` cannot take conditions, so for reads, put the owner or workspace in the key and decide with `authorize`, or make it a query and decide by its parameters
   - Example: if you expose `set` on a table whose key is only `noteId`, someone can overwrite another person's note by rewriting `ownerId` in the input. Do not expose `set`; prevent this with a mutation's `where: (_p, ctx) => ({ ownerId: ctx.userId })`
 - Do not make shared modules depend on Node.js-only modules (this package itself checks this with ESLint's `no-restricted-imports` and tests)
@@ -100,7 +100,10 @@ Use this when server code wants to receive changes, including writes from other 
 ```ts
 // shared: queries without authorize are server-only. With live they are published, but not exposed to browsers
 const revocationOps = createOps(revocations, (o) => ({
-  recent: o.query({ params: z.object({}), where: () => ({ partition: { scope: "all" } }) }),
+  recent: o.query({
+    params: z.object({}),
+    where: () => ({ partition: { scope: "all" } }),
+  }),
 }));
 export const endpoints = defineEndpoints({
   revocations: [{ op: revocationOps.recent, live: true }],
@@ -113,7 +116,9 @@ const sub = await subscribeOnServer({
   prefix: "app", // match the writer side
   op: revocationOps.recent,
   params: {},
-  onChange: ({ type, item }) => { /* ADDED / MODIFIED / REMOVED */ },
+  onChange: ({ type, item }) => {
+    /* ADDED / MODIFIED / REMOVED */
+  },
 });
 await sub.close();
 ```

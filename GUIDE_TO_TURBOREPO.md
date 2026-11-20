@@ -1,31 +1,31 @@
-# 新しいパッケージの追加方法
+# How to add a new package
 
-## パッケージ側
+## The package side
 
 packages/\_/eslint.config.mjs
-→他のパッケージからのコピーでOK。
-ただし、jsxを使う場合と使わない場合で、import元が違うので注意
+→ Copying it from another package is fine.
+However, the import source differs depending on whether JSX is used:
 "@repo/eslint-config/base"
 "@repo/eslint-config/react-internal"
 
 packages/\_/tsconfig.json
-→→他のパッケージからのコピーでOK。
-ただし、jsxを使う場合と使わない場合で、extend元が違うので注意
+→ Copying it from another package is fine.
+However, what it extends differs depending on whether JSX is used:
 "@repo/typescript-config/base.json"
 "@repo/typescript-config/react-library.json"
 
 packages/\*/package.json
-→name設定が重要。この設定がimport時のパスを決める。
-→exports設定が正しくされている必要がある。
-例：
+→ The name setting matters. It decides the path used when importing.
+→ The exports setting must be correct.
+Example:
 ".": "src/index.ts"
 "./_": "./src/_.ts"
 
-## 反映
+## Applying it
 
-ルートでnpm i することで、npmがルートのpackage.jsonに指定されたworkspacesディレクトリ(packages/\*等)をトラバースして、ルートのnode_modulesにシンボリックリンクが作成される
+Running the install at the root traverses the workspace directories given in the root package.json (packages/\*, etc.), and creates symbolic links in the root node_modules.
 
-## 読み込み側
+## The importing side
 
-package.jsonのdependenciesに追加する
-この際の名前は、package.jsonのnameと一致する必要がある。
+Add it to dependencies in package.json.
+The name must match the name in the package's package.json.

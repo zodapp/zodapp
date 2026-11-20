@@ -1,154 +1,154 @@
-## apps/form-demo — フォームのデモ（@zodapp/zod-form-\* のサンプル）
+## apps/form-demo — form demo (a sample of @zodapp/zod-form-\*)
 
-`apps/form-demo` は、1 つの Zod スキーマから生成されるフォーム UI のカタログです。DB には依存しません。
+`apps/form-demo` is a catalog of form UIs generated from a single Zod schema. It does not depend on a DB.
 
-- **ルーティング**: TanStack Router（コードベースルーティング）
+- **Routing**: TanStack Router (code-based routing)
 - **UI**: React + Vite + Mantine
-- **データ**: なし（ファイルの項目は `createMockFileResolver` で動かす）
+- **Data**: none (file fields run with `createMockFileResolver`)
 
-DB を使うサンプルは別のアプリです（`apps/taskmanager`、`apps/survey`）。
-外部キーやファイルを実際の保存先で扱う例は、そちらを参照してください。
+The samples that use a DB are separate apps (`apps/taskmanager`, `apps/survey`).
+For examples that handle foreign keys and files with real storage, see those.
 
-参照: `apps/form-demo/README.ja.md`
+See also: `apps/form-demo/README.md`
 
 ---
 
-## 最短起動（コピペ用）
+## Quickest start (copy and paste)
 
 ```bash
-# リポジトリルートで
+# at the repository root
 pnpm install
 
-# パッケージのビルド（apps はパッケージの dist を使う）
+# build the packages (apps use the packages' dist)
 pnpm build
 
-# Webアプリ起動
+# start the web app
 pnpm --filter form-demo dev
 
-# 型チェック / ビルド
+# type check / build
 pnpm --filter form-demo check-types
 pnpm --filter form-demo build
-pnpm --filter form-demo build:pages   # GitHub Pages 向け（base: /zodapp/）
+pnpm --filter form-demo build:pages   # for GitHub Pages (base: /zodapp/)
 
-# E2E（Playwright。Vite は起動していなければ自動で起動する）
+# E2E (Playwright. Vite is started automatically if it is not running)
 pnpm --filter form-demo e2e
 ```
 
-E2E は `e2e/` に、デモページ 1 つにつき spec を 1 つ置きます。spec の手順は、そのページを開いて試す手順と同じにします。
-`all-pages.spec.ts` は、サイドバーのすべてのページと、e2e 用のページがすべて開けて例外が起きないことを確かめます。
+E2E lives in `e2e/`, with one spec per demo page. A spec's steps are the same as the steps to open that page and try it.
+`all-pages.spec.ts` checks that every page in the sidebar and every e2e page opens without exceptions.
 
-- ポートは `E2E_PORT`（既定 3000）で変えられる。別の作業コピーの dev サーバーを相手にしないよう、作業コピーごとに分けるときに使う（例：`E2E_PORT=3100 pnpm --filter form-demo e2e`）
+- The port can be changed with `E2E_PORT` (3000 by default). Use it to separate working copies, so as not to test against another working copy's dev server (e.g. `E2E_PORT=3100 pnpm --filter form-demo e2e`)
 
-### e2e のケースの置き場所
+### Where e2e cases go
 
-e2e で確かめたいことは、重なるデモページ（メニューに出るデモ）に置き、それに対して e2e を書きます。e2e が失敗したら、同じ URL を開いて同じ手順を手で試せます。
+What you want to check with e2e goes on the demo page it overlaps with (a demo shown in the menu), and the e2e is written against it. When an e2e test fails, you can open the same URL and try the same steps by hand.
 
-- 欄が足りなければ、そのデモに欄を足す
-- 遅延の分け方の選択・止めておいた取得の「届ける」「失敗させる」・選択肢を届け直すボタンなど、フォームの外から動きを起こす操作は、「動きを試す」の枠（`src/shared/demo/TryBehavior.tsx`）にまとめる。説明は人が読んで分かる日本語で書く
-- 人が開いたときの既定は、デモの見やすいふるまい（ms の遅延など）のままにする。テストは「動きを試す」で分け方を選んでから進める
+- If fields are missing, add them to that demo
+- Operations that cause behavior from outside the form, such as choosing how to split delays, "deliver" and "fail" for a held fetch, and buttons that re-deliver options, are grouped in the 「動きを試す」 (try it) section (`src/shared/demo/TryBehavior.tsx`). Descriptions are written in Japanese that people can read and understand
+- The default when a person opens the page stays the demo's easy-to-watch behavior (delays in ms, etc.). Tests first choose how to split in 「動きを試す」 and then proceed
 
-#### e2e 用のページ（デモに向かないものだけ）
+#### e2e pages (only for what does not suit a demo)
 
-デモに向かないケースだけを、メニューに出ない e2e 用のページに置きます。
+Only cases that do not suit a demo go on e2e pages that are not shown in the menu.
 
-- わざと不正な値や古い形の初期値を持たせるもの：`e2e-open-rewrite`
-- 利用者が画面で触らない機能（デモを細かく作らず、e2e だけで確かめる）：`e2e-parsed-submit`（送信する値の変換）・`e2e-passthrough`（欄を出さずにそのまま送る型）・`e2e-unsupported`（扱えない型の注記）・`e2e-container-refine`（入れ物の refine）・`e2e-lazy-limit`（再帰の上限）・`e2e-misc`（そのほかの型の書き方）
+- Those that deliberately have invalid values or initial values in an old shape: `e2e-open-rewrite`
+- Features users do not touch on screen (checked only with e2e, without building a detailed demo): `e2e-parsed-submit` (conversion of the submitted value), `e2e-passthrough` (types submitted as is without showing a field), `e2e-unsupported` (notices for types that cannot be handled), `e2e-container-refine` (refines on containers), `e2e-lazy-limit` (the recursion limit), `e2e-misc` (other ways of writing types)
 
-利用者が画面で触る UI（欄の見た目・選び方など）は、メニューに出るデモに置きます。
+UIs users touch on screen (how fields look, how to choose, etc.) go on demos shown in the menu.
 
-- 置き場所：`src/pages/form/schemas/e2e/`。登録簿は `schemas/e2e/index.ts` の `e2eSchemas`（コードのタブは `e2eCodes`）
-- formId は `e2e-` で始める。`/form/detail?formId=e2e-…` で開ける（GitHub Pages のビルドにも含む）
-- サイドバー・一覧・トップは `formSchemas` だけを使うので、e2e のページはメニューに出ない
-- モジュールの形（`formId`・`title`・`description`・`schema`・`defaultValues`・`Component`）は、ほかのデモと同じ
-- ページの説明（`description`）に書く手順と、spec の手順をそろえる
+- Location: `src/pages/form/schemas/e2e/`. The registry is `e2eSchemas` in `schemas/e2e/index.ts` (`e2eCodes` for the code tabs)
+- formIds start with `e2e-`. They open at `/form/detail?formId=e2e-…` (also included in the GitHub Pages build)
+- The sidebar, the list, and the top page use only `formSchemas`, so e2e pages do not appear in the menu
+- The module shape (`formId`, `title`, `description`, `schema`, `defaultValues`, `Component`) is the same as other demos
+- Keep the steps written in the page's description (`description`) and the spec's steps in sync
 
-### 見るための部品（`E2eHarness`）と `window.__formDemo`
+### The observation component (`E2eHarness`) and `window.__formDemo`
 
-すべてのデモページに、見るための部品を置きます（`src/components/E2eHarness.tsx`。AutoForm の `actionComponents` に `createE2eHarness({ formId })` を渡す）。詳細ページの汎用の描画は、自動で置きます。
+Every demo page has an observation component (`src/components/E2eHarness.tsx`; pass `createE2eHarness({ formId })` to AutoForm's `actionComponents`). The generic rendering of the detail page adds it automatically.
 
-- 画面に、今の値・欄ごとのエラー・isDirty・送信した値と回数・ログ（開閉できる）を出す。「送信」のボタンも持つ
-- 同じ中身を `window.__formDemo` に置く（`formId`・`values`・`errors.fields`・`errors.form`・`isDirty`・`submitted.count`・`submitted.values`・`log`）
-- e2e は、値・エラー・回数・ログを `page.evaluate` で読む（`e2e/helpers.ts` の `formDemo`・`previewValue`・`logOf`）。変わるのを待つときは `expect.poll` を使う。プレビューの文字を JSON として読まない
-- 利用者が見るもの（欄の表示・選択肢・エラーの文言・読み込み中や再試行の表示）は、画面で確かめる
+- It shows on screen the current value, errors per field, isDirty, the submitted values and count, and a log (collapsible). It also has a "submit" button
+- The same contents are put on `window.__formDemo` (`formId`, `values`, `errors.fields`, `errors.form`, `isDirty`, `submitted.count`, `submitted.values`, `log`)
+- e2e reads values, errors, counts, and logs with `page.evaluate` (`formDemo`, `previewValue`, `logOf` in `e2e/helpers.ts`). Use `expect.poll` to wait for changes. Do not read the preview text as JSON
+- What users see (how fields are shown, options, error messages, loading and retry displays) is checked on screen
 
-部品を置かない（または一部だけの）ページと、その理由。e2e では、これらのページの値やエラーは画面で確かめる。
+Pages without the component (or with only part of it), and why. In e2e, values and errors on these pages are checked on screen.
 
-- `reactiveBasicInput`・`reactiveEnumSelect`・`reactiveNestedObject`・`reactiveReadOnly`・`reactiveRecord`：`ReactiveAutoForm` で描く。`ReactiveAutoForm` には `actionComponents` が無いので、部品も `window.__formDemo` も無い（今のプレビューだけ。`ReactiveAutoForm` に `actionComponents` は足さないと決めた）
-- `tableView`：フォームではなく表（`AutoTable`）だけなので、部品も `window.__formDemo` も無い
-- `formActions`：部品は置くが `submit: false`（このページは actions のボタンが主題なので、部品の「送信」を出さない）。`window.__formDemo` はある
+- `reactiveBasicInput`, `reactiveEnumSelect`, `reactiveNestedObject`, `reactiveReadOnly`, `reactiveRecord`: drawn with `ReactiveAutoForm`. `ReactiveAutoForm` has no `actionComponents`, so there is neither the component nor `window.__formDemo` (only the current preview; it was decided not to add `actionComponents` to `ReactiveAutoForm`)
+- `tableView`: only a table (`AutoTable`), not a form, so there is neither the component nor `window.__formDemo`
+- `formActions`: has the component but with `submit: false` (the actions' buttons are the subject of this page, so the component's "submit" is not shown). `window.__formDemo` exists
 
-ログ（`log`）の 1 件は `{ type, at, … }`（`at` はページを開いてからの ms）。
+One log entry (`log`) is `{ type, at, … }` (`at` is ms since the page opened).
 
-- `value`：値の変更。`changes` に、変わった欄ごとの `path`・`before`・`after`
-- `fetch`：dynamic の取得。`kind`（`subscribe` は externalKey の購読、`load` は dynamic の load）・`field`・`key`・`result`（`called`・`delivered`・`failed`）。externalKey の resolver は欄を知らないので、`field` と `key` は topic
-- `dynamic-status`：DOM の `data-dynamic-status` の移り変わり。`statuses` に、読み込み中・失敗の欄の `label` と `status`
-- `submit`：送信。`result` は `attempted`・`passed`・`blocked`
+- `value`: a value change. `changes` has `path`, `before`, and `after` per changed field
+- `fetch`: a dynamic fetch. `kind` (`subscribe` is an externalKey subscription, `load` is a dynamic load), `field`, `key`, and `result` (`called`, `delivered`, `failed`). externalKey resolvers do not know the field, so `field` and `key` are the topic
+- `dynamic-status`: transitions of `data-dynamic-status` in the DOM. `statuses` has `label` and `status` of fields that are loading or failed
+- `submit`: a submission. `result` is `attempted`, `passed`, or `blocked`
 
-### 遅延の分け方
+### How delays are split
 
-デモページで取得の時機を作るときは、ms ではなく、何と競るかで分けます（`src/shared/demo/fetchControl.tsx`。`FetchControlPanel` を「動きを試す」の枠に置く。使っているページ：`dynamicAdvanced`・`externalKeyFilter`）。
+When a demo page creates fetch timing, it is split by what it races against, not by ms (`src/shared/demo/fetchControl.tsx`; put `FetchControlPanel` in the 「動きを試す」 section. Pages that use it: `dynamicAdvanced`, `externalKeyFilter`).
 
-- すぐ届く：externalKey は値のある topic を購読する。load は解決済みの Promise を返す
-- 1 フレーム後・2 フレーム後：`requestAnimationFrame` を重ねてから届ける
-- 止めておく：「届ける」「失敗させる」のボタンを押すまで届けない。読み込み中の操作はこれで作る
-- 見やすい遅延：人が開いたときの既定（ms）。テストはこの数字に頼らない
+- Immediately: externalKey subscribes to a topic that already has a value. load returns a resolved Promise
+- After 1 frame / 2 frames: delivered after stacking `requestAnimationFrame`
+- Held: not delivered until the "deliver" or "fail" button is pressed. Operations during loading are created with this
+- Easy-to-watch delay: the default when a person opens the page (ms). Tests do not rely on this number
 
-テストは時間を待たず、画面の状態と `window.__formDemo` を待ちます。
+Tests do not wait for time; they wait for the screen state and `window.__formDemo`.
 
 ---
 
-## ディレクトリマップ（どこに何があるか）
+## Directory map (where things are)
 
-- **エントリポイント**: `src/main.tsx` → `src/App.tsx`
-- **ルーティング**
-  - ルートツリー組み立て: `src/pages/router.tsx`（`basepath` は `import.meta.env.BASE_URL`）
-  - ルート定義: `src/pages/**/*.route.ts`
-- **共通UI**
-  - 共通レイアウト: `src/components/CommonLayout.tsx`
-  - 自動フォーム: `src/components/AutoForm.tsx`（`@zodapp/zod-form-widget/form` の re-export）
-- **デモの一覧**: `src/shared/demos.tsx`（トップページのカードとヘッダーのバッジが共有する）
-- **アプリ固有型（設計の拡張ポイント）**
-  - file: `src/shared/types/fileConfig.ts`（Mock だけ）
+- **Entry point**: `src/main.tsx` → `src/App.tsx`
+- **Routing**
+  - Building the route tree: `src/pages/router.tsx` (`basepath` is `import.meta.env.BASE_URL`)
+  - Route definitions: `src/pages/**/*.route.ts`
+- **Shared UI**
+  - Shared layout: `src/components/CommonLayout.tsx`
+  - Automatic form: `src/components/AutoForm.tsx` (a re-export of `@zodapp/zod-form-widget/form`)
+- **List of demos**: `src/shared/demos.tsx` (shared by the cards on the top page and the badge in the header)
+- **App-specific types (design extension points)**
+  - file: `src/shared/types/fileConfig.ts` (Mock only)
   - resolverContext: `src/shared/types/resolverContext.ts`
 
 ---
 
-## 逆引き（作りたいもの別）
+## Reverse lookup (by what you want to build)
 
-### 1) フォームデモ（pages/form）に項目を追加したい
+### 1) Add an item to the form demo (pages/form)
 
-- スキーマファイルを `src/pages/form/schemas/` に追加し、
-  `schemas/index.ts` に登録する（`?raw` import でコード表示タブも埋まる）
-- AutoForm の props だけで表現できないデモは、スキーマモジュールから
-  `Component` を export すると detail ページがそれを描画する
-  （例: `schemaTransform.tsx` / `formActions.tsx` / `customWidget.tsx`）
+- Add a schema file to `src/pages/form/schemas/`,
+  and register it in `schemas/index.ts` (the `?raw` import also fills the code tab)
+- For demos that cannot be expressed with AutoForm props alone, export
+  `Component` from the schema module, and the detail page renders it
+  (e.g. `schemaTransform.tsx` / `formActions.tsx` / `customWidget.tsx`)
 
-### 2) カスタムフィールドウィジェットを作りたい
+### 2) Build a custom field widget
 
-- **使うもの**: `wrapComponent` + `ZodFormInternalProps` + `useZodField`、
-  componentLibrary への `{zodType}_{uiType}` キー登録
-- **参照**: `src/pages/form/schemas/customWidget.tsx`
-  （星評価 / カスケード選択の 2 例。`AutoForm` の `componentLibrary` prop で差し込む）
+- **What to use**: `wrapComponent` + `ZodFormInternalProps` + `useZodField`,
+  and registering a `{zodType}_{uiType}` key in componentLibrary
+- **Reference**: `src/pages/form/schemas/customWidget.tsx`
+  (two examples: star rating and cascading selects. Plugged in with AutoForm's `componentLibrary` prop)
 
-### 3) ページ/ルートを追加したい
+### 3) Add a page or route
 
-- `src/pages/**/*.route.ts` にルートを定義し、`src/pages/router.tsx` のツリーに足す
-- searchParams は route 側の `validateSearch` で型を決める（例: `src/pages/form/detail.route.ts`）
-
----
-
-## @zodapp/\* 関連ドキュメント（入口）
-
-- `@zodapp/zod-form`: `packages/zod-form/README.ja.md`
-- `@zodapp/zod-form-react`: `packages/zod-form-react/README.ja.md`
-- `@zodapp/zod-form-mantine`: `packages/zod-form-mantine/README.ja.md`
-- `@zodapp/zod-searchparams`: `packages/zod-searchparams/README.ja.md`
+- Define the route in `src/pages/**/*.route.ts`, and add it to the tree in `src/pages/router.tsx`
+- searchParams get their types from the route's `validateSearch` (e.g. `src/pages/form/detail.route.ts`)
 
 ---
 
-## よくある落とし穴（このテンプレ特有）
+## @zodapp/\* related documents (entry points)
 
-- **画像などの URL は `import.meta.env.BASE_URL` から作る**
-  - GitHub Pages では `/zodapp/` の下に置くため、`/` から始まる絶対パスは壊れる（`index.html` の中は Vite が書き換える）
-- **searchParams は route 側で型を決める**
-  - 画面側で好き勝手に `search` を組むのではなく、`*.route.ts` の `validateSearch` とセットで設計する
+- `@zodapp/zod-form`: `packages/zod-form/README.md`
+- `@zodapp/zod-form-react`: `packages/zod-form-react/README.md`
+- `@zodapp/zod-form-mantine`: `packages/zod-form-mantine/README.md`
+- `@zodapp/zod-searchparams`: `packages/zod-searchparams/README.md`
+
+---
+
+## Common pitfalls (specific to this template)
+
+- **Build URLs for images and the like from `import.meta.env.BASE_URL`**
+  - On GitHub Pages, the app lives under `/zodapp/`, so absolute paths starting with `/` break (Vite rewrites those inside `index.html`)
+- **searchParams get their types on the route side**
+  - Rather than composing `search` freely on the screen side, design it together with `validateSearch` in `*.route.ts`

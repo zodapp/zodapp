@@ -1,5 +1,7 @@
 # 既定値と値の調整
 
+[English](default-value.md)
+
 ## `getDefaultValue(schema, value?)`
 
 schema からフォームの初期値を作ります。`value` を渡すと、その値を持ったまま schema を歩き、値が `undefined` のところだけを補います。入っている値は変えません。
@@ -11,22 +13,22 @@ schema からフォームの初期値を作ります。`value` を渡すと、�
 
 型ごとの初期値（値が `undefined` のとき）は次のとおりです。
 
-| schema | 初期値 |
-|---|---|
-| `.default(x)`・`.prefault(x)` | `x`（関数なら呼んだ結果） |
-| object | `{}` に、子の初期値を入れたもの。`undefined` になったキーは置かない（キーが無いと検証結果が変わる子のキーは残す） |
-| 配列 | `[]`。長さの指定（`length`・`min`）があれば、その長さの `undefined` |
-| tuple | 要素の数の `undefined` |
-| キーを列挙できる record（キーが enum・literal とその union） | 列挙したキーごとに値の初期値を入れたもの（初期値が `undefined` のキーは置かない） |
-| そのほかの record・Set・Map | 空の値 |
-| 値が 1 つの literal | その値 |
-| 値が複数の literal | `undefined` |
-| `z.null()` | `null` |
-| `z.nan()` | `NaN` |
-| `z.undefined()`・`z.void()` | `undefined`（object のキーは置く。キーが無いと zod の検証結果が変わるため） |
-| optional | `undefined`（中は歩かない） |
-| `.nonoptional()` | optional を外した中の初期値 |
-| nullable | 中が default なら（`.default("x").nullable()`）その値、中が optional を含むなら `undefined`、それ以外は `null` |
+| schema                                                       | 初期値                                                                                                            |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `.default(x)`・`.prefault(x)`                                | `x`（関数なら呼んだ結果）                                                                                         |
+| object                                                       | `{}` に、子の初期値を入れたもの。`undefined` になったキーは置かない（キーが無いと検証結果が変わる子のキーは残す） |
+| 配列                                                         | `[]`。長さの指定（`length`・`min`）があれば、その長さの `undefined`                                               |
+| tuple                                                        | 要素の数の `undefined`                                                                                            |
+| キーを列挙できる record（キーが enum・literal とその union） | 列挙したキーごとに値の初期値を入れたもの（初期値が `undefined` のキーは置かない）                                 |
+| そのほかの record・Set・Map                                  | 空の値                                                                                                            |
+| 値が 1 つの literal                                          | その値                                                                                                            |
+| 値が複数の literal                                           | `undefined`                                                                                                       |
+| `z.null()`                                                   | `null`                                                                                                            |
+| `z.nan()`                                                    | `NaN`                                                                                                             |
+| `z.undefined()`・`z.void()`                                  | `undefined`（object のキーは置く。キーが無いと zod の検証結果が変わるため）                                       |
+| optional                                                     | `undefined`（中は歩かない）                                                                                       |
+| `.nonoptional()`                                             | optional を外した中の初期値                                                                                       |
+| nullable                                                     | 中が default なら（`.default("x").nullable()`）その値、中が optional を含むなら `undefined`、それ以外は `null`    |
 
 - optional と nullable の両方が付いた欄（`.optional().nullable()`・`.nullable().optional()`）は、どちらの順でも `undefined` です
 - nullable な object は `null` で始まり、＋で開くまで中の欄を出しません

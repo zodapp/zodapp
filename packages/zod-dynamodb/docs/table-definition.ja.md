@@ -1,5 +1,7 @@
 # Table定義
 
+[English](table-definition.md)
+
 ## 目的
 
 Table定義は、フロントエンドとバックエンドの間で共有されるデータ契約である。次の2つを守る。
@@ -75,7 +77,11 @@ export const appTable = physicalTable({
   indexes: {
     GSI1: { pk: "PK1", sk: "SK1", projection: "ALL" },
     GSI2: { pk: "PK2", sk: "SK2", projection: "KEYS_ONLY" },
-    GSI3: { pk: "PK3", sk: "SK3", projection: { include: ["createdAt", "updatedAt"] } },
+    GSI3: {
+      pk: "PK3",
+      sk: "SK3",
+      projection: { include: ["createdAt", "updatedAt"] },
+    },
   },
 });
 
@@ -119,9 +125,21 @@ export const tasks = tableConfig({
 
   // 物理GSIのスロットを明示して割り当てる
   indexes: {
-    byStatus: { slot: "GSI1", partition: ["workspaceId", "status"], sort: ["priority", "updatedAt", "taskId"] },
-    byAssignee: { slot: "GSI2", partition: ["workspaceId", "assignee"], sort: ["updatedAt", "taskId"] },
-    byDue: { slot: "GSI3", partition: ["workspaceId"], sort: ["dueDate", "taskId"] },
+    byStatus: {
+      slot: "GSI1",
+      partition: ["workspaceId", "status"],
+      sort: ["priority", "updatedAt", "taskId"],
+    },
+    byAssignee: {
+      slot: "GSI2",
+      partition: ["workspaceId", "assignee"],
+      sort: ["updatedAt", "taskId"],
+    },
+    byDue: {
+      slot: "GSI3",
+      partition: ["workspaceId"],
+      sort: ["dueDate", "taskId"],
+    },
   },
 
   // ライフサイクルフック。マージする値を返す。マージと検証はライブラリが行う
@@ -138,11 +156,11 @@ export const tasks = tableConfig({
 
 キーとIndexのフィールドには、型と定義時の実行時検査で次の制約がある。
 
-| 対象 | 型での検査 | 定義時の実行時検査 |
-|---|---|---|
-| `key.partition` / `key.sort` | itemの**全variantに共通する**フィールドで、値が `undefined` にならず、出力型がキーにできる型（[キーのエンコーディング](physical-layout.ja.md)）であること | Schemaがエンコードできる種類であること。`.optional()` でないこと |
-| `indexes.*.partition` / `sort` | **いずれかのvariant**にあるフィールドで、出力型がキーにできる型であること | 同上 |
-| `indexes.*.slot` | 物理レイアウトに存在するスロットであること。同じエンティティで同じスロットを二度使わないこと | 同上 |
+| 対象                           | 型での検査                                                                                                                                                | 定義時の実行時検査                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `key.partition` / `key.sort`   | itemの**全variantに共通する**フィールドで、値が `undefined` にならず、出力型がキーにできる型（[キーのエンコーディング](physical-layout.ja.md)）であること | Schemaがエンコードできる種類であること。`.optional()` でないこと |
+| `indexes.*.partition` / `sort` | **いずれかのvariant**にあるフィールドで、出力型がキーにできる型であること                                                                                 | 同上                                                             |
+| `indexes.*.slot`               | 物理レイアウトに存在するスロットであること。同じエンティティで同じスロットを二度使わないこと                                                              | 同上                                                             |
 
 unionの `keyof` は共通フィールドになるため、ベーステーブルのキーにはすべてのItemが持つフィールドしか指定できない。一部のvariantにしかないフィールドをIndexに指定すると、そのvariantのItemだけが載るsparse indexになる（[物理レイアウト](physical-layout.ja.md)）。
 
@@ -174,14 +192,14 @@ immutable: ["ownerId"],
 
 ## 各Schemaと型の役割
 
-| 名前 | 種類 | 内容 | 主な用途 |
-|---|---|---|---|
-| `item` | 公開Schema（利用者が指定） | 保存されるデータ。キーを含む | 読み取り結果、作成時の全体検証、更新時のフィールド単位の検証、編集フォーム |
-| `create` | 公開Schema（利用者が指定） | 作成時にクライアントが渡すデータ | 作成の入力、作成フォーム |
-| キーの型 | 公開する型 | `Pick<z.output<Item>, キーのフィールド>` | Get / Update / Delete の引数 |
-| 部分更新の型 | 公開する型 | itemのvariantごとの `Partial` | 部分更新の入力 |
-| 射影の結果の型 | 公開する型 | itemのvariantごとの `Pick`（[名前付きクエリ](../../zod-dynamodb-node/docs/queries.ja.md)） | 射影だけを返すクエリの結果 |
-| キーの検証Schema / エンコーダー / 射影の検証Schema | 内部専用（`ZodType<unknown>` など） | itemから集めたフィールドのSchemaから作る | 入力の検証、物理キーとの相互変換 |
+| 名前                                               | 種類                                | 内容                                                                                       | 主な用途                                                                   |
+| -------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `item`                                             | 公開Schema（利用者が指定）          | 保存されるデータ。キーを含む                                                               | 読み取り結果、作成時の全体検証、更新時のフィールド単位の検証、編集フォーム |
+| `create`                                           | 公開Schema（利用者が指定）          | 作成時にクライアントが渡すデータ                                                           | 作成の入力、作成フォーム                                                   |
+| キーの型                                           | 公開する型                          | `Pick<z.output<Item>, キーのフィールド>`                                                   | Get / Update / Delete の引数                                               |
+| 部分更新の型                                       | 公開する型                          | itemのvariantごとの `Partial`                                                              | 部分更新の入力                                                             |
+| 射影の結果の型                                     | 公開する型                          | itemのvariantごとの `Pick`（[名前付きクエリ](../../zod-dynamodb-node/docs/queries.ja.md)） | 射影だけを返すクエリの結果                                                 |
+| キーの検証Schema / エンコーダー / 射影の検証Schema | 内部専用（`ZodType<unknown>` など） | itemから集めたフィールドのSchemaから作る                                                   | 入力の検証、物理キーとの相互変換                                           |
 
 ### Schema の前提：出力をもう一度通しても通ること
 
@@ -197,7 +215,10 @@ immutable: ["ownerId"],
 読み取り結果は `z.output<Item>` そのものであり、キーを含む。物理キーの属性やライブラリ管理属性は含まない。
 
 ```ts
-const task = await repository.tasks.get({ workspaceId: "ws1", taskId: "task1" });
+const task = await repository.tasks.get({
+  workspaceId: "ws1",
+  taskId: "task1",
+});
 // task: z.output<typeof tasks.item> | null
 ```
 

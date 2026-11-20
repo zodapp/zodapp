@@ -1,5 +1,7 @@
 # バッジで出す選択（`uiType: "badge"`・`"multipleEnumBadge"`）
 
+[English](badge.md)
+
 enum と literal の union は、`uiType: "badge"` で選択肢と選択済みの値をバッジで出します。複数選択は、配列に `uiType: "multipleEnumBadge"` を付けます。`uiType` の無い enum は Mantine の `Select` のままです。
 
 ## 一つ選ぶ（`BadgeSelect`）

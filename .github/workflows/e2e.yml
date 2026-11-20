@@ -1,6 +1,6 @@
-# apps の Playwright E2E（DB を使うサンプル apps/taskmanager・apps/survey と、DB を使わない apps/form-demo）。
-# ライブラリの CI（ci.yml）とは別のワークフローで、ブランチの保護の必須チェックには入れない。
-# サンプルごとに別のジョブで動かす（ポートが同じなので、同じマシンでは並べられない）。
+# Playwright E2E of apps (the DB samples apps/taskmanager and apps/survey, and apps/form-demo, which uses no DB).
+# A workflow separate from the library CI (ci.yml); not a required check of branch protection.
+# Each sample runs in its own job (they use the same ports, so they cannot run side by side on one machine).
 name: E2E (samples)
 
 on:
@@ -50,11 +50,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         working-directory: .
-      # サンプルが使うパッケージ（@zodapp/*）の dist を作る
+      # Builds the dist of the packages (@zodapp/*) the samples use
       - run: pnpm exec turbo run build --filter='${{ matrix.app }}^...'
         working-directory: .
 
-      # Chromium（バージョンは @playwright/test に合わせる）
+      # Chromium (the version follows @playwright/test)
       - id: playwright
         run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
@@ -67,10 +67,10 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      # DynamoDB Local・magnito（taskmanager は S3Proxy も）。infra/compose.yml。form-demo は DB を使わない
+      # DynamoDB Local and magnito (plus S3Proxy for taskmanager). infra/compose.yml. form-demo uses no DB
       - if: matrix.app != 'form-demo'
         run: pnpm infra:up
-      # アプリ（DB のサンプルはメールの記録と AUTH_MAX_AGE_SECONDS=20 も）は Playwright の webServer が起動する
+      # Playwright's webServer starts the app (for the DB samples, also the mail recorder, with AUTH_MAX_AGE_SECONDS=20)
       - run: pnpm e2e
 
       - if: failure() && matrix.app != 'form-demo'

@@ -1,100 +1,102 @@
-# survey：質問をデータとして持つアンケート（zod-dynamodb のサンプル）
+# survey: a survey whose questions are data (a zod-dynamodb sample)
 
-質問の定義（短文・数値・選択・日付など）をアンケートの Item に保存し、実行時に Zod のスキーマへ組み立てて、
-回答フォーム・回答の表・回答の詳細に使い回すサンプルです。
-zodapp にあったアンケートのデモ（`firebase-final` の `apps/web`）を、Firestore から zod-dynamodb（DynamoDB）に移植しました。
+[日本語](README.ja.md)
 
-taskmanager が「スキーマをコードで書くアプリ」の例なのに対して、このアプリは次のことを示します。
+A sample that stores question definitions (short text, number, choice, date, etc.) in a survey Item, assembles them into a Zod schema at runtime,
+and reuses it for the answer form, the table of answers, and the answer details.
+It ports zodapp's survey demo (`apps/web` of `firebase-final`) from Firestore to zod-dynamodb (DynamoDB).
 
-- **スキーマを実行時に作る**：`buildSurveySchema()` が質問の定義から `z.object` を組み立てる。回答フォーム（`AutoForm`）、回答の表の列（`AutoTable`）、読み取り専用の詳細が、同じスキーマを使う
-- **ビルダーとライブプレビュー**：質問の定義そのものを `discriminatedUnion` のフォームで編集し、編集中の値からプレビューを組み立てる（`SurveyBuilder.tsx`）
-- **版の管理**：公開のたびに版（`revision`）を原子的に 1 上げ（`o.mutation` の `add`）、回答は回答時の版を持つ。定義が変わった後の古い回答も表示できる
-- **横断と絞り込み**：回答はワークスペースの直下に置き、全回答（`responses.all`）とアンケートごと（`responses.bySurvey`、Index）を読み分ける
-- **外部キーの選択肢**：回答の「アンケート」「回答者」を、登録簿の live なクエリ（`@zodapp/zod-form-dynamodb`）から選ぶ
+Whereas taskmanager is an example of "an app whose schemas are written in code", this app shows:
 
-## 構成
+- **Building schemas at runtime**: `buildSurveySchema()` assembles a `z.object` from the question definitions. The answer form (`AutoForm`), the columns of the answer table (`AutoTable`), and the read-only details all use the same schema
+- **A builder with a live preview**: the question definitions themselves are edited with a `discriminatedUnion` form, and the preview is assembled from the value being edited (`SurveyBuilder.tsx`)
+- **Revisions**: each publish increments the revision (`revision`) by 1 atomically (`add` of `o.mutation`), and each answer keeps the revision it was answered with. Old answers can still be shown after the definition changes
+- **Listing across surveys and narrowing**: answers are placed directly under the workspace, and all answers (`responses.all`) and answers per survey (`responses.bySurvey`, an index) are read separately
+- **Foreign key options**: an answer's "survey" and "respondent" are chosen from live queries in the registry (`@zodapp/zod-form-dynamodb`)
 
-| 役割 | ローカル版 | 本番での置き換え先 |
-|---|---|---|
-| データベース | DynamoDB Local（Docker、`:8000`） | DynamoDB |
-| 認証 | magnito（Cognito のエミュレーター、Docker、`:5050`） | Cognito |
-| リアルタイムの配送 | プロセスの中の配送（`memoryTransport`。ブローカーなし） | IoT Core（`MQTT_URL` を指定すると MQTT で配送する） |
-| 認証のメール | メールの記録（`pnpm mail`、SMTP `:2500`、HTTP `:2501`） | SES |
-| API と Realtime Gateway | Express（`:4000`、`/api`、`/api/realtime`） | ECS |
-| 画面 | Vite（`:3000`、`/api` をサーバーへ中継） | CloudFront + S3 |
+## Architecture
 
-ファイルの項目はないので、S3 は使いません（ファイルの例は `apps/taskmanager` のアバター画像）。
-ポートは taskmanager と同じです。両方を同時には動かせないので、片方の `pnpm infra:down` をしてから、もう片方を起動してください。
+| Role                     | Local version                                           | Replacement in production                            |
+| ------------------------ | ------------------------------------------------------- | ---------------------------------------------------- |
+| Database                 | DynamoDB Local (Docker, `:8000`)                        | DynamoDB                                             |
+| Authentication           | magnito (a Cognito emulator, Docker, `:5050`)           | Cognito                                              |
+| Realtime delivery        | In-process delivery (`memoryTransport`; no broker)      | IoT Core (delivers over MQTT when `MQTT_URL` is set) |
+| Authentication email     | Mail recorder (`pnpm mail`, SMTP `:2500`, HTTP `:2501`) | SES                                                  |
+| API and Realtime Gateway | Express (`:4000`, `/api`, `/api/realtime`)              | ECS                                                  |
+| Screens                  | Vite (`:3000`, proxies `/api` to the server)            | CloudFront + S3                                      |
+
+There are no file fields, so S3 is not used (for a file example, see the avatar images of `apps/taskmanager`).
+The ports are the same as taskmanager. Both cannot run at the same time, so run `pnpm infra:down` for one before starting the other.
 
 ```
 src/
   shared/
-    tables/   Table 定義と操作（workspace・member・survey・response）
-    survey/   質問の定義（fieldDefs）、スキーマの組み立て（buildSurveySchema）、回答の保存の形（answers）、フィクスチャ
-  server/     API、認証（ID トークンの検証）、Realtime Gateway、テストデータのルート
-  web/        画面
-e2e/          Playwright のテスト
+    tables/   Table definitions and operations (workspace, member, survey, response)
+    survey/   Question definitions (fieldDefs), schema assembly (buildSurveySchema), the stored shape of answers (answers), fixtures
+  server/     API, authentication (ID token verification), Realtime Gateway, test data routes
+  web/        Screens
+e2e/          Playwright tests
 infra/        docker compose
-scripts/      インフラの起動、メールの記録
+scripts/      Starting the infrastructure, mail recorder
 ```
 
-## 動かす
+## Running it
 
-必要なもの：Node.js 22 以上、pnpm、Docker（Docker Desktop、または dockerd）。
+Requirements: Node.js 22 or later, pnpm, Docker (Docker Desktop, or dockerd).
 
 ```bash
-pnpm install                          # リポジトリのルートで
+pnpm install                          # at the repository root
 cd apps/survey
-pnpm infra:up                         # DynamoDB Local・magnito を起動
-pnpm mail                             # メールの記録（別のターミナル）
-pnpm dev                              # サーバーと画面（別のターミナル）
+pnpm infra:up                         # starts DynamoDB Local and magnito
+pnpm mail                             # mail recorder (in another terminal)
+pnpm dev                              # server and screens (in another terminal)
 ```
 
-<http://localhost:3000> を開きます。サーバーは起動のたびに、テーブルと開発用のユーザーを（なければ）作ります。
+Open <http://localhost:3000>. Every time the server starts, it creates the tables and the development users (if they do not exist).
 
-| ユーザー | パスワード |
-|---|---|
+| User                | Password    |
+| ------------------- | ----------- |
 | `alice@example.com` | `Passw0rd!` |
-| `bob@example.com` | `Passw0rd!` |
-| `vic@example.com` | `Passw0rd!` |
+| `bob@example.com`   | `Passw0rd!` |
+| `vic@example.com`   | `Passw0rd!` |
 
-ワークスペースを作ったら、サイドバーの「テストデータ」で、アンケートの定義（公開中・下書き・削除済みの 3 件）とダミーの回答を入れられます。
-「回答ページを開く」で別のタブに回答ページを開くと、手で入れた回答とダミーの回答が同じ一覧に並びます。
+After creating a workspace, the 「テストデータ」 (test data) item in the sidebar puts in survey definitions (three: published, draft, and deleted) and dummy answers.
+「回答ページを開く」 (open the answer page) opens the answer page in another tab, and answers entered by hand appear in the same list as the dummy answers.
 
-止めるときは `pnpm infra:down` です。DynamoDB Local はメモリーで動かしているので、止めるとデータは消えます。
-Claude Code のクラウド環境での注意は、`apps/taskmanager/README.md` と同じです。
+To stop, run `pnpm infra:down`. DynamoDB Local runs in memory, so stopping it erases the data.
+Notes for the Claude Code cloud environment are the same as in `apps/taskmanager/README.md`.
 
-## テスト
+## Tests
 
 ```bash
-pnpm test        # 共有の定義のテスト（スキーマの組み立て、フィクスチャ、回答の変換、Table の操作。DynamoDB Local を使う）
-pnpm e2e         # Playwright の E2E
-pnpm check-types # 型チェック（画面とサーバー）
+pnpm test        # tests of the shared definitions (schema assembly, fixtures, answer conversion, table operations; uses DynamoDB Local)
+pnpm e2e         # Playwright E2E
+pnpm check-types # type check (screens and server)
 ```
 
-| ファイル | 確かめること |
-|---|---|
-| `01-signup` | サインアップし、メールの記録から確認コードを取って確認し、ログインする |
-| `02-survey` | アンケートを作って公開する（版が 1 になる）。テストデータの定義を入れ、回答ページから答えると、そのアンケートの回答一覧に質問の列で出る。詳細は回答フォームと同じスキーマで表示する |
+| File        | What it checks                                                                                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `01-signup` | Signs up, takes the confirmation code from the mail recorder, confirms, and logs in                                                                                                                                                                                |
+| `02-survey` | Creates and publishes a survey (the revision becomes 1). Puts in the test data definitions; answering from the answer page shows the answer in that survey's answer list, with columns per question. The details are shown with the same schema as the answer form |
 
-E2E は GitHub Actions の `E2E (samples)`（`.github/workflows/e2e.yml`）で、taskmanager と別のジョブで回します。動画とレポートは artifact の `e2e-report-survey` です。
+E2E runs in GitHub Actions' `E2E (samples)` (`.github/workflows/e2e.yml`), in a job separate from taskmanager. Videos and the report are in the `e2e-report-survey` artifact.
 
-## 回答の保存の形
+## The stored shape of answers
 
-回答（`answers`）は、質問の ID をキーにした `Record<string, string | number | boolean>` で保存します（`src/shared/survey/answers.ts`）。
+Answers (`answers`) are stored as a `Record<string, string | number | boolean>` keyed by question ID (`src/shared/survey/answers.ts`).
 
-- zod-dynamodb と JSON の通信は、スキーマに沿って値を変換します。`z.unknown()` では Date を戻せないので、値の型を限っています
-- 日付の質問は `YYYY-MM-DD` の文字列で保存し、フォームや表に出すときに Date に戻します（`toStoredAnswers` / `fromStoredAnswers`）
-- 未回答の項目は保存しません
+- zod-dynamodb and the JSON transport convert values following the schema. `z.unknown()` cannot turn values back into Dates, so the value types are limited
+- Date questions are stored as `YYYY-MM-DD` strings, and turned back into Dates when shown in forms and tables (`toStoredAnswers` / `fromStoredAnswers`)
+- Unanswered items are not stored
 
-## 移植で置き換えたもの
+## What the port replaced
 
-| zodapp（Firestore） | このアプリ（zod-dynamodb） |
-|---|---|
-| `surveys` / `responses` のコレクション | `tableConfig` と `createOps`（`src/shared/tables/survey.ts`・`response.ts`） |
-| `updateDoc` での公開（`revision + 1` をブラウザで計算） | `surveys.publish`（`add: { revision: 1 }` でサーバーが原子的に加算） |
-| `useList` / `useGrowingList` / `useDoc` | `createUseList(..., { live: true })` / `createUseItem`、画面の状態で切り替える一覧は `useListStore` |
-| Firestore のセキュリティルール | 操作の `authorize`（ブラウザでは `can` で同じ判定をする） |
-| `createFirestoreResolver`（外部キーの選択肢） | `createDynamoExternalKeyResolver`（`src/web/shared/resolvers.ts`） |
-| 列設定のプロファイル（Firestore に保存） | このブラウザ（localStorage）だけに保存（`src/web/shared/useLocalColumnSettings.ts`） |
-| ブラウザからの回答の一括投入 | 1 件ずつは API、まとめてはサーバーのルート（`/api/test-data/responses`、`bulkWrite`） |
+| zodapp (Firestore)                                                   | This app (zod-dynamodb)                                                                                       |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `surveys` / `responses` collections                                  | `tableConfig` and `createOps` (`src/shared/tables/survey.ts`, `response.ts`)                                  |
+| Publishing with `updateDoc` (`revision + 1` computed in the browser) | `surveys.publish` (the server increments atomically with `add: { revision: 1 }`)                              |
+| `useList` / `useGrowingList` / `useDoc`                              | `createUseList(..., { live: true })` / `createUseItem`, and `useListStore` for lists switched by screen state |
+| Firestore security rules                                             | Operations' `authorize` (the browser makes the same decision with `can`)                                      |
+| `createFirestoreResolver` (foreign key options)                      | `createDynamoExternalKeyResolver` (`src/web/shared/resolvers.ts`)                                             |
+| Column setting profiles (stored in Firestore)                        | Stored only in this browser (localStorage) (`src/web/shared/useLocalColumnSettings.ts`)                       |
+| Bulk insertion of answers from the browser                           | One at a time through the API; in bulk through a server route (`/api/test-data/responses`, `bulkWrite`)       |

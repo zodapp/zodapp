@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-The Realtime Gateway. It accepts client subscriptions over WebSocket, subscribes to topics on the transport (MQTT, etc.), and sends clients only the changes that match the range conditions (the specifications are [Realtime Gateway](docs/gateway.ja.md) and [Realtime delivery](../zod-dynamodb/docs/realtime.ja.md), in Japanese).
+The Realtime Gateway. It accepts client subscriptions over WebSocket, subscribes to topics on the transport (MQTT, etc.), and sends clients only the changes that match the range conditions (the specifications are [Realtime Gateway](docs/gateway.md) and [Realtime delivery](../zod-dynamodb/docs/realtime.md)).
 
 The exposed subscriptions are the queries marked `live` in the registry. A subscription's name is "group.operation" (`tasks.byStatus`).
 
@@ -103,7 +103,7 @@ const realtime = createRealtimeGateway({
 - The Gateway has only two building blocks: "subscriptions" and "pages". Whether it is progressive or whole, and how far has been read, is managed by the client (`@zodapp/zod-dynamodb-client`)
 - The same topic is subscribed on the transport only once across connections, with reference counting
 - A liveness ping is sent every 30 seconds, and connections that do not respond are dropped (`pingInterval`)
-- The message format is in [Realtime delivery](../zod-dynamodb/docs/realtime.ja.md) (Japanese)
+- The message format is in [Realtime delivery](../zod-dynamodb/docs/realtime.md)
 
 For tests and single-process development, the writer side and the Gateway can share `memoryTransport()` from `@zodapp/zod-dynamodb`.
 

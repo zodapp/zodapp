@@ -126,11 +126,11 @@ To change only some texts, pass dictionaries layered in an array (later ones win
 
 The look depends on the key schema.
 
-| Key                                    | Default                                                                                                                                       | `uiType: "entries"`                                                                                                                          |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| enum / literal (`z.record`)            | A fixed field per key (all required)                                                                                                          | Same                                                                                                                                         |
-| enum / literal (`z.partialRecord`)     | All candidate keys as fixed fields, each looking optional. A field that is emptied removes the key itself instead of putting undefined in the value | Only the keys in the value are listed as rows, and each row can only be deleted. Keys not present yet are added with the select at the bottom (filterable by typing) |
-| Others (such as `z.string()`)          | Lists the keys in the value                                                                                                                   | Add key-value pairs, typing the key                                                                                                          |
+| Key                                | Default                                                                                                                                             | `uiType: "entries"`                                                                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| enum / literal (`z.record`)        | A fixed field per key (all required)                                                                                                                | Same                                                                                                                                                                 |
+| enum / literal (`z.partialRecord`) | All candidate keys as fixed fields, each looking optional. A field that is emptied removes the key itself instead of putting undefined in the value | Only the keys in the value are listed as rows, and each row can only be deleted. Keys not present yet are added with the select at the bottom (filterable by typing) |
+| Others (such as `z.string()`)      | Lists the keys in the value                                                                                                                         | Add key-value pairs, typing the key                                                                                                                                  |
 
 When `z.partialRecord` is rendered with `uiType: "entries"`, the order of rows is decided by `keyOrder` in the metadata.
 
@@ -159,7 +159,7 @@ Form fields are addressed by field paths (`a.b[0].c`), so keys containing `.`, `
 - `@zodapp/zod-form-react`: React foundation (for your own UI)
 - `@zodapp/zod-form-dynamodb`: a resolver that reads externalKey options from DynamoDB (`@zodapp/zod-dynamodb`)
 - `@zodapp/zod-form-s3`: a resolver that stores files (`zf.externalFile`) in S3 (server side: `@zodapp/zod-form-s3-node`)
-- Detailed specifications (Japanese): [Object containers](docs/object.ja.md), [zf.intersection](docs/intersection.ja.md), [zf.union](docs/union.ja.md), [Selections shown as badges](docs/badge.ja.md), [How each Zod type is rendered](docs/schema-types.ja.md)
+- Detailed specifications: [Object containers](docs/object.md), [zf.intersection](docs/intersection.md), [zf.union](docs/union.md), [Selections shown as badges](docs/badge.md), [How each Zod type is rendered](docs/schema-types.md)
 
 ## License
 

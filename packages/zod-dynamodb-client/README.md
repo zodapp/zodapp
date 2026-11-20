@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Builds the browser API from the registry (`defineEndpoints`) of `@zodapp/zod-dynamodb` (the specifications are [Browser API](docs/client-api.ja.md) and [Realtime sync](docs/live-sync.ja.md), in Japanese). The function shapes are the same as the server API (`createServerApi`). It runs in both the browser and Node.js.
+Builds the browser API from the registry (`defineEndpoints`) of `@zodapp/zod-dynamodb` (the specifications are [Browser API](docs/client-api.md) and [Realtime sync](docs/live-sync.md)). The function shapes are the same as the server API (`createServerApi`). It runs in both the browser and Node.js.
 
 ```ts
 import { createClient, isClientError } from "@zodapp/zod-dynamodb-client";
@@ -52,13 +52,13 @@ try {
 }
 ```
 
-| `code`                                                                           | Meaning                                                                                                  |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Codes from §7.5 (`INVALID_INPUT`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, etc.)    | Server errors                                                                                            |
-| `NETWORK`                                                                        | Communication failure                                                                                    |
-| `UNEXPECTED_RESPONSE`                                                            | A response not in the §7.5 shape (403 / 502 from a WAF or load balancer, etc.). `status` is kept         |
-| `INVALID_RESPONSE`                                                               | The output does not match the operation's schema (version mismatch, etc.)                                |
-| `TOO_MANY_ITEMS`                                                                 | Exceeded the item limit while fetching a whole list                                                      |
+| `code`                                                                        | Meaning                                                                                          |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Codes from §7.5 (`INVALID_INPUT`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, etc.) | Server errors                                                                                    |
+| `NETWORK`                                                                     | Communication failure                                                                            |
+| `UNEXPECTED_RESPONSE`                                                         | A response not in the §7.5 shape (403 / 502 from a WAF or load balancer, etc.). `status` is kept |
+| `INVALID_RESPONSE`                                                            | The output does not match the operation's schema (version mismatch, etc.)                        |
+| `TOO_MANY_ITEMS`                                                              | Exceeded the item limit while fetching a whole list                                              |
 
 Cancellation through an `AbortSignal` is thrown as an `AbortError`.
 

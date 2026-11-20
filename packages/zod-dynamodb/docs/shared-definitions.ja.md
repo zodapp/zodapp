@@ -1,5 +1,7 @@
 # 共有の定義、登録簿、認可
 
+[English](shared-definitions.md)
+
 ## 共有の定義と、サーバーだけの上書き
 
 Table定義と名前付きの操作は、**ブラウザとサーバーで共有する1つの定義**として書く。認可（`authorize`）、書き込みの条件（`where`）、部分更新（`patch`）も、原則として共有の定義に入れる。ブラウザに出したくない規則や、サーバー専用のモジュールを使う処理だけを、サーバーで**上書き**（`override()`）する。
@@ -11,7 +13,9 @@ export const { createOps, override, defineEndpoints } = defineContext<Auth>();
 
 // shared/tasks.ts（共有。ブラウザでも動く）
 export const taskOps = createOps(tasks, (o) => ({
-  get: o.get({ authorize: (ctx, { key }) => ctx.workspaces.includes(key.workspaceId) }),
+  get: o.get({
+    authorize: (ctx, { key }) => ctx.workspaces.includes(key.workspaceId),
+  }),
   setStatus: o.mutation({
     params: z.object({ status: z.enum(["todo", "doing", "done"]) }),
     authorize: (ctx, { key }) => ctx.workspaces.includes(key.workspaceId),
@@ -25,7 +29,8 @@ export const taskOps = createOps(tasks, (o) => ({
 export const overrides = [
   override(taskOps.setStatus, {
     // 共有の判定（shared）に、サーバーだけの判定を足す。同期の関数だけ（必要なデータは認証コンテキストに入れておく）
-    authorize: (ctx, req, shared) => shared(ctx, req) && !ctx.frozenWorkspaces.includes(req.key.workspaceId),
+    authorize: (ctx, req, shared) =>
+      shared(ctx, req) && !ctx.frozenWorkspaces.includes(req.key.workspaceId),
   }),
 ];
 ```
@@ -36,11 +41,11 @@ export const overrides = [
 - 同じ関数（`api.tasks.setStatus(key, params)`）を、ブラウザでもサーバーでも呼べる。両方で動く業務ロジックを1つ書ける（`SharedApi`。[ブラウザの API](../../zod-dynamodb-client/docs/client-api.ja.md)）
 - 定義が1か所にまとまり、契約と実装を往復せずに読める
 
-| 定義 | 共有の定義 | サーバーだけ |
-|---|---|---|
-| Table定義（`tableConfig`） | 物理レイアウト、エンティティ名、`item` / `create`、キー、Index、`immutable`、フック（`onCreate` / `onWrite`）、`generateKey`、ベクトルスロットの静的な割り当て | ベクトルの実行時の設定（`createRepository` の `vectors` と `resolveVectorConfig`。[ベクトル検索](../../zod-dynamodb-node/docs/vector-search.ja.md)） |
-| 操作（`createOps`） | 名前、`params`、`authorize`、クエリの条件、ミューテーションの `patch` / `add` / `where`、削除の `where`、検索の `partition` / `filters` | 上書き（`override()`）：`authorize`（同期だけ）、ミューテーションと削除の `patch` / `where`、検索の `queryVector`（必須） |
-| 登録簿（`defineEndpoints`） | グループ、パス、HTTPメソッド、リアルタイム（`live`）、Subscriptionの `fields` | なし |
+| 定義                        | 共有の定義                                                                                                                                                     | サーバーだけ                                                                                                                                         |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Table定義（`tableConfig`）  | 物理レイアウト、エンティティ名、`item` / `create`、キー、Index、`immutable`、フック（`onCreate` / `onWrite`）、`generateKey`、ベクトルスロットの静的な割り当て | ベクトルの実行時の設定（`createRepository` の `vectors` と `resolveVectorConfig`。[ベクトル検索](../../zod-dynamodb-node/docs/vector-search.ja.md)） |
+| 操作（`createOps`）         | 名前、`params`、`authorize`、クエリの条件、ミューテーションの `patch` / `add` / `where`、削除の `where`、検索の `partition` / `filters`                        | 上書き（`override()`）：`authorize`（同期だけ）、ミューテーションと削除の `patch` / `where`、検索の `queryVector`（必須）                            |
+| 登録簿（`defineEndpoints`） | グループ、パス、HTTPメソッド、リアルタイム（`live`）、Subscriptionの `fields`                                                                                  | なし                                                                                                                                                 |
 
 - 上書きの関数は、最後の引数で共有の関数（`shared`）を受け取る。呼べば共有の判定に足す形に、呼ばなければ置き換えになる。上書きは `createRepository({ overrides })` に渡す。同じ操作への上書きを2回渡すとエラーにする
 - `authorize` を持たない操作は**サーバー専用**とし、登録簿にパスを付けられない。ブラウザの API にも現れない。クエリならリアルタイム（`live`）は付けられ、書き込み側は発行するが、Realtime Gateway は公開しない（サーバーのコードが `subscribeOnServer` で購読する。[Realtime Gateway](../../zod-dynamodb-realtime/docs/gateway.ja.md)）
@@ -66,11 +71,19 @@ import { defineEndpoints } from "./context"; // defineContext<Auth>() が返し�
 export const endpoints = defineEndpoints({
   tasks: [
     { op: taskOps.get, path: "/tasks/get" },
-    { op: taskOps.getByPath, path: "/tasks/:workspaceId/:taskId", method: "GET" },
+    {
+      op: taskOps.getByPath,
+      path: "/tasks/:workspaceId/:taskId",
+      method: "GET",
+    },
     { op: taskOps.create, path: "/tasks/create" },
     { op: taskOps.remove, path: "/tasks/delete" },
     { op: taskOps.setStatus, path: "/tasks/set-status" },
-    { op: taskOps.byStatus, path: "/tasks/by-status", live: { fields: { omit: ["description"] } } },
+    {
+      op: taskOps.byStatus,
+      path: "/tasks/by-status",
+      live: { fields: { omit: ["description"] } },
+    },
     { op: taskOps.purge }, // サーバー専用（authorize がない）。サーバーの API にだけ現れる
   ],
   rows: [{ op: rowOps.similar, path: "/rows/similar" }],
@@ -102,16 +115,16 @@ export const endpoints = defineEndpoints({
 
 `authorize(ctx, request)` の `request` は、操作の種類に応じて次のものを受け取る。
 
-| 操作 | `request` |
-|---|---|
-| Get | `{ key }` |
-| Create | `{ key, input }`（生成するキーの場合は `{ args, input }`） |
-| Set | `{ key, input }` |
-| 名前付きミューテーション | `{ key, params }` |
-| Delete | `{ key }` |
-| 名前付きクエリ | `{ params }` |
-| 名前付きの検索 | `{ params }` |
-| Subscription | 購読するクエリの `{ params }`（クエリの `authorize` をそのまま使う） |
+| 操作                     | `request`                                                            |
+| ------------------------ | -------------------------------------------------------------------- |
+| Get                      | `{ key }`                                                            |
+| Create                   | `{ key, input }`（生成するキーの場合は `{ args, input }`）           |
+| Set                      | `{ key, input }`                                                     |
+| 名前付きミューテーション | `{ key, params }`                                                    |
+| Delete                   | `{ key }`                                                            |
+| 名前付きクエリ           | `{ params }`                                                         |
+| 名前付きの検索           | `{ params }`                                                         |
+| Subscription             | 購読するクエリの `{ params }`（クエリの `authorize` をそのまま使う） |
 
 Queryの認可は、取得後にItemを間引くとPaginationや件数制限に問題が生じるため、パラメーターに対して行う。
 

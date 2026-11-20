@@ -222,7 +222,7 @@ import { ja } from "@zodapp/zod-form-react/messages";
 - `@zodapp/zod-form-mantine`: Mantine UI implementation (includes a `componentLibrary`)
 - `@zodapp/zod-form-dynamodb`: a resolver that reads externalKey options from DynamoDB (`@zodapp/zod-dynamodb`)
 - `@zodapp/zod-form-s3`: a resolver that stores files (`zf.externalFile`) in S3 (server side: `@zodapp/zod-form-s3-node`)
-- Detailed specifications (Japanese): [Passing field errors](docs/errors.ja.md), [Values of zf.dynamic](docs/dynamic.ja.md), ["Touched" and "changed" for container fields](docs/container-touch.ja.md)
+- Detailed specifications: [Passing field errors](docs/errors.md), [Values of zf.dynamic](docs/dynamic.md), ["Touched" and "changed" for container fields](docs/container-touch.md)
 
 ## License
 
