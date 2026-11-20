@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta, hideSchemaFields } from "@zodapp/zod-form";
@@ -26,9 +27,12 @@ import { TryBehavior } from "../../../shared/demo/TryBehavior";
 import type { WebResolverContextMap } from "../../../shared/types/resolverContext";
 
 export const formId = "externalKeyFilter";
-export const title = "zf.externalKey（絞り込み）";
-export const description =
-  "ログイン中の部署などで一覧を絞る。条件を切り替えたときに一覧を取り直す。外れた値は消える（clear）か、残して「（不正な値）」とエラーを出す（keep）。複数選択の欄も同じ。「動きを試す」で、取得の時機を選ぶ・失敗させる・同じ購読のまま選択肢を 0 件にして戻す・無い topic の欄を出す";
+export const title = msgKey(
+  "formDemo.page.externalKeyFilter.title" /* i18n: zf.externalKey（絞り込み） */,
+);
+export const description = msgKey(
+  "formDemo.page.externalKeyFilter.description" /* i18n: ログイン中の部署などで一覧を絞る。条件を切り替えたときに一覧を取り直す。外れた値は消える（clear）か、残して「（不正な値）」とエラーを出す（keep）。複数選択の欄も同じ。「動きを試す」で、取得の時機を選ぶ・失敗させる・同じ購読のまま選択肢を 0 件にして戻す・無い topic の欄を出す */,
+);
 export const icon = IconFilter;
 export const category = "Advanced";
 

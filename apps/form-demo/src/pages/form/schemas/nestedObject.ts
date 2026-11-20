@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,7 +6,9 @@ import { IconSitemap } from "@tabler/icons-react";
 
 export const formId = "nestedObject";
 export const title = "zf.object";
-export const description = "通常フィールドとネストしたオブジェクトの組み合わせ";
+export const description = msgKey(
+  "formDemo.page.nestedObject.description" /* i18n: 通常フィールドとネストしたオブジェクトの組み合わせ */,
+);
 export const icon = IconSitemap;
 export const category = "Advanced";
 
@@ -65,12 +68,10 @@ export const schema = z
     address: addressSchema,
     emergencyContact: emergencyContactSchema,
 
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "ネストしたオブジェクトをそのままフォームとして表現できます。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "ネストしたオブジェクトをそのままフォームとして表現できます。",
+    }),
   })
   .register(zf.object.registry, { uiType: "box", label: "会員" });
 

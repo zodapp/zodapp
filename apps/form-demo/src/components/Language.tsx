@@ -28,7 +28,7 @@ export const useAppLocale = () =>
 
 /**
  * 選んだ言語の辞書を、ライブラリの部品に渡す。
- * 切り替えると、ライブラリの文言・zod のエラー・日付の表示が変わる（アプリ自身の文言は日本語のまま）
+ * 切り替えると、ライブラリの文言・zod のエラー・日付の表示と、アプリの文言（src/messages の辞書）が変わる
  */
 export const LanguageProvider = ({
   children,

@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,8 +6,9 @@ import { IconShieldCheck } from "@tabler/icons-react";
 
 export const formId = "refineValidation";
 export const title = "z.refine";
-export const description =
-  "refineを使ったパスワード一致などのカスタムバリデーション";
+export const description = msgKey(
+  "formDemo.page.refineValidation.description" /* i18n: refineを使ったパスワード一致などのカスタムバリデーション */,
+);
 export const icon = IconShieldCheck;
 export const category = "Advanced";
 
@@ -33,12 +35,10 @@ export const schema = z
       label: "パスワード（確認）",
       uiType: "password",
     }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "refineを使用すると、複数フィールドにまたがるカスタムバリデーション（パスワード一致確認など）を実装できます。whenオプションでバリデーション条件の指定も可能です。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "refineを使用すると、複数フィールドにまたがるカスタムバリデーション（パスワード一致確認など）を実装できます。whenオプションでバリデーション条件の指定も可能です。",
+    }),
   })
   .register(zf.object.registry, {})
   .refine((data) => data.password === data.confirmPassword, {

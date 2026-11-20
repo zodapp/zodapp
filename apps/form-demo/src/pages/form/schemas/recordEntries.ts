@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconListDetails } from "@tabler/icons-react";
 
 export const formId = "recordEntries";
 export const title = "zf.record";
-export const description =
-  "キーと値の組を、追加・削除・編集する。キーが enum・literal で決まっている record はキーごとの固定の欄、Map は組を足して編集する欄になる。キーが enum の partialRecord は、既定では候補のキーを全部並べて各欄を optional にし（空にするとキーごと消す）、uiType: entries では値にあるキーだけを並べて、いちばん下の選択でキーを足す（行は削除だけできる。並びは keyOrder で、definition は定義順、value は値の順）";
+export const description = msgKey(
+  "formDemo.page.recordEntries.description" /* i18n: キーと値の組を、追加・削除・編集する。キーが enum・literal で決まっている record はキーごとの固定の欄、Map は組を足して編集する欄になる。キーが enum の partialRecord は、既定では候補のキーを全部並べて各欄を optional にし（空にするとキーごと消す）、uiType: entries では値にあるキーだけを並べて、いちばん下の選択でキーを足す（行は削除だけできる。並びは keyOrder で、definition は定義順、value は値の順） */,
+);
 export const icon = IconListDetails;
 export const category = "Standard";
 

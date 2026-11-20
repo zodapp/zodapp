@@ -1,7 +1,4 @@
-import {
-  IconForms,
-  IconHome2,
-} from "@tabler/icons-react";
+import { IconForms, IconHome2 } from "@tabler/icons-react";
 
 import CommonLayout, { type NavItem } from "../../components/CommonLayout";
 import { homeRoute } from "./home/index.route";

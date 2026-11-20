@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconCalendar } from "@tabler/icons-react";
 
 export const formId = "date";
 export const title = "zf.date";
-export const description =
-  "日付・時刻の入力（様々なZod型、粒度、エンコーディング）。開いただけでは値を書き換えず、編集すると precision・unit で決まる形で書く。unit が保存値より粗い欄は、編集すると細かい部分が 0 になる";
+export const description = msgKey(
+  "formDemo.page.date.description" /* i18n: 日付・時刻の入力（様々なZod型、粒度、エンコーディング）。開いただけでは値を書き換えず、編集すると precision・unit で決まる形で書く。unit が保存値より粗い欄は、編集すると細かい部分が 0 になる */,
+);
 export const icon = IconCalendar;
 export const category = "Basic";
 

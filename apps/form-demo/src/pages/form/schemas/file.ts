@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconUpload } from "@tabler/icons-react";
 
 export const formId = "file";
 export const title = "zf.externalFile";
-export const description =
-  "ファイルを添付してプレビューする。保存先は差し替えられる";
+export const description = msgKey(
+  "formDemo.page.file.description" /* i18n: ファイルを添付してプレビューする。保存先は差し替えられる */,
+);
 export const icon = IconUpload;
 export const category = "Basic";
 

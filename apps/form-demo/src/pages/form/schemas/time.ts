@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconClock } from "@tabler/icons-react";
 
 export const formId = "time";
 export const title = "zf.time";
-export const description =
-  "時刻だけの入力。文字列でも、0 時からの数値でも持てる。欄を出るか Enter で値に入り、読めない時刻や範囲外の時刻は形のエラーになる。unit が保存値より粗い欄は、編集すると細かい部分が 0 になる（開いただけでは書き換えない）";
+export const description = msgKey(
+  "formDemo.page.time.description" /* i18n: 時刻だけの入力。文字列でも、0 時からの数値でも持てる。欄を出るか Enter で値に入り、読めない時刻や範囲外の時刻は形のエラーになる。unit が保存値より粗い欄は、編集すると細かい部分が 0 になる（開いただけでは書き換えない） */,
+);
 export const icon = IconClock;
 export const category = "Basic";
 

@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,8 +6,9 @@ import { IconUsers } from "@tabler/icons-react";
 
 export const formId = "union";
 export const title = "zf.union";
-export const description =
-  "電話番号かメールアドレスのどちらかを入力する";
+export const description = msgKey(
+  "formDemo.page.union.description" /* i18n: 電話番号かメールアドレスのどちらかを入力する */,
+);
 export const icon = IconUsers;
 export const category = "Advanced";
 
@@ -54,12 +56,10 @@ export const schema = z
         label: "連絡先",
         selectorLabel: "連絡先タイプ",
       }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "Union型では、異なる型の選択肢から1つを選んで入力できます。メール、電話、住所のいずれかを選択してください。",
+    }),
   })
   .register(zf.object.registry, {});
 

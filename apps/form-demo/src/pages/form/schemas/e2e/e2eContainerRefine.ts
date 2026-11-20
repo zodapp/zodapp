@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-container-refine";
-export const title = "e2e：入れ物の refine";
-export const description =
-  "object・array・record・union に、path を指定しない .refine() を付けた。入れ物の最後の欄を離すとエラーが出て、直すと消え、送信できる。期間は終了を開始より後に、メンバーは重複なしに、配分は合計 100 以下に、連絡先のメールは @example.com に";
+export const title = msgKey(
+  "formDemo.page.e2eContainerRefine.title" /* i18n: e2e：入れ物の refine */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eContainerRefine.description" /* i18n: object・array・record・union に、path を指定しない .refine() を付けた。入れ物の最後の欄を離すとエラーが出て、直すと消え、送信できる。期間は終了を開始より後に、メンバーは重複なしに、配分は合計 100 以下に、連絡先のメールは @example.com に */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 

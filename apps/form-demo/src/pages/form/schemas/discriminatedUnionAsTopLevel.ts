@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconGitBranch } from "@tabler/icons-react";
 
 export const formId = "discriminatedUnionAsTopLevel";
-export const title = "z.discriminatedUnion（トップレベル）";
-export const description =
-  "discriminated keyを使ったUnionをトップレベルスキーマとして直接使用する例";
+export const title = msgKey(
+  "formDemo.page.discriminatedUnionAsTopLevel.title" /* i18n: z.discriminatedUnion（トップレベル） */,
+);
+export const description = msgKey(
+  "formDemo.page.discriminatedUnionAsTopLevel.description" /* i18n: discriminated keyを使ったUnionをトップレベルスキーマとして直接使用する例 */,
+);
 export const icon = IconGitBranch;
 export const category = "Advanced";
 

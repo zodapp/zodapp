@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconPin } from "@tabler/icons-react";
 
 export const formId = "fixedValues";
-export const title = "固定値（hidden: false）";
-export const description =
-  "値が 1 つに決まる型（値が 1 つの literal・z.null() など）は、既定では欄を出さず、値だけを入れる。meta に hidden: false と書くと、readOnly と同じ見た目で値を出す（必須の印は付けない）。どちらも、送信する値には固定値が入る。z.null() は中身が無いので、hidden: false でも出さない";
+export const title = msgKey(
+  "formDemo.page.fixedValues.title" /* i18n: 固定値（hidden: false） */,
+);
+export const description = msgKey(
+  "formDemo.page.fixedValues.description" /* i18n: 値が 1 つに決まる型（値が 1 つの literal・z.null() など）は、既定では欄を出さず、値だけを入れる。meta に hidden: false と書くと、readOnly と同じ見た目で値を出す（必須の印は付けない）。どちらも、送信する値には固定値が入る。z.null() は中身が無いので、hidden: false でも出さない */,
+);
 export const icon = IconPin;
 export const category = "Standard";
 

@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useState } from "react";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
@@ -9,9 +10,12 @@ import { AutoForm } from "../../../components/AutoForm";
 import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "formActions";
-export const title = "カスタムアクション";
-export const description =
-  "AutoForm の actions による複数ボタン（下書き保存 / 公開 / 破棄）と、フォーム状態に応じた disabled 述語";
+export const title = msgKey(
+  "formDemo.page.formActions.title" /* i18n: カスタムアクション */,
+);
+export const description = msgKey(
+  "formDemo.page.formActions.description" /* i18n: AutoForm の actions による複数ボタン（下書き保存 / 公開 / 破棄）と、フォーム状態に応じた disabled 述語 */,
+);
 export const icon = IconPlayerPlay;
 export const category = "Advanced";
 

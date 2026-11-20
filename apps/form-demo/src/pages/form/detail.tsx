@@ -1,3 +1,4 @@
+import { useMsg } from "@zodapp/i18n-messages-react";
 import { Suspense, useMemo, type ComponentType } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { Container, Tabs, Title, Text } from "@mantine/core";
@@ -62,6 +63,7 @@ const FormPageInner = () => {
 
   const formDef = allSchemas[formId]!;
   const { title, description } = formDef;
+  const msg = useMsg();
   const isReactive = isReactiveFormDef(formDef);
   const CustomComponent = getCustomComponent(formDef);
 
@@ -82,16 +84,20 @@ const FormPageInner = () => {
   return (
     <Container size="lg">
       <Title order={2} mb="lg">
-        {title}
+        {msg.resolve(title)}
       </Title>
       <Text c="dimmed" size="sm" mb="lg">
-        {description}
+        {msg.resolve(description)}
       </Text>
 
       <Tabs value={tab} onChange={(value) => setTab(value ?? "form")}>
         <Tabs.List>
-          <Tabs.Tab value="form">表示</Tabs.Tab>
-          <Tabs.Tab value="code">コード</Tabs.Tab>
+          <Tabs.Tab value="form">
+            {msg("formDemo.app.detail.tabForm" /* i18n: 表示 */)}
+          </Tabs.Tab>
+          <Tabs.Tab value="code">
+            {msg("formDemo.app.detail.tabCode" /* i18n: コード */)}
+          </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="form" pt="md">

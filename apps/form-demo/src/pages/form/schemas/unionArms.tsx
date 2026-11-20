@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconArrowsSplit } from "@tabler/icons-react";
@@ -9,9 +10,12 @@ import {
 } from "../../../components/E2eHarness";
 
 export const formId = "unionArms";
-export const title = "zf.union（いろいろな腕）";
-export const description =
-  "discriminator のない union に、文字列・数値・真偽値・選択肢・literal・オブジェクトの腕を混ぜる。選んだ腕を覚え、値はその腕の型で書く（数値の腕なら number）。どちらの腕にも通る値は、選んだ腕のまま。値が外から変わり、今の腕に通らなくなったら、通る腕に切り替える";
+export const title = msgKey(
+  "formDemo.page.unionArms.title" /* i18n: zf.union（いろいろな腕） */,
+);
+export const description = msgKey(
+  "formDemo.page.unionArms.description" /* i18n: discriminator のない union に、文字列・数値・真偽値・選択肢・literal・オブジェクトの腕を混ぜる。選んだ腕を覚え、値はその腕の型で書く（数値の腕なら number）。どちらの腕にも通る値は、選んだ腕のまま。値が外から変わり、今の腕に通らなくなったら、通る腕に切り替える */,
+);
 export const icon = IconArrowsSplit;
 export const category = "Advanced";
 

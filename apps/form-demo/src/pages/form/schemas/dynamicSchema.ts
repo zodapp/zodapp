@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, asRegistrySchemaResolver } from "@zodapp/zod-form";
 import { IconBolt } from "@tabler/icons-react";
 
 export const formId = "dynamicSchema";
 export const title = "zf.dynamic";
-export const description =
-  "入力内容でスキーマを切り替える（通知方法ごとの設定項目）。決まったスキーマの既定値（.default()）は、値が無いところに補う（開いたときの「本文の形式」、Webhook に切り替えたときの「再試行の回数」）";
+export const description = msgKey(
+  "formDemo.page.dynamicSchema.description" /* i18n: 入力内容でスキーマを切り替える（通知方法ごとの設定項目）。決まったスキーマの既定値（.default()）は、値が無いところに補う（開いたときの「本文の形式」、Webhook に切り替えたときの「再試行の回数」） */,
+);
 export const icon = IconBolt;
 export const category = "Advanced";
 

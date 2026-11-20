@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconBraces } from "@tabler/icons-react";
 
 export const formId = "reactiveRecord";
 export const title = "zf.record (Reactive)";
-export const description =
-  "z.record(z.string(), ...) によるキー・バリュー形式のフォーム。キー名がラベルになります。";
+export const description = msgKey(
+  "formDemo.page.reactiveRecord.description" /* i18n: z.record(z.string(), ...) によるキー・バリュー形式のフォーム。キー名がラベルになります。 */,
+);
 export const icon = IconBraces;
 export const category = "Reactive";
 export const reactive = true;
@@ -19,7 +21,10 @@ export const schema = z
     projectName: zf
       .string()
       .min(1)
-      .register(zf.string.registry, { label: "プロジェクト名", uiType: "text" }),
+      .register(zf.string.registry, {
+        label: "プロジェクト名",
+        uiType: "text",
+      }),
 
     settings: z
       .record(z.string(), settingValueSchema)

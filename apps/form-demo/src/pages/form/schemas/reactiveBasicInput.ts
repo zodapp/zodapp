@@ -1,12 +1,16 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "reactiveBasicInput";
-export const title = "基本 (Reactive)";
-export const description =
-  "reactiveComponentLibrary による基本入力。フィールド単位の確認UIあり。";
+export const title = msgKey(
+  "formDemo.page.reactiveBasicInput.title" /* i18n: 基本 (Reactive) */,
+);
+export const description = msgKey(
+  "formDemo.page.reactiveBasicInput.description" /* i18n: reactiveComponentLibrary による基本入力。フィールド単位の確認UIあり。 */,
+);
 export const icon = IconForms;
 export const category = "Reactive";
 export const reactive = true;
@@ -46,11 +50,9 @@ export const schema = z
       .register(zf.boolean.registry, {
         label: "承認済(literal型+booleanコンポーネントを強制)",
       }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => "これはReactive版の基本入力フォームサンプルです",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () => "これはReactive版の基本入力フォームサンプルです",
+    }),
   })
   .register(zf.object.registry, {});
 

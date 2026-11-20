@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,7 +6,9 @@ import { IconRefresh } from "@tabler/icons-react";
 
 export const formId = "recursiveSchema";
 export const title = "z.lazy";
-export const description = "z.lazyを使った再帰的なデータ構造";
+export const description = msgKey(
+  "formDemo.page.recursiveSchema.description" /* i18n: z.lazyを使った再帰的なデータ構造 */,
+);
 export const icon = IconRefresh;
 export const category = "Advanced";
 
@@ -38,13 +41,15 @@ const orgUnit = (level: number): z.ZodTypeAny => {
   if (level === ORG_LEVELS.length - 1) {
     return z
       .object({ name })
-      .register(zf.object.registry, { label: ORG_LEVELS[level], uiType: "box" });
+      .register(zf.object.registry, {
+        label: ORG_LEVELS[level],
+        uiType: "box",
+      });
   }
   return z
     .object({
       name,
-      child: z
-        .lazy(() => orgUnit(level + 1)),
+      child: z.lazy(() => orgUnit(level + 1)),
     })
     .register(zf.object.registry, {
       label:
@@ -59,12 +64,10 @@ export const schema = z
   .object({
     anyValue: anyValueSchema,
     organization: z.lazy(() => orgUnit(0)),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "z.lazyを使って、ネストした構造を表現できます。オブジェクト内にさらに任意の値を持つことができます。「組織」は、関数で深さを決めた再帰です（optional を付けず、部 → 課 → 係 で終わる）。optional() を付けない再帰は、入れ子の深さの上限（既定 10。z.lazy の meta の maxDepth で変えられる）までは描き、その先は注記になります。optional な再帰や配列を通る再帰は、値のある所まで描くので、上限はかかりません。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "z.lazyを使って、ネストした構造を表現できます。オブジェクト内にさらに任意の値を持つことができます。「組織」は、関数で深さを決めた再帰です（optional を付けず、部 → 課 → 係 で終わる）。optional() を付けない再帰は、入れ子の深さの上限（既定 10。z.lazy の meta の maxDepth で変えられる）までは描き、その先は注記になります。optional な再帰や配列を通る再帰は、値のある所まで描くので、上限はかかりません。",
+    }),
   })
   .register(zf.object.registry, {});
 

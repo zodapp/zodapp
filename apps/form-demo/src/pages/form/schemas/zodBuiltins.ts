@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconBraces } from "@tabler/icons-react";
 
 export const formId = "zodBuiltins";
-export const title = "zod の型をそのまま使う";
-export const description =
-  "pipe・transform・set・map・file・readonly・数値の enum・キーの決まった record・literal・optional な再帰を、zf を使わずに書いたときの表示";
+export const title = msgKey(
+  "formDemo.page.zodBuiltins.title" /* i18n: zod の型をそのまま使う */,
+);
+export const description = msgKey(
+  "formDemo.page.zodBuiltins.description" /* i18n: pipe・transform・set・map・file・readonly・数値の enum・キーの決まった record・literal・optional な再帰を、zf を使わずに書いたときの表示 */,
+);
 export const icon = IconBraces;
 export const category = "Standard";
 
@@ -29,11 +33,9 @@ export const schema = z
     // literal（値が 1 つ）：入力欄は出さず、値を入れておく
     kind: z.literal("article"),
     // literal（値が複数）：選択肢として出す
-    visibility: z
-      .literal(["public", "private"])
-      .register(zf.literal.registry, {
-        label: "公開範囲（literal の複数の値）",
-      }),
+    visibility: z.literal(["public", "private"]).register(zf.literal.registry, {
+      label: "公開範囲（literal の複数の値）",
+    }),
     // pipe・transform：入力側の schema で欄を出し、送信では変換した値を渡す
     tags: z
       .string()
@@ -85,9 +87,11 @@ export const schema = z
       .register(zf.common.registry, { label: "著者（readonly）" }),
     // optional な再帰：値のある所まで描く。optional を通るたびに、入れ子の深さの数え直しになるので、
     // 深くしても上限（既定 10）の注記は出ない
-    outline: z.lazy(() => treeNode()).register(zf.common.registry, {
-      label: "目次（optional な再帰）",
-    }),
+    outline: z
+      .lazy(() => treeNode())
+      .register(zf.common.registry, {
+        label: "目次（optional な再帰）",
+      }),
   })
   .register(zf.object.registry, {});
 
@@ -108,7 +112,10 @@ export const defaultValues: z.input<typeof schema> = {
     name: "第1章",
     child: {
       name: "第1節",
-      child: { name: "第1項", child: { name: "第1目", child: { name: "その1" } } },
+      child: {
+        name: "第1項",
+        child: { name: "第1目", child: { name: "その1" } },
+      },
     },
   },
 };

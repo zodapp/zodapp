@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconListCheck } from "@tabler/icons-react";
 
 export const formId = "literalUnionSelect";
 export const title = "zf.union（literal）";
-export const description =
-  'literal だけの union に uiType: "select"・"badge" を付けると、enum と同じ部品で選べる。literal に入る値（文字列・数値・bigint・boolean・null・undefined）をすべて選べ、literal(10) と literal("10") も区別する。z.null()・z.undefined() の腕も選べ、optional・nullable と併用すると腕を優先する。配列に uiType: "multipleEnum"・"multipleEnumBadge" を付けると複数選べる';
+export const description = msgKey(
+  "formDemo.page.literalUnionSelect.description" /* i18n: literal だけの union に uiType: "select"・"badge" を付けると、enum と同じ部品で選べる。literal に入る値（文字列・数値・bigint・boolean・null・undefined）をすべて選べ、literal(10) と literal("10") も区別する。z.null()・z.undefined() の腕も選べ、optional・nullable と併用すると腕を優先する。配列に uiType: "multipleEnum"・"multipleEnumBadge" を付けると複数選べる */,
+);
 export const icon = IconListCheck;
 export const category = "Basic";
 

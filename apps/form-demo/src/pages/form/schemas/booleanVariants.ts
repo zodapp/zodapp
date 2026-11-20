@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconToggleLeft } from "@tabler/icons-react";
 
 export const formId = "booleanVariants";
 export const title = "zf.boolean";
-export const description =
-  "スイッチ・チェックボックス・選択肢での入力と、「はい」「いいえ」の文言";
+export const description = msgKey(
+  "formDemo.page.booleanVariants.description" /* i18n: スイッチ・チェックボックス・選択肢での入力と、「はい」「いいえ」の文言 */,
+);
 export const icon = IconToggleLeft;
 export const category = "Basic";
 

@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, getMeta } from "@zodapp/zod-form";
 import {
@@ -14,9 +15,12 @@ import { AutoForm } from "../../../components/AutoForm";
 import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "customWidget";
-export const title = "カスタムウィジェット";
-export const description =
-  "wrapComponent + useZodField による自作フィールドコンポーネントと、componentLibrary への {zodType}_{uiType} キーでの登録（星評価・カスケード選択）";
+export const title = msgKey(
+  "formDemo.page.customWidget.title" /* i18n: カスタムウィジェット */,
+);
+export const description = msgKey(
+  "formDemo.page.customWidget.description" /* i18n: wrapComponent + useZodField による自作フィールドコンポーネントと、componentLibrary への {zodType}_{uiType} キーでの登録（星評価・カスケード選択） */,
+);
 export const icon = IconPuzzle;
 export const category = "Advanced";
 

@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import type { HarnessWrite } from "../../../components/E2eHarness";
 import { zf } from "@zodapp/zod-form";
@@ -5,8 +6,9 @@ import { IconArrowsJoin } from "@tabler/icons-react";
 
 export const formId = "intersection";
 export const title = "zf.intersection";
-export const description =
-  'intersection（a.and(b)）は、両側を同じ path に並べる。子の object・union に uiType: "flat" を付けると、枠を付けずに 1 つの object と同じ見た目で並ぶ。同じ path のエラー（子の object・union の腕の、path を指定しない .refine() を含む）は intersection が 1 回だけ出す。腕の中に出したいときは .refine() の path で欄を指す';
+export const description = msgKey(
+  "formDemo.page.intersection.description" /* i18n: intersection（a.and(b)）は、両側を同じ path に並べる。子の object・union に uiType: "flat" を付けると、枠を付けずに 1 つの object と同じ見た目で並ぶ。同じ path のエラー（子の object・union の腕の、path を指定しない .refine() を含む）は intersection が 1 回だけ出す。腕の中に出したいときは .refine() の path で欄を指す */,
+);
 export const icon = IconArrowsJoin;
 export const category = "Basic";
 

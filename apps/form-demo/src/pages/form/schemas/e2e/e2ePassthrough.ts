@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-passthrough";
-export const title = "e2e：欄を出さずにそのまま送る型";
-export const description =
-  "z.any()・z.unknown()・z.custom()・z.symbol()・z.function()・z.never()（optional）・z.nan() は欄を出さず、初期値をそのまま送る。z.templateLiteral() は文字列の欄になり、形に合わないとエラーになる。.nonoptional() は中の欄を描き、空なら送信が止まる";
+export const title = msgKey(
+  "formDemo.page.e2ePassthrough.title" /* i18n: e2e：欄を出さずにそのまま送る型 */,
+);
+export const description = msgKey(
+  "formDemo.page.e2ePassthrough.description" /* i18n: z.any()・z.unknown()・z.custom()・z.symbol()・z.function()・z.never()（optional）・z.nan() は欄を出さず、初期値をそのまま送る。z.templateLiteral() は文字列の欄になり、形に合わないとエラーになる。.nonoptional() は中の欄を描き、空なら送信が止まる */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 
@@ -19,7 +23,12 @@ export const schema = z
     customValue: z
       .custom<{
         id: number;
-      }>((value) => typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "number")
+      }>(
+        (value) =>
+          typeof value === "object" &&
+          value !== null &&
+          typeof (value as { id?: unknown }).id === "number",
+      )
       .register(zf.common.registry, { label: "custom の値" }),
     symbolValue: z
       .symbol()

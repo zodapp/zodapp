@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,8 +6,9 @@ import { IconBrackets } from "@tabler/icons-react";
 
 export const formId = "arrayFields";
 export const title = "zf.array";
-export const description =
-  "行を追加・削除しながら入力する";
+export const description = msgKey(
+  "formDemo.page.arrayFields.description" /* i18n: 行を追加・削除しながら入力する */,
+);
 export const icon = IconBrackets;
 export const category = "Basic";
 
@@ -158,12 +160,10 @@ export const schema = z
         readOnly: true,
         discriminator: "id",
       }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "配列フィールドでは、動的にアイテムの追加・削除ができます。タグは単純な文字列配列、友人はオブジェクト配列です。uiType: table を指定すると、object 配列を表形式で編集できます。配列のIDは { hidden: true } 使って非表示にしています。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "配列フィールドでは、動的にアイテムの追加・削除ができます。タグは単純な文字列配列、友人はオブジェクト配列です。uiType: table を指定すると、object 配列を表形式で編集できます。配列のIDは { hidden: true } 使って非表示にしています。",
+    }),
   })
   .register(zf.object.registry, {});
 

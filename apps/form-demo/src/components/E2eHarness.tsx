@@ -7,6 +7,8 @@
  * - 必要なページだけ、外から書き込むボタンと、利用者の編集として書き込むボタンを出す
  */
 import { useLayoutEffect, useRef, useState } from "react";
+import type { MsgFn } from "@zodapp/i18n-messages";
+import { useMsg } from "@zodapp/i18n-messages-react";
 import type { AnyFormApi } from "@tanstack/react-form";
 import { Box, Button, Code, Group, Stack, Text } from "@mantine/core";
 import { useRunAsUserEdit } from "@zodapp/zod-form-react/common";
@@ -146,9 +148,12 @@ const labelOfStatusElement = (element: Element): string => {
     if (label) return label.replace(/\s*\*\s*$/, "").trim();
   }
   const text = element.textContent ?? "";
-  const failed = text.match(/^(.*)を取得できませんでした/);
+  // 取得の失敗の表示（zod-form-mantine-lite の fetchFailedWithLabel。ja・en）から、欄の名前を取り出す
+  const failed =
+    text.match(/^(.*)を取得できませんでした/) ??
+    text.match(/^Failed to load (.*)$/);
   if (failed?.[1]) return failed[1];
-  return "（名前なし）";
+  return "";
 };
 
 const readStatuses = (root: Element): DynamicStatus[] =>
@@ -157,36 +162,75 @@ const readStatuses = (root: Element): DynamicStatus[] =>
     status: element.getAttribute("data-dynamic-status") ?? "",
   }));
 
-const describeEntry = (entry: FormDemoLogEntry): string => {
+const describeEntry = (entry: FormDemoLogEntry, msg: MsgFn): string => {
   const at = `${entry.at}ms`;
   switch (entry.type) {
     case "value":
-      return `${at} 値: ${entry.changes
-        .map(
-          (change) =>
-            `${change.path} ${toJson(change.before).replace(/\s+/g, " ")} → ${toJson(change.after).replace(/\s+/g, " ")}`,
-        )
-        .join(", ")}`;
+      return `${at} ${msg(
+        "formDemo.app.harness.logValue" /* i18n: 値: ${changes} */,
+        {
+          changes: entry.changes
+            .map(
+              (change) =>
+                `${change.path} ${toJson(change.before).replace(/\s+/g, " ")} → ${toJson(change.after).replace(/\s+/g, " ")}`,
+            )
+            .join(", "),
+        },
+      )}`;
     case "fetch":
-      return `${at} 取得（${entry.kind}）: ${entry.field} key=${entry.key} ${
-        { called: "呼ばれた", delivered: "届いた", failed: "失敗した" }[
-          entry.result
-        ]
-      }`;
+      return `${at} ${msg(
+        "formDemo.app.harness.logFetch" /* i18n: 取得（${kind}）: ${field} key=${key} ${result} */,
+        {
+          kind: entry.kind,
+          field: entry.field,
+          key: String(entry.key),
+          result: {
+            called: msg(
+              "formDemo.app.harness.fetch.called" /* i18n: 呼ばれた */,
+            ),
+            delivered: msg(
+              "formDemo.app.harness.fetch.delivered" /* i18n: 届いた */,
+            ),
+            failed: msg(
+              "formDemo.app.harness.fetch.failed" /* i18n: 失敗した */,
+            ),
+          }[entry.result],
+        },
+      )}`;
     case "dynamic-status":
-      return `${at} dynamic の状態: ${
-        entry.statuses.length === 0
-          ? "読み込み中・失敗の欄なし"
-          : entry.statuses
-              .map((status) => `${status.label}=${status.status}`)
-              .join(", ")
-      }`;
+      return `${at} ${msg(
+        "formDemo.app.harness.logDynamic" /* i18n: dynamic の状態: ${statuses} */,
+        {
+          statuses:
+            entry.statuses.length === 0
+              ? msg(
+                  "formDemo.app.harness.noDynamic" /* i18n: 読み込み中・失敗の欄なし */,
+                )
+              : entry.statuses
+                  .map(
+                    (status) =>
+                      `${status.label || msg("formDemo.app.harness.unnamed" /* i18n: （名前なし） */)}=${status.status}`,
+                  )
+                  .join(", "),
+        },
+      )}`;
     case "submit":
-      return `${at} 送信: ${
-        { attempted: "試みた", passed: "通った", blocked: "止まった" }[
-          entry.result
-        ]
-      }`;
+      return `${at} ${msg(
+        "formDemo.app.harness.logSubmit" /* i18n: 送信: ${result} */,
+        {
+          result: {
+            attempted: msg(
+              "formDemo.app.harness.submit.attempted" /* i18n: 試みた */,
+            ),
+            passed: msg(
+              "formDemo.app.harness.submit.passed" /* i18n: 通った */,
+            ),
+            blocked: msg(
+              "formDemo.app.harness.submit.blocked" /* i18n: 止まった */,
+            ),
+          }[entry.result],
+        },
+      )}`;
   }
 };
 
@@ -198,6 +242,7 @@ const E2eHarnessView = ({
   options: E2eHarnessOptions;
 }) => {
   const { formId, submit = true, writes = [] } = options;
+  const msg = useMsg();
   const runAsUserEdit = useRunAsUserEdit();
   const boxRef = useRef<HTMLDivElement>(null);
 
@@ -329,12 +374,12 @@ const E2eHarnessView = ({
               : write.run(form)
           }
         >
-          {write.label}
+          {msg.resolve(write.label)}
         </Button>
       ))}
       {submit && (
         <Button type="submit" onClick={() => void onSubmit()}>
-          送信
+          {msg("formDemo.app.harness.submit" /* i18n: 送信 */)}
         </Button>
       )}
       <Box
@@ -347,30 +392,58 @@ const E2eHarnessView = ({
             {toJson(state.values)}
           </Code>
           <Text size="xs" c="dimmed">
-            isDirty: {String(state.isDirty)} ／ isDefaultValue:{" "}
+            isDirty: {String(state.isDirty)} / isDefaultValue:{" "}
             {String(state.isDefaultValue)}
             {submit &&
-              ` ／ 送信: ${state.submitted.count} 回${
+              ` / ${msg(
+                "formDemo.app.harness.submitted" /* i18n: 送信: ${count} 回 */,
+                {
+                  count: String(state.submitted.count),
+                },
+              )}${
                 state.submitted.count > 0
-                  ? `（送信した値: ${toJson(state.submitted.values).replace(/\s+/g, " ")}）`
+                  ? msg(
+                      "formDemo.app.harness.submittedValues" /* i18n: （送信した値: ${values}） */,
+                      {
+                        values: toJson(state.submitted.values).replace(
+                          /\s+/g,
+                          " ",
+                        ),
+                      },
+                    )
                   : ""
               }`}
           </Text>
           <Text size="xs" c="dimmed">
-            エラー:{" "}
+            {msg("formDemo.app.harness.errors" /* i18n: エラー: */)}{" "}
             {errorEntries.length === 0 && state.errors.form.length === 0
-              ? "なし"
+              ? msg("formDemo.app.harness.noErrors" /* i18n: なし */)
               : [
                   ...errorEntries.map(
-                    ([path, messages]) => `${path}: ${messages.join(" / ")}`,
+                    ([path, messages]) =>
+                      `${path}: ${messages.map((message) => msg.resolve(message)).join(" / ")}`,
                   ),
-                  ...state.errors.form.map((message) => `（全体）${message}`),
-                ].join("、")}
+                  ...state.errors.form.map((message) =>
+                    msg(
+                      "formDemo.app.harness.formError" /* i18n: （全体）${message} */,
+                      {
+                        message: msg.resolve(message),
+                      },
+                    ),
+                  ),
+                ].join(
+                  msg("formDemo.app.harness.errorSeparator" /* i18n: 、 */),
+                )}
           </Text>
           <details>
             <summary>
               <Text span size="xs" c="dimmed">
-                ログ（{state.log.length} 件）
+                {msg(
+                  "formDemo.app.harness.log" /* i18n: ログ（${count} 件） */,
+                  {
+                    count: String(state.log.length),
+                  },
+                )}
               </Text>
             </summary>
             <Group gap={0}>
@@ -378,7 +451,7 @@ const E2eHarnessView = ({
                 block
                 style={{ maxHeight: 240, overflow: "auto", width: "100%" }}
               >
-                {state.log.map(describeEntry).join("\n")}
+                {state.log.map((entry) => describeEntry(entry, msg)).join("\n")}
               </Code>
             </Group>
           </details>

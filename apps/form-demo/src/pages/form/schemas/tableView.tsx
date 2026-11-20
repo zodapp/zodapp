@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -11,9 +12,12 @@ import {
 } from "../../../shared/demo/resolvers";
 
 export const formId = "tableView";
-export const title = "表（AutoTable）";
-export const description =
-  "表での computed（行の値から計算）と dynamic のセル、string の選択式のラベル、valueAction、externalKey、日付・時刻の表示。見出しを押すと、列の種類ごとの基準で並べる（dynamic の列は並べ替えない）。選択肢に無い値のセルも出す";
+export const title = msgKey(
+  "formDemo.page.tableView.title" /* i18n: 表（AutoTable） */,
+);
+export const description = msgKey(
+  "formDemo.page.tableView.description" /* i18n: 表での computed（行の値から計算）と dynamic のセル、string の選択式のラベル、valueAction、externalKey、日付・時刻の表示。見出しを押すと、列の種類ごとの基準で並べる（dynamic の列は並べ替えない）。選択肢に無い値のセルも出す */,
+);
 export const icon = IconTable;
 export const category = "Advanced";
 
@@ -92,17 +96,15 @@ export const schema = z
       .number()
       .register(zf.number.registry, { label: "数量", width: 70 }),
     // computed は計算した値で並べる（ここでは文字の値なので文字の順）
-    total: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        label: "小計（computed）",
-        dependsOnParent: true,
-        compute: ({
-          parent,
-        }: {
-          parent: { unitPrice: number; quantity: number };
-        }) => `¥${(parent.unitPrice * parent.quantity).toLocaleString()}`,
-      }),
+    total: zfReact.computed().register(zf.computed.registry, {
+      label: "小計（computed）",
+      dependsOnParent: true,
+      compute: ({
+        parent,
+      }: {
+        parent: { unitPrice: number; quantity: number };
+      }) => `¥${(parent.unitPrice * parent.quantity).toLocaleString()}`,
+    }),
     currency: zf
       .enum([
         zf.literal("JPY").register(zf.literal.registry, { label: "円" }),

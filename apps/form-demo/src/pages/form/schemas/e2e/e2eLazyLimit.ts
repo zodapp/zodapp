@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-lazy-limit";
-export const title = "e2e：再帰の上限";
-export const description =
-  "optional の付かない再帰（鎖）は maxDepth: 2 で、3 段目に「これより深い階層は表示できません」の注記を出す。注記の先の値は消さない（鎖は終わりの無い型なので、送信は検証で止まる）。optional な再帰（木）は maxDepth: 2 でも、値のある所まで注記なしで描く";
+export const title = msgKey(
+  "formDemo.page.e2eLazyLimit.title" /* i18n: e2e：再帰の上限 */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eLazyLimit.description" /* i18n: optional の付かない再帰（鎖）は maxDepth: 2 で、3 段目に「これより深い階層は表示できません」の注記を出す。注記の先の値は消さない（鎖は終わりの無い型なので、送信は検証で止まる）。optional な再帰（木）は maxDepth: 2 でも、値のある所まで注記なしで描く */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 

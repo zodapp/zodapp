@@ -1,11 +1,16 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "readOnly";
-export const title = "閲覧専用の表示";
-export const description = "readOnlyモード";
+export const title = msgKey(
+  "formDemo.page.readOnly.title" /* i18n: 閲覧専用の表示 */,
+);
+export const description = msgKey(
+  "formDemo.page.readOnly.description" /* i18n: readOnlyモード */,
+);
 export const icon = IconForms;
 export const category = "Standard";
 
@@ -116,11 +121,9 @@ export const schema = z
     }),
     // discriminatedUnion
     contact: contactSchema,
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => "これはreadOnlyモードのサンプルです",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () => "これはreadOnlyモードのサンプルです",
+    }),
   })
   .register(zf.object.registry, { readOnly: true });
 

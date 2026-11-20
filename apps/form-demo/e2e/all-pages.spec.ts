@@ -37,9 +37,14 @@ test("e2e 用のページがすべて開ける", async ({ page }) => {
     const registry = (await import(/* @vite-ignore */ path)) as {
       e2eSchemas: Record<string, { title: string }>;
     };
+    // title は辞書のキー（msgKey）。画面の既定の言語（ja）の辞書で引く
+    const dictionaryPath = "/src/messages/ja.ts";
+    const { ja } = (await import(/* @vite-ignore */ dictionaryPath)) as {
+      ja: Record<string, string>;
+    };
     return Object.entries(registry.e2eSchemas).map(([formId, def]) => ({
       formId,
-      title: def.title,
+      title: ja[def.title] ?? def.title,
     }));
   });
   for (const { formId, title } of formIds) {

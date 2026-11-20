@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useMemo } from "react";
 import { z } from "zod";
 import { zf, createMockFileResolver } from "@zodapp/zod-form";
@@ -13,9 +14,12 @@ import { AutoForm } from "../../../components/AutoForm";
 import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "mediaPreview";
-export const title = "zf.externalFile（プレビューの種類）";
-export const description =
-  "アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示）";
+export const title = msgKey(
+  "formDemo.page.mediaPreview.title" /* i18n: zf.externalFile（プレビューの種類） */,
+);
+export const description = msgKey(
+  "formDemo.page.mediaPreview.description" /* i18n: アップロードしたファイルの mimeType に応じたプレビューの仕組み。標準の image / video / audio resolver、フォールバックの genericMediaResolver、自作の data ベース resolver（テキスト内容表示） */,
+);
 export const icon = IconPhotoVideo;
 export const category = "Standard";
 

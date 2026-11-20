@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconWand } from "@tabler/icons-react";
 
 export const formId = "formatterAndSuggestions";
 export const title = "zf.string";
-export const description =
-  "入力候補と、readOnly で表示するときの値の整形";
+export const description = msgKey(
+  "formDemo.page.formatterAndSuggestions.description" /* i18n: 入力候補と、readOnly で表示するときの値の整形 */,
+);
 export const icon = IconWand;
 export const category = "Basic";
 

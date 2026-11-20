@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
@@ -14,9 +15,12 @@ import { AutoForm } from "../../../components/AutoForm";
 import { createE2eHarness } from "../../../components/E2eHarness";
 
 export const formId = "schemaTransform";
-export const title = "スキーマ変形（ビュー派生）";
-export const description =
-  "1つのスキーマから hideSchemaFields / readOnlySchemaFields 系で権限別ビューやタブ分割ビューを派生させる";
+export const title = msgKey(
+  "formDemo.page.schemaTransform.title" /* i18n: スキーマ変形（ビュー派生） */,
+);
+export const description = msgKey(
+  "formDemo.page.schemaTransform.description" /* i18n: 1つのスキーマから hideSchemaFields / readOnlySchemaFields 系で権限別ビューやタブ分割ビューを派生させる */,
+);
 export const icon = IconTransform;
 export const category = "Advanced";
 

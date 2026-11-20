@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,8 +6,9 @@ import { IconListCheck } from "@tabler/icons-react";
 
 export const formId = "reactiveEnumSelect";
 export const title = "zf.enum (Reactive)";
-export const description =
-  "reactiveComponentLibrary によるEnum選択。array（複数選択）は非対応のため除外。";
+export const description = msgKey(
+  "formDemo.page.reactiveEnumSelect.description" /* i18n: reactiveComponentLibrary によるEnum選択。array（複数選択）は非対応のため除外。 */,
+);
 export const icon = IconListCheck;
 export const category = "Reactive";
 export const reactive = true;
@@ -94,12 +96,10 @@ export const schema = z
     favoriteHobbyRequired: zf
       .enum(hobbyLiterals)
       .register(zf.enum.registry, { label: "一番好きな趣味(必須）" }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "Reactive版ではzf.enumの単一選択のみ対応。array（複数選択）は非対応。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "Reactive版ではzf.enumの単一選択のみ対応。array（複数選択）は非対応。",
+    }),
   })
   .register(zf.object.registry, {});
 

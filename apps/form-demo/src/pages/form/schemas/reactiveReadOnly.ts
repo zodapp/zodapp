@@ -1,12 +1,16 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "reactiveReadOnly";
-export const title = "閲覧専用の表示 (Reactive)";
-export const description =
-  "reactiveComponentLibrary によるreadOnlyモード。非対応型（bigint, tuple, array, discriminatedUnion）は除外。";
+export const title = msgKey(
+  "formDemo.page.reactiveReadOnly.title" /* i18n: 閲覧専用の表示 (Reactive) */,
+);
+export const description = msgKey(
+  "formDemo.page.reactiveReadOnly.description" /* i18n: reactiveComponentLibrary によるreadOnlyモード。非対応型（bigint, tuple, array, discriminatedUnion）は除外。 */,
+);
 export const icon = IconForms;
 export const category = "Reactive";
 export const reactive = true;
@@ -60,11 +64,9 @@ export const schema = z
     favoriteHobby: zf
       .enum(hobbyLiterals)
       .register(zf.enum.registry, { label: "一番好きな趣味(enum)" }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => "これはReactive版のreadOnlyモードサンプルです",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () => "これはReactive版のreadOnlyモードサンプルです",
+    }),
   })
   .register(zf.object.registry, { readOnly: true });
 

@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
@@ -15,8 +16,9 @@ import {
 
 export const formId = "selectAndExternalKey";
 export const title = "zf.externalKey";
-export const description =
-  "担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、一覧が届き直したときの扱い、選んだ値の詳細ページへのリンク";
+export const description = msgKey(
+  "formDemo.page.selectAndExternalKey.description" /* i18n: 担当者や拠点を一覧から選ぶ。一覧に無い値の扱い、一覧が届くまでの待ち、一覧が届き直したときの扱い、選んだ値の詳細ページへのリンク */,
+);
 export const icon = IconListSearch;
 export const category = "Advanced";
 

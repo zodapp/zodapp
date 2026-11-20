@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,7 +6,9 @@ import { IconListCheck } from "@tabler/icons-react";
 
 export const formId = "enumSelect";
 export const title = "zf.enum";
-export const description = "決まった選択肢から、ラベル付きで選ぶ";
+export const description = msgKey(
+  "formDemo.page.enumSelect.description" /* i18n: 決まった選択肢から、ラベル付きで選ぶ */,
+);
 export const icon = IconListCheck;
 export const category = "Basic";
 
@@ -108,12 +111,10 @@ export const schema = z
         label: "趣味(必須)",
         uiType: "multipleEnum",
       }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "zf.enumで1つの選択肢を、zf.array(zf.enum())で複数選択を表現します",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "zf.enumで1つの選択肢を、zf.array(zf.enum())で複数選択を表現します",
+    }),
   })
   .register(zf.object.registry, {});
 

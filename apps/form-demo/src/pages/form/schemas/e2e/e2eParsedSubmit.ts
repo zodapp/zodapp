@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-parsed-submit";
-export const title = "e2e：送信する値の変換";
-export const description =
-  "onSubmit には parse した値（z.output）が渡る。名前は前後の空白を外し、コードは大文字にし、数（codec）は数にし、同意（stringbool）は true / false にし、略称は 3 文字未満なら n/a にする。役割（default）とニックネーム（prefault）は、開くときに既定値で補い、開いただけでは isDirty は false";
+export const title = msgKey(
+  "formDemo.page.e2eParsedSubmit.title" /* i18n: e2e：送信する値の変換 */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eParsedSubmit.description" /* i18n: onSubmit には parse した値（z.output）が渡る。名前は前後の空白を外し、コードは大文字にし、数（codec）は数にし、同意（stringbool）は true / false にし、略称は 3 文字未満なら n/a にする。役割（default）とニックネーム（prefault）は、開くときに既定値で補い、開いただけでは isDirty は false */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 

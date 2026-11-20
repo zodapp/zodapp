@@ -1,11 +1,14 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconForms } from "@tabler/icons-react";
 
 export const formId = "basicInput";
-export const title = "基本";
-export const description = "文字列、数値、真偽値、日付、BigIntの基本的な入力";
+export const title = msgKey("formDemo.page.basicInput.title" /* i18n: 基本 */);
+export const description = msgKey(
+  "formDemo.page.basicInput.description" /* i18n: 文字列、数値、真偽値、日付、BigIntの基本的な入力 */,
+);
 export const icon = IconForms;
 export const category = "Basic";
 
@@ -58,11 +61,9 @@ export const schema = z
           .register(zf.number.registry, { label: "Y" }),
       ])
       .register(zf.tuple.registry, { label: "座標(tuple)" }),
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => "これは基本入力フォームのサンプルです",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () => "これは基本入力フォームのサンプルです",
+    }),
   })
   .register(zf.object.registry, {});
 

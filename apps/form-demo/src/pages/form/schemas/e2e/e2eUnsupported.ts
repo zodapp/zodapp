@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-unsupported";
-export const title = "e2e：扱えない型の注記";
-export const description =
-  "rest 付きの tuple・uiType と要素の型が合わない配列・object を要素に持つ set は、その欄の場所に「扱えません」の注記を出し、ほかの欄は描く。使えないキー名（. を含む）は「このキー名は使えません」と出し、record に保存されていた使えないキーは編集できない行として出す。z.promise() と async の refine があるので、送信は止まり、理由が出る";
+export const title = msgKey(
+  "formDemo.page.e2eUnsupported.title" /* i18n: e2e：扱えない型の注記 */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eUnsupported.description" /* i18n: rest 付きの tuple・uiType と要素の型が合わない配列・object を要素に持つ set は、その欄の場所に「扱えません」の注記を出し、ほかの欄は描く。使えないキー名（. を含む）は「このキー名は使えません」と出し、record に保存されていた使えないキーは編集できない行として出す。z.promise() と async の refine があるので、送信は止まり、理由が出る */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 

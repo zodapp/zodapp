@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconListCheck } from "@tabler/icons-react";
 
 export const formId = "validatePreceding";
-export const title = "前方フィールドの一括検証";
-export const description =
-  "後方のフィールドへフォーカスした時点で、それより前の未入力フィールドをまとめて検証する（AutoForm に組み込みの ValidatePrecedingFieldsProvider の挙動）";
+export const title = msgKey(
+  "formDemo.page.validatePreceding.title" /* i18n: 前方フィールドの一括検証 */,
+);
+export const description = msgKey(
+  "formDemo.page.validatePreceding.description" /* i18n: 後方のフィールドへフォーカスした時点で、それより前の未入力フィールドをまとめて検証する（AutoForm に組み込みの ValidatePrecedingFieldsProvider の挙動） */,
+);
 export const icon = IconListCheck;
 export const category = "Advanced";
 

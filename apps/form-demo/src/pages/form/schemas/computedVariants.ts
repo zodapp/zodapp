@@ -1,12 +1,16 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf, type ComputedValue } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 import { IconSparkles } from "@tabler/icons-react";
 
 export const formId = "computedVariants";
-export const title = "zf.computed（表示の形）";
-export const description =
-  "計算結果を、バッジ・リンク・アイコン・見出しとして表示する";
+export const title = msgKey(
+  "formDemo.page.computedVariants.title" /* i18n: zf.computed（表示の形） */,
+);
+export const description = msgKey(
+  "formDemo.page.computedVariants.description" /* i18n: 計算結果を、バッジ・リンク・アイコン・見出しとして表示する */,
+);
 export const icon = IconSparkles;
 export const category = "Advanced";
 
@@ -23,15 +27,13 @@ const statusBadges = {
 
 export const schema = z
   .object({
-    heading: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () => ({
-          type: "title",
-          label: "ComputedValue の表示型デモ",
-          level: "h3",
-        }),
+    heading: zfReact.computed().register(zf.computed.registry, {
+      compute: () => ({
+        type: "title",
+        label: "ComputedValue の表示型デモ",
+        level: "h3",
       }),
+    }),
     // 値を持つ欄の computed: 「そのフィールドの値」を受け取って表示を変換する。
     // 値の保存形式（"active" 等）と表示（バッジ）を分離できる。
     // フォームでは表示専用（保存済みの値をテーブルセルや詳細表示で
@@ -57,14 +59,12 @@ export const schema = z
     lastName: zf.string().register(zf.string.registry, { label: "姓" }),
     // dependsOnParent: true の computed: 「親オブジェクト全体」を受け取って算出する。
     // 複数フィールドを跨いだ計算はこちらを使う。
-    fullName: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        label: "氏名（computedで結合）",
-        dependsOnParent: true,
-        compute: ({ parent }) =>
-          `${parent?.lastName ?? ""} ${parent?.firstName ?? ""}`,
-      }),
+    fullName: zfReact.computed().register(zf.computed.registry, {
+      label: "氏名（computedで結合）",
+      dependsOnParent: true,
+      compute: ({ parent }) =>
+        `${parent?.lastName ?? ""} ${parent?.firstName ?? ""}`,
+    }),
     homepage: zf.string().register(zf.string.registry, { label: "URL" }),
     homepageLink: zf
       .string()
@@ -75,17 +75,15 @@ export const schema = z
       })
       .optional(),
     // icon は CSS クラス名として描画される（アイコンフォント利用時に有効）
-    priority: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        label: "アイコン（type: icon）",
-        compute: () => ({
-          type: "icon",
-          icon: "ti ti-flag",
-          label: "高",
-          color: "red",
-        }),
+    priority: zfReact.computed().register(zf.computed.registry, {
+      label: "アイコン（type: icon）",
+      compute: () => ({
+        type: "icon",
+        icon: "ti ti-flag",
+        label: "高",
+        color: "red",
       }),
+    }),
   })
   .register(zf.object.registry, {});
 

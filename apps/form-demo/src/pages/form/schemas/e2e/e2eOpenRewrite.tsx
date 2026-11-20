@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
@@ -6,9 +7,12 @@ import { AutoForm } from "../../../../components/AutoForm";
 import { createE2eHarness } from "../../../../components/E2eHarness";
 
 export const formId = "e2e-open-rewrite";
-export const title = "e2e：開いただけで書き換えるもの";
-export const description =
-  "開くと、選択肢に無い初期値を持つ clear の欄は値が消え、keep の欄は残ってエラーが出る。type の無い古い形の初期値を持つ preprocess の union は、type が補われる。precision の欄は初期値のまま。どれも開いただけでは isDirty は false で、欄を 1 つ編集すると true になる";
+export const title = msgKey(
+  "formDemo.page.e2eOpenRewrite.title" /* i18n: e2e：開いただけで書き換えるもの */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eOpenRewrite.description" /* i18n: 開くと、選択肢に無い初期値を持つ clear の欄は値が消え、keep の欄は残ってエラーが出る。type の無い古い形の初期値を持つ preprocess の union は、type が補われる。precision の欄は初期値のまま。どれも開いただけでは isDirty は false で、欄を 1 つ編集すると true になる */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 

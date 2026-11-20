@@ -33,7 +33,9 @@ describe("computed context 型テスト", () => {
         label: "テスト",
         contextId: "workspace",
         compute: ({ context }) => {
-          expectTypeOf(context).toEqualTypeOf<WebResolverContextMap["workspace"]>();
+          expectTypeOf(context).toEqualTypeOf<
+            WebResolverContextMap["workspace"]
+          >();
           return context.workspaceId;
         },
       });
@@ -75,7 +77,9 @@ describe("computed context 型テスト", () => {
         label: "テスト",
         contextId: "workspace",
         compute: ({ context }) => {
-          expectTypeOf(context).toEqualTypeOf<WebResolverContextMap["workspace"]>();
+          expectTypeOf(context).toEqualTypeOf<
+            WebResolverContextMap["workspace"]
+          >();
           return context.workspaceId;
         },
       });

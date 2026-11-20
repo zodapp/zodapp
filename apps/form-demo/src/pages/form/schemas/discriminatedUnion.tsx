@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { useEffect } from "react";
 import { z } from "zod";
 import {
@@ -17,8 +18,9 @@ import { TryBehavior } from "../../../shared/demo/TryBehavior";
 
 export const formId = "discriminatedUnion";
 export const title = "z.discriminatedUnion";
-export const description =
-  "discriminated keyを使った安定したUnion。種類を切り替えると、種類どうしで共通の項目（窓口の名前・備考）は残り、前の種類だけの項目は消えて、新しい種類の既定の値が入る。元の種類に戻しても、前の値は戻らない。選ばれていない種類の選択の欄（チャネル）は、選択肢が変わっても値を消さない";
+export const description = msgKey(
+  "formDemo.page.discriminatedUnion.description" /* i18n: discriminated keyを使った安定したUnion。種類を切り替えると、種類どうしで共通の項目（窓口の名前・備考）は残り、前の種類だけの項目は消えて、新しい種類の既定の値が入る。元の種類に戻しても、前の値は戻らない。選ばれていない種類の選択の欄（チャネル）は、選択肢が変わっても値を消さない */,
+);
 export const icon = IconGitBranch;
 export const category = "Standard";
 
@@ -149,12 +151,10 @@ export const schema = z
     contact: contactSchema,
     legacyContact: legacyContactSchema,
     desk: deskSchema,
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "Discriminated Unionは、識別子（type）によって型を判別します。通常のUnionよりパフォーマンスやメンテナンス性に優れています。",
+    }),
   })
   .register(zf.object.registry, {});
 

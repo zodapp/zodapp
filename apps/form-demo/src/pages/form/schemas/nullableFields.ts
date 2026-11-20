@@ -1,11 +1,13 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconCircleDashed } from "@tabler/icons-react";
 
 export const formId = "nullableFields";
 export const title = "nullable・optional";
-export const description =
-  "空にしたときに書く値：nullable だけの欄は null（必須のエラーにならず、空のまま送信できる）、optional の欄（optional と nullable の両方を含む）は undefined。nullable の object は null で始まり、＋で開いて、削除で null に戻る";
+export const description = msgKey(
+  "formDemo.page.nullableFields.description" /* i18n: 空にしたときに書く値：nullable だけの欄は null（必須のエラーにならず、空のまま送信できる）、optional の欄（optional と nullable の両方を含む）は undefined。nullable の object は null で始まり、＋で開いて、削除で null に戻る */,
+);
 export const icon = IconCircleDashed;
 export const category = "Basic";
 

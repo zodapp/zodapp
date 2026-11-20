@@ -1,3 +1,4 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
@@ -5,8 +6,9 @@ import { IconSitemap } from "@tabler/icons-react";
 
 export const formId = "reactiveNestedObject";
 export const title = "zf.object (Reactive)";
-export const description =
-  "reactiveComponentLibrary によるネストオブジェクト。フィールド単位の確認UIあり。";
+export const description = msgKey(
+  "formDemo.page.reactiveNestedObject.description" /* i18n: reactiveComponentLibrary によるネストオブジェクト。フィールド単位の確認UIあり。 */,
+);
 export const icon = IconSitemap;
 export const category = "Reactive";
 export const reactive = true;
@@ -63,12 +65,10 @@ export const schema = z
     address: addressSchema,
     emergencyContact: emergencyContactSchema,
 
-    message: zfReact
-      .computed()
-      .register(zf.computed.registry, {
-        compute: () =>
-          "Reactive版ではネストオブジェクトの各フィールドに確認UIが付きます。",
-      }),
+    message: zfReact.computed().register(zf.computed.registry, {
+      compute: () =>
+        "Reactive版ではネストオブジェクトの各フィールドに確認UIが付きます。",
+    }),
   })
   .register(zf.object.registry, { uiType: "box", label: "会員" });
 

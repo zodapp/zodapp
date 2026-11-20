@@ -1,11 +1,15 @@
+import { msgKey } from "@zodapp/i18n-messages";
 import { z } from "zod";
 import { zf } from "@zodapp/zod-form";
 import { IconTestPipe } from "@tabler/icons-react";
 
 export const formId = "e2e-misc";
-export const title = "e2e：そのほかの型の書き方";
-export const description =
-  "object の形の enum は、キーを選択肢の名前にし、選ぶと値を書く。zf.date に z.coerce.date() を渡せる。外部キーの土台に z.email() を使える（形に合わない値はエラー）。値を複数持つ literal を multipleEnum の要素にできる";
+export const title = msgKey(
+  "formDemo.page.e2eMisc.title" /* i18n: e2e：そのほかの型の書き方 */,
+);
+export const description = msgKey(
+  "formDemo.page.e2eMisc.description" /* i18n: object の形の enum は、キーを選択肢の名前にし、選ぶと値を書く。zf.date に z.coerce.date() を渡せる。外部キーの土台に z.email() を使える（形に合わない値はエラー）。値を複数持つ literal を multipleEnum の要素にできる */,
+);
 export const icon = IconTestPipe;
 export const category = "e2e";
 
