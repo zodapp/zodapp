@@ -1,5 +1,7 @@
 # ブラウザの API
 
+[English](client-api.md)
+
 ## Client
 
 Clientは、登録簿を実体としてimportし、ブラウザの API を作る。関数の形は、サーバーの API（[サーバーの API](../../zod-dynamodb-node/docs/server-api.ja.md)）と同じである。
@@ -16,8 +18,14 @@ export const api = createClient(endpoints, {
 const task = await api.tasks.get({ workspaceId: "ws1", taskId: "t1" });
 const { item, token } = await api.tasks.get(key, { withToken: true });
 await api.tasks.setStatus(key, { status: "done" }, { ifUnchanged: token });
-const { items, cursor } = await api.tasks.byStatus({ workspaceId: "ws1", status: "todo", minPriority: 0 });
-for await (const page of api.tasks.byStatus.pages(params)) { /* ... */ }
+const { items, cursor } = await api.tasks.byStatus({
+  workspaceId: "ws1",
+  status: "todo",
+  minPriority: 0,
+});
+for await (const page of api.tasks.byStatus.pages(params)) {
+  /* ... */
+}
 ```
 
 - 引数は位置引数で、Getとdeleteは `(key, options?)`、createとsetは `(key, input, options?)`、生成するキーの作成は `(args, input, options?)`、ミューテーションは `(key, params, options?)`、クエリと検索は `(params, options?)` とする。`options` には、`context`、`signal`（中止）、`headers`（この呼び出しだけのヘッダー）と、操作ごとのもの（`withToken`、`ifUnchanged`、`cursor`、`limit`、`fields`）を渡す
@@ -48,7 +56,10 @@ const r = api.tasks.setStatus.can(key, { status: "done" }, { item: task });
 ブラウザの API とサーバーの API は同じ形なので、両方で動く業務ロジックを1つ書ける。引数の型には `SharedApi<typeof endpoints>` を使う。ブラウザで呼べる操作（`authorize` と `path` を持つもの）だけを含み、`live` は含まない。
 
 ```ts
-export const finishAll = async (api: SharedApi<typeof endpoints>, workspaceId: string) => {
+export const finishAll = async (
+  api: SharedApi<typeof endpoints>,
+  workspaceId: string,
+) => {
   for await (const page of api.tasks.all.pages({ workspaceId })) {
     for (const task of page.items) {
       const key = { workspaceId: task.workspaceId, taskId: task.taskId };

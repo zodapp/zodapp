@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Exposes the operations written in the registry (`defineEndpoints`) of `@zodapp/zod-dynamodb` as Express 5 routes (the specifications are [Server API](../zod-dynamodb-node/docs/server-api.ja.md) and [Protocol input / output and errors](../zod-dynamodb/docs/protocol.ja.md), in Japanese).
+Exposes the operations written in the registry (`defineEndpoints`) of `@zodapp/zod-dynamodb` as Express 5 routes (the specifications are [Server API](../zod-dynamodb-node/docs/server-api.md) and [Protocol input / output and errors](../zod-dynamodb/docs/protocol.md)).
 
 ```ts
 import type { IncomingMessage } from "node:http";
@@ -62,15 +62,15 @@ app.get(
 
 Errors are returned as an HTTP status and `{ code, message, issues? }`.
 
-| code             | HTTP | Source error                                                                                  |
-| ---------------- | ---- | --------------------------------------------------------------------------------------------- |
-| `INVALID_INPUT`  | 400  | Input validation failed. `issues` contains the Zod issues                                     |
-| `INVALID_CURSOR` | 400  | The pagination token is invalid                                                               |
-| `FORBIDDEN`      | 403  | `authorize` returned `false` (also when an override throws `ForbiddenError`)                  |
-| `NOT_FOUND`      | 404  | The item does not exist, or the `where` condition does not hold (not distinguished)           |
-| `ALREADY_EXISTS` | 409  | Already created                                                                               |
-| `CONFLICT`       | 409  | `ifUnchanged` mismatch, or the retry limit was reached                                        |
-| `INTERNAL`       | 500  | Anything else. The message is not returned; it is passed to `onError`                         |
+| code             | HTTP | Source error                                                                        |
+| ---------------- | ---- | ----------------------------------------------------------------------------------- |
+| `INVALID_INPUT`  | 400  | Input validation failed. `issues` contains the Zod issues                           |
+| `INVALID_CURSOR` | 400  | The pagination token is invalid                                                     |
+| `FORBIDDEN`      | 403  | `authorize` returned `false` (also when an override throws `ForbiddenError`)        |
+| `NOT_FOUND`      | 404  | The item does not exist, or the `where` condition does not hold (not distinguished) |
+| `ALREADY_EXISTS` | 409  | Already created                                                                     |
+| `CONFLICT`       | 409  | `ifUnchanged` mismatch, or the retry limit was reached                              |
+| `INTERNAL`       | 500  | Anything else. The message is not returned; it is passed to `onError`               |
 
 Errors thrown by the application inside `context` are passed to Express's error handler with `next(error)` without conversion.
 

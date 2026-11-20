@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-React hooks that read lists and items from `@zodapp/zod-dynamodb-client` (the specification is [Browser API](../zod-dynamodb-client/docs/client-api.ja.md), in Japanese). Supports React 18 and 19.
+React hooks that read lists and items from `@zodapp/zod-dynamodb-client` (the specification is [Browser API](../zod-dynamodb-client/docs/client-api.md)). Supports React 18 and 19.
 
 Create hooks outside components by partially applying API functions.
 

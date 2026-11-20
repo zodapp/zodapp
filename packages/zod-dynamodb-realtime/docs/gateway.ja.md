@@ -1,5 +1,7 @@
 # Realtime Gateway
 
+[English](gateway.md)
+
 ## フロントエンドの接続経路
 
 データアクセスについては、WAFを経由したバックエンドAPIを標準経路とする。
