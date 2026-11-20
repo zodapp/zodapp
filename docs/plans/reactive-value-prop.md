@@ -1,5 +1,7 @@
 # form を使わない部品の表示値を `value` で渡す
 
+- ステータス：実装済み（main 668ae13 の上。単体テスト・型・build・form-demo の e2e 175 件が通る）
+
 ## 1. 背景
 
 `ZodFormProps` の `defaultValue` には、二つの意味が混ざっている。
