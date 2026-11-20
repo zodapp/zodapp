@@ -104,14 +104,10 @@ const schema = z
       .min(0)
       .max(150)
       .register(zf.number.registry, { label: "Age" }),
-    frequency: zf
-      .number()
-      .min(0)
-      .max(7)
-      .register(zf.number.registry, {
-        label: "Times per week",
-        uiType: "slider",
-      }),
+    frequency: zf.number().min(0).max(7).register(zf.number.registry, {
+      label: "Times per week",
+      uiType: "slider",
+    }),
     birthday: zf.date().register(zf.date.registry, { label: "Birthday" }),
     isMember: zf.boolean().register(zf.boolean.registry, { label: "Member" }),
   })
