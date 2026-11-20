@@ -5,8 +5,10 @@ import { useMsg } from "../messages/useMsg";
 
 type BooleanSchema = z.ZodBoolean;
 
-const BooleanComponent = ({ defaultValue }: ZodFormProps<BooleanSchema>) => {
-  const value = typeof defaultValue === "boolean" ? defaultValue : null;
+const BooleanComponent = ({
+  value: valueProp,
+}: ZodFormProps<BooleanSchema>) => {
+  const value = typeof valueProp === "boolean" ? valueProp : null;
   const msg = useMsg();
   return (
     <Text size="sm" c={value !== null ? undefined : "dimmed"}>

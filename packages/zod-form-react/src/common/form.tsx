@@ -85,6 +85,13 @@ export const useRunAsUserEdit = (): (<T>(fn: () => T) => T) => {
 const runDirectly = <T,>(fn: () => T): T => fn();
 
 /**
+ * `FormProvider` の form API。Provider の外（form を使わない部品）では undefined。
+ * @internal
+ */
+export const useOptionalFormApi = (): AnyFormApi | undefined =>
+  useContext(FormContext)?.form;
+
+/**
  * `FormProvider` が提供する form API を取得します。
  *
  * Provider 外で呼ぶと例外になります。

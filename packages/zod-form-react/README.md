@@ -107,19 +107,23 @@ import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 
 export const schema = z.object({
-  unitPrice: zf.number().min(0).register(zf.number.registry, { label: "Unit price" }),
-  quantity: zf.number().min(0).register(zf.number.registry, { label: "Quantity" }),
-  total: zfReact
-    .computed()
-    .register(zf.computed.registry, {
-      label: "Total",
-      dependsOnParent: true,
-      compute: ({ parent }) => {
-        const unitPrice = parent?.unitPrice ?? 0;
-        const quantity = parent?.quantity ?? 0;
-        return `¥${(unitPrice * quantity).toLocaleString()}`;
-      },
-    }),
+  unitPrice: zf
+    .number()
+    .min(0)
+    .register(zf.number.registry, { label: "Unit price" }),
+  quantity: zf
+    .number()
+    .min(0)
+    .register(zf.number.registry, { label: "Quantity" }),
+  total: zfReact.computed().register(zf.computed.registry, {
+    label: "Total",
+    dependsOnParent: true,
+    compute: ({ parent }) => {
+      const unitPrice = parent?.unitPrice ?? 0;
+      const quantity = parent?.quantity ?? 0;
+      return `¥${(unitPrice * quantity).toLocaleString()}`;
+    },
+  }),
 });
 ```
 
@@ -165,14 +169,15 @@ Provider components:
 
 Components (the React components put into `componentLibrary`) receive `ZodFormProps`.
 
-- `fieldPath` / `schema` / `defaultValue` / `readOnly` / `label`
-- `optional`: `true` for a component inside an outer `.optional()` (or `.default()`). Treated as required when omitted
-- `nullable`: `true` for a component inside an outer `.nullable()`. When nested like `.optional().nullable()`, both are `true`
+- `fieldPath` / `schema` / `readOnly` / `label`
+- `value`: the value a component that does not use a form (reactive, table) displays. It is passed only to such components. Inside a form it is never passed (always `undefined`); form components read the value from the store with `useField`
+- `defaultValue`: the initial value used when creating a new value (for example, when a union arm is chosen). Used by form components
+- `outer`: information about the wrappers (`.optional()` / `.nullable()` / `.default()` and checks attached to them) around the same path. Wrapper components add their own part and pass it down; it is cleared where the path changes. Get `optional` / `nullable` / `emptyValue` with `emptinessOf(outer)`
 
 The required mark on the label (Mantine's `required`) is decided by `!(optional || nullable)`.
-When clearing a value, a component writes `undefined` if `optional`, or `null` if only `nullable` (`undefined` if both; a required field that is neither writes `undefined`, producing a "required" error). Custom components can get this value with `emptyValueOf({ optional, nullable })`.
+When clearing a value, a component writes `emptyValue`: `undefined` if `optional`, or `null` if only `nullable` (`undefined` if both; a required field that is neither writes `undefined`, producing a "required" error).
 
-> The former `required?: boolean` (optional when `false`) was replaced with `optional?: boolean`. In custom components, read `required !== false` as `!(optional || nullable)`, and `required={false}` as `optional={true}`.
+Wrapper components on the same path (optional, nullable, default, lazy, pipe, etc.) pass `value` down unchanged with `{...props}`.
 
 ### Where union arm errors go
 

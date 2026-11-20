@@ -14,9 +14,9 @@ type ExternalKeySchema = z.ZodString;
 
 const ExternalKeyComponent = ({
   schema,
-  defaultValue,
+  value: valueProp,
 }: ZodFormProps<ExternalKeySchema>) => {
-  const value = typeof defaultValue === "string" ? defaultValue : null;
+  const value = typeof valueProp === "string" ? valueProp : null;
   const { options, isLoading, retry } = useExternalKeyOptions(schema);
   const actionWrapper = useExternalKeyAction(schema, value, false);
   const msg = useMsg();

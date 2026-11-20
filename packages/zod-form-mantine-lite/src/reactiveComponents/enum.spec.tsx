@@ -21,7 +21,7 @@ const render = (value: unknown, readOnly = false) =>
         <EnumComponent
           fieldPath="kind"
           schema={schema as never}
-          defaultValue={value as never}
+          value={value}
           readOnly={readOnly}
         />
       </I18nMessagesProvider>

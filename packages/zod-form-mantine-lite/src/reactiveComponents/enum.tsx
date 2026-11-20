@@ -32,7 +32,7 @@ const CONFIRM_ACTIONS_WIDTH = 64;
 const EnumComponent = React.memo(function EnumComponent({
   schema,
   fieldPath,
-  defaultValue,
+  value: valueProp,
   label: labelFromParent,
   outer,
   readOnly: readOnlyProp,
@@ -44,7 +44,7 @@ const EnumComponent = React.memo(function EnumComponent({
   const readOnly = meta?.readOnly ?? readOnlyProp;
   const label = labelFromParent ?? labelFromMeta;
 
-  const rawValue = (defaultValue as string | number | undefined) ?? null;
+  const rawValue = (valueProp as string | number | undefined) ?? null;
   const { value, onChange, hasPendingChange, onConfirm, onBlur, onCancel } =
     useConfirmableState(rawValue, fieldPath, {
       emptyValue: emptyValueOf({ optional, nullable }),

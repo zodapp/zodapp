@@ -109,17 +109,15 @@ import { zfReact } from "@zodapp/zod-form-react";
 export const schema = z.object({
   unitPrice: zf.number().min(0).register(zf.number.registry, { label: "単価" }),
   quantity: zf.number().min(0).register(zf.number.registry, { label: "数量" }),
-  total: zfReact
-    .computed()
-    .register(zf.computed.registry, {
-      label: "合計",
-      dependsOnParent: true,
-      compute: ({ parent }) => {
-        const unitPrice = parent?.unitPrice ?? 0;
-        const quantity = parent?.quantity ?? 0;
-        return `¥${(unitPrice * quantity).toLocaleString()}`;
-      },
-    }),
+  total: zfReact.computed().register(zf.computed.registry, {
+    label: "合計",
+    dependsOnParent: true,
+    compute: ({ parent }) => {
+      const unitPrice = parent?.unitPrice ?? 0;
+      const quantity = parent?.quantity ?? 0;
+      return `¥${(unitPrice * quantity).toLocaleString()}`;
+    },
+  }),
 });
 ```
 
@@ -165,14 +163,15 @@ Provider コンポーネント:
 
 部品（`componentLibrary` に入れる React コンポーネント）は、`ZodFormProps` を受け取ります。
 
-- `fieldPath` / `schema` / `defaultValue` / `readOnly` / `label`
-- `optional`: 外側の `.optional()`（と `.default()`）の中の部品なら `true`。書かないときは必須として扱う
-- `nullable`: 外側の `.nullable()` の中の部品なら `true`。`.optional().nullable()` のように重なると両方 `true`
+- `fieldPath` / `schema` / `readOnly` / `label`
+- `value`: form を使わない部品（reactive・表）が表示する値。form を使わない部品にだけ渡されます。form の中では渡されず（いつも `undefined`）、form を使う部品は値を `useField` で store から読みます
+- `defaultValue`: 新しく値を作るときの初期値（union の腕を選んだときなど）。form を使う部品が使います
+- `outer`: 同じ path の外側の包み（`.optional()`・`.nullable()`・`.default()` と、それに付いた検査）の情報。包みの部品が自分の分を足して下へ渡し、path が変わるところで消えます。`emptinessOf(outer)` で `optional`・`nullable`・`emptyValue` を得られます
 
 ラベルの必須の印（Mantine の `required`）は、`!(optional || nullable)` で決めます。
-値を空にするとき、部品は `optional` なら `undefined`、`nullable` だけなら `null` を書きます（両方なら `undefined`。どちらでもない必須の欄は `undefined` を書き、「必須」のエラーにする）。自作の部品は `emptyValueOf({ optional, nullable })` でこの値を得られます。
+値を空にするとき、部品は `emptyValue` を書きます。`optional` なら `undefined`、`nullable` だけなら `null` です（両方なら `undefined`。どちらでもない必須の欄は `undefined` を書き、「必須」のエラーにする）。
 
-> 以前の `required?: boolean`（`false` で optional）は `optional?: boolean` に置き換えました。自作の部品は `required !== false` を `!(optional || nullable)` に、`required={false}` を `optional={true}` に読み替えてください。
+同じ path の包みの部品（optional・nullable・default・lazy・pipe など）は、`value` を `{...props}` でそのまま下へ渡します。
 
 ### union の腕のエラーの置き場所
 

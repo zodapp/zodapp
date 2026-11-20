@@ -41,7 +41,7 @@ export const ConfirmableInputActions = ({
  *
  * - ローカルに値を管理し、confirm 時に `onConfirm` を呼ぶ
  * - blur 時は `onBlur` ガードの返り値で confirm / revert / 維持を決める
- * - pending がなければ親からの `defaultValue` 変更を同期する
+ * - pending がなければ親からの値（props の `value`）の変更を同期する
  * - Escape でキャンセル、Ctrl+Enter で確定
  * - `options.emptyValue` を渡すと、空（""・null・undefined）の値を、`onBlur`・`onConfirm` に
  *   渡すときにその値に置き換える（欄の optional・nullable に合わせた空の値。`emptyValueOf`）
@@ -49,7 +49,7 @@ export const ConfirmableInputActions = ({
  *   （日付の欄で、ピッカーの文字列を保存の形式に直すなど）
  */
 export const useConfirmableState = <T,>(
-  defaultValue: T,
+  propValue: T,
   fieldPath: string,
   options: {
     emptyValue?: undefined | null;
@@ -65,9 +65,9 @@ export const useConfirmableState = <T,>(
     if (isEmpty) return hasEmptyValue ? emptyValue : raw;
     return toValue ? toValue(raw) : raw;
   };
-  const baseValueRef = useRef(defaultValue);
-  const valueRef = useRef(defaultValue);
-  const [value, setValue] = useState(defaultValue);
+  const baseValueRef = useRef(propValue);
+  const valueRef = useRef(propValue);
+  const [value, setValue] = useState(propValue);
   const [hasPendingChange, setHasPendingChange] = useState(false);
   const hasPendingChangeRef = useRef(hasPendingChange);
 
@@ -79,11 +79,11 @@ export const useConfirmableState = <T,>(
     if (hasPendingChangeRef.current) {
       return;
     }
-    baseValueRef.current = defaultValue;
-    valueRef.current = defaultValue;
+    baseValueRef.current = propValue;
+    valueRef.current = propValue;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setValue(defaultValue);
-  }, [defaultValue]);
+    setValue(propValue);
+  }, [propValue]);
 
   const onChange = (nextValue: T) => {
     valueRef.current = nextValue;

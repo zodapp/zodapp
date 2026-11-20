@@ -101,7 +101,7 @@ const FormPageInner = () => {
             ) : isReactive ? (
               <ReactiveAutoForm
                 schema={formDef.schema}
-                defaultValues={formDef.defaultValues}
+                values={formDef.defaultValues}
                 key={formId}
                 showPreview={true}
               />

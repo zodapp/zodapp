@@ -589,12 +589,20 @@ const ArrayTableComponent = wrapComponent(
                                   const childProps = {
                                     fieldPath: `${fieldPath}[${index}].${column.propertyName}`,
                                     schema: column.schema,
-                                    defaultValue: getCellDisplayValue(
-                                      value,
+                                    defaultValue: getDefaultCellValue(
                                       defaultValue,
                                       index,
                                       column.propertyName,
                                     ),
+                                    // readOnly のセルは表の部品（form を使わない部品）で描くので、表示する値を value で渡す
+                                    value: readOnly
+                                      ? getCellDisplayValue(
+                                          value,
+                                          defaultValue,
+                                          index,
+                                          column.propertyName,
+                                        )
+                                      : undefined,
                                     outer: undefined,
                                     readOnly,
                                     label: false as const,

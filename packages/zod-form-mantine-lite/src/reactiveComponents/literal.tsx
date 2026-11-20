@@ -11,7 +11,7 @@ type LiteralSchema = ReturnType<typeof zf.literal>;
 const LiteralComponent: ZodForm<LiteralSchema> = React.memo(
   function LiteralComponent({
     schema,
-    defaultValue,
+    value,
     label: labelFromParent,
     outer,
   }: ZodFormProps<LiteralSchema>) {
@@ -26,7 +26,7 @@ const LiteralComponent: ZodForm<LiteralSchema> = React.memo(
         style={inputWrapperStyle}
       >
         <Text size="sm" c="dimmed">
-          {String(defaultValue)}
+          {String(value)}
         </Text>
       </Input.Wrapper>
     );

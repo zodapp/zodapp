@@ -12,19 +12,19 @@ const EmptyValue = () => (
 
 const UnionComponent = ({
   schema,
-  defaultValue,
+  value,
   ...props
 }: ZodFormProps<UnionSchema>) => {
   const options = schema.options as readonly z.ZodTypeAny[];
   const matchedSchema = options.find(
-    (option) => option.safeParse(defaultValue).success,
+    (option) => option.safeParse(value).success,
   );
 
   if (!matchedSchema) {
     return <EmptyValue />;
   }
 
-  return <Switch {...props} schema={matchedSchema} defaultValue={defaultValue} />;
+  return <Switch {...props} schema={matchedSchema} value={value} />;
 };
 
 export { UnionComponent as component };

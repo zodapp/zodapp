@@ -7,7 +7,10 @@ import z from "zod";
  *
  * - `fieldPath`: TanStack React Form 等のフィールドパス
  * - `schema`: 対象フィールドの Zod スキーマ
- * - `defaultValue`: 初期値（任意）
+ * - `value`: form を使わない部品（reactive・表）が表示する値（任意）。form を使わない部品にだけ渡される。
+ *   form の中では渡さず（いつも undefined）、form を使う部品は値を `useField` で store から読む。
+ *   同じ path に描く包みは `{...props}` でそのまま子へ渡し、手を付けない
+ * - `defaultValue`: 新しく値を作るときの初期値（任意。union の腕を選んだときなど）。form を使う部品が使う
  * - `outer`: 同じ path の外側の包みの情報（任意）。包みの部品が自分の分を足して渡す。
  *   path が変わるところでは消して渡す。部品は `emptinessOf(outer)` で optional・nullable・空の値を求める
  * - `readOnly`: UI 制御のヒント（任意）
@@ -22,6 +25,9 @@ import z from "zod";
 export type ZodFormProps<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = {
   fieldPath: string;
   schema: TSchema;
+  /** form を使わない部品が表示する値。form の中では渡されない */
+  value?: unknown;
+  /** 新しく値を作るときの初期値（form を使う部品が使う） */
   defaultValue?: z.infer<TSchema>;
   outer?: Outer;
   readOnly?: boolean;

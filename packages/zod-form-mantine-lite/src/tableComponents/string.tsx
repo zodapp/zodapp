@@ -11,10 +11,10 @@ type StringSchema = z.ZodString;
 
 const StringComponent = ({
   schema,
-  defaultValue,
+  value: valueProp,
 }: ZodFormProps<StringSchema>) => {
   const { formatter, uiType, suggestions } = getMeta(schema, "string") ?? {};
-  const raw = typeof defaultValue === "string" ? defaultValue : null;
+  const raw = typeof valueProp === "string" ? valueProp : null;
   const actionWrapper = useSchemaValueAction(schema, raw, false);
   const resolveText = useResolveText();
 

@@ -8,8 +8,11 @@ import { useResolveText } from "@zodapp/zod-form-react/common";
 
 type EnumSchema = ReturnType<typeof zf.enum>;
 
-const EnumComponent = ({ schema, defaultValue }: ZodFormProps<EnumSchema>) => {
-  const value = defaultValue as string | number | undefined;
+const EnumComponent = ({
+  schema,
+  value: valueProp,
+}: ZodFormProps<EnumSchema>) => {
+  const value = valueProp as string | number | undefined;
   const actionWrapper = useSchemaValueAction(
     schema,
     value === undefined || value === null ? null : String(value),

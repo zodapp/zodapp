@@ -8,11 +8,7 @@ import { component as DateComponent } from "./date";
 const render = (schema: z.ZodTypeAny, value: unknown) =>
   renderToStaticMarkup(
     <MantineProvider>
-      <DateComponent
-        fieldPath="due"
-        schema={schema as never}
-        defaultValue={value as never}
-      />
+      <DateComponent fieldPath="due" schema={schema as never} value={value} />
     </MantineProvider>,
   );
 

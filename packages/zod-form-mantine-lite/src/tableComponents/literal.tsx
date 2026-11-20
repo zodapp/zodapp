@@ -9,11 +9,11 @@ type LiteralSchema = z.ZodLiteral<LiteralValue>;
 
 const LiteralComponent = ({
   schema,
-  defaultValue,
+  value: valueProp,
 }: ZodFormProps<LiteralSchema>) => {
   const meta = getMeta(schema, "literal");
   const resolveText = useResolveText();
-  const value = defaultValue as LiteralValue | undefined;
+  const value = valueProp as LiteralValue | undefined;
 
   if (value === undefined || value === null) {
     return null;
