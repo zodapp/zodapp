@@ -6,12 +6,12 @@
 
 optional・nullable・default と同じく、包みを外して中を描きます（mantine-lite の `baseComponents`）。
 
-| 型 | 描き方 |
-|---|---|
-| `.readonly()` | 中をそのまま描く。zod の readonly は値を凍らせるだけで入力の可否ではないので、読み取り専用の表示にはしない |
-| `.catch()` | 中をそのまま描く。送信では parse が catch の値に置き換える |
-| `.nonoptional()` | 中を必須として描く（外側の optional を打ち消す） |
-| `.prefault()` | 中をそのまま描く。値が無ければ prefault の値が入る（[既定値](../../zod-form/docs/default-value.ja.md)） |
+| 型                                                       | 描き方                                                                                                                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.readonly()`                                            | 中をそのまま描く。zod の readonly は値を凍らせるだけで入力の可否ではないので、読み取り専用の表示にはしない                                                         |
+| `.catch()`                                               | 中をそのまま描く。送信では parse が catch の値に置き換える                                                                                                         |
+| `.nonoptional()`                                         | 中を必須として描く（外側の optional を打ち消す）                                                                                                                   |
+| `.prefault()`                                            | 中をそのまま描く。値が無ければ prefault の値が入る（[既定値](../../zod-form/docs/default-value.ja.md)）                                                            |
 | `.pipe()`・`.transform()`・`z.codec()`・`z.stringbool()` | 入口（`def.in`）の schema で描く。検証は pipe 全体で行うので、値は入口の型でなければ通らないため。pipe に付いた検査は中に渡す。`z.stringbool()` は文字列の欄になる |
 
 ## 固定値
@@ -34,7 +34,7 @@ optional・nullable・default と同じく、包みを外して中を描きま�
 
 - **`z.set()`**：要素に TanStack Form のパスで欄を割り当てられないので、set 全体を 1 つの欄として描きます。要素が enum・literal の union・複数の値の literal なら MultiSelect、string・number なら TagsInput（重複は入らない）、それ以外は扱えない注記を出します。空の値は `emptyValueOf` にそろえ、要素のエラーもすべて set の欄に出します。値の比較（`isEqualValue`）は Set・Map の中身を比べます
 - **`z.map()`**：set と同じく 1 つの欄で、record の entries の見た目で組を書きます。キーは string・number だけを受け、それ以外は扱えない注記を出します
-- **キーを列挙できる record**（キーの schema に `_zod.values` があるもの。enum・literal とその union）：zod はすべてのキーを必須として検証するので、そのキーを固定の欄として object と同じように並べます。欄の名前はキー（選択肢に label があればその label）で、`uiType: "entries"` でも同じです。`z.partialRecord` は `_zod.values` が空なので、今までどおりの見た目です
+- **キーを列挙できる record**（キーの schema に `_zod.values` があるもの。enum・literal とその union）：zod はすべてのキーを必須として検証するので、そのキーを固定の欄として object と同じように並べます。欄の名前はキー（選択肢に label があればその label）で、`uiType: "entries"` でも同じです。`z.partialRecord` は `_zod.values` が空ですが、キーの schema の def から候補を取り出して（`partialRecordKeys`）、README の「record の見た目」の見た目で描きます
 - **キーの検査のエラー**（`invalid_key`）は、キーの側（entries ならそのキーの欄、既定の見た目なら record の欄）に出します。entries の見た目と Map では、キーが空・重複・キーの schema に通らない書きかけの組は、直すまで値から外します（画面と違う値を送らないため）
 - **tuple の rest**、**array の `uiType` と要素の組み合わせが合わないもの**（要素が object の配列に `multipleEnum` など）は、型で縛りにくいので、その欄の場所に「この組み合わせは非対応」と出し、`console.error` を出します
 
