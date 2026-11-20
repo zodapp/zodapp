@@ -1,30 +1,32 @@
-# TanStack Router での zod-searchparams 利用ガイド
+# Using zod-searchparams with TanStack Router
 
-このガイドでは、`@zodapp/zod-searchparams` を TanStack Router と組み合わせて使用する方法を説明します。
+[日本語](tanstack.ja.md)
 
-## 概要
+This guide explains how to use `@zodapp/zod-searchparams` together with TanStack Router.
 
-`zod-searchparams` は、Zod スキーマと URLSearchParams の双方向変換を行うライブラリです。TanStack Router と組み合わせることで、Date, Set, Map などの複雑な型を URL パラメータとして扱えます。
+## Overview
 
-### エンコード/デコードの役割分担
+`zod-searchparams` is a library for two-way conversion between Zod schemas and URLSearchParams. Combined with TanStack Router, it lets you handle complex types such as Date, Set, and Map as URL parameters.
 
-| 処理       | 設定場所                            | 関数                               | スキーマ |
-| ---------- | ----------------------------------- | ---------------------------------- | -------- |
-| エンコード | `createRouter` の `stringifySearch` | `encodeSearchParams(obj)`          | 不要     |
-| パース     | `createRouter` の `parseSearch`     | `searchParamsToParamsTree(params)` | 不要     |
-| 型変換     | 各ルートの `validateSearch`         | `fromParamsTree(tree, schema)`     | 必要     |
+### Division of roles for encoding and decoding
 
-この役割分担により:
+| Processing      | Where it is set                     | Function                           | Schema     |
+| --------------- | ----------------------------------- | ---------------------------------- | ---------- |
+| Encoding        | `stringifySearch` of `createRouter` | `encodeSearchParams(obj)`          | Not needed |
+| Parsing         | `parseSearch` of `createRouter`     | `searchParamsToParamsTree(params)` | Not needed |
+| Type conversion | `validateSearch` of each route      | `fromParamsTree(tree, schema)`     | Needed     |
 
-- **navigate / Link**: 何も考えずにオブジェクトを渡すだけ（自動エンコード）
-- **URL パース**: ネスト構造を自動復元（グローバル設定）
-- **ルート定義**: スキーマによる型変換のみ（シンプル）
+With this division of roles:
 
-## セットアップ
+- **navigate / Link**: just pass an object (encoded automatically)
+- **URL parsing**: nested structures are restored automatically (global setting)
+- **Route definitions**: only type conversion with the schema (simple)
 
-### 1. Router 設定（グローバル）
+## Setup
 
-`createRouter` に `stringifySearch` と `parseSearch` を設定します:
+### 1. Router settings (global)
+
+Set `stringifySearch` and `parseSearch` on `createRouter`:
 
 ```typescript
 // router.tsx
@@ -38,20 +40,20 @@ export const createAppRouter = (history: RouterHistory) =>
   createRouter({
     routeTree,
     history,
-    // エンコード: オブジェクト → URL文字列（スキーマ非依存）
+    // Encoding: object → URL string (schema-independent)
     stringifySearch: (search) => {
       return encodeSearchParams(search).toString();
     },
-    // パース: URL文字列 → ParamsTree（スキーマ非依存）
+    // Parsing: URL string → ParamsTree (schema-independent)
     parseSearch: (searchStr) => {
       return searchParamsToParamsTree(new URLSearchParams(searchStr));
     },
   });
 ```
 
-### 2. ルート定義（個別）
+### 2. Route definitions (per route)
 
-各ルートの `validateSearch` で、スキーマを使って型変換のみ行います:
+Each route's `validateSearch` only converts types using the schema:
 
 ```typescript
 // tasks.route.ts
@@ -59,7 +61,7 @@ import { createRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { fromParamsTree, type ParamsTree } from "@zodapp/zod-searchparams";
 
-// 検索条件スキーマ（Date 型を含む）
+// Search condition schema (includes the Date type)
 const searchSchema = z.object({
   status: z.enum(["todo", "doing", "done"]).optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
@@ -74,18 +76,18 @@ const searchSchema = z.object({
 export const tasksRoute = createRoute({
   getParentRoute: () => parentRoute,
   path: "tasks",
-  // ParamsTree → 型付きオブジェクト（スキーマ依存）
+  // ParamsTree → typed object (schema-dependent)
   validateSearch: (paramsTree: ParamsTree) =>
     fromParamsTree(paramsTree, searchSchema),
   component: TasksPage,
 });
 ```
 
-## 使用方法
+## Usage
 
-### ナビゲーション
+### Navigation
 
-`stringifySearch` でグローバル設定しているため、`navigate` や `Link` ではオブジェクトをそのまま渡すだけです:
+Since `stringifySearch` is set globally, `navigate` and `Link` just take the object as is:
 
 ```typescript
 import { useNavigate, useSearch } from "@tanstack/react-router";
@@ -94,7 +96,7 @@ const TasksPage = () => {
   const search = useSearch({ from: tasksRoute.id });
   const navigate = useNavigate({ from: tasksRoute.id });
 
-  // Date オブジェクトをそのまま渡せる（自動エンコード）
+  // Date objects can be passed as is (encoded automatically)
   const handleFilterChange = (status: string, from: Date, to: Date) => {
     navigate({
       search: {
@@ -110,12 +112,12 @@ const TasksPage = () => {
 };
 ```
 
-### Link コンポーネント
+### The Link component
 
 ```typescript
 import { Link } from "@tanstack/react-router";
 
-// Date や複雑な型をそのまま渡せる
+// Dates and complex types can be passed as is
 <Link
   to="/tasks"
   search={{
@@ -126,30 +128,30 @@ import { Link } from "@tanstack/react-router";
     },
   }}
 >
-  タスク一覧
+  Tasks
 </Link>
 ```
 
-## サポートされる型とエンコード形式
+## Supported types and encoding formats
 
-| Zod 型          | URL パラメータ形式   | 例                           |
+| Zod type        | URL parameter format | Example                      |
 | --------------- | -------------------- | ---------------------------- |
-| `z.string()`    | そのまま             | `name=John`                  |
-| `z.number()`    | 文字列化             | `count=42`                   |
+| `z.string()`    | As is                | `name=John`                  |
+| `z.number()`    | Stringified          | `count=42`                   |
 | `z.boolean()`   | `"true"` / `"false"` | `active=true`                |
 | `z.date()`      | `YYYYMMDDHHmmssSSS`  | `date=20250313005222213`     |
-| `z.bigint()`    | 文字列化             | `big=12345678901234567890`   |
+| `z.bigint()`    | Stringified          | `big=12345678901234567890`   |
 | `z.null()`      | `"null"`             | `value=null`                 |
 | `z.undefined()` | `"undefined"`        | `value=undefined`            |
-| `z.array()`     | インデックス記法     | `items.0=a&items.1=b`        |
-| `z.tuple()`     | インデックス記法     | `pair.0=x&pair.1=42`         |
-| `z.set()`       | インデックス記法     | `tags.0=a&tags.1=b`          |
-| `z.map()`       | キー記法             | `map.key1=v1&map.key2=v2`    |
-| `z.object()`    | ドット記法           | `user.name=John&user.age=30` |
+| `z.array()`     | Index notation       | `items.0=a&items.1=b`        |
+| `z.tuple()`     | Index notation       | `pair.0=x&pair.1=42`         |
+| `z.set()`       | Index notation       | `tags.0=a&tags.1=b`          |
+| `z.map()`       | Key notation         | `map.key1=v1&map.key2=v2`    |
+| `z.object()`    | Dot notation         | `user.name=John&user.age=30` |
 
-## 実践的な使用例
+## Practical examples
 
-### 日付範囲フィルター
+### Date range filter
 
 ```typescript
 const dateRangeSchema = z.object({
@@ -157,7 +159,7 @@ const dateRangeSchema = z.object({
   endDate: z.date().optional(),
 });
 
-// ナビゲーション（エンコードは自動）
+// Navigation (encoded automatically)
 navigate({
   search: {
     startDate: new Date("2025-01-01"),
@@ -165,10 +167,10 @@ navigate({
   },
 });
 
-// URL結果: startDate=20250101000000000&endDate=20251231235959999
+// Resulting URL: startDate=20250101000000000&endDate=20251231235959999
 ```
 
-### 複雑なフィルター条件
+### Complex filter conditions
 
 ```typescript
 const filterSchema = z.object({
@@ -183,7 +185,7 @@ const filterSchema = z.object({
     .optional(),
 });
 
-// ナビゲーション（エンコードは自動）
+// Navigation (encoded automatically)
 navigate({
   search: {
     status: new Set(["active", "pending"]),
@@ -199,14 +201,14 @@ navigate({
   },
 });
 
-// URL結果:
+// Resulting URL:
 // status.0=active&status.1=pending&
 // assignees.0=user1&assignees.1=user2&
 // tags.urgent=true&tags.feature=false&
 // dateRange.from=20250101000000000&dateRange.to=20251231235959999
 ```
 
-### ページネーションとソート
+### Pagination and sorting
 
 ```typescript
 const paginationSchema = z.object({
@@ -216,7 +218,7 @@ const paginationSchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
-// ページ切り替え（エンコードは自動）
+// Switching pages (encoded automatically)
 const handlePageChange = (page: number) => {
   navigate({
     search: { ...currentParams, page },
@@ -224,47 +226,47 @@ const handlePageChange = (page: number) => {
 };
 ```
 
-## 注意点
+## Caveats
 
-### 1. transform を含むスキーマの扱い
+### 1. Schemas that contain transform
 
-`z.transform()` を使用したスキーマでは、変換が非可逆な場合にラウンドトリップで値が変わる可能性があります:
+With schemas that use `z.transform()`, values may change over a round trip if the transformation is not reversible:
 
 ```typescript
-// 注意: この例は非可逆な変換
+// Caution: this example is an irreversible transformation
 const schema = z.object({
   doubled: z.string().transform((s) => Number(s) * 2),
 });
 
-// encode 前に parse() で値を正規化してから使用
+// Normalize the value with parse() before encoding
 const parsed = schema.parse({ doubled: "21" }); // { doubled: 42 }
 ```
 
-### 2. ドットを含むフィールド名
+### 2. Field names containing dots
 
-フィールド名に `.` が含まれる場合、自動的にエスケープされます:
+If a field name contains `.`, it is escaped automatically:
 
 ```typescript
 const schema = z.object({
   "foo.bar": z.string(),
 });
 
-// エンコード結果: foo%2ebar=value
+// Encoded result: foo%2ebar=value
 ```
 
-## API リファレンス
+## API reference
 
-### エクスポートされる関数・型
+### Exported functions and types
 
 ```typescript
-// 高レベルAPI（従来の使い方）
+// High-level API (the traditional usage)
 decodeSearchParams(searchParams, schema): T
 encodeSearchParams(obj, schema?, validate?): URLSearchParams
 
-// 低レベルAPI（TanStack Router 統合用）
-searchParamsToParamsTree(searchParams): ParamsTree  // スキーマ非依存
-fromParamsTree(paramsTree, schema): T               // スキーマ依存
+// Low-level API (for TanStack Router integration)
+searchParamsToParamsTree(searchParams): ParamsTree  // schema-independent
+fromParamsTree(paramsTree, schema): T               // schema-dependent
 
-// 型
+// Types
 type ParamsTree = { [key: string]: ParamsTreeItem }
 ```
