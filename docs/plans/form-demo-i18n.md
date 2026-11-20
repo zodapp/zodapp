@@ -32,11 +32,12 @@ PR #33 で form-demo のヘッダーに言語の切り替え（日本語 / Engli
 - 英語の辞書（`src/messages/en.ts`）を型の基準にし、日本語の辞書（`ja.ts`）は `satisfies MessagesOf<typeof en>` で確かめる（今と同じ）。
 - キーの形：
   - アプリの枠：`formDemo.app.<場所>.<名前>`（例：`formDemo.app.detail.tabCode`）
-  - デモの title / description：`formDemo.page.<formId>.title`・`formDemo.page.<formId>.description`
-  - フォームの中身：`formDemo.<formId>.<欄の path>`（例：`formDemo.basicInput.lastName`）。選択肢は `….<値>`、エラーは `….<欄>.<決まり>`（例：`formDemo.unionArms.text.min`）
+  - デモの title / description：`formDemo.page.<file>.title`・`formDemo.page.<file>.description`
+  - フォームの中身：`formDemo.<file>.<欄の path>`（例：`formDemo.basicInput.lastName`）。`<file>` はデモのファイル名（拡張子なし）。e2e 用のページの formId はハイフンを含み、キーの区切りに使えないため、formId ではなくファイル名にする。選択肢は `….<値>`、エラーは `….<欄>.<決まり>`（例：`formDemo.unionArms.text.min`）
   - 複数のデモで共有する部品（`shared/demo/*`）：`formDemo.shared.<部品>.<名前>`
-- 今の `formDemo.i18n.*`（`i18nMessages` のデモ）は、そのまま残す。
-- 辞書は 1 ファイルのままだと大きくなる。デモごとにファイルを分けるかは、実装しながら決める（分けても `en`・`ja` として 1 つにまとめて渡す）。
+- 今の `formDemo.i18n.*`（`i18nMessages` のデモ）は、ほかのデモにそろえて `formDemo.i18nMessages.*` にする。
+- 辞書はデモのファイルごとに分ける（`src/messages/{en,ja}/<file>.ts`。アプリの枠は `app`、共有の部品は `shared`）。`en.ts`・`ja.ts` が 1 つにまとめて渡す。
+- ESLint の `@zodapp/i18n-messages/comment` のための、キーの接頭辞と辞書のファイルの対応は、`eslint.config.js` が `src/messages/ja/` のファイル名から作る。
 
 ### 2.3 データを英語にする
 
@@ -73,12 +74,13 @@ PR #33 で form-demo のヘッダーに言語の切り替え（日本語 / Engli
 
 ### 3.3 meta に `placeholder` を足す（zod-form・zod-form-mantine・zod-form-mantine-lite・zod-form-react）
 
-- `placeholder?: string` を、入力欄を持つ型の meta に足す：`string`・`number`・`bigint`・`date`・`time`・`enum`・`externalKey`。
+- `placeholder?: string` を、入力欄を持つ型の meta に足す：`string`・`number`・`bigint`・`date`・`enum`・`externalKey`。
+  - `time` には足さない。Mantine の TimePicker は時・分の入力が分かれていて、1 つの placeholder を出す所が無いため。
   - 共通の meta（`zodExtendableCommonDefSchema`）には足さない。object・array などに意味が無いため。
 - `TEXT_META_KEYS`（`zod-form-react/src/common/i18n.ts`）に `placeholder` を足し、`msgKey` で書けば訳されるようにする。
 - 各部品が meta の `placeholder` を Mantine の入力に渡す。部品が自分の placeholder（「読み込み中」、enum の選択済みラベルを出す placeholder、複数入力の「入力してEnterで追加」など）を出す所では、部品の placeholder を優先する。
   どの部品のどの状態で meta の値を出すかは、実装で一覧にして確かめる。
-- ドキュメント（`zod-form-mantine/docs/schema-types*.md` の meta の説明）に `placeholder` を足す（英語・日本語の両方）。
+- ドキュメント（`zod-form` の README の meta の説明）に `placeholder` を足す（英語・日本語の両方）。
 
 ### 3.4 テスト
 
@@ -102,6 +104,9 @@ PR #33 で form-demo のヘッダーに言語の切り替え（日本語 / Engli
   - 画面の文字に、訳されていないキー（`formDemo.` で始まる文字列）が出ていない。辞書を `I18nMessagesProvider` に渡し忘れたときもここで分かる。
   - 画面の文字に、日本語が残っていない。ただし、日本の住所のサンプル、言語の違いを見せる値、言語の切り替えの「日本語」、コードのタブは除く。
 - 住所の米国の欄は、`all-pages` でページが開けることだけを確かめる。
+- 見るための部品（`window.__formDemo`）に残るエラーは、訳す前のキーのまま。e2e でエラーを `window.__formDemo` から読む所は、キーで比べる（画面のエラーは訳した文言で比べる）。
+- 実装で分かったこと：英語の画面で、array の table の列見出しが訳されていなかった（`zod-form-mantine` の `array_table`）。あわせて直す。
+- 日本語のまま残してよい値に、カナの読みの欄（`objectLayout` のセイ・メイ）を加える。日本語の名前の読みを入れる欄で、言語の違いを見せる値と同じ扱いにする。
 
 ## 6. 進め方
 
