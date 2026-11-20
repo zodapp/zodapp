@@ -177,4 +177,4 @@ const dynamic = extendCustom(dynamicBase, "dynamic", …);
 - 登録は dynamic の土台の所だけでなく、externalKey（`zf.string()` の欄に、選択肢の schema を登録する）にもあった。その欄の登録が通らずに目印を差し込むと、静的な `z.string()` が目印を型の誤りとして弾き、そのエラーが欄に出た（zod-form-mantine の externalKey のテストで分かった）。
   そこで、評価の `safeParse` に `reportInput: true` を渡し、`input` が目印の issue を「目印を弾いた issue」として捨てる（土台の `params` の印も見る）。`input` は返す issue から外す（今までの issue の形のまま）。
   型の誤りは abort なので、この欄でも親の refine は走らない
-- AutoForm の「検証は通ったのに onSubmit が送らなかった」場合は、`parseIssuesRef` の代わりに、その場で評価して issue があれば止まった理由を出す（検証と同じ評価なので、通常は起きない）
+- AutoForm の「検証は通ったのに onSubmit が送らなかった」場合は、`parseIssuesRef` の代わりに、その場で評価して issue があれば止まった理由を出す（検証と同じ評価なので、通常は起きない）。issue が無くても（呼ぶたびに答えが変わる検査で、評価し直すと通った・onSubmit が呼ばれなかった）、`handleSubmit()` の Promise は `undefined` で決着させる（PR #39 のレビューの指摘）

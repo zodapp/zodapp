@@ -15,6 +15,7 @@ import { MantineProvider } from "@mantine/core";
 import { z } from "zod";
 import { zf, defineDynamicMeta } from "@zodapp/zod-form";
 import { AutoForm } from "./AutoForm";
+import { createAutoFormButtonAction } from "./autoFormActions";
 
 const setupDomMocks = () => {
   if (!window.matchMedia) {
@@ -227,6 +228,67 @@ describe("AutoForm の検証は、送信と同じく dynamic の output を受�
     const blocked = await screen.findByTestId("form-submit-blocked");
     expect(blocked.textContent).toContain("still loading");
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("AutoForm の handleSubmit は、送らなかったときも必ず決着する", () => {
+  beforeEach(() => {
+    setupDomMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  /** 押した後の refine の呼び出しを数え、failAt 回目だけ落とす schema と、handleSubmit を待つボタン */
+  const renderWithCountingRefine = (failAt: number | undefined) => {
+    const state = { armed: false, calls: 0 };
+    const schema = z.object({ name: z.string() }).refine(() => {
+      if (!state.armed) return true;
+      state.calls += 1;
+      return state.calls !== failAt;
+    }, "changes every call");
+    const settled = vi.fn();
+    render(
+      <MantineProvider>
+        <AutoForm
+          schema={schema}
+          defaultValues={{ name: "a" }}
+          actionComponents={[
+            createAutoFormButtonAction<typeof schema>({
+              label: "Run",
+              onClick: async ({ handleSubmit }) => {
+                settled(await handleSubmit());
+              },
+            }),
+          ]}
+        />
+      </MantineProvider>,
+    );
+    const click = async () => {
+      state.armed = true;
+      fireEvent.click(await screen.findByRole("button", { name: "Run" }));
+    };
+    return { state, settled, click };
+  };
+
+  it("検証で通り、送る前の parse で落ち、評価し直すと通るときも、undefined で決着する", async () => {
+    // 落とさずに 1 回送信して、送信 1 回あたりの refine の呼び出し数を数える
+    const probe = renderWithCountingRefine(undefined);
+    await probe.click();
+    await waitFor(() => expect(probe.settled).toHaveBeenCalledTimes(1));
+    expect(probe.settled.mock.calls[0]![0]).toEqual({ name: "a" });
+    const callsPerSubmit = probe.state.calls;
+    cleanup();
+
+    // 最後の呼び出し（送る前の parse）だけを落とす。その後の評価し直しは通る
+    const t = renderWithCountingRefine(callsPerSubmit);
+    await t.click();
+    await waitFor(() => expect(t.settled).toHaveBeenCalledTimes(1));
+    expect(t.settled.mock.calls[0]![0]).toBeUndefined();
+    expect(t.state.calls).toBe(callsPerSubmit + 1);
   });
 });
 

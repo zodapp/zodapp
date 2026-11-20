@@ -229,7 +229,12 @@ const AutoFormInner = <T extends z.ZodTypeAny>({
             if (issues.length > 0) {
               console.warn("[AutoForm] Could not parse the values:", issues);
               block(issues);
+              return;
             }
+            // 評価し直すと通った（呼ぶたびに答えが変わる検査）・onSubmit が呼ばれなかった
+            // （送信中にもう一度押したなど）ときも、待たせずに決着させる
+            pendingSubmitHandlerRef.current = undefined;
+            resolve(undefined);
           }
         })
         .catch(reject);
