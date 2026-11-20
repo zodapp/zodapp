@@ -107,19 +107,23 @@ import { zf } from "@zodapp/zod-form";
 import { zfReact } from "@zodapp/zod-form-react";
 
 export const schema = z.object({
-  unitPrice: zf.number().min(0).register(zf.number.registry, { label: "Unit price" }),
-  quantity: zf.number().min(0).register(zf.number.registry, { label: "Quantity" }),
-  total: zfReact
-    .computed()
-    .register(zf.computed.registry, {
-      label: "Total",
-      dependsOnParent: true,
-      compute: ({ parent }) => {
-        const unitPrice = parent?.unitPrice ?? 0;
-        const quantity = parent?.quantity ?? 0;
-        return `¥${(unitPrice * quantity).toLocaleString()}`;
-      },
-    }),
+  unitPrice: zf
+    .number()
+    .min(0)
+    .register(zf.number.registry, { label: "Unit price" }),
+  quantity: zf
+    .number()
+    .min(0)
+    .register(zf.number.registry, { label: "Quantity" }),
+  total: zfReact.computed().register(zf.computed.registry, {
+    label: "Total",
+    dependsOnParent: true,
+    compute: ({ parent }) => {
+      const unitPrice = parent?.unitPrice ?? 0;
+      const quantity = parent?.quantity ?? 0;
+      return `¥${(unitPrice * quantity).toLocaleString()}`;
+    },
+  }),
 });
 ```
 
@@ -217,7 +221,7 @@ import { ja } from "@zodapp/zod-form-react/messages";
 - `@zodapp/zod-form-mantine`: Mantine UI implementation (includes a `componentLibrary`)
 - `@zodapp/zod-form-dynamodb`: a resolver that reads externalKey options from DynamoDB (`@zodapp/zod-dynamodb`)
 - `@zodapp/zod-form-s3`: a resolver that stores files (`zf.externalFile`) in S3 (server side: `@zodapp/zod-form-s3-node`)
-- Detailed specifications (Japanese): [Passing field errors](docs/errors.ja.md), [Values of zf.dynamic](docs/dynamic.ja.md), ["Touched" and "changed" for container fields](docs/container-touch.ja.md)
+- Detailed specifications: [Passing field errors](docs/errors.md), [Values of zf.dynamic](docs/dynamic.md), ["Touched" and "changed" for container fields](docs/container-touch.md)
 
 ## License
 

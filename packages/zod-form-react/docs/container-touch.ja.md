@@ -1,5 +1,7 @@
 # 入れ物の欄の「触った」「変えた」
 
+[English](container-touch.md)
+
 入れ物（object・intersection・array・record・union）の欄は、TanStack Form では子の欄の「触った」「変えた」を自分のこととして受け取りません。そのままだと、入れ物の path に出るエラー（path を指定しない `.refine()` など）が、送信するまで出ず、子の欄を直しても消えずに送り直せません。そこで、入れ物の部品は子の欄のあとに目印（`ContainerMarker`）を置き、入れ物の欄を触ったこと・変えたことにします。
 
 ## 目印を置く部品

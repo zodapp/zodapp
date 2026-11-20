@@ -1,5 +1,7 @@
 # zod の型ごとの描き方
 
+[English](schema-types.md)
+
 部品は `componentLibrary` から、zf の名前（typeName）で探し、無ければ zod の型の名前（`schema.type`）で探します。どの型も `z.*` と `zf.*` のどちらで書いても同じに動きます。meta が無い（`z.*` で書いた）ときは既定の見た目で描き、meta があれば `label`・`uiType` などを使います。meta の文言は `useResolvedMeta` で読みます（`msgKey` で書いた label を訳すため）。
 
 ## 包む型

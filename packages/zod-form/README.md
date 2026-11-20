@@ -36,10 +36,7 @@ import { zf } from "@zodapp/zod-form";
 const userSchema = z
   .object({
     name: zf.string().register(zf.string.registry, { label: "Name" }),
-    email: zf
-      .string()
-      .email()
-      .register(zf.string.registry, { label: "Email" }),
+    email: zf.string().email().register(zf.string.registry, { label: "Email" }),
     age: zf.number().min(0).register(zf.number.registry, { label: "Age" }),
   })
   .register(zf.object.registry, {});
@@ -77,10 +74,10 @@ const meta = getMeta(schema);
 - A unit finer than the precision can hold would not fit in the value, so an error is thrown at definition time (for example, unit `second` with precision -1, or unit `millisecond` with precision 0)
 - Formats without a precision accept any granularity in Zod, so the unit decides the written form (second if unit is omitted)
 
-| unit                   | `z.iso.datetime()`                                      | `z.iso.datetime({ local: true })` | `z.iso.time()` |
-| ---------------------- | ------------------------------------------------------- | --------------------------------- | -------------- |
-| hour / minute / second | `YYYY-MM-DDTHH:mm:ssZ` (seconds are `00` for minute)    | `YYYY-MM-DDTHH:mm:ss`             | `HH:mm:ss`     |
-| millisecond            | `YYYY-MM-DDTHH:mm:ss.SSSZ`                              | `YYYY-MM-DDTHH:mm:ss.SSS`         | `HH:mm:ss.SSS` |
+| unit                   | `z.iso.datetime()`                                   | `z.iso.datetime({ local: true })` | `z.iso.time()` |
+| ---------------------- | ---------------------------------------------------- | --------------------------------- | -------------- |
+| hour / minute / second | `YYYY-MM-DDTHH:mm:ssZ` (seconds are `00` for minute) | `YYYY-MM-DDTHH:mm:ss`             | `HH:mm:ss`     |
+| millisecond            | `YYYY-MM-DDTHH:mm:ss.SSSZ`                           | `YYYY-MM-DDTHH:mm:ss.SSS`         | `HH:mm:ss.SSS` |
 
 (`hour` is for `zf.time` only)
 
@@ -192,7 +189,7 @@ While there are zero options, for example because an upper field is not selected
 - `@zodapp/zod-form-mantine`: componentLibrary implementation for Mantine UI
 - `@zodapp/zod-form-dynamodb`: a resolver that reads externalKey options from DynamoDB (`@zodapp/zod-dynamodb`)
 - `@zodapp/zod-form-s3`: a resolver that stores files (`zf.externalFile`) in S3 (server side: `@zodapp/zod-form-s3-node`)
-- Detailed specification: [Default values and value adjustment](docs/default-value.ja.md) (Japanese)
+- Detailed specification: [Default values and value adjustment](docs/default-value.md)
 
 ## License
 

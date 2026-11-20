@@ -1,16 +1,18 @@
 # zf.union
 
+[English](union.md)
+
 union の部品は、腕を選ぶ欄（セレクト）と、選んだ腕の欄を出します。discriminatedUnion は選んだ discriminator を、discriminator の無い union は選んだ腕を覚えて描きます。
 
 ## 腕の選び方（discriminator の無い union）
 
 利用者が選んだ腕は、値がまだ検証に通らなくても、そのまま表示し続けます。値が外から変わったとき（フォームのリセット、計算値の書き込みなど）は、覚えている腕と値を次の規則で突き合わせます。
 
-| 値 | 表示する腕 |
-|---|---|
-| 覚えている腕に通る | そのまま（ほかの腕にも通っても切り替えない） |
-| 覚えている腕には通らず、ほかの腕に通る | 通った最初の腕 |
-| どの腕にも通らない | 覚えている腕のまま（入力の途中） |
+| 値                                     | 表示する腕                                   |
+| -------------------------------------- | -------------------------------------------- |
+| 覚えている腕に通る                     | そのまま（ほかの腕にも通っても切り替えない） |
+| 覚えている腕には通らず、ほかの腕に通る | 通った最初の腕                               |
+| どの腕にも通らない                     | 覚えている腕のまま（入力の途中）             |
 
 - 最初の表示では、値に通る最初の腕を選びます。どの腕にも通らなければ、object の腕の literal の欄（`type: z.literal("phone")` など、値が 1 つの `ZodLiteral`）で推定します。literal の欄がすべて一致する腕が 1 つだけならその腕、それ以外は未選択です。途中まで入力して保存したデータを開き直したとき、腕が空欄にならないようにするためです
 - 推定できないときは、値を書き換えずに未選択で開きます
@@ -50,12 +52,12 @@ union の Fieldset とその legend（union のラベル）だけを出しませ
 
 literal の union を enum の代わりに使えます。数値と文字列を混ぜられること、literal ごとにラベルと色を付けられることが、enum に対する利点です。union の部品ではなく、enum と同じ作りの部品で描きます。
 
-| 形 | 書き方 | 部品 |
-|---|---|---|
-| 一つ選ぶ | `zf.union([...literal])` に `uiType: "select"` | `union_select` |
-| 一つ選ぶ・バッジ | 同じく `uiType: "badge"` | `union_badge` |
-| 複数選ぶ | `zf.array(zf.union([...literal]))` に `uiType: "multipleEnum"` | `array_multipleEnum` |
-| 複数選ぶ・バッジ | 同じく `uiType: "multipleEnumBadge"` | `array_multipleEnumBadge` |
+| 形               | 書き方                                                         | 部品                      |
+| ---------------- | -------------------------------------------------------------- | ------------------------- |
+| 一つ選ぶ         | `zf.union([...literal])` に `uiType: "select"`                 | `union_select`            |
+| 一つ選ぶ・バッジ | 同じく `uiType: "badge"`                                       | `union_badge`             |
+| 複数選ぶ         | `zf.array(zf.union([...literal]))` に `uiType: "multipleEnum"` | `array_multipleEnum`      |
+| 複数選ぶ・バッジ | 同じく `uiType: "multipleEnumBadge"`                           | `array_multipleEnumBadge` |
 
 **選択肢と値**
 
@@ -69,13 +71,13 @@ literal の union を enum の代わりに使えます。数値と文字列を�
 
 腕で表せる空の値は、外側の optional・nullable より腕を優先します。undefined の腕があれば外側の optional を、null の腕があれば外側の nullable を、無いものとして扱い、残ったものから × で書く値（`emptyValueOf`）と必須の印を決めます。
 
-| 外側 | 腕 | × | × で書く値 |
-|---|---|---|---|
-| optional | undefined の腕 | 出さない | — |
-| nullable | null の腕 | 出さない | — |
-| optional・nullable | undefined の腕 | 出す | `null` |
-| optional・nullable | null の腕 | 出す | `undefined` |
-| optional・nullable | 両方の腕 | 出さない | — |
+| 外側               | 腕             | ×        | × で書く値  |
+| ------------------ | -------------- | -------- | ----------- |
+| optional           | undefined の腕 | 出さない | —           |
+| nullable           | null の腕      | 出さない | —           |
+| optional・nullable | undefined の腕 | 出す     | `null`      |
+| optional・nullable | null の腕      | 出す     | `undefined` |
+| optional・nullable | 両方の腕       | 出さない | —           |
 
 - 外側に何も無い必須の欄は、enum と同じく × を出します
 - 値が腕の値（undefined・null）なら、その腕が選ばれた表示にします。初期値が無く undefined の腕があれば、最初からその腕が選ばれて見えます

@@ -1,5 +1,7 @@
 # zf.intersection
 
+[English](intersection.md)
+
 `zf.intersection(a, b)`（`z.intersection`・`.and()` も同じ部品で描きます）は、両側が同じ path の値を受け持つので、両側の部品を同じ path に並べて描きます。
 
 ## 描き方
@@ -18,11 +20,11 @@
 
 intersection の中の discriminatedUnion・union が同じ path に出す issue は、次のように出ます。
 
-| 状況 | code | 出す部品 |
-|---|---|---|
-| 値が `undefined`・`null` | `invalid_type` | intersection |
-| 値が object でない | `invalid_type` | intersection |
-| 選んだ腕の、path を指定しない `.refine()` | `custom` | intersection |
+| 状況                                           | code                | 出す部品                 |
+| ---------------------------------------------- | ------------------- | ------------------------ |
+| 値が `undefined`・`null`                       | `invalid_type`      | intersection             |
+| 値が object でない                             | `invalid_type`      | intersection             |
+| 選んだ腕の、path を指定しない `.refine()`      | `custom`            | intersection             |
 | 選んだ腕が strictObject で、知らないキーがある | `unrecognized_keys` | intersection（下の文言） |
 
 - 腕そのもののエラー（腕の object の path を指定しない `.refine()` など）は、zod の issue にどの schema から出たかが残らず、intersection 自身の issue と見分けられません。そのため intersection に出します。腕の中に出したいときは `.refine(..., { path: ["phone"] })` のように欄を指します
