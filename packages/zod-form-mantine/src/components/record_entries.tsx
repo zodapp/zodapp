@@ -18,7 +18,8 @@ import {
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { ownsContainerMarker } from "./container";
 import { FixedKeysRecordComponent } from "./record";
-import { enumeratedRecordKeys } from "@zodapp/zod-form";
+import { enumeratedRecordKeys, partialRecordKeys } from "@zodapp/zod-form";
+import { PartialRecordEntriesComponent } from "./record_partial_entries";
 import { UnsafeRecordEntry } from "../utils/unsafeKey";
 import { ResetLazyDepth } from "@zodapp/zod-form-mantine-lite/baseComponents";
 
@@ -380,6 +381,11 @@ RecordEntriesComponent.displayName = "RecordEntriesComponent";
 const RecordEntriesSwitch = (props: ZodFormProps<RecordSchema>) =>
   enumeratedRecordKeys(props.schema) ? (
     <FixedKeysRecordComponent {...props} />
+  ) : partialRecordKeys(props.schema) ? (
+    // キーが enum・literal の partialRecord は、下でキーを足す形。行の分だけ描くので、lazy の数を数え直す
+    <ResetLazyDepth>
+      <PartialRecordEntriesComponent {...props} />
+    </ResetLazyDepth>
   ) : (
     // 組の分だけ描く（値が無ければ中を描かない）ので、lazy の数を数え直す
     <ResetLazyDepth>

@@ -1,5 +1,5 @@
 import { useResolvedMeta } from "@zodapp/zod-form-react/common";
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import { Fieldset, InputWrapper } from "@mantine/core";
 import z from "zod";
 import {
@@ -11,7 +11,11 @@ import {
   isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
-import { enumeratedRecordKeys, getMeta } from "@zodapp/zod-form";
+import {
+  enumeratedRecordKeys,
+  getMeta,
+  partialRecordKeys,
+} from "@zodapp/zod-form";
 import { useResolveText } from "@zodapp/zod-form-react/common";
 import { FieldContainer, isFlatSchema, ownsContainerMarker } from "./container";
 import { UnsafeKeyNameNotice, UnsafeRecordEntry } from "../utils/unsafeKey";
@@ -28,7 +32,9 @@ const joinFieldPath = (fieldPath: string, key: string) => {
  * キーの決まった record のキーの名前。キーの schema の選択肢に label があればそれを使う
  * （`zf.enum` の literal、literal の union の腕）。無ければキーそのもの
  */
-const keyLabelsOf = (schema: RecordSchema): Map<string, string | undefined> => {
+export const keyLabelsOf = (
+  schema: RecordSchema,
+): Map<string, string | undefined> => {
   const keyType = schema.def.keyType as z.ZodTypeAny;
   const labels = new Map<string, string | undefined>();
   const enumSchemas = (
@@ -63,10 +69,15 @@ const FixedKeysRecordBody = ({
   hideError,
   errorToken,
   keys,
-}: ZodFormInternalProps<RecordSchema> & { keys: string[] }) => {
+  valueSchema: valueSchemaOverride,
+}: ZodFormInternalProps<RecordSchema> & {
+  keys: string[];
+  /** 欄に渡す値の schema（partialRecord では optional にしたもの）。省略すると record の値の schema */
+  valueSchema?: z.ZodTypeAny;
+}) => {
   const meta = useResolvedMeta(schema);
   const resolveText = useResolveText();
-  const valueSchema = schema.def.valueType;
+  const valueSchema = valueSchemaOverride ?? schema.def.valueType;
   const labels = keyLabelsOf(schema);
   const label = labelFromParent ?? meta?.label;
   // entries は固定のキーの見た目に無いので、既定の入れ物にする
@@ -101,7 +112,9 @@ const FixedKeysRecordBody = ({
             outer={undefined}
             readOnly={readOnly}
             label={
-              resolveText(labels.get(key)) ?? getMeta(valueSchema)?.label ?? key
+              resolveText(labels.get(key)) ??
+              getMeta(schema.def.valueType)?.label ??
+              key
             }
           />
         ),
@@ -119,6 +132,52 @@ export const FixedKeysRecordComponent = wrapComponent(
       <FixedKeysRecordBody
         {...props}
         keys={enumeratedRecordKeys(props.schema) ?? []}
+      />
+    );
+  },
+  {
+    isValidating: false,
+    isTouched: false,
+    isDirty: false,
+    invalid: false,
+  },
+);
+
+/** 値が undefined のキーを消した object。消すキーが無ければ undefined */
+export const withoutUndefinedEntries = (
+  value: unknown,
+): Record<string, unknown> | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (!entries.some(([, v]) => v === undefined)) return undefined;
+  return Object.fromEntries(entries.filter(([, v]) => v !== undefined));
+};
+
+/**
+ * キーが enum・literal の `z.partialRecord`（既定の見た目）。
+ * 候補のキーを全部、キーの決まった record と同じ固定の欄で並べ、各欄は値の schema を optional にして描く。
+ * 欄が undefined を書いたら、値に undefined を入れずにキーごと消す
+ * （zod の partialRecord は、値にあるキーの値を値の schema で検証するため）
+ */
+export const PartialFixedKeysRecordComponent = wrapComponent(
+  function PartialFixedKeysRecordComponentImplement(
+    props: ZodFormInternalProps<RecordSchema>,
+  ) {
+    const { field, schema } = props;
+    const valueType = schema.def.valueType as z.ZodTypeAny;
+    const optionalValueSchema = useMemo(
+      () => (valueType.type === "optional" ? valueType : valueType.optional()),
+      [valueType],
+    );
+    const pruned = withoutUndefinedEntries(field.value);
+    useEffect(() => {
+      if (pruned) field.onChange(pruned);
+    }, [pruned, field]);
+    return (
+      <FixedKeysRecordBody
+        {...props}
+        keys={partialRecordKeys(schema) ?? []}
+        valueSchema={optionalValueSchema}
       />
     );
   },
@@ -218,10 +277,15 @@ const RecordComponent = wrapComponent(
 
 RecordComponent.displayName = "RecordComponent";
 
-/** キーを列挙できる record は固定のキーで、それ以外は値にあるキーで描く */
+/**
+ * キーを列挙できる record は固定のキーで、キーが enum・literal の partialRecord は固定のキー＋optional で、
+ * それ以外は値にあるキーで描く
+ */
 const RecordSwitch = (props: ZodFormProps<RecordSchema>) =>
   enumeratedRecordKeys(props.schema) ? (
     <FixedKeysRecordComponent {...props} />
+  ) : partialRecordKeys(props.schema) ? (
+    <PartialFixedKeysRecordComponent {...props} />
   ) : (
     <RecordComponent {...props} />
   );
