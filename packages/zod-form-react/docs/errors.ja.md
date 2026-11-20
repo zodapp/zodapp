@@ -4,7 +4,7 @@
 
 ## 検証の結果を残す
 
-`FormRuntime.validate` は、zod の issue を作り直さずにまるごと残し、一番外の issue の path にだけ前置きを付けます（`{ ...issue, path: [前置き, ...issue.path] }`）。`invalid_union` の `errors` の中の path は、その union の値からの相対のまま残し、union の部品が自分の欄から絶対の path に直します。dynamic の「読み込み中」「取得できませんでした」の issue は、別に作ります。
+`FormRuntime.validate` は、zod の issue を作り直さずにまるごと残し、一番外の issue の path にだけ前置きを付けます（`{ ...issue, path: [前置き, ...issue.path] }`）。`invalid_union` の `errors` の中の path は、その union の値からの相対のまま残し、union の部品が自分の欄から絶対の path に直します。dynamic の「読み込み中」「取得できませんでした」の issue は、別に作ります。評価のために dynamic の所に差し込む目印を弾いた issue は、`invalid_union` の腕の中も含めて捨てます（[dynamic.ja.md](dynamic.ja.md) の「検証と送信する値」）。
 
 ## issue の 3 つの種類
 

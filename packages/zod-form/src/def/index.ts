@@ -469,11 +469,43 @@ const computed = extendCustom(
   schemaType<z.ZodType>(),
 );
 
+/**
+ * フォームの評価（zod-form-react の `FormRuntime.evaluate`）が、決まった schema で通らなかった・
+ * 読み込み中・取得に失敗した dynamic の所に差し込む目印。評価の中で作る値のコピーにだけ入り、
+ * フォームの値・送信する値・サーバーには出ない
+ */
+export const DYNAMIC_UNRESOLVED: unique symbol = Symbol(
+  "zodform.dynamicUnresolved",
+);
+
+/** 目印を弾いた issue の `params` に入る印 */
+const DYNAMIC_UNRESOLVED_PARAM = "dynamicUnresolved";
+
+/**
+ * issue が、目印（{@link DYNAMIC_UNRESOLVED}）を弾いたものか。
+ * dynamic の土台が弾いたもの（`params` の印）と、externalKey のように静的な schema が
+ * dynamic の土台でない欄が目印を弾いたもの（`reportInput` で付く `input` が目印）の両方を見る
+ */
+export const isDynamicUnresolvedIssue = (issue: unknown): boolean =>
+  typeof issue === "object" &&
+  issue !== null &&
+  ((issue as { input?: unknown }).input === DYNAMIC_UNRESOLVED ||
+    (issue as { params?: { zodform?: unknown } }).params?.zodform ===
+      DYNAMIC_UNRESOLVED_PARAM);
+
 // dynamic: { value, parent, context } から、実際に描画・検証する schema を実行時に決める。
 // 土台は z.unknown：静的な schema の parse では何でも通し（値の検証は実行時に決めた schema で行う）、
-// 隣の欄や親の .refine() も走るようにする
+// 隣の欄や親の .refine() も走るようにする。
+// 目印（DYNAMIC_UNRESOLVED）だけは abort で弾く。dynamic が通らなかったときに、zod が子の型が
+// 合わないときと同じく、親の .refine() を走らせないようにするため
+const dynamicBase = () =>
+  z.unknown().refine((value) => value !== DYNAMIC_UNRESOLVED, {
+    abort: true,
+    params: { zodform: DYNAMIC_UNRESOLVED_PARAM },
+  });
+
 const dynamic = extendCustom(
-  z.unknown,
+  dynamicBase,
   "dynamic",
   zodExtendableCommonDefSchema.extend({
     ...fnSourceMetaSchema.shape,
