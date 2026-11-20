@@ -5,7 +5,7 @@ export const en = defineMessages({
   "formDemo.page.dynamicAdvanced.title":
     "zf.dynamic (loading, subscribing, linking)",
   "formDemo.page.dynamicAdvanced.description":
-    'Load a schema from a server (loading, failure, retry), a limit that keeps changing, and the state → city → neighborhood cascade. Changing the form type reloads only the form\'s fields. When a fetch fails, "Retry" appears and submission stops. Changing the state clears the city and the neighborhood in order. Choose when fetches arrive in "Try it"; with the hold mode, advance one fetch at a time with "Deliver" and "Fail"',
+    'Load a schema from the server (loading, failure, retry), a limit that keeps changing, and linked address fields (US: state → city → neighborhood; Japan: prefecture → municipality → town). Changing the form type re-fetches only the form fields. Making a fetch fail shows "Retry" and stops submission. Changing an upper address field clears the lower fields in order. Choose when fetches arrive in "Try it"; with "Hold", advance one fetch at a time with "Deliver" and "Fail"',
   "formDemo.dynamicAdvanced.templateFields.invoice.dueDate": "Due date",
   "formDemo.dynamicAdvanced.templateFields.invoice.amount": "Amount billed",
   "formDemo.dynamicAdvanced.templateFields.invoice": "Invoice fields",
@@ -13,16 +13,9 @@ export const en = defineMessages({
   "formDemo.dynamicAdvanced.templateFields.receipt.note": "Description",
   "formDemo.dynamicAdvanced.templateFields.receipt.reissued": "Reissued",
   "formDemo.dynamicAdvanced.templateFields.receipt": "Receipt fields",
-  "formDemo.dynamicAdvanced.citySchema.resolve.schema": "City",
-  "formDemo.dynamicAdvanced.citySchema.resolve.schema.emptyMessage":
-    "Choose a state first",
-  "formDemo.dynamicAdvanced.townSchema.resolve.schema": "Neighborhood",
-  "formDemo.dynamicAdvanced.townSchema.resolve.schema.emptyMessage":
-    "Choose a city first",
   "formDemo.dynamicAdvanced.template.invoice": "Invoice",
   "formDemo.dynamicAdvanced.template.receipt": "Receipt",
   "formDemo.dynamicAdvanced.template": "Form type",
-  "formDemo.dynamicAdvanced.prefecture": "State",
   "formDemo.dynamicAdvanced.quantity.max": ({ stock }: { stock: string }) =>
     `Exceeds the stock (${stock})`,
   "formDemo.dynamicAdvanced.quantity": ({ stock }: { stock: string }) =>
@@ -36,4 +29,21 @@ export const en = defineMessages({
   "formDemo.dynamicAdvanced.try.rotate": "Change the stock every 3 seconds",
   "formDemo.dynamicAdvanced.try.stock3": "Set the stock to 3",
   "formDemo.dynamicAdvanced.try.stock10": "Set the stock to 10",
+  "formDemo.dynamicAdvanced.addressUs": "Address (US)",
+  "formDemo.dynamicAdvanced.addressUs.state": "State",
+  "formDemo.dynamicAdvanced.addressUs.city": "City",
+  "formDemo.dynamicAdvanced.addressUs.city.emptyMessage":
+    "Select a state first",
+  "formDemo.dynamicAdvanced.addressUs.neighborhood": "Neighborhood",
+  "formDemo.dynamicAdvanced.addressUs.neighborhood.emptyMessage":
+    "Select a city first",
+  "formDemo.dynamicAdvanced.addressJp":
+    "Address (Japan; the options are data, so they stay in Japanese in any language)",
+  "formDemo.dynamicAdvanced.addressJp.prefecture": "Prefecture",
+  "formDemo.dynamicAdvanced.addressJp.city": "Municipality",
+  "formDemo.dynamicAdvanced.addressJp.city.emptyMessage":
+    "Select a prefecture first",
+  "formDemo.dynamicAdvanced.addressJp.town": "Town",
+  "formDemo.dynamicAdvanced.addressJp.town.emptyMessage":
+    "Select a municipality first",
 });

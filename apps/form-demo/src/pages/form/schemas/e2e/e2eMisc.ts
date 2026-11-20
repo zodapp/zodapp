@@ -50,7 +50,7 @@ export const schema = z
 export const defaultValues = {
   size: "s",
   dueDate: new Date("2026-04-01T00:00:00Z"),
-  contactEmail: "yamada@example.com",
+  contactEmail: "alice@example.com",
   colors: ["red"],
 } as z.input<typeof schema>;
 

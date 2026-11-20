@@ -31,6 +31,10 @@ export type FormDemoState = {
   log: (Record<string, unknown> & { type: string; at: number })[];
 };
 
+/** 入力中の値のうち、日本の住所（addressJp）。住所の連動のテストは日本の住所の欄で確かめる */
+export const jpAddress = async (page: Page): Promise<Record<string, unknown>> =>
+  ((await formDemo(page)).values.addressJp ?? {}) as Record<string, unknown>;
+
 /** 見るための部品の中身（window.__formDemo）を読む */
 export const formDemo = async (page: Page): Promise<FormDemoState> => {
   await page.waitForFunction(() => window.__formDemo !== undefined);

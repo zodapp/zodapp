@@ -12,10 +12,8 @@ import {
   type HarnessWrite,
 } from "../../../components/E2eHarness";
 import {
-  cities,
+  addressOptionsOf,
   demoValueActionResolver,
-  prefectures,
-  towns,
 } from "../../../shared/demo/resolvers";
 import {
   FetchControlPanel,
@@ -187,56 +185,88 @@ const quantitySchema = z.number().register(
 );
 
 // ============================================================
-// 3. 親の値で決まる dynamic の連鎖：都道府県 → 市区町村 → 町名
+// 3. 親の値で決まる dynamic の連鎖：州 → 市 → 地区（米国）、都道府県 → 市区町村 → 町名（日本）
 //    上の欄を変えると key が変わって選択肢を取り直し、選択肢に無くなった下の欄が順に消える
 // ============================================================
 
-const citySchema = z.string().register(
-  zf.dynamic.registry,
-  defineDynamicMeta<unknown, { prefecture?: string }>({
-    dependsOnValue: false,
-    dependsOnParent: true,
-    resolve: ({ parent }) => ({
-      key: parent?.prefecture ?? "",
-      schema: zf.string().register(zf.externalKey.registry, {
-        label: msgKey(
-          "formDemo.dynamicAdvanced.citySchema.resolve.schema" /* i18n: 市区町村 */,
-        ),
-        externalKeyConfig: {
-          type: "mock",
-          topic: `cities/${parent?.prefecture ?? ""}`,
-        },
-        // 都道府県が未選択なら選択肢が0件になる。その理由を出す
-        emptyMessage: msgKey(
-          "formDemo.dynamicAdvanced.citySchema.resolve.schema.emptyMessage" /* i18n: 先に都道府県を選んでください */,
-        ),
-      }),
+/** 親の値で topic が変わる外部キー。親が空なら選択肢は 0 件で、emptyMessage で理由を出す */
+const dependentKey = <P extends string>(
+  parentKey: P,
+  topicPrefix: string,
+  label: string,
+  emptyMessage: string,
+) =>
+  z.string().register(
+    zf.dynamic.registry,
+    defineDynamicMeta<unknown, Partial<Record<P, string>>>({
+      dependsOnValue: false,
+      dependsOnParent: true,
+      resolve: ({ parent }) => {
+        const parentValue = parent?.[parentKey] ?? "";
+        return {
+          key: parentValue,
+          schema: zf.string().register(zf.externalKey.registry, {
+            label,
+            externalKeyConfig: {
+              type: "mock",
+              topic: `${topicPrefix}/${parentValue}`,
+            },
+            emptyMessage,
+          }),
+        };
+      },
     }),
-  }),
-);
+  );
 
-const townSchema = z.string().register(
-  zf.dynamic.registry,
-  defineDynamicMeta<unknown, { city?: string }>({
-    dependsOnValue: false,
-    dependsOnParent: true,
-    resolve: ({ parent }) => ({
-      key: parent?.city ?? "",
-      schema: zf.string().register(zf.externalKey.registry, {
-        label: msgKey(
-          "formDemo.dynamicAdvanced.townSchema.resolve.schema" /* i18n: 町名 */,
-        ),
-        externalKeyConfig: {
-          type: "mock",
-          topic: `towns/${parent?.city ?? ""}`,
-        },
-        emptyMessage: msgKey(
-          "formDemo.dynamicAdvanced.townSchema.resolve.schema.emptyMessage" /* i18n: 先に市区町村を選んでください */,
-        ),
-      }),
+// 米国の住所
+const addressUsSchema = z
+  .object({
+    state: zf.string().register(zf.externalKey.registry, {
+      label: msgKey("formDemo.dynamicAdvanced.addressUs.state"),
+      externalKeyConfig: { type: "mock", topic: "states_us" },
     }),
-  }),
-);
+    city: dependentKey(
+      "state",
+      "cities_us",
+      msgKey("formDemo.dynamicAdvanced.addressUs.city"),
+      msgKey("formDemo.dynamicAdvanced.addressUs.city.emptyMessage"),
+    ),
+    neighborhood: dependentKey(
+      "city",
+      "neighborhoods_us",
+      msgKey("formDemo.dynamicAdvanced.addressUs.neighborhood"),
+      msgKey("formDemo.dynamicAdvanced.addressUs.neighborhood.emptyMessage"),
+    ),
+  })
+  .register(zf.object.registry, {
+    label: msgKey("formDemo.dynamicAdvanced.addressUs"),
+    uiType: "box",
+  });
+
+// 日本の住所：別のサンプル。選択肢はデータなので、言語を切り替えても日本語のまま
+const addressJpSchema = z
+  .object({
+    prefecture: zf.string().register(zf.externalKey.registry, {
+      label: msgKey("formDemo.dynamicAdvanced.addressJp.prefecture"),
+      externalKeyConfig: { type: "mock", topic: "prefectures_jp" },
+    }),
+    city: dependentKey(
+      "prefecture",
+      "cities_jp",
+      msgKey("formDemo.dynamicAdvanced.addressJp.city"),
+      msgKey("formDemo.dynamicAdvanced.addressJp.city.emptyMessage"),
+    ),
+    town: dependentKey(
+      "city",
+      "towns_jp",
+      msgKey("formDemo.dynamicAdvanced.addressJp.town"),
+      msgKey("formDemo.dynamicAdvanced.addressJp.town.emptyMessage"),
+    ),
+  })
+  .register(zf.object.registry, {
+    label: msgKey("formDemo.dynamicAdvanced.addressJp"),
+    uiType: "box",
+  });
 
 export const schema = z
   .object({
@@ -260,12 +290,8 @@ export const schema = z
       }),
     templateFields: templateFieldsSchema,
     quantity: quantitySchema,
-    prefecture: zf.string().register(zf.externalKey.registry, {
-      label: msgKey("formDemo.dynamicAdvanced.prefecture" /* i18n: 都道府県 */),
-      externalKeyConfig: { type: "mock", topic: "prefectures" },
-    }),
-    city: citySchema,
-    town: townSchema,
+    addressUs: addressUsSchema,
+    addressJp: addressJpSchema,
   })
   .register(zf.object.registry, {});
 
@@ -273,24 +299,14 @@ export const defaultValues = {
   template: "invoice",
   templateFields: { dueDate: "2026-12-31", amount: 10000 },
   quantity: 2,
-  prefecture: "tokyo",
-  city: "shinjuku",
-  town: "nishi-shinjuku",
+  addressUs: { state: "ca", city: "san-francisco", neighborhood: "mission" },
+  addressJp: { prefecture: "tokyo", city: "shinjuku", town: "nishi-shinjuku" },
 } satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
 
-// 選択肢（都道府県・市区町村・町名）。親が空のとき（`cities/`・`towns/`）は 0 件を届ける
-const optionsOf = (topic: string) => {
-  if (topic === "prefectures") return prefectures;
-  const [kind, name = ""] = topic.split("/");
-  if (kind === "cities") return name ? cities[name] : [];
-  if (kind === "towns") return name ? towns[name] : [];
-  return undefined;
-};
-
 const { resolvers: externalKeyResolvers } =
-  createControlledExternalKeyResolvers(control, optionsOf);
+  createControlledExternalKeyResolvers(control, addressOptionsOf);
 
 // 帳票の種類を、今と違う方に書き込む
 const toggleTemplate: HarnessWrite["run"] = (form) =>

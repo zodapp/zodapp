@@ -23,8 +23,8 @@ const KEEP = "担当者（unlisted: keep";
 
 test.beforeEach(async ({ page }) => {
   await openDemo(page, "externalKeyFilter", "zf.externalKey（絞り込み）");
-  await expect(field(page, ASSIGNEE)).toHaveValue("鈴木 一郎（営業）");
-  await expect(field(page, KEEP)).toHaveValue("鈴木 一郎（営業）");
+  await expect(field(page, ASSIGNEE)).toHaveValue("Carol Davis (Sales)");
+  await expect(field(page, KEEP)).toHaveValue("Carol Davis (Sales)");
 });
 
 test("画面の部署で担当者の一覧が変わり、一覧から外れた値は消える", async ({
@@ -32,14 +32,14 @@ test("画面の部署で担当者の一覧が変わり、一覧から外れた�
   pageErrors: _,
 }) => {
   expect(await optionsOf(page, ASSIGNEE)).toEqual([
-    "山田 太郎（営業）",
-    "鈴木 一郎（営業）",
+    "Alice Johnson (Sales)",
+    "Carol Davis (Sales)",
   ]);
 
   await page.getByText("開発", { exact: true }).first().click();
   await expect
     .poll(() => optionsOf(page, ASSIGNEE))
-    .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）"]);
+    .toEqual(["Bob Smith (Dev)", "Dan Miller (Dev)"]);
   await expect
     .poll(async () => (await previewValue(page)).assignee)
     .toBeUndefined();
@@ -50,9 +50,9 @@ test("担当者を選んでから画面の部署を変えても、同じく消�
   page,
   pageErrors: _,
 }) => {
-  // 初期値（鈴木 一郎）とは別の人を選ぶため、開発の人を選んでから営業に戻す
+  // 初期値（Carol Davis）とは別の人を選ぶため、開発の人を選んでから営業に戻す
   await page.getByText("開発", { exact: true }).first().click();
-  await choose(page, ASSIGNEE, "佐藤 花子（開発）");
+  await choose(page, ASSIGNEE, "Bob Smith (Dev)");
   await expect
     .poll(async () => (await previewValue(page)).assignee)
     .toBe("u-002");
@@ -71,7 +71,7 @@ test("unlisted: keep の欄は、一覧から外れた値を残し、不正な�
   // 一覧に無い値は、選べない選択肢として末尾に出る
   await expect
     .poll(() => optionsOf(page, KEEP))
-    .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）", "（不正な値）"]);
+    .toEqual(["Bob Smith (Dev)", "Dan Miller (Dev)", "（不正な値）"]);
   expect((await previewValue(page)).assigneeKeep).toBe("u-003");
   await expect(field(page, KEEP)).toHaveValue("（不正な値）");
   await expect(
@@ -79,7 +79,7 @@ test("unlisted: keep の欄は、一覧から外れた値を残し、不正な�
   ).toBeVisible();
 
   await page.getByText("営業", { exact: true }).first().click();
-  await expect(field(page, KEEP)).toHaveValue("鈴木 一郎（営業）");
+  await expect(field(page, KEEP)).toHaveValue("Carol Davis (Sales)");
   expect((await previewValue(page)).assigneeKeep).toBe("u-003");
 });
 
@@ -94,7 +94,7 @@ test("レビューする部署を変えると、レビュー担当の選択肢�
     .toBeUndefined();
   await expect
     .poll(() => optionsOf(page, "レビュー担当"))
-    .toEqual(["佐藤 花子（開発）", "田中 次郎（開発）"]);
+    .toEqual(["Bob Smith (Dev)", "Dan Miller (Dev)"]);
 });
 
 // ============================================================
@@ -111,7 +111,7 @@ test.describe("選択肢の届き方", () => {
   test.beforeEach(async ({ page }) => {
     // 開いたときの取得（見やすい遅延）が終わるまで待つ
     await expect(dynamicStatuses(page)).toHaveCount(0);
-    await expect(pills(page, WATCHERS)).toHaveText(["鈴木 一郎（営業）"]);
+    await expect(pills(page, WATCHERS)).toHaveText(["Carol Davis (Sales)"]);
   });
 
   const chooseTeam = async (page: Page, label: "営業" | "開発") => {
@@ -198,7 +198,7 @@ test.describe("選択肢の届き方", () => {
     await expect(field(page, KEEP)).toBeDisabled();
 
     await page.getByRole("button", { name: "選択肢を戻す" }).click();
-    await expect(field(page, KEEP)).toHaveValue("鈴木 一郎（営業）");
+    await expect(field(page, KEEP)).toHaveValue("Carol Davis (Sales)");
     await expect(fieldError(page, KEEP)).toHaveCount(0);
     // clear の欄は、選択肢が戻っても値は戻らない
     expect((await assignees(page))[0]).toBeUndefined();
@@ -244,7 +244,7 @@ test.describe("選択肢の届き方", () => {
       await retry.first().click();
     }
     await expect(retry).toHaveCount(0);
-    await expect(field(page, ASSIGNEE)).toHaveValue("鈴木 一郎（営業）");
+    await expect(field(page, ASSIGNEE)).toHaveValue("Carol Davis (Sales)");
     await submit(page);
     await waitSubmitSettled(page, 2);
     expect((await formDemo(page)).submitted.count).toBe(1);
@@ -282,7 +282,9 @@ test.describe("選択肢の届き方", () => {
     // 部署を戻すと、keep の欄は元の表示に戻り、clear の欄は戻らない
     await setDelayMode(page, "すぐ届く");
     await chooseTeam(page, "営業");
-    await expect(pills(page, WATCHERS_KEEP)).toHaveText(["鈴木 一郎（営業）"]);
+    await expect(pills(page, WATCHERS_KEEP)).toHaveText([
+      "Carol Davis (Sales)",
+    ]);
     await expect(fieldError(page, WATCHERS_KEEP)).toHaveCount(0);
     expect(await watchers(page)).toEqual([undefined, ["u-003"]]);
   });
@@ -304,7 +306,9 @@ test.describe("選択肢の届き方", () => {
     expect((await formDemo(page)).submitted.count).toBe(0);
 
     await page.getByRole("button", { name: "選択肢を戻す" }).click();
-    await expect(pills(page, WATCHERS_KEEP)).toHaveText(["鈴木 一郎（営業）"]);
+    await expect(pills(page, WATCHERS_KEEP)).toHaveText([
+      "Carol Davis (Sales)",
+    ]);
     await expect(fieldError(page, WATCHERS_KEEP)).toHaveCount(0);
     // clear の欄は、選択肢が戻っても値は戻らない
     expect((await watchers(page))[0]).toBeUndefined();
@@ -392,7 +396,7 @@ test.describe("選択肢の届き方", () => {
 
       // 戻すと、keep の欄は元の表示に戻る
       await chooseTeam(page, "営業");
-      await expect(field(page, KEEP)).toHaveValue("鈴木 一郎（営業）");
+      await expect(field(page, KEEP)).toHaveValue("Carol Davis (Sales)");
       expect(await assignees(page)).toEqual([undefined, "u-003"]);
     });
   }

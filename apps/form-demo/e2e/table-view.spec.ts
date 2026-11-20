@@ -14,7 +14,7 @@ test("行の値から計算した小計、通貨で変わる金額、選択肢�
   await expect(row("r1")).toContainText("東京本社");
   await expect(row("r3")).toContainText("closed-branch");
   // 担当は一覧が届くとラベルで出る
-  await expect(row("r1")).toContainText("山田 太郎");
+  await expect(row("r1")).toContainText("Alice Johnson");
   // 小計（単価 × 数量）
   await expect(row("r2")).toContainText("¥5,000");
   // 金額は行の通貨で表示が変わる

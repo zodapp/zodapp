@@ -2,8 +2,9 @@
  * フォームのデモで使う resolver（DB やルーターに依存しないモック）
  *
  * - externalKey: 下のデータを topic（createMockTopic）に入れ、createMockExternalKeyResolver で選択肢として届ける。
- *   都道府県ごとの市区町村は `cities/<都道府県>`、市区町村ごとの町名は `towns/<市区町村>` の topic にする。
- *   親が空のとき（`cities/`・`towns/`）は、空の topic で 0 件の選択肢を届ける（無い topic は失敗になるため）。
+ *   住所の連動は、データの種別ごとにフラットな topic にする。米国は `states_us` → `cities_us/<州>` → `neighborhoods_us/<市>`、
+ *   日本は `prefectures_jp` → `cities_jp/<都道府県>` → `towns_jp/<市区町村>`。
+ *   親が空のとき（`cities_us/`・`towns_jp/` など）は、空の topic で 0 件の選択肢を届ける（無い topic は失敗になるため）。
  *   `members` は部署（team）を持ち、config の filter で絞り込む例に使う。
  *   モックは待たずに届けるので、読み込み中を見せるためにデモの側で包んで遅らせる（withDemoDelay）
  * - valueAction: getActionParams が返す href をリンクにする
@@ -21,32 +22,87 @@ import type { WebExternalKeyConfig } from "../types/externalKeyConfig";
 import { withFetchLog } from "./formDemoLog";
 
 export const users: MockExternalKeyOption[] = [
-  { label: "山田 太郎", value: "u-001" },
-  { label: "佐藤 花子", value: "u-002" },
-  { label: "鈴木 一郎", value: "u-003" },
+  { label: "Alice Johnson", value: "u-001" },
+  { label: "Bob Smith", value: "u-002" },
+  { label: "Carol Davis", value: "u-003" },
 ];
 
 /** メールアドレスを値に持つ利用者（externalKey の土台に z.email() を使う例） */
 export const userEmails: MockExternalKeyOption[] = [
-  { label: "山田 太郎", value: "yamada@example.com" },
-  { label: "佐藤 花子", value: "sato@example.com" },
+  { label: "Alice Johnson", value: "alice@example.com" },
+  { label: "Bob Smith", value: "bob@example.com" },
 ];
 
 /** 部署を持つメンバー。欄に届くのは label と value だけで、team は filter で使う */
 export const members: MockExternalKeyOption[] = [
-  { label: "山田 太郎（営業）", value: "u-001", team: "sales" },
-  { label: "鈴木 一郎（営業）", value: "u-003", team: "sales" },
-  { label: "佐藤 花子（開発）", value: "u-002", team: "dev" },
-  { label: "田中 次郎（開発）", value: "u-004", team: "dev" },
+  { label: "Alice Johnson (Sales)", value: "u-001", team: "sales" },
+  { label: "Carol Davis (Sales)", value: "u-003", team: "sales" },
+  { label: "Bob Smith (Dev)", value: "u-002", team: "dev" },
+  { label: "Dan Miller (Dev)", value: "u-004", team: "dev" },
 ];
 
-export const prefectures: MockExternalKeyOption[] = [
+// ============================================================
+// 住所の連動（米国）：州 → 市 → 地区
+// ============================================================
+
+export const statesUs: MockExternalKeyOption[] = [
+  { label: "California", value: "ca" },
+  { label: "New York", value: "ny" },
+  { label: "Texas", value: "tx" },
+];
+
+export const citiesUs: Record<string, MockExternalKeyOption[]> = {
+  ca: [
+    { label: "Los Angeles", value: "los-angeles" },
+    { label: "San Francisco", value: "san-francisco" },
+    { label: "San Diego", value: "san-diego" },
+  ],
+  ny: [
+    { label: "New York City", value: "new-york-city" },
+    { label: "Buffalo", value: "buffalo" },
+  ],
+  tx: [
+    { label: "Houston", value: "houston" },
+    { label: "Austin", value: "austin" },
+  ],
+};
+
+export const neighborhoodsUs: Record<string, MockExternalKeyOption[]> = {
+  "los-angeles": [
+    { label: "Hollywood", value: "hollywood" },
+    { label: "Venice", value: "venice" },
+  ],
+  "san-francisco": [
+    { label: "Mission District", value: "mission" },
+    { label: "SoMa", value: "soma" },
+  ],
+  "san-diego": [
+    { label: "La Jolla", value: "la-jolla" },
+    { label: "Gaslamp Quarter", value: "gaslamp" },
+  ],
+  "new-york-city": [
+    { label: "Manhattan", value: "manhattan" },
+    { label: "Brooklyn", value: "brooklyn" },
+  ],
+  buffalo: [{ label: "Elmwood Village", value: "elmwood" }],
+  houston: [
+    { label: "Midtown", value: "midtown" },
+    { label: "Montrose", value: "montrose" },
+  ],
+  austin: [{ label: "Downtown", value: "downtown" }],
+};
+
+// ============================================================
+// 住所の連動（日本）：都道府県 → 市区町村 → 町名。言語を切り替えても日本語のまま出すサンプル
+// ============================================================
+
+export const prefecturesJp: MockExternalKeyOption[] = [
   { label: "東京都", value: "tokyo" },
   { label: "大阪府", value: "osaka" },
   { label: "北海道", value: "hokkaido" },
 ];
 
-export const cities: Record<string, MockExternalKeyOption[]> = {
+export const citiesJp: Record<string, MockExternalKeyOption[]> = {
   tokyo: [
     { label: "千代田区", value: "chiyoda" },
     { label: "新宿区", value: "shinjuku" },
@@ -62,7 +118,7 @@ export const cities: Record<string, MockExternalKeyOption[]> = {
   ],
 };
 
-export const towns: Record<string, MockExternalKeyOption[]> = {
+export const townsJp: Record<string, MockExternalKeyOption[]> = {
   chiyoda: [
     { label: "丸の内", value: "marunouchi" },
     { label: "神田", value: "kanda" },
@@ -87,6 +143,27 @@ export const towns: Record<string, MockExternalKeyOption[]> = {
   hakodate: [{ label: "元町", value: "motomachi" }],
 };
 
+/**
+ * 住所の連動の選択肢を topic の名前で引く。親が空のとき（`cities_us/` など）は 0 件、
+ * 住所の topic でなければ undefined
+ */
+export const addressOptionsOf = (
+  topic: string,
+): MockExternalKeyOption[] | undefined => {
+  if (topic === "states_us") return statesUs;
+  if (topic === "prefectures_jp") return prefecturesJp;
+  const [kind, name = ""] = topic.split("/");
+  const table: Record<string, Record<string, MockExternalKeyOption[]>> = {
+    cities_us: citiesUs,
+    neighborhoods_us: neighborhoodsUs,
+    cities_jp: citiesJp,
+    towns_jp: townsJp,
+  };
+  const data = kind === undefined ? undefined : table[kind];
+  if (!data) return undefined;
+  return name ? data[name] : [];
+};
+
 const topicsOf = (
   prefix: string,
   data: Record<string, MockExternalKeyOption[]>,
@@ -102,14 +179,19 @@ export const demoTopics = {
   users: createMockTopic(users),
   members: createMockTopic(members),
   userEmails: createMockTopic(userEmails),
-  prefectures: createMockTopic(prefectures),
   // 当番。デモの画面のボタンで届け直す（購読の更新を見るため）
   onDuty: createMockTopic(users),
-  ...topicsOf("cities", cities),
-  ...topicsOf("towns", towns),
+  states_us: createMockTopic(statesUs),
+  ...topicsOf("cities_us", citiesUs),
+  ...topicsOf("neighborhoods_us", neighborhoodsUs),
+  prefectures_jp: createMockTopic(prefecturesJp),
+  ...topicsOf("cities_jp", citiesJp),
+  ...topicsOf("towns_jp", townsJp),
   // 親が空のときの topic。0 件の選択肢を届け、欄に「選択肢がありません」（emptyMessage）を出す
-  "cities/": createMockTopic<MockExternalKeyOption[]>([]),
-  "towns/": createMockTopic<MockExternalKeyOption[]>([]),
+  "cities_us/": createMockTopic<MockExternalKeyOption[]>([]),
+  "neighborhoods_us/": createMockTopic<MockExternalKeyOption[]>([]),
+  "cities_jp/": createMockTopic<MockExternalKeyOption[]>([]),
+  "towns_jp/": createMockTopic<MockExternalKeyOption[]>([]),
 };
 
 /**

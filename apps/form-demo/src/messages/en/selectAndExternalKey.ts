@@ -4,7 +4,6 @@ import { defineMessages } from "@zodapp/i18n-messages";
 export const en = defineMessages({
   "formDemo.page.selectAndExternalKey.description":
     "Choose a person in charge or an office from a list: handling values not in the list, waiting until the list arrives, handling the list when it arrives again, and links to the detail page of the chosen value",
-  "formDemo.selectAndExternalKey.citySchema.resolve.schema": "City",
   "formDemo.selectAndExternalKey.officeLegacy":
     'string + uiType: "select" (saved values not in the options pass as is)',
   "formDemo.selectAndExternalKey.status.open": "In progress",
@@ -19,7 +18,6 @@ export const en = defineMessages({
     "On duty (default clear; when the chosen person drops out of the options the value is removed, and it does not come back)",
   "formDemo.selectAndExternalKey.onDutyKeep":
     'On duty (unlisted: keep; when the value drops out it is kept with the error "(Invalid value)", and returns to the original display when it comes back)',
-  "formDemo.selectAndExternalKey.prefecture": "State",
   "formDemo.selectAndExternalKey.try.heading":
     'Re-deliver the on-duty options (the two "On duty" fields subscribe to the same topic)',
   "formDemo.selectAndExternalKey.try.all": "Re-deliver everyone",
@@ -27,4 +25,11 @@ export const en = defineMessages({
     `Re-deliver without ${name}`,
   "formDemo.selectAndExternalKey.try.rotate":
     "Re-deliver every 5 seconds, removing one person at a time",
+  "formDemo.selectAndExternalKey.addressUs": "Address (US)",
+  "formDemo.selectAndExternalKey.addressUs.state": "State",
+  "formDemo.selectAndExternalKey.addressUs.city": "City",
+  "formDemo.selectAndExternalKey.addressJp":
+    "Address (Japan; the options are data, so they stay in Japanese in any language)",
+  "formDemo.selectAndExternalKey.addressJp.prefecture": "Prefecture",
+  "formDemo.selectAndExternalKey.addressJp.city": "Municipality",
 });

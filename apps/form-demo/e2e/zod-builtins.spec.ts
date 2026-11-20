@@ -1,11 +1,4 @@
-import {
-  expect,
-  field,
-  openDemo,
-  optionsOf,
-  choose,
-  test,
-} from "./helpers";
+import { expect, field, openDemo, optionsOf, choose, test } from "./helpers";
 
 // zod の型をそのまま使う：zf を使わずに書いた型の表示
 test.beforeEach(async ({ page }) => {
@@ -53,13 +46,11 @@ test("Map のキーと値を描き、値を書き換えると Map に書く", as
 });
 
 test("ファイルを選ぶと File を書く", async ({ page, pageErrors: _ }) => {
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "memo.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("hello"),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "memo.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("hello"),
+  });
   await expect
     .poll(() => readValue<string>(page, "return values.attachment?.name"))
     .toBe("memo.txt");
@@ -85,7 +76,10 @@ test("optional な再帰は、深くしても上限の注記を出さずに全�
   await inputWithValue(page, "その1").fill("その2");
   await expect
     .poll(() =>
-      readValue<string>(page, "return values.outline.child.child.child.child.name"),
+      readValue<string>(
+        page,
+        "return values.outline.child.child.child.child.name",
+      ),
     )
     .toBe("その2");
 });

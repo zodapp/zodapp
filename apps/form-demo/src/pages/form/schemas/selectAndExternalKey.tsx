@@ -36,29 +36,35 @@ const openUser = {
 };
 
 /**
- * 市区町村：親の都道府県で config が変わる外部キー。
+ * 親の値で config が変わる外部キー（州 → 市、都道府県 → 市区町村）。
  * config はただのデータなので、親の値で変えるときは dynamic で包んで externalKey の schema を返す。
- * 都道府県を変えると key が変わって選択肢を取り直し、新しい選択肢に無い市区町村は消える（unlisted の既定 clear）。
+ * 親を変えると key が変わって選択肢を取り直し、新しい選択肢に無い値は消える（unlisted の既定 clear）。
  */
-const citySchema = z.string().register(
-  zf.dynamic.registry,
-  defineDynamicMeta<unknown, { prefecture?: string }>({
-    dependsOnValue: false,
-    dependsOnParent: true,
-    resolve: ({ parent }) => ({
-      key: parent?.prefecture ?? "",
-      schema: zf.string().register(zf.externalKey.registry, {
-        label: msgKey(
-          "formDemo.selectAndExternalKey.citySchema.resolve.schema" /* i18n: 市区町村 */,
-        ),
-        externalKeyConfig: {
-          type: "mock",
-          topic: `cities/${parent?.prefecture ?? ""}`,
-        },
-      }),
+const dependentKey = <P extends string>(
+  parentKey: P,
+  topicPrefix: string,
+  label: string,
+) =>
+  z.string().register(
+    zf.dynamic.registry,
+    defineDynamicMeta<unknown, Partial<Record<P, string>>>({
+      dependsOnValue: false,
+      dependsOnParent: true,
+      resolve: ({ parent }) => {
+        const parentValue = parent?.[parentKey] ?? "";
+        return {
+          key: parentValue,
+          schema: zf.string().register(zf.externalKey.registry, {
+            label,
+            externalKeyConfig: {
+              type: "mock",
+              topic: `${topicPrefix}/${parentValue}`,
+            },
+          }),
+        };
+      },
     }),
-  }),
-);
+  );
 
 export const schema = z
   .object({
@@ -69,8 +75,8 @@ export const schema = z
       label: 'string + uiType: "select" + valueAction',
       uiType: "select",
       suggestions: [
-        { label: "東京本社", value: "hq" },
-        { label: "大阪支社", value: "osaka" },
+        { label: "New York headquarters", value: "hq" },
+        { label: "Chicago office", value: "chicago" },
       ],
       valueAction: openOffice,
     }),
@@ -80,8 +86,8 @@ export const schema = z
       ),
       uiType: "select",
       suggestions: [
-        { label: "東京本社", value: "hq" },
-        { label: "大阪支社", value: "osaka" },
+        { label: "New York headquarters", value: "hq" },
+        { label: "Chicago office", value: "chicago" },
       ],
     }),
     // ============================================================
@@ -151,13 +157,40 @@ export const schema = z
     // ============================================================
     // 親の値で選択肢を変える externalKey（dynamic で包む）
     // ============================================================
-    prefecture: zf.string().register(zf.externalKey.registry, {
-      label: msgKey(
-        "formDemo.selectAndExternalKey.prefecture" /* i18n: 都道府県 */,
-      ),
-      externalKeyConfig: { type: "mock", topic: "prefectures" },
-    }),
-    city: citySchema,
+    // 米国の住所：州を変えると、新しい選択肢に無い市が消える
+    addressUs: z
+      .object({
+        state: zf.string().register(zf.externalKey.registry, {
+          label: msgKey("formDemo.selectAndExternalKey.addressUs.state"),
+          externalKeyConfig: { type: "mock", topic: "states_us" },
+        }),
+        city: dependentKey(
+          "state",
+          "cities_us",
+          msgKey("formDemo.selectAndExternalKey.addressUs.city"),
+        ),
+      })
+      .register(zf.object.registry, {
+        label: msgKey("formDemo.selectAndExternalKey.addressUs"),
+        uiType: "box",
+      }),
+    // 日本の住所：別のサンプル。選択肢はデータなので、言語を切り替えても日本語のまま
+    addressJp: z
+      .object({
+        prefecture: zf.string().register(zf.externalKey.registry, {
+          label: msgKey("formDemo.selectAndExternalKey.addressJp.prefecture"),
+          externalKeyConfig: { type: "mock", topic: "prefectures_jp" },
+        }),
+        city: dependentKey(
+          "prefecture",
+          "cities_jp",
+          msgKey("formDemo.selectAndExternalKey.addressJp.city"),
+        ),
+      })
+      .register(zf.object.registry, {
+        label: msgKey("formDemo.selectAndExternalKey.addressJp"),
+        uiType: "box",
+      }),
   })
   .register(zf.object.registry, {});
 
@@ -170,8 +203,8 @@ export const defaultValues = {
   slowAssignee: "u-002",
   onDuty: "u-002",
   onDutyKeep: "u-002",
-  prefecture: "tokyo",
-  city: "shinjuku",
+  addressUs: { state: "ca", city: "san-francisco" },
+  addressJp: { prefecture: "tokyo", city: "shinjuku" },
 } satisfies z.input<typeof schema>;
 
 export type SchemaType = z.infer<typeof schema>;
