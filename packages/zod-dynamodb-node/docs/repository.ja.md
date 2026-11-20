@@ -1,5 +1,7 @@
 # Repository
 
+[English](repository.md)
+
 ## 役割
 
 バックエンド用のRepository（`@zodapp/zod-dynamodb-node`）は、ExpressミドルウェアやRealtime Gatewayの有無にかかわらず、DynamoDBに対する型安全な操作の中核となる。次の機能を担う。
@@ -33,14 +35,14 @@ const repository = createRepository({
 
 ほかのオプションは次のとおり。
 
-| オプション | 内容 |
-|---|---|
-| `tableNames` | 物理レイアウトの名前を実際のテーブル名に読み替える（環境ごとの接頭辞など） |
-| `cursorSecret` | ページのトークンの署名に使う秘密の値 |
+| オプション                     | 内容                                                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `tableNames`                   | 物理レイアウトの名前を実際のテーブル名に読み替える（環境ごとの接頭辞など）                                             |
+| `cursorSecret`                 | ページのトークンの署名に使う秘密の値                                                                                   |
 | `listener` / `onListenerError` | 変更の受け取り手（[変更イベントの生成](../../zod-dynamodb/docs/realtime.ja.md)）と、そこでのエラー（既定はログに出す） |
-| `resolveVectorConfig` | ベクトル検索の実行時の設定を引く関数（[ベクトル検索](vector-search.ja.md)） |
-| `maxRetries` | `version` の不一致による再試行の上限（既定 5。[書き込み](writes.ja.md)） |
-| `invalidItems` | 保存データがitemのSchemaでparseできないときの扱い（[名前付きクエリ](queries.ja.md)） |
+| `resolveVectorConfig`          | ベクトル検索の実行時の設定を引く関数（[ベクトル検索](vector-search.ja.md)）                                            |
+| `maxRetries`                   | `version` の不一致による再試行の上限（既定 5。[書き込み](writes.ja.md)）                                               |
+| `invalidItems`                 | 保存データがitemのSchemaでparseできないときの扱い（[名前付きクエリ](queries.ja.md)）                                   |
 
 操作の例：
 

@@ -1,5 +1,7 @@
 # 名前付きクエリと読み取り
 
+[English](queries.md)
+
 ## 名前付きクエリ
 
 DynamoDBでは、任意のフィールドを自由に検索できるわけではない。
@@ -25,7 +27,10 @@ export const taskOps = createOps(tasks, (o) => ({
 
   byAssignee: o.query({
     index: "byAssignee",
-    params: z.object({ workspaceId: z.string(), assignee: z.string().nullable() }),
+    params: z.object({
+      workspaceId: z.string(),
+      assignee: z.string().nullable(),
+    }),
     authorize: (ctx, { params }) => ctx.workspaces.includes(params.workspaceId),
     select: "projection", // 射影だけを返す
     where: (p) => ({
@@ -58,11 +63,11 @@ export const taskOps = createOps(tasks, (o) => ({
 
 `select` で、全体を返すか射影だけを返すかを選ぶ。既定は全体である。
 
-| スロットの射影 | `select: "full"`（既定） | `select: "projection"` |
-|---|---|---|
-| `ALL` | Queryの結果をそのまま返す | 全体と同じ |
-| `KEYS_ONLY` | Queryの後にBatchGetItemで本体を取得する | ベーステーブルのキーとIndexのキーを逆算して返す |
-| `INCLUDE` | Queryの後にBatchGetItemで本体を取得する | 逆算したキーと射影された属性を返す |
+| スロットの射影 | `select: "full"`（既定）                | `select: "projection"`                          |
+| -------------- | --------------------------------------- | ----------------------------------------------- |
+| `ALL`          | Queryの結果をそのまま返す               | 全体と同じ                                      |
+| `KEYS_ONLY`    | Queryの後にBatchGetItemで本体を取得する | ベーステーブルのキーとIndexのキーを逆算して返す |
+| `INCLUDE`      | Queryの後にBatchGetItemで本体を取得する | 逆算したキーと射影された属性を返す              |
 
 射影だけを返す場合の型は、itemのvariantごとの `Pick` である。
 

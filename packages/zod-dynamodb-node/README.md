@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Builds a repository that operates on DynamoDB, and the server API, from the table definitions of `@zodapp/zod-dynamodb` (the specifications are in [docs/](docs/), in Japanese).
+Builds a repository that operates on DynamoDB, and the server API, from the table definitions of `@zodapp/zod-dynamodb` (the specifications are in [docs/](docs/)).
 
 ```ts
 const repository = createRepository({

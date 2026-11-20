@@ -1,5 +1,7 @@
 # 書き込み
 
+[English](writes.md)
+
 ## 更新処理
 
 ### 方針
@@ -142,7 +144,9 @@ Repositoryは、Itemが存在しない場合（`ItemNotFoundError`）と、条�
 ```ts
 const { item, token } = await repository.tasks.get(key, { withToken: true });
 // …フォームで編集…
-await repository.tasks.mutate(taskOps.rename, key, params, { ifUnchanged: token });
+await repository.tasks.mutate(taskOps.rename, key, params, {
+  ifUnchanged: token,
+});
 ```
 
 - トークンには `version` を入れ、カーソル（[ページネーション](queries.ja.md)）と同じくHMACで署名する
@@ -176,9 +180,15 @@ DynamoDBには、読み取りと書き込みを一つにまとめる対話型の
 ```ts
 // 読み取りと書き込み（Firestore の transaction に相当）
 await repository.runTransaction(async (tx) => {
-  const parent = await repository.parents.withContext({ runner: tx }).get(parentKey);
-  await repository.versions.withContext({ runner: tx }).create(versionKey, input);
-  await repository.parents.withContext({ runner: tx }).update(parentKey, { latest: versionId });
+  const parent = await repository.parents
+    .withContext({ runner: tx })
+    .get(parentKey);
+  await repository.versions
+    .withContext({ runner: tx })
+    .create(versionKey, input);
+  await repository.parents
+    .withContext({ runner: tx })
+    .update(parentKey, { latest: versionId });
 });
 
 // 書き込みだけ（Firestore の batch に相当）
@@ -190,14 +200,14 @@ await batch.commit();
 
 runnerに結び付けたアクセサで使える操作と、`TransactWriteItems` への変換は次のとおり。
 
-| 操作 | 変換 | Before |
-|---|---|---|
-| `create(key, input)` | Put（`attribute_not_exists`） | なし（`null`） |
-| `set(key, input)` | Put（置換）。全体を `item` で検証する | 事前に読む |
-| `update(key, patch)` / ミューテーション | Update（「書き込み」の差分更新） | 事前に読む |
-| `delete(key)` | Delete | 事前に読む |
-| `check(key, where)` | ConditionCheck。書き込まない | 読まない |
-| `get(key)`（transactionのみ） | 書き込まないItemはConditionCheck（`_version`） | 読んだ内容 |
+| 操作                                    | 変換                                           | Before         |
+| --------------------------------------- | ---------------------------------------------- | -------------- |
+| `create(key, input)`                    | Put（`attribute_not_exists`）                  | なし（`null`） |
+| `set(key, input)`                       | Put（置換）。全体を `item` で検証する          | 事前に読む     |
+| `update(key, patch)` / ミューテーション | Update（「書き込み」の差分更新）               | 事前に読む     |
+| `delete(key)`                           | Delete                                         | 事前に読む     |
+| `check(key, where)`                     | ConditionCheck。書き込まない                   | 読まない       |
+| `get(key)`（transactionのみ）           | 書き込まないItemはConditionCheck（`_version`） | 読んだ内容     |
 
 - **Before / After**：`set` / `update` / `delete` の対象は、ライブラリが強い整合性で事前に読み、その `_version` を条件に付ける。変更イベントのBeforeはこの読み取り結果、AfterはそれにJS上で変更を適用したもの（`set` では書き込む内容そのもの）とする。`create` はItemが存在しないことを条件にするので、Beforeは `null` である
 - **transactionの読み取り**：`runTransaction` の中で `get` したItemはすべて記録する。書き込んだItemには `_version` の条件を付け、読んだだけのItemは `ConditionCheck`（`_version` の一致）にする。どれかの条件が成り立たなければ、`fn` を最初からやり直す。「読んだものが変わっていればやり直す」という、Firestoreのtransactionと同じ意味になる。読み取りは書き込みより前に行う
