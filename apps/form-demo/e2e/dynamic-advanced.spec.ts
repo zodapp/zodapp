@@ -18,8 +18,10 @@ import {
 } from "./helpers";
 
 // 見るための部品に残るエラーは、訳す前のメッセージキー（画面には訳して出す）
-const CITY_EMPTY_KEY = "formDemo.dynamicAdvanced.addressJp.city.emptyMessage";
-const TOWN_EMPTY_KEY = "formDemo.dynamicAdvanced.addressJp.town.emptyMessage";
+const CITY_EMPTY_KEY =
+  "formDemo.dynamicAdvanced.addressJp.city.emptyMessage"; /* i18n: 先に都道府県を選んでください */
+const TOWN_EMPTY_KEY =
+  "formDemo.dynamicAdvanced.addressJp.town.emptyMessage"; /* i18n: 先に市区町村を選んでください */
 
 // zf.dynamic（読み込み・購読・連動）
 test.beforeEach(async ({ page }) => {

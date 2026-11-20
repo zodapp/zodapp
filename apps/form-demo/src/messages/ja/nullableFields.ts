@@ -18,4 +18,5 @@ export const ja = {
   "formDemo.nullableFields.nullableDetail": "詳細（nullable）",
   "formDemo.nullableFields.optionalDetail.memo": "メモ",
   "formDemo.nullableFields.optionalDetail": "補足（optional）",
+  "formDemo.page.nullableFields.title": "nullable・optional",
 } satisfies MessagesOf<typeof en>;

@@ -31,4 +31,5 @@ export const ja = {
   "formDemo.literalUnionSelect.answerNullable": "回答（nullable・null の腕）",
   "formDemo.literalUnionSelect.answerBoth":
     "回答（optional・nullable・null の腕）",
+  "formDemo.page.literalUnionSelect.title": "zf.union（literal）",
 } satisfies MessagesOf<typeof en>;

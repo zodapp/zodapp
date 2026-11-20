@@ -30,4 +30,5 @@ export const en = defineMessages({
   "formDemo.literalUnionSelect.answerNullable": "Answer (nullable, null arm)",
   "formDemo.literalUnionSelect.answerBoth":
     "Answer (optional, nullable, null arm)",
+  "formDemo.page.literalUnionSelect.title": "zf.union (literal)",
 });

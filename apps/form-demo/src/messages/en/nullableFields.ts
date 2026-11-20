@@ -17,4 +17,5 @@ export const en = defineMessages({
   "formDemo.nullableFields.nullableDetail": "Details (nullable)",
   "formDemo.nullableFields.optionalDetail.memo": "Memo",
   "formDemo.nullableFields.optionalDetail": "Supplement (optional)",
+  "formDemo.page.nullableFields.title": "nullable / optional",
 });

@@ -37,6 +37,15 @@ pnpm --filter form-demo e2e
 E2E lives in `e2e/`, with one spec per demo page. A spec's steps are the same as the steps to open that page and try it.
 `all-pages.spec.ts` checks that every page in the sidebar and every e2e page opens without exceptions.
 
+### Screen text and the language switcher
+
+Every text shown on screen follows the language switcher, so it is written as a dictionary key with both `en` and `ja`.
+
+- App text (headings, descriptions, buttons, `TryBehavior` descriptions) uses `useMsg()` / `msg.resolve()`. Form contents (labels, options, errors, placeholders, string values of computed and formatters) use `msgKey(...)`. Running `pnpm exec eslint --fix src` inserts the `/* i18n: … */` comments
+- The dictionaries are `src/messages/{en,ja}/<file>.ts`, one file per demo file (the key prefix is `formDemo.<file>.` and `formDemo.page.<file>.`). `en.ts` / `ja.ts` collect them, and `eslint.config.js` maps prefixes to files
+- Data (initial values, suggestions, externalKey options) is not translated. Write it in English, except values that show language differences and the Japanese address sample (`prefectures_jp` → `cities_jp/<prefecture>` → `towns_jp/<city>`)
+- e2e opens pages in `ja` (the default). `all-pages.spec.ts` also switches to `en` and checks that no page shows an untranslated `formDemo.` key or leftover Japanese
+
 - The port can be changed with `E2E_PORT` (3000 by default). Use it to separate working copies, so as not to test against another working copy's dev server (e.g. `E2E_PORT=3100 pnpm --filter form-demo e2e`)
 
 ### Where e2e cases go
@@ -44,7 +53,7 @@ E2E lives in `e2e/`, with one spec per demo page. A spec's steps are the same as
 What you want to check with e2e goes on the demo page it overlaps with (a demo shown in the menu), and the e2e is written against it. When an e2e test fails, you can open the same URL and try the same steps by hand.
 
 - If fields are missing, add them to that demo
-- Operations that cause behavior from outside the form, such as choosing how to split delays, "deliver" and "fail" for a held fetch, and buttons that re-deliver options, are grouped in the 「動きを試す」 (try it) section (`src/shared/demo/TryBehavior.tsx`). Descriptions are written in Japanese that people can read and understand
+- Operations that cause behavior from outside the form, such as choosing how to split delays, "deliver" and "fail" for a held fetch, and buttons that re-deliver options, are grouped in the 「動きを試す」 (try it) section (`src/shared/demo/TryBehavior.tsx`). Descriptions are written so that people can read and understand them
 - The default when a person opens the page stays the demo's easy-to-watch behavior (delays in ms, etc.). Tests first choose how to split in 「動きを試す」 and then proceed
 
 #### e2e pages (only for what does not suit a demo)
