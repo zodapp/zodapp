@@ -10,7 +10,7 @@ import {
   wrapComponent,
   isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
-import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { containerWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import {
   enumeratedRecordKeys,
   getMeta,
@@ -260,7 +260,7 @@ const RecordComponent = wrapComponent(
         required={undefined}
         error={error?.message}
         labelElement="div"
-        style={inputWrapperStyle}
+        style={containerWrapperStyle(label)}
       >
         {fieldsComponent}
         {marker}
