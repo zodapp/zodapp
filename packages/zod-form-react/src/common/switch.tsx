@@ -61,8 +61,10 @@ export const Switch: ZodForm = (props: ZodFormProps) => {
  * schema で描画する。preprocess に付けた meta は中の schema に移す。
  */
 const PreprocessSwitch = (props: ZodFormProps) => {
-  const { schema, fieldPath, defaultValue, value } = props;
-  // form を使わない部品（reactive・表）では form が無い。そのときは value をそろえるだけにする
+  const { schema, fieldPath, defaultValue } = props;
+  // form を使わない部品（reactive・表）では form が無い。そのときは何もそろえず、value をそのまま渡す。
+  // value をここでそろえると、ReactiveAutoForm の既定値の補い（getDefaultValue が preprocess を通す）と
+  // 合わせて 2 回かかり、冪等でない preprocess で値が変わる
   const form = useOptionalFormApi();
   const displaySchema = useMemo(() => stripPreprocess(schema), [schema]);
   const normalizedDefaultValue = useMemo(
@@ -71,12 +73,6 @@ const PreprocessSwitch = (props: ZodFormProps) => {
         ? undefined
         : normalizePreprocessValue(schema, defaultValue),
     [schema, defaultValue],
-  );
-  // form を使わない部品が表示する値も、同じようにそろえる
-  const normalizedValue = useMemo(
-    () =>
-      value === undefined ? undefined : normalizePreprocessValue(schema, value),
-    [schema, value],
   );
 
   useEffect(() => {
@@ -112,7 +108,6 @@ const PreprocessSwitch = (props: ZodFormProps) => {
       {...props}
       schema={displaySchema}
       defaultValue={normalizedDefaultValue}
-      value={normalizedValue}
       // preprocess の pipe 自体に付いた検査（.refine() など）を、内の dynamic が包み直せるように渡す
       outer={addOuter(props.outer, schema)}
     />

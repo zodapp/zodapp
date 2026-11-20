@@ -50,7 +50,8 @@ AutoForm は、外からデータ（`defaultValues`）が来たときに一度�
 ### 3.1 zod-form-react
 
 - `utils/type.ts`：`value?: unknown` を足し、`defaultValue` の説明を「新しく値を作るときの初期値（form を使う部品）」に直す
-- `common/switch.tsx` の PreprocessSwitch：今 `defaultValue` に行っている preprocess のそろえを、`value` にも行う
+- `common/switch.tsx` の PreprocessSwitch：form が無いところ（form を使わない部品）でも描けるようにし、`value` には手を付けずに渡す。
+  `value` もそろえると、ReactiveAutoForm の既定値の補い（`getDefaultValue` が preprocess を通す）と合わせて 2 回かかり、冪等でない preprocess で値が変わる（PR #40 のレビュー）
 - `common/fnInput.tsx` の `useTableFnInput`：呼ぶ側が `value` を渡すようにする（引数は今のまま）
 
 ### 3.2 値を渡す側
@@ -81,7 +82,7 @@ AutoForm は、外からデータ（`defaultValues`）が来たときに一度�
 - 既存の reactiveComponents・tableComponents・ReactiveAutoForm・AutoTable のテストで、`defaultValue` で値を渡しているところを `value` に直す
 - 足すテスト
   - form を使わない部品で、`.optional()`・`.nullable()`・`.default()` の包みを通っても `value` がそのまま届く
-  - preprocess の欄で、`value` がそろえられて表示される
+  - preprocess の欄で、`value` に手を付けずに渡す。ReactiveAutoForm では preprocess が 1 回だけかかる
   - ReactiveAutoForm：値が undefined の `.default("x")` の欄に x が出る。外の `values` が変わると補い直す。
     確定しても、触っていない default の欄は `onConfirm` に出ない
   - ReactiveAutoForm：補えない schema（optional の付かない z.lazy の再帰）でも描ける

@@ -56,13 +56,11 @@ describe("form を使わない部品の value", () => {
     expect(seen.at(-1)?.value).toBeUndefined();
   });
 
-  it("preprocess の欄では、value をそろえてから渡す（form が無くても描ける）", () => {
-    const schema = z.preprocess(
-      (v) => (typeof v === "number" ? String(v) : v),
-      zf.string(),
-    );
-    renderValue(schema, 12);
-    expect(seen.at(-1)?.value).toBe("12");
+  it("preprocess の欄では、value に手を付けずに渡す（form が無くても描ける）", () => {
+    // そろえるのは ReactiveAutoForm の既定値の補い（getDefaultValue）の 1 回だけ
+    const schema = z.preprocess((v) => Number(v) * 1000, zf.string());
+    renderValue(schema, 2);
+    expect(seen.at(-1)?.value).toBe(2);
   });
 
   it("object は子に value の一部を渡す", () => {

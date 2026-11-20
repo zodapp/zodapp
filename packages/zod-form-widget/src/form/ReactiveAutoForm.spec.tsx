@@ -120,4 +120,19 @@ describe("ReactiveAutoForm の values", () => {
     );
     expect((await inputOf("Root")).value).toBe("r");
   });
+
+  it("preprocess は 1 回だけかける（冪等でない preprocess でも値が変わらない）", async () => {
+    const withPreprocess = z.object({
+      n: z.preprocess(
+        (v) => (typeof v === "number" ? v * 1000 : v),
+        zf.number().register(zf.number.registry, { label: "N" }),
+      ),
+    });
+    render(
+      <MantineProvider>
+        <ReactiveAutoForm schema={withPreprocess} values={{ n: 2 }} />
+      </MantineProvider>,
+    );
+    expect((await inputOf("N")).value).toBe("2000");
+  });
 });
