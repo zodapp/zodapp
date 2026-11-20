@@ -1,5 +1,7 @@
 # @zodapp/zod-dynamodb-realtime
 
+[English](README.md)
+
 Realtime Gateway です。WebSocket で Client の購読を受け、配送基盤（MQTT など）のトピックを購読して、範囲の条件に合う変更だけを Client に送ります（仕様は [Realtime Gateway](docs/gateway.ja.md) と [リアルタイムの配信](../zod-dynamodb/docs/realtime.ja.md)）。
 
 公開する購読は、登録簿でクエリに `live` を付けたものです。購読の名前は「グループ名.操作の名前」（`tasks.byStatus`）になります。

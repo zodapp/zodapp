@@ -1,5 +1,7 @@
 # @zodapp/zod-dynamodb
 
+[English](README.md)
+
 Zodで定義したTable定義を基点に、DynamoDBを型安全に扱うための共通定義です。ブラウザとサーバーの両方で使えます（仕様は [docs/](docs/) にあります）。
 
 - `physicalTable()`：単一テーブルの物理レイアウト（GSIとベクトルインデックスのスロット）

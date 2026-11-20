@@ -1,5 +1,7 @@
 # @zodapp/zod-dynamodb-mqtt
 
+[English](README.md)
+
 MQTT での配送です（仕様は [リアルタイムの配信](../zod-dynamodb/docs/realtime.ja.md)）。接続先は、Mosquitto、AWS IoT Core など、[MQTT.js](https://github.com/mqttjs/MQTT.js) が接続できるものです。
 
 ```ts

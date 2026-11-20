@@ -1,5 +1,7 @@
 # @zodapp/zod-dynamodb-node
 
+[English](README.md)
+
 `@zodapp/zod-dynamodb` のTable定義から、DynamoDBを操作するRepositoryと、サーバーの API を作ります（仕様は [docs/](docs/) にあります）。
 
 ```ts
