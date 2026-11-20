@@ -1,0 +1,150 @@
+# object の uiType: entries（項目を後から足し、外側で消す）
+
+- ステータス：プラン（レビュー中）
+
+## 1. 背景
+
+検索条件の設定のように、「使う項目だけに値を入れる」フォームを作りたい。
+キーが enum の `z.partialRecord` で試したところ（form-demo に試作。未コミット）、次の問題があった。
+
+- 値の型をキーごとに変えられない（タイトルは文字列、価格は範囲、などができない）。検索条件には object の方が合う。
+- 条件の外し方が値の部品ごとにばらばら。string は空にする、enum は ×、optional な object は ⊖。
+  optional な object は ⊕ を押すだけで `{}` が入り、意味のない条件として送れてしまう。
+- 既定の見た目では、候補の項目を全部並べる。項目が多いと使いにくい。
+- partialRecord の entries は、行の値に必須の `*` が付く（⊖ で消せる行なのに必須に見える）。全体の枠も無く、どこまでがひとまとまりか分からない。
+
+そこで object に、partialRecord の entries と同じ考え方の見た目を足す。
+
+1. optional の項目の「有る・無い」は、子の部品ではなく親（object）が扱う。行ごとに ⊖ を付けて、キーごと消す。
+2. 項目を全部は並べず、値にある項目だけを並べる。下の選択で後から足す。
+
+あわせて、record（partialRecord）の entries の挙動を object の entries にそろえる。
+
+## 2. 決まり
+
+### 2.1 指定のしかた
+
+```ts
+const condition = zf
+  .object({
+    keyword: zf.string().register(zf.string.registry, { label: "キーワード" }),
+    title: zf.string().register(zf.string.registry, { label: "タイトル" }).optional(),
+    price: priceRange.optional(), // 以上・以下の object
+    sort: zf.enum([...]).optional(),
+  })
+  .register(zf.object.registry, {
+    label: "検索条件",
+    uiType: "entries",
+    keyOrder: "definition", // 省略時 definition
+  });
+```
+
+- 名前は record と同じ `uiType: "entries"`。部品は `object_entries` として登録する（Switch は `${schema.type}_${uiType}` で探す）。
+- `keyOrder`（`"definition" | "value"`）を object の meta にも足す。意味は record と同じ（§2.4）。
+
+### 2.2 どの項目が行になるか
+
+- **optional の項目**（`schema._zod.optin === "optional"`。`.optional()`・`.default()` など、キーが無くても通るもの）は、値にキーがあるときだけ行として出す。行には ⊖ を付ける。
+- **必須の項目**は、常に行として出す。⊖ は付けない。
+- `hidden` の項目は、ふつうの object と同じく出さない。
+- 「値にキーがある」は `key in value` で見る（値が undefined でも、キーがあれば行を出す）。
+
+### 2.3 行の中身（undefined の扱いを外に出す）
+
+- optional の項目の行には、子の schema から optional の包みを外した schema を渡す。
+  子は自分の取り消しの UI（object の ⊖・⊕、enum の × など）を出さない。項目を外す手段は、親の ⊖ だけになる。
+- 外し方：optional の包みは `addOuter` で数えないようにする（`outer` を渡さない、または包みを外した schema を渡す）。
+  meta が `.optional()` の外側に付いている書き方（`x.optional().register(...)`）でも label が消えないよう、外す前の meta を引き継ぐ。
+- 行のラベル（項目の label）は親が描き、子には `label={false}` を渡す。そのため、行のいちばん上に必須の `*` は付かない。
+  範囲の object の中の「以上」など、行の中の必須の欄には、今までどおり `*` が付く。
+- 子の欄が空になって undefined を書いても、キーは残る（行は消えない）。行を消すのは ⊖ だけ。
+
+### 2.4 並び（keyOrder）
+
+- `definition`（既定）：`meta.properties`、無ければ shape の順。必須の項目と、値にある optional の項目を、この順に並べる。
+- `value`：値の object のキーの順。足した項目は値の末尾に入るので、実質足した順になる。必須の項目で値に無いもの（ふつうは既定値で入っている）は後ろに並べる。
+- JS の object の、整数に見えるキーの並びの注意は record と同じ（meta の説明に書く）。
+
+### 2.5 足す・消す
+
+- 下に Mantine の `Select`（searchable）を置き、まだ値に無い optional の項目を、label で選べるようにする。足せる項目が無くなったら出さない。
+- 足したときの値は `getDefaultValue(子の schema)`。string・number・enum・boolean は undefined、object は `{}`（中も補う）、array は `[]`、`.default()` があればその値。
+- ⊖ を押すと、キーごと消す。配下の欄に残ったエラーの meta も消す（`OptionalContainer` の消し方と同じ）。
+- 消す・足すは `runAsUserEdit` の中で行う（ユーザーの編集として扱う）。
+
+### 2.6 見た目
+
+- 全体を枠で囲む（`uiType: "box"` と同じ `Fieldset`。label は legend）。どこからどこまでがひとまとまりかを見せる。
+- 行ごとの見た目は、今の partialRecord の entries と同じ（左に ⊖、中身は薄い枠の中）。必須の行は ⊖ の幅だけ空ける。
+- 選択の文言は「項目を追加」（新しい i18n のキー `zodFormMantine.object.addField`。en は "Add a field"）。
+- `readOnly` では ⊖ と選択を出さず、値にある項目と必須の項目だけを並べる。
+- 横並び（horizontal）とは組み合わせない（uiType は 1 つ）。
+
+### 2.7 その他
+
+- object 自体が optional なら、今の object と同じく `OptionalContainer`（⊖・⊕）で包む。
+- 入れ物のエラーと `ContainerMarker` の扱いは、ふつうの object と同じ。
+- shape に無いキーが値にあっても描かない（ふつうの object と同じ）。
+
+## 3. record の entries をそろえる
+
+### 3.1 キーが enum・literal の partialRecord（`PartialRecordEntriesComponent`）
+
+- 全体を枠で囲む（§2.6）。
+- 行の値の部品に `label={false}` を渡し、key の label は行で親が描く。行のいちばん上の `*` は付かない（§2.3）。
+- `keyOrder`・足すときの値（getDefaultValue）・⊖ の動きは今のまま（object がこれに合わせる）。
+- ⊖ で消すときに、配下の欄のエラーの meta も消す（object とそろえる）。
+
+### 3.2 キーを自由に入力する record（`record_entries`）
+
+- 全体を枠で囲み、⊖ の位置を同じにする。キーの入力・名前の変更などの動きは変えない。
+
+### 3.3 共通の部品
+
+行（⊖＋薄い枠）、全体の枠、足す選択を、`entries_layout.tsx`（仮）にまとめ、object・partialRecord・自由キーの record の 3 つから使う。
+
+## 4. 決めること
+
+### 4.1 中身が空の行を、送れるようにするか
+
+zod の検証の違いで、object と partialRecord で結果が変わる。
+
+- object：`{ title: undefined }` は、`title` が optional なので通る。足して何も入れていない行は「条件なし」として送れる。
+- partialRecord：`{ title: undefined }` は、値の schema（string）で検証されてエラーになる（今の動き）。
+
+案：
+
+- **A（推奨）**：zod の検証に任せ、この違いはそのままにする。object では空の行は送れ、送った値からはキーが落ちる（JSON にすると消える）。partialRecord では必須エラーになる。
+- B：partialRecord でも、送る前に値が undefined のキーを消す。そろうが、送信の値を部品の外で書き換える仕組みが要る。
+- C：object でも、空の行をエラーにする。zod の schema に無い検証を部品が足すことになる。
+
+## 5. 変えるところ
+
+- `packages/zod-form/src/def/index.ts`：object の meta に `keyOrder` を足す。record の `keyOrder` の説明を、object にも当てはまる書き方にする。
+- `packages/zod-form-mantine/src/components/object_entries.tsx`（新規）：§2 の部品。`index.ts` に `object_entries` として登録する。
+- `packages/zod-form-mantine/src/components/entries_layout.tsx`（新規）：§3.3 の共通部品。
+- `packages/zod-form-mantine/src/components/record_partial_entries.tsx`・`record_entries.tsx`：§3 のとおり共通部品に寄せる。
+- `packages/zod-form-mantine/src/messages/{ja,en}.ts`：`zodFormMantine.object.addField`。
+- optional を外して meta を引き継ぐ処理は、`zod-form-react` か `zod-form` の utils に置く（どちらに置くかは実装時に、既存の unwrap の処理に合わせる）。
+
+## 6. デモとテスト
+
+### 6.1 form-demo
+
+- 新しいページ「検索条件（object の entries）」を足す。キーワード（必須）、タイトル・著者（string）、価格・ページ数（以上・以下の object）、並べ替え（enum）を optional の項目として持つ。`keyOrder: "value"` の例も置く。
+- 試作した partialRecord の検索条件のページ（未コミット）は使わず、消す。
+- `zf.record` のページの partialRecord の entries は、枠と `*` が変わるのでスクショで前後を比べる。
+
+### 6.2 単体テスト（zod-form-mantine、jsdom）
+
+- 値にある optional の項目と必須の項目だけが行になる。
+- 選択で足すと、`getDefaultValue` の値が入り、行が増える。足せる項目が無くなると選択が消える。
+- ⊖ でキーごと消え、配下のエラーも消える。必須の行には ⊖ が無い。
+- 行のいちばん上に `*` が付かない。optional な object の行に、子の ⊖・⊕ が出ない。
+- `keyOrder` の definition・value の並び。
+- `readOnly` で ⊖ と選択が出ない。
+- partialRecord の entries の既存のテストを、枠と `*` の変更に合わせる。
+
+### 6.3 e2e（form-demo、Playwright）
+
+- 新しいページで、項目を足す・値を入れる・⊖ で消す・送信する、を通す。送信した値に、消した項目が無いことを確かめる。
