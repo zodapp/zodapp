@@ -77,12 +77,10 @@ z.object({
   keyword: zf.string().register(zf.string.registry, { label: "キーワード" }),
   filter: z
     .object({
-      active: zf
-        .boolean()
-        .register(zf.boolean.registry, {
-          label: "有効のみ",
-          uiType: "checkbox",
-        }),
+      active: zf.boolean().register(zf.boolean.registry, {
+        label: "有効のみ",
+        uiType: "checkbox",
+      }),
     })
     .register(zf.object.registry, { label: "絞り込み" }),
 }).register(zf.object.registry, { uiType: "horizontal-wrap" });
