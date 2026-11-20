@@ -66,4 +66,5 @@ export const en = defineMessages({
   "formDemo.app.harness.submit.attempted": "attempted",
   "formDemo.app.harness.submit.passed": "passed",
   "formDemo.app.harness.submit.blocked": "blocked",
+  "formDemo.app.nav.top": "Top",
 });

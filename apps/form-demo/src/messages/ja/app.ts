@@ -52,4 +52,5 @@ export const ja = {
   "formDemo.app.harness.submit.attempted": "試みた",
   "formDemo.app.harness.submit.passed": "通った",
   "formDemo.app.harness.submit.blocked": "止まった",
+  "formDemo.app.nav.top": "トップ",
 } satisfies MessagesOf<typeof en>;
