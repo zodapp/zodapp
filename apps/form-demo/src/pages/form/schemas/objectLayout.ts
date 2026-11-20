@@ -38,6 +38,38 @@ export const schema = z
         label: "横並び折返し（uiType: horizontal-wrap）",
         uiType: "horizontal-wrap",
       }),
+    // 横並びのエラー：送信するとエラーが出る。横並びは上端でそろうので、エラーの出た欄だけずれることはない。
+    // チェックボックスのように上にラベルの無い欄は、ラベル付きの object で包むと入力欄の高さにそろう
+    horizontalErrors: z
+      .object({
+        keyword: zf
+          .string()
+          .min(2)
+          .register(zf.string.registry, { label: "キーワード" }),
+        // ラベルの無い入れ子 object：中の欄は、外の欄と同じ高さに並ぶ
+        period: z
+          .object({
+            from: zf.string().register(zf.string.registry, { label: "開始" }),
+            to: zf
+              .string()
+              .min(1)
+              .register(zf.string.registry, { label: "終了" }),
+          })
+          .register(zf.object.registry, { uiType: "horizontal" }),
+        // ラベル付きの object で包んだチェックボックス
+        filter: z
+          .object({
+            activeOnly: zf.boolean().register(zf.boolean.registry, {
+              label: "有効のみ",
+              uiType: "checkbox",
+            }),
+          })
+          .register(zf.object.registry, { label: "絞り込み" }),
+      })
+      .register(zf.object.registry, {
+        label: "横並びのエラー（送信するとエラーが出る）",
+        uiType: "horizontal-wrap",
+      }),
     // uiType: "box" — 枠で囲んで縦に並べる
     boxed: z
       .object(nameFields)
@@ -72,6 +104,11 @@ const nameDefaults = {
 export const defaultValues: z.input<typeof schema> = {
   horizontal: nameDefaults,
   horizontalWrap: nameDefaults,
+  horizontalErrors: {
+    keyword: "a",
+    period: { from: "4月", to: "" },
+    filter: { activeOnly: false },
+  },
   boxed: nameDefaults,
   reordered: nameDefaults,
 };

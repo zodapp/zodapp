@@ -3,7 +3,7 @@ import { Alert, Fieldset, InputWrapper, Text } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import z from "zod";
 import { getMeta } from "@zodapp/zod-form";
-import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
+import { containerWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { isHiddenFixedValueSchema } from "../utils/fixedValue";
 
 /**
@@ -14,6 +14,10 @@ import { isHiddenFixedValueSchema } from "../utils/fixedValue";
  * - `box`：Fieldset で囲む
  * - `horizontal`・`horizontal-wrap`：子を横に並べる
  * - `flat`：入れ物を出さず、子だけを返す。自分の path のエラーがあるときだけ、子のあとにエラーの Alert を出す
+ *
+ * 横並びは、子の欄を上端でそろえる。エラーの出た欄が伸びても、ほかの欄のラベル・入力欄・エラーの位置は動かない。
+ * 上にラベルを持たない欄（チェックボックスなど）は、ラベルの高さに来る。入力欄とそろえたいときは、ラベル付きの object で包む。
+ * ラベルの無い既定の入れ物は、上の余白を付けない（{@link containerWrapperStyle}）。
  *
  * `flat` の子は、外側の並びにそのまま入る。横並びでは、子を包む div を `display: contents` にし、
  * 子の欄が外側の flex の項目に直接なるようにする。`flat` の入れ物の中の子（`flat` でないもの）は、
@@ -144,7 +148,8 @@ export const FieldContainer = ({
             flexWrap:
               uiType === "horizontal-wrap" || hasFlatChild ? "wrap" : "nowrap",
             gap: "0px 4px",
-            alignItems: "flex-end",
+            // 上端でそろえる（下端でそろえると、エラーの出た欄だけ上にずれる）
+            alignItems: "flex-start",
           }}
         >
           {items}
@@ -182,7 +187,7 @@ export const FieldContainer = ({
       error={error}
       styles={errorStyles}
       labelElement="div" // disable auto biding of label to input
-      style={inputWrapperStyle}
+      style={containerWrapperStyle(label)}
     >
       {body}
     </InputWrapper>

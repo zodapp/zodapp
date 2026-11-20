@@ -27,7 +27,11 @@ export {
   renderComputedFieldValue,
   type RenderComputedValueVariant,
 } from "./renderComputedValue";
-export { inputWrapperStyle, stringMultilineStyles } from "./styles";
+export {
+  containerWrapperStyle,
+  inputWrapperStyle,
+  stringMultilineStyles,
+} from "./styles";
 export {
   normalizeStringSuggestions,
   type NormalizedStringSuggestion,

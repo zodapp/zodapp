@@ -5,7 +5,7 @@ import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import { Switch, emptinessOf } from "@zodapp/zod-form-react/common";
 import type { ZodFormProps } from "@zodapp/zod-form-react/common";
-import { inputWrapperStyle } from "../utils/styles";
+import { containerWrapperStyle } from "../utils/styles";
 
 type ObjectSchema = ReturnType<typeof zf.object>;
 
@@ -82,7 +82,8 @@ const ObjectComponent = React.memo(function ObjectComponent({
         display: "flex",
         flexWrap: isHorizontalWrap ? "wrap" : "nowrap",
         gap: "0px 4px",
-        alignItems: "flex-end",
+        // 上端でそろえる。エラーの出た欄が伸びても、ほかの欄は動かない
+        alignItems: "flex-start",
       }}
     >
       {propertiesComponent}
@@ -106,7 +107,7 @@ const ObjectComponent = React.memo(function ObjectComponent({
       label={label || undefined}
       required={undefined}
       labelElement="div"
-      style={inputWrapperStyle}
+      style={containerWrapperStyle(label)}
     >
       {wrappedPropertiesComponent}
     </InputWrapper>
