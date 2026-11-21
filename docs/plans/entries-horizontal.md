@@ -1,6 +1,6 @@
 # entries の横並び（uiType: entries-horizontal）
 
-- ステータス：プラン（レビュー待ち）
+- ステータス：プラン（決定済み。実装中）
 - 前提：[object の uiType: entries](./object-entries.md)（PR #47）
 
 ## 1. 背景
@@ -85,7 +85,7 @@ zf.object({ ... }).register(zf.object.registry, {
 - ⊖ がカードの右上にあり、押すとキーごと消える。
 - `width` を指定した項目のカードの幅が、指定の幅以上になる。
 
-## 5. 決めてほしいこと
+## 5. 決めたこと
 
-1. 指定のしかた：新しい uiType `entries-horizontal`（このプランの案）か、entries に meta（例：`direction: "horizontal"`）を足すか。uiType の案は、object の `horizontal`・`horizontal-wrap` と並びがそろう。meta の案は、uiType を増やさずに済む。
-2. 既定の幅 280px でよいか（表の列の既定は 140px）。
+1. 指定のしかた：新しい uiType `entries-horizontal` にする（entries に meta を足す案はとらない）。
+2. 既定の幅：いったん 280px で作り、できた見た目を見て判断する。
