@@ -72,7 +72,7 @@ export const orderObjectEntries = (
  * optional の項目の行には {@link PRESENCE_BY_PARENT_OUTER} を渡すので、子は取り消しの UI を出さず、空にすると undefined を書く
  * （キーは残るので行は残り、JSON にすると消える）。
  * 行の名前は行が描き、子には label を渡さない（行の上に必須の印が付かない）。
- * `uiType: "entries-horizontal"` では、行をカードにして横一列に並べる（幅は meta の width・widthWeight。{@link entryWidthOf}）
+ * `uiType: "entries-horizontal"` では、行をカードにして横一列に並べる（幅は固定。{@link entryWidthOf}）
  */
 function ObjectEntriesBody({
   fieldPath,
@@ -125,11 +125,7 @@ function ObjectEntriesBody({
 
   // entries-horizontal：カードを横に並べる
   const horizontal = isHorizontalEntries(meta?.uiType);
-  const { scrollerRef, widthOf, scrollTo } = useHorizontalEntries(
-    horizontal
-      ? keys.map((key) => ({ key, ...entryWidthOf(shape[key]!) }))
-      : [],
-  );
+  const { scrollerRef, scrollTo } = useHorizontalEntries();
 
   const handleAdd = (key: string) => {
     if (key in value) return;
@@ -170,7 +166,8 @@ function ObjectEntriesBody({
         key={key}
         label={keyLabel}
         readOnly={readOnly}
-        width={horizontal ? widthOf(key) : undefined}
+        horizontal={horizontal}
+        width={horizontal ? entryWidthOf(shape[key]!) : undefined}
         entryKey={key}
         onRemove={optional ? () => handleRemove(key) : undefined}
         removeLabel={msg(

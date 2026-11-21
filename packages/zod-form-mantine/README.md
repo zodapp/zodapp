@@ -143,7 +143,7 @@ An object, and a `z.partialRecord` whose keys are an enum or literals, can use `
 
 - Cards that do not fit scroll horizontally. An added card is scrolled into view
 - ⊖ is at the top right of a card. "Add a field" is outside the scroll area (below, on the left)
-- The card width is decided like the columns of a table. `width` (px) in the metadata is the minimum. Without it, a horizontal object uses the sum of the widths of its fields, another object uses the largest width of its fields, and anything else uses 280px. If the line has room left, it is shared out by `widthWeight` (or the width when there is none)
+- The card width is fixed (cards do not grow when the line has room left). It is `width` (px) in the metadata if there is one. Without it, an object (nested) fits its content, and anything else is 280px
 - A record whose keys are typed as text (`z.record(z.string(), …)`) keeps the vertical entries look
 
 ## Keys that cannot be used in forms

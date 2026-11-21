@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useId, useRef, useState } from "react";
+import React, { Suspense, useEffect, useId, useRef } from "react";
 import {
   ActionIcon,
   Fieldset,
@@ -14,12 +14,11 @@ import {
   useZodFormContext,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
-import { layoutWidths } from "../utils/width";
 
 /**
  * `uiType: "entries"`（object・record）の共通の見た目。
  * 全体を枠（Fieldset）で囲み、行は左に ⊖、中身を薄い枠に入れて並べる。いちばん下に足す選択を置く。
- * `uiType: "entries-horizontal"` では、行をカードにして横一列に並べ（並びきらない分は横にスクロールする）、
+ * `uiType: "entries-horizontal"` では、行を固定幅のカードにして横一列に並べ（並びきらない分は横にスクロールする）、
  * ⊖ をカードの右上に置く。足す選択はスクロールの外（下の左）に置く
  */
 
@@ -75,14 +74,15 @@ const horizontalRemoveButtonStyle: React.CSSProperties = {
  * 1 行。onRemove があれば ⊖ を出す（readOnly では出さない）。
  * label を渡すと、行の上に項目の名前を出し、行を role="group" にしてその名前を付ける
  * （中の欄には label を渡さないので、欄の必須の印が行の上に付かない）。
- * width を渡すと横並びのカードになる（幅はその px、⊖ はカードの右上）。渡さなければ縦の行（⊖ は左）
+ * horizontal なら横並びのカード（幅は width で固定、⊖ はカードの右上）。そうでなければ縦の行（⊖ は左）
  */
 export const EntryRow = ({
   label,
   readOnly,
   onRemove,
   removeLabel,
-  width,
+  horizontal = false,
+  width = "auto",
   entryKey,
   children,
 }: {
@@ -90,14 +90,15 @@ export const EntryRow = ({
   readOnly: boolean | undefined;
   onRemove?: () => void;
   removeLabel?: string;
-  /** 横並びのカードの幅（px） */
-  width?: number;
+  /** 横並びのカードにする（幅は width。"auto" は中身の幅に合わせる） */
+  horizontal?: boolean;
+  /** 横並びのカードの幅（px）。"auto" は中身の幅に合わせる */
+  width?: number | "auto";
   /** 横並びで、足したカードまでスクロールするときの目印 */
   entryKey?: string;
   children: React.ReactNode;
 }) => {
   const labelId = useId();
-  const horizontal = width !== undefined;
   const removable = !readOnly && onRemove !== undefined;
   return (
     <div
@@ -108,8 +109,8 @@ export const EntryRow = ({
         horizontal
           ? {
               position: "relative",
-              flex: `0 0 ${width}px`,
-              width,
+              flex: "0 0 auto",
+              width: width === "auto" ? "max-content" : width,
               boxSizing: "border-box",
             }
           : {
@@ -223,47 +224,13 @@ const unwrapAll = (schema: z.ZodTypeAny): z.ZodTypeAny => {
 };
 
 /**
- * 横並びのカードの幅（下限）と、余りを配る重み。
- * meta の `width` があればそれ。無ければ、object（入れ子）は中の欄の幅から決め
- * （横並びの object は合計＋間、それ以外は最大）、それ以外は {@link ENTRY_DEFAULT_WIDTH}。
- * 重みは meta の `widthWeight`、無ければ幅（表の列と同じ）
+ * 横並びのカードの幅（固定。並びに空きがあっても広げない）。
+ * meta の `width` があればそれ。無ければ、object（入れ子）は "auto"（中身の幅に合わせる。
+ * 中の欄の実際の幅はフォントなどで変わるため見積もらない）、それ以外は {@link ENTRY_DEFAULT_WIDTH}
  */
-export const entryWidthOf = (
-  schema: z.ZodTypeAny,
-): { width: number; widthWeight: number } => {
-  const width = findThroughWrappers(schema, (s) => getMeta(s)?.width);
-  const widthWeight = findThroughWrappers(
-    schema,
-    (s) => getMeta(s)?.widthWeight,
-  );
-  const resolved = width ?? contentWidthOf(schema);
-  return { width: resolved, widthWeight: widthWeight ?? resolved };
-};
-
-const contentWidthOf = (schema: z.ZodTypeAny, depth = 0): number => {
-  const inner = unwrapAll(schema);
-  if (inner.def.type !== "object" || depth > 8) return ENTRY_DEFAULT_WIDTH;
-  const shape = (inner as z.ZodObject).shape as Record<string, z.ZodTypeAny>;
-  const childWidths = Object.values(shape)
-    .filter((child) => {
-      const childMeta = getMeta(child);
-      return !(childMeta?.hidden || childMeta?.typeName === "hidden");
-    })
-    .map(
-      (child) =>
-        findThroughWrappers(child, (s) => getMeta(s)?.width) ??
-        contentWidthOf(child, depth + 1),
-    );
-  if (childWidths.length === 0) return ENTRY_DEFAULT_WIDTH;
-  const uiType = getMeta(inner)?.uiType;
-  if (uiType === "horizontal" || uiType === "horizontal-wrap") {
-    return (
-      childWidths.reduce((sum, w) => sum + w, 0) +
-      ENTRY_GAP * (childWidths.length - 1)
-    );
-  }
-  return Math.max(...childWidths);
-};
+export const entryWidthOf = (schema: z.ZodTypeAny): number | "auto" =>
+  findThroughWrappers(schema, (s) => getMeta(s)?.width) ??
+  (unwrapAll(schema).def.type === "object" ? "auto" : ENTRY_DEFAULT_WIDTH);
 
 const scrollerStyle: React.CSSProperties = {
   display: "flex",
@@ -274,28 +241,13 @@ const scrollerStyle: React.CSSProperties = {
 };
 
 /**
- * 横並びのカードの幅と、横にスクロールする並び。
- * 並びの幅を ResizeObserver で測り、余りを weight の比で配る（{@link layoutWidths}）。
- * scrollTo(key) を呼ぶと、次に描いたあとで、そのカードが見えるところまで並びをスクロールする
+ * 横にスクロールする並びの ref と、足したカードまでのスクロール。
+ * scrollTo(key) を呼ぶと、値が変わって描き直したあとで、そのカードが見えるところまで並びをスクロールする
  */
-export const useHorizontalEntries = (
-  entries: readonly { key: string; width: number; widthWeight: number }[],
-) => {
+export const useHorizontalEntries = () => {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
   // 足したキー。値が変わって描き直したあとの effect で、そのカードまでスクロールする
   const scrollTargetRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    const element = scrollerRef.current;
-    if (!element) return;
-    const update = () => setContainerWidth(element.clientWidth);
-    update();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const scrollTarget = scrollTargetRef.current;
@@ -310,11 +262,8 @@ export const useHorizontalEntries = (
     target.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   });
 
-  const widths = layoutWidths(entries, containerWidth, ENTRY_GAP);
-  const widthOf = new Map(entries.map((entry, i) => [entry.key, widths[i]!]));
   return {
     scrollerRef,
-    widthOf: (key: string) => widthOf.get(key) ?? ENTRY_DEFAULT_WIDTH,
     scrollTo: (key: string) => {
       scrollTargetRef.current = key;
     },

@@ -59,40 +59,30 @@ const addField = async (name: string) => {
 };
 
 describe("カードの幅（entryWidthOf）", () => {
-  it("meta の width があればそれ（.optional() の内側の meta も見る）。重みは widthWeight、無ければ幅", () => {
+  it("meta の width があればそれ（.optional() の内側の meta も見る）", () => {
     expect(
       entryWidthOf(
         zf.string().register(zf.string.registry, { width: 400 }).optional(),
       ),
-    ).toEqual({ width: 400, widthWeight: 400 });
-    expect(
-      entryWidthOf(
-        zf
-          .string()
-          .register(zf.string.registry, { width: 400, widthWeight: 2 }),
-      ),
-    ).toEqual({ width: 400, widthWeight: 2 });
+    ).toBe(400);
   });
 
   it("width が無ければ既定の幅", () => {
-    expect(entryWidthOf(zf.string()).width).toBe(ENTRY_DEFAULT_WIDTH);
+    expect(entryWidthOf(zf.string())).toBe(ENTRY_DEFAULT_WIDTH);
   });
 
-  it("横並びの object は中の欄の幅の合計＋間、それ以外の object は中の欄の最大", () => {
-    expect(entryWidthOf(price.optional()).width).toBe(
-      ENTRY_DEFAULT_WIDTH * 2 + 8,
+  it("width の無い object（入れ子）は、中身の幅に合わせる（transform を付けても同じ）", () => {
+    expect(entryWidthOf(price.optional())).toBe("auto");
+    expect(entryWidthOf(price.transform((value) => value).optional())).toBe(
+      "auto",
     );
-    const vertical = zf.object({
-      a: zf.string(),
-      b: zf.string().register(zf.string.registry, { width: 350 }),
-    });
-    expect(entryWidthOf(vertical).width).toBe(350);
-  });
-
-  it("transform を付けた object も、pipe の入口を見て決める", () => {
     expect(
-      entryWidthOf(price.transform((value) => value).optional()).width,
-    ).toBe(ENTRY_DEFAULT_WIDTH * 2 + 8);
+      entryWidthOf(
+        zf
+          .object({ a: zf.string() })
+          .register(zf.object.registry, { width: 500 }),
+      ),
+    ).toBe(500);
   });
 });
 
@@ -106,7 +96,7 @@ describe("object（uiType: entries-horizontal）", () => {
     vi.restoreAllMocks();
   });
 
-  it("カードを横に並べる並びに入れ、幅は meta の width（無ければ既定）。「項目を追加」は並びの外", async () => {
+  it("カードを横に並べる並びに入れ、幅は meta の width（無ければ既定）で固定。「項目を追加」は並びの外", async () => {
     renderForm(conditionSchema, {
       condition: { keyword: "zod", author: "a" },
     });
@@ -152,7 +142,8 @@ describe("object（uiType: entries-horizontal）", () => {
     await waitFor(() => expect(card("価格")).toBeTruthy());
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
     expect(scrollIntoView.mock.contexts[0]).toBe(card("価格"));
-    expect(card("価格").style.width).toBe(`${ENTRY_DEFAULT_WIDTH * 2 + 8}px`);
+    // 入れ子の object は中身の幅に合わせる
+    expect(card("価格").style.width).toBe("max-content");
   });
 
   it("readOnly では、⊖ も「項目を追加」も出さない", async () => {

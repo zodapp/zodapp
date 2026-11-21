@@ -148,7 +148,7 @@ test("keyOrder: value では、値の順に並び、足した項目は末尾に�
 const horizontalFrame = (page: Page) =>
   frame(page, "検索条件（横並び：entries-horizontal）");
 
-test("entries-horizontal：カードを横一列に並べ、幅は meta の width（無ければ 280px）", async ({
+test("entries-horizontal：カードを横一列に並べ、幅は meta の width（無ければ 280px）で固定", async ({
   page,
   pageErrors: _,
 }) => {
@@ -165,10 +165,10 @@ test("entries-horizontal：カードを横一列に並べ、幅は meta の widt
   expect(new Set(boxes.map((box) => Math.round(box!.y))).size).toBe(1);
   expect(boxes[0]!.x).toBeLessThan(boxes[1]!.x);
   expect(boxes[1]!.x).toBeLessThan(boxes[2]!.x);
-  // キーワードは width: 200 を下限にし、ほかは 280px を下限にする（余りは幅の比で配る）
-  expect(boxes[0]!.width).toBeGreaterThanOrEqual(200);
-  expect(boxes[1]!.width).toBeGreaterThanOrEqual(280);
-  expect(boxes[1]!.width / boxes[0]!.width).toBeCloseTo(280 / 200, 1);
+  // 幅は固定：キーワードは width: 200、ほかは 280px。並びに空きがあっても広げない
+  expect(Math.round(boxes[0]!.width)).toBe(200);
+  expect(Math.round(boxes[1]!.width)).toBe(280);
+  expect(Math.round(boxes[2]!.width)).toBe(280);
 });
 
 test("entries-horizontal：⊖ はカードの右上にあり、押すとキーごと消える", async ({
@@ -201,10 +201,14 @@ test("entries-horizontal：並びきらないと横にスクロールし、足�
   const scroller = container.locator("[data-entries-scroller]");
   await addField(page, container, "価格");
   await expect.poll(() => rowNames(container)).toContain("価格");
-  // 横並びの object（以上・以下）は、中の欄の幅の合計
-  expect((await row(container, "価格").boundingBox())!.width).toBeGreaterThan(
-    560,
-  );
+  // 入れ子の object（以上・以下）は中身の幅に合わせるので、中の欄の右に大きな空きが出ない
+  const price = row(container, "価格");
+  const priceCard = (await price.boundingBox())!;
+  const lastInput = (await price.getByRole("textbox").last().boundingBox())!;
+  // カードの右端と最後の欄の右端の間は、内側の余白（⊖ の分 36px）と枠線ほど
+  expect(
+    priceCard.x + priceCard.width - (lastInput.x + lastInput.width),
+  ).toBeLessThan(48);
   await addField(page, container, "並べ替え");
   await expect.poll(() => rowNames(container)).toContain("並べ替え");
   // 並びの幅を超え、横にスクロールできる

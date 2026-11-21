@@ -89,9 +89,7 @@ export const PartialRecordEntriesComponent = wrapComponent(
     // entries-horizontal：カードを横に並べる（幅は値の schema で決まり、どのキーも同じ）
     const horizontal = isHorizontalEntries(meta?.uiType);
     const cardWidth = entryWidthOf(valueSchema);
-    const { scrollerRef, widthOf, scrollTo } = useHorizontalEntries(
-      horizontal ? keys.map((key) => ({ key, ...cardWidth })) : [],
-    );
+    const { scrollerRef, scrollTo } = useHorizontalEntries();
 
     const handleAdd = (key: string) => {
       if (usedKeys.has(key)) return;
@@ -141,7 +139,8 @@ export const PartialRecordEntriesComponent = wrapComponent(
           key={key}
           label={keyLabel(key)}
           readOnly={readOnly}
-          width={horizontal ? widthOf(key) : undefined}
+          horizontal={horizontal}
+          width={cardWidth}
           entryKey={key}
           onRemove={() => handleRemove(key)}
           removeLabel={msg(

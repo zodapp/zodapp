@@ -1,6 +1,6 @@
 # entries の横並び（uiType: entries-horizontal）
 
-- ステータス：実装済み。§7 の変更（幅の固定）を実装中
+- ステータス：実装済み（§7 の幅の固定まで。単体テスト 382 件と entries・表の e2e が通る）
 - 前提：[object の uiType: entries](./object-entries.md)（PR #47）
 
 ## 1. 背景

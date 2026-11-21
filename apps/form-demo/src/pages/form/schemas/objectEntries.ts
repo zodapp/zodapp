@@ -115,7 +115,7 @@ export const schema = zf
         keyOrder: "value",
       }),
     // uiType: entries-horizontal：カードを横一列に並べる（並びきらない分は横にスクロール）。
-    // カードの幅は meta の width（キーワードは 200px）、無ければ既定の 280px。価格は以上・以下の合計
+    // カードの幅は固定：meta の width（キーワードは 200px）、無ければ 280px。価格（入れ子）は中身の幅に合わせる
     conditionHorizontal: zf
       .object({
         keyword: zf.string().register(zf.string.registry, {
