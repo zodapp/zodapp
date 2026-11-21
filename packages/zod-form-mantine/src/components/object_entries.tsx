@@ -3,7 +3,6 @@ import React from "react";
 import { zf, getMeta } from "@zodapp/zod-form";
 import z from "zod";
 import {
-  Switch,
   ContainerMarker,
   ZodFormInternalProps,
   PRESENCE_BY_PARENT_OUTER,
@@ -16,6 +15,7 @@ import { OptionalContainer } from "./object";
 import {
   EntriesFrame,
   EntriesScroller,
+  EntryContent,
   EntryAddSelect,
   EntryRow,
   addedEntryValue,
@@ -185,7 +185,7 @@ function ObjectEntriesBody({
             label={keyLabel}
           />
         ) : (
-          <Switch
+          <EntryContent
             fieldPath={joinFieldPath(fieldPath, key)}
             schema={shape[key]!}
             defaultValue={value[key]}

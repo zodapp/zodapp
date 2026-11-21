@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { Suspense, useEffect, useId, useRef, useState } from "react";
 import {
   ActionIcon,
   Fieldset,
@@ -8,7 +8,11 @@ import {
 } from "@mantine/core";
 import { IconCircleMinus } from "@tabler/icons-react";
 import z from "zod";
-import { getDefaultValue } from "@zodapp/zod-form-react/common";
+import {
+  getDefaultValue,
+  Switch,
+  useZodFormContext,
+} from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 import { layoutWidths } from "../utils/width";
 
@@ -148,6 +152,19 @@ export const EntryRow = ({
         </ActionIcon>
       )}
     </div>
+  );
+};
+
+/**
+ * 行の中身の部品。行ごとに Suspense で包み、部品の読み込み中は、その行の中身の場所にだけ loadingComponent を出す
+ * （包まないと、初めて描く種類の部品の行を足したときに、object 全体が loading になる。配列の要素と同じ）
+ */
+export const EntryContent = (props: React.ComponentProps<typeof Switch>) => {
+  const { loadingComponent: LoadingComponent } = useZodFormContext();
+  return (
+    <Suspense fallback={<LoadingComponent {...props} />}>
+      <Switch {...props} />
+    </Suspense>
   );
 };
 

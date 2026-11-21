@@ -3,7 +3,6 @@ import { useResolvedMeta, useResolveText } from "@zodapp/zod-form-react/common";
 import React from "react";
 import z from "zod";
 import {
-  Switch,
   ContainerMarker,
   ZodFormInternalProps,
   PRESENCE_BY_PARENT_OUTER,
@@ -17,6 +16,7 @@ import { UnsafeRecordEntry } from "../utils/unsafeKey";
 import {
   EntriesFrame,
   EntriesScroller,
+  EntryContent,
   EntryAddSelect,
   EntryRow,
   addedEntryValue,
@@ -149,7 +149,7 @@ export const PartialRecordEntriesComponent = wrapComponent(
             { label: keyLabel(key) },
           )}
         >
-          <Switch
+          <EntryContent
             fieldPath={joinFieldPath(fieldPath, key)}
             schema={valueSchema}
             defaultValue={value[key]}
