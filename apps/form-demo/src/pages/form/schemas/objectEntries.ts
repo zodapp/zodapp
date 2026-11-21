@@ -8,7 +8,7 @@ export const title = msgKey(
   "formDemo.page.objectEntries.title" /* i18n: zf.object（項目を足す） */,
 );
 export const description = msgKey(
-  "formDemo.page.objectEntries.description" /* i18n: uiType: entries で、使う項目だけを足していく（検索条件の例）。optional の項目は値にあるときだけ行を出し、⊖ でキーごと消す。必須・nullable の項目は常に出る。足しただけで未入力の行は、値ではキーが undefined で、送信した JSON には入らない */,
+  "formDemo.page.objectEntries.description" /* i18n: uiType: entries で、使う項目だけを足していく（検索条件の例）。optional の項目は値にあるときだけ行を出し、⊖ でキーごと消す。必須・nullable の項目は常に出る。足しただけで未入力の行は、値ではキーが undefined で、送信した JSON には入らない。3 つ目の枠は uiType: entries-horizontal で、同じ動きのままカードを横一列に並べる（並びきらない分は横にスクロール） */,
 );
 export const icon = IconSearch;
 export const category = "Standard";
@@ -114,6 +114,37 @@ export const schema = zf
         uiType: "entries",
         keyOrder: "value",
       }),
+    // uiType: entries-horizontal：カードを横一列に並べる（並びきらない分は横にスクロール）。
+    // カードの幅は meta の width（キーワードは 200px）、無ければ既定の 280px。価格は以上・以下の合計
+    conditionHorizontal: zf
+      .object({
+        keyword: zf.string().register(zf.string.registry, {
+          label: msgKey(
+            "formDemo.objectEntries.keyword" /* i18n: キーワード */,
+          ),
+          width: 200,
+        }),
+        title: text(
+          msgKey("formDemo.objectEntries.title" /* i18n: タイトル */),
+        ).optional(),
+        author: text(
+          msgKey("formDemo.objectEntries.author" /* i18n: 著者 */),
+        ).optional(),
+        price: range(
+          msgKey("formDemo.objectEntries.price" /* i18n: 価格 */),
+        ).optional(),
+        sort: sortOrder
+          .register(zf.enum.registry, {
+            label: msgKey("formDemo.objectEntries.sort" /* i18n: 並べ替え */),
+          })
+          .optional(),
+      })
+      .register(zf.object.registry, {
+        label: msgKey(
+          "formDemo.objectEntries.conditionHorizontal" /* i18n: 検索条件（横並び：entries-horizontal） */,
+        ),
+        uiType: "entries-horizontal",
+      }),
   })
   .register(zf.object.registry, {});
 
@@ -128,6 +159,11 @@ export const defaultValues: z.input<typeof schema> = {
   },
   // keyOrder: value：定義の順（title が先）ではなく、値の順（author が先）に並ぶ
   conditionByValue: { author: "Yamada", title: "TypeScript" },
+  conditionHorizontal: {
+    keyword: "zod",
+    title: "TypeScript",
+    author: undefined,
+  },
 };
 
 export type SchemaType = z.infer<typeof schema>;

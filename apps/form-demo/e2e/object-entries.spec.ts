@@ -144,3 +144,88 @@ test("keyOrder: value では、値の順に並び、足した項目は末尾に�
     .poll(() => rowNames(container))
     .toEqual(["著者", "タイトル", "価格"]);
 });
+
+const horizontalFrame = (page: Page) =>
+  frame(page, "検索条件（横並び：entries-horizontal）");
+
+test("entries-horizontal：カードを横一列に並べ、幅は meta の width（無ければ 280px）", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const container = horizontalFrame(page);
+  await expect
+    .poll(() => rowNames(container))
+    .toEqual(["キーワード", "タイトル", "著者"]);
+  const boxes = await Promise.all(
+    ["キーワード", "タイトル", "著者"].map((name) =>
+      row(container, name).boundingBox(),
+    ),
+  );
+  // 同じ高さの位置に、左から並ぶ
+  expect(new Set(boxes.map((box) => Math.round(box!.y))).size).toBe(1);
+  expect(boxes[0]!.x).toBeLessThan(boxes[1]!.x);
+  expect(boxes[1]!.x).toBeLessThan(boxes[2]!.x);
+  // キーワードは width: 200 を下限にし、ほかは 280px を下限にする（余りは幅の比で配る）
+  expect(boxes[0]!.width).toBeGreaterThanOrEqual(200);
+  expect(boxes[1]!.width).toBeGreaterThanOrEqual(280);
+  expect(boxes[1]!.width / boxes[0]!.width).toBeCloseTo(280 / 200, 1);
+});
+
+test("entries-horizontal：⊖ はカードの右上にあり、押すとキーごと消える", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const container = horizontalFrame(page);
+  const title = row(container, "タイトル");
+  const card = (await title.boundingBox())!;
+  const remove = (await title
+    .getByRole("button", { name: "タイトルを削除" })
+    .boundingBox())!;
+  expect(card.x + card.width - (remove.x + remove.width)).toBeLessThan(16);
+  expect(remove.y - card.y).toBeLessThan(16);
+  await title.getByRole("button", { name: "タイトルを削除" }).click();
+  await expect.poll(() => rowNames(container)).toEqual(["キーワード", "著者"]);
+  await expect
+    .poll(async () => {
+      const value = (await previewValue(page)).conditionHorizontal as object;
+      return "title" in value;
+    })
+    .toBe(false);
+});
+
+test("entries-horizontal：並びきらないと横にスクロールし、足したカードが見え、「項目を追加」は外に残る", async ({
+  page,
+  pageErrors: _,
+}) => {
+  const container = horizontalFrame(page);
+  const scroller = container.locator("[data-entries-scroller]");
+  await addField(page, container, "価格");
+  await expect.poll(() => rowNames(container)).toContain("価格");
+  // 横並びの object（以上・以下）は、中の欄の幅の合計
+  expect((await row(container, "価格").boundingBox())!.width).toBeGreaterThan(
+    560,
+  );
+  await addField(page, container, "並べ替え");
+  await expect.poll(() => rowNames(container)).toContain("並べ替え");
+  // 並びの幅を超え、横にスクロールできる
+  expect(await scroller.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(
+    true,
+  );
+  // 足したカード（末尾の並べ替え）が並びの中に見えている
+  await expect
+    .poll(async () => {
+      const area = (await scroller.boundingBox())!;
+      const card = (await row(container, "並べ替え").boundingBox())!;
+      return (
+        card.x >= area.x - 1 && card.x + card.width <= area.x + area.width + 1
+      );
+    })
+    .toBe(true);
+  // 候補が残っていれば、「項目を追加」はスクロールの外（下）に見えている
+  await row(container, "並べ替え")
+    .getByRole("button", { name: "並べ替えを削除" })
+    .click();
+  const add = container.getByRole("combobox", { name: "項目を追加" });
+  await expect(add).toBeVisible();
+  expect(await scroller.locator('[aria-label="項目を追加"]').count()).toBe(0);
+});
