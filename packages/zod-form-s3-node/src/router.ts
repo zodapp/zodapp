@@ -15,7 +15,8 @@ export type S3FileRouterOptions<TContext> = {
   signer: S3FileSigner;
   /**
    * リクエストから認証コンテキストを作る（zod-dynamodb の router と同じ関数を渡せる）。
-   * `null` / `undefined` を返したら 401
+   * `null` / `undefined` を返すか、`UnauthenticatedError`（`name` が `"UnauthenticatedError"` のエラー）を投げたら 401。
+   * ほかのエラーは Express のエラーハンドラーに渡す
    */
   context: (req: Request) => Awaitable<TContext | null | undefined>;
   /** このキーにアップロードしてよいか。キーは `prefix` の下に、サーバーが作る */
@@ -41,6 +42,13 @@ const keyBody = z.object({ key: z.string() });
 
 const fail = (res: Response, status: number, code: string, message: string) =>
   res.status(status).json({ code, message });
+
+/**
+ * 認証の失敗のエラーか。`@zodapp/zod-dynamodb-node` の `UnauthenticatedError` など、
+ * `name` が `"UnauthenticatedError"` のエラーを 401 にする（パッケージには依存しない）
+ */
+const isUnauthenticated = (error: unknown): error is Error =>
+  error instanceof Error && error.name === "UnauthenticatedError";
 
 /**
  * ファイルの署名付き URL を発行する Express の router。
@@ -72,6 +80,9 @@ export const createS3FileRouter = <TContext>(
         }
         await handler(context, req, res);
       } catch (error) {
+        if (isUnauthenticated(error) && !res.headersSent) {
+          return fail(res, 401, "UNAUTHENTICATED", error.message || "authentication required");
+        }
         next(error);
       }
     };

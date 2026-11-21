@@ -7,6 +7,7 @@ import {
   type RegisteredResolverContext,
 } from "@zodapp/zod-form/resolverContext";
 import type { S3FileEndpoints } from "./endpoints";
+import { S3FileError } from "./errors";
 import { keyOfStoredUrl, toStoredUrl } from "./storedUrl";
 import type { S3FileConfigCore } from "./types";
 
@@ -54,7 +55,11 @@ export const createS3FileResolver = <TType extends string = "s3">(
             body: file,
             headers: { "content-type": contentType },
           });
-          if (!res.ok) throw new Error(`upload failed: ${res.status}`);
+          if (!res.ok) {
+            throw new S3FileError("UPLOAD_FAILED", `upload failed: ${res.status}`, {
+              status: res.status,
+            });
+          }
           return { url: toStoredUrl(key, contentType) };
         },
         getDownloadUrl: (storedUrl: string) =>

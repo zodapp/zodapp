@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { httpS3FileEndpoints } from "./endpoints";
+import { isS3FileError, S3FileError } from "./errors";
 import { createS3FileResolver } from "./resolver";
 import { keyOfStoredUrl, toStoredUrl } from "./storedUrl";
 
@@ -65,7 +66,9 @@ describe("createS3FileResolver", () => {
       requestDownloadUrl: async () => ({ url: "" }),
       fetch: async () => new Response(null, { status: 403 }),
     }).resolver(config, resolverContext);
-    await expect(result.upload(new File(["x"], "x"))).rejects.toThrow(/403/);
+    const error = await result.upload(new File(["x"], "x")).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(S3FileError);
+    expect(error).toMatchObject({ code: "UPLOAD_FAILED", status: 403, message: "upload failed: 403" });
   });
 
   it("ダウンロードと削除は、保存した文字列からキーを取り出して求める", async () => {
@@ -117,10 +120,62 @@ describe("httpS3FileEndpoints", () => {
     expect(endpoints.requestDelete).toBeUndefined();
   });
 
-  it("エラーの応答はエラーにする", async () => {
+  it("credentials を渡すと、サーバーへの fetch に付ける", async () => {
+    const fetch = vi.fn(async () => okResponse({ url: "u" }));
+    await httpS3FileEndpoints({ credentials: "include", fetch }).requestDownloadUrl("k");
+    expect(fetch).toHaveBeenCalledWith("/files/download-url", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ key: "k" }),
+    });
+  });
+
+  it("サーバーの { code, message } の応答は、そのコードとステータスのエラーにする", async () => {
+    const endpoints = httpS3FileEndpoints({
+      fetch: async () =>
+        new Response(JSON.stringify({ code: "UNAUTHENTICATED", message: "expired" }), {
+          status: 401,
+        }),
+    });
+    const error = await endpoints.requestDownloadUrl("k").catch((e: unknown) => e);
+    expect(isS3FileError(error, "UNAUTHENTICATED")).toBe(true);
+    expect(isS3FileError(error, "FORBIDDEN")).toBe(false);
+    expect(error).toMatchObject({
+      status: 401,
+      message: "/files/download-url: 401 UNAUTHENTICATED expired",
+    });
+  });
+
+  it("形の違うエラーの応答は UNEXPECTED_RESPONSE", async () => {
     const endpoints = httpS3FileEndpoints({
       fetch: async () => new Response("no", { status: 403 }),
     });
-    await expect(endpoints.requestDownloadUrl("k")).rejects.toThrow(/403 no/);
+    await expect(endpoints.requestDownloadUrl("k")).rejects.toMatchObject({
+      code: "UNEXPECTED_RESPONSE",
+      status: 403,
+      message: "/files/download-url: 403 no",
+    });
+  });
+
+  it("成功でも JSON でない応答は UNEXPECTED_RESPONSE", async () => {
+    const endpoints = httpS3FileEndpoints({
+      fetch: async () => new Response("<html>", { status: 200 }),
+    });
+    await expect(endpoints.requestDownloadUrl("k")).rejects.toMatchObject({
+      code: "UNEXPECTED_RESPONSE",
+      status: 200,
+    });
+  });
+
+  it("通信の失敗は NETWORK", async () => {
+    const cause = new TypeError("failed to fetch");
+    const endpoints = httpS3FileEndpoints({
+      fetch: async () => {
+        throw cause;
+      },
+    });
+    const error = await endpoints.requestDownloadUrl("k").catch((e: unknown) => e);
+    expect(error).toMatchObject({ code: "NETWORK", status: undefined, cause });
   });
 });
