@@ -1,7 +1,7 @@
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { S3Client } from "@aws-sdk/client-s3";
-import { httpS3FileEndpoints } from "@zodapp/zod-form-s3";
+import { httpS3FileEndpoints, isS3FileError } from "@zodapp/zod-form-s3";
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { isSafeKey, newKeyUnder } from "./keys";
@@ -32,6 +32,12 @@ beforeAll(async () => {
       signer,
       context: (req) => {
         const user = req.header("x-user");
+        if (user === "expired") {
+          throw Object.assign(new Error("the auth context has expired"), {
+            name: "UnauthenticatedError",
+          });
+        }
+        if (user === "boom") throw new Error("boom");
         return user ? { userId: user, workspaces: ["w1"] } : undefined;
       },
       canUpload: (auth, { key }) => auth.workspaces.includes(workspaceOfKey(key) ?? ""),
@@ -40,6 +46,10 @@ beforeAll(async () => {
       allowContentType: (type) => type.startsWith("image/"),
     }),
   );
+  // ほかのエラーは、アプリのエラーハンドラーに届く
+  app.use(((error, _req, res, _next) => {
+    res.status(500).json({ code: "APP_HANDLER", message: (error as Error).message });
+  }) as express.ErrorRequestHandler);
   server = app.listen(0);
   await new Promise((r) => server.once("listening", r));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
@@ -79,10 +89,34 @@ describe("createS3FileRouter", () => {
     ).rejects.toThrow(/401/);
   });
 
+  it("認証コンテキストを作るときの UnauthenticatedError は 401 と UNAUTHENTICATED", async () => {
+    const res = await post(
+      "/files/upload-url",
+      { prefix: "workspaces/w1/a", contentType: "image/png" },
+      "expired",
+    );
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      code: "UNAUTHENTICATED",
+      message: "the auth context has expired",
+    });
+    const error = await endpoints("expired")
+      .requestDownloadUrl("workspaces/w1/a/k")
+      .catch((e: unknown) => e);
+    expect(isS3FileError(error, "UNAUTHENTICATED")).toBe(true);
+    expect((error as { status?: number }).status).toBe(401);
+  });
+
+  it("ほかのエラーはアプリのエラーハンドラーに渡す", async () => {
+    const res = await post("/files/download-url", { key: "workspaces/w1/a/k" }, "boom");
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ code: "APP_HANDLER", message: "boom" });
+  });
+
   it("認可されない接頭辞は 403", async () => {
     await expect(
       endpoints("u1").requestUploadUrl({ prefix: "workspaces/w2/a", contentType: "image/png" }),
-    ).rejects.toThrow(/403/);
+    ).rejects.toSatisfy((e) => isS3FileError(e, "FORBIDDEN") && e.status === 403);
   });
 
   it("許さない content-type と、`..` を含む接頭辞は 400", async () => {

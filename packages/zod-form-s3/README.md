@@ -36,11 +36,13 @@ const fileResolvers = [
   createS3FileResolver(
     httpS3FileEndpoints({
       baseUrl: "/api",
-      headers: async () => ({ authorization: `Bearer ${await getIdToken()}` }),
+      // optional; may be async. With cookies on a different origin, pass credentials: "include"
+      headers: async () => ({ authorization: `Bearer ${await getToken()}` }),
     }),
   ),
 ];
 ```
 
 - The form value is a string of the form `s3:///{key}?mimeType=...` (the bucket is not included). Convert back and forth with `toStoredUrl` and `keyOfStoredUrl`
+- Failures throw `S3FileError` with `code` and `status`. `code` is the server's code (`UNAUTHENTICATED`, `FORBIDDEN`, `INVALID_INPUT`, ...), `UNEXPECTED_RESPONSE` for a response not in the `{ code, message }` shape, `NETWORK` when the request could not be sent, and `UPLOAD_FAILED` when the PUT to S3 fails. Check it with `isS3FileError(error, "UNAUTHENTICATED")` (for example, to refresh the token and retry)
 - To call the server endpoints over something other than HTTP, pass `requestUploadUrl` / `requestDownloadUrl` (/ `requestDelete`) directly

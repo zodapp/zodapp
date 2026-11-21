@@ -10,3 +10,4 @@ export {
   type S3FileEndpoints,
 } from "./endpoints";
 export { createS3FileResolver, type S3FileResolverOptions } from "./resolver";
+export { isS3FileError, S3FileError, type S3FileErrorCode } from "./errors";

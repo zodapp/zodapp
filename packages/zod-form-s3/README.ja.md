@@ -36,11 +36,13 @@ const fileResolvers = [
   createS3FileResolver(
     httpS3FileEndpoints({
       baseUrl: "/api",
-      headers: async () => ({ authorization: `Bearer ${await getIdToken()}` }),
+      // 省略できる。非同期でもよい。別のオリジンに Cookie を送るときは credentials: "include"
+      headers: async () => ({ authorization: `Bearer ${await getToken()}` }),
     }),
   ),
 ];
 ```
 
 - フォームの値は `s3:///{key}?mimeType=...` という文字列です（バケットは入りません）。`toStoredUrl` と `keyOfStoredUrl` で行き来できます
+- 失敗すると、`code` と `status` を持つ `S3FileError` を投げます。`code` はサーバーのコード（`UNAUTHENTICATED`・`FORBIDDEN`・`INVALID_INPUT` など）、`{ code, message }` の形でない応答なら `UNEXPECTED_RESPONSE`、送れなければ `NETWORK`、S3 への PUT の失敗なら `UPLOAD_FAILED` です。`isS3FileError(error, "UNAUTHENTICATED")` で判定できます（トークンを更新してやり直すときなど）
 - サーバーのエンドポイントを HTTP 以外で呼ぶときは、`requestUploadUrl` / `requestDownloadUrl`（/ `requestDelete`）を直接渡します
