@@ -18,7 +18,7 @@ app.use(
   "/api",
   createS3FileRouter<Auth>({
     signer,
-    context: (req) => resolveAuth(req), // null / undefined なら 401
+    context: (req) => resolveAuth(req), // null / undefined を返すか、UnauthenticatedError を投げたら 401
     canUpload: (auth, { key }) => canWrite(auth, workspaceOfKey(key)),
     canRead: (auth, { key }) => isMember(auth, workspaceOfKey(key)),
     // canDelete を渡したときだけ、削除のエンドポイントを作る
@@ -27,6 +27,7 @@ app.use(
 ```
 
 - エンドポイントは `POST /files/upload-url`（`{ prefix, contentType }` → `{ key, url }`）、`POST /files/download-url`（`{ key }` → `{ url }`）、`POST /files/delete`（`{ key }`。`canDelete` があるときだけ）です。パスは `paths` で変えられます
+- `context`（や `canUpload` / `canRead` / `canDelete`）が `name` が `"UnauthenticatedError"` のエラー（`@zodapp/zod-dynamodb-node` の `UnauthenticatedError` など）を投げたら、zod-dynamodb の router と同じく 401 と `{ code: "UNAUTHENTICATED", message }` を返します。そのパッケージには依存しません。ほかのエラーは Express のエラーハンドラーに渡します
 - アップロードのキーは、受け取った接頭辞の下にサーバーが作ります（`{prefix}/{UUID}`）。空の区切り、`.`、`..`、制御文字を含むキーは 400 にします。認可はキーの接頭辞で判定してください
 - ブラウザの PUT は checksum を計算しないので、S3Client は `requestChecksumCalculation: "WHEN_REQUIRED"` で作ります。S3 互換のストレージ（S3Proxy など）では `endpoint` と `forcePathStyle: true` も指定します
 - ローカルのストレージ向けに、バケットがなければ作る `signer.ensureBucket()` があります
