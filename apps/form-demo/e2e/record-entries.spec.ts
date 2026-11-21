@@ -63,16 +63,25 @@ test("キーが複数の値の literal の record も、キーごとの固定の
 
 /** label の文字で、その欄の枠を探す */
 const section = (page: Page, label: string) =>
-  page.locator(".mantine-InputWrapper-root").filter({ hasText: label }).last();
+  page
+    .locator(".mantine-InputWrapper-root, fieldset")
+    .filter({ hasText: label })
+    .last();
 
 /** 枠の中の行の名前（州）を、並んでいる順に */
+// entries の行は role="group" で、行の上の名前が付く（枠は fieldset）
 const rowNames = (box: ReturnType<typeof section>) =>
-  box.locator("label").evaluateAll((labels) =>
-    labels
-      // 必須の印（*）を除く
-      .map((label) => (label.textContent ?? "").replace(/\*/g, "").trim())
-      .filter((text) => /^[A-Z][a-z]+( [A-Z][a-z]+)?$/.test(text)),
-  );
+  box
+    .locator('[role="group"][aria-labelledby]')
+    .evaluateAll((groups) =>
+      groups
+        .map(
+          (group) =>
+            document.getElementById(group.getAttribute("aria-labelledby")!)
+              ?.textContent ?? "",
+        )
+        .filter((text) => /^[A-Z][a-z]+( [A-Z][a-z]+)?$/.test(text)),
+    );
 
 /** 枠のいちばん下の選択で、文字で絞り込んでキーを足す */
 const addKey = async (
@@ -155,7 +164,10 @@ test("uiType entries の partialRecord は、値にあるキーだけを並べ�
       readValue<string[]>(page, "return Object.keys(values.branches)"),
     )
     .toEqual(["Texas", "California", "New York"]);
-  await box.getByRole("textbox", { name: "New York", exact: true }).fill("3");
+  await box
+    .getByRole("group", { name: "New York", exact: true })
+    .getByRole("textbox")
+    .fill("3");
   await expect
     .poll(async () => (await previewValue(page)).branches)
     .toEqual({ Texas: 2, California: 5, "New York": 3 });
