@@ -49,8 +49,19 @@ export const zodExtendableCommonDefSchema = z.object({
 });
 
 // object 用メタ
+/**
+ * `uiType: "entries"`（object・キーが enum・literal の `z.partialRecord`）で描くときの、行の並び順。
+ * definition：定義の順（既定。object は properties か shape の順、partialRecord は enum の順。
+ * Firestore・DynamoDB など、キー順を残さないストア向け）。
+ * value：値の object に入っている順。足したキーは末尾に入れるので、キー順を残すストア
+ * （zod-searchparams・localStorage の JSON など）では、実質足した順になる。
+ * ただし JS の object は、"1"・"2" のような整数に見えるキーを、入れた順に関係なく数の小さい順に並べる
+ */
+const entriesKeyOrderSchema = z.enum(["definition", "value"]).optional();
+
 const zodExtendableObjectDefSchema = zodExtendableCommonDefSchema.extend({
   properties: z.array(z.string()).optional(),
+  keyOrder: entriesKeyOrderSchema,
 });
 
 // date 用メタスキーマ
@@ -550,14 +561,8 @@ const zf = {
   tuple: extendTuple(zodExtendableCommonDefSchema),
   record: extendRecord(
     zodExtendableCommonDefSchema.extend({
-      /**
-       * キーが enum・literal の `z.partialRecord` を `uiType: "entries"` で描くときの、行の並び順。
-       * definition：enum の定義順（既定。Firestore・DynamoDB など、キー順を残さないストア向け）。
-       * value：値の object に入っている順。足したキーは末尾に入れるので、キー順を残すストア
-       * （zod-searchparams・localStorage の JSON など）では、実質足した順になる。
-       * ただし JS の object は、"1"・"2" のような整数に見えるキーを、入れた順に関係なく数の小さい順に並べる
-       */
-      keyOrder: z.enum(["definition", "value"]).optional(),
+      /** {@link entriesKeyOrderSchema} */
+      keyOrder: entriesKeyOrderSchema,
     }),
   ),
   set: extendSet(zodExtendableCommonDefSchema),

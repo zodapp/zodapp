@@ -137,6 +137,15 @@ import { ja } from "@zodapp/zod-form-mantine/messages";
 - `"definition"`（既定）：enum の定義順。Firestore・DynamoDB など、キー順を残さないストア向け
 - `"value"`：値の object に入っている順。足したキーは末尾に入れるので、キー順を残すストア（zod-searchparams・localStorage の JSON など）では、実質足した順になる。ただし JS の object は `"1"`・`"2"` のような整数に見えるキーを、入れた順に関係なく数の小さい順に並べる
 
+## entries の横並び（`uiType: "entries-horizontal"`）
+
+object とキーが enum・literal の `z.partialRecord` は、`uiType: "entries-horizontal"` で、entries の行をカードにして横一列に並べられる。足す・消す・並び（`keyOrder`）は entries と同じ。
+
+- 並びきらないカードは横にスクロールする。足したカードは見えるところまでスクロールする
+- ⊖ はカードの右上。「項目を追加」はスクロールの外（下の左）
+- カードの幅は固定（並びに空きがあっても広げない）。meta の `width`（px）があればその幅、無ければ、object（入れ子）は中身の幅に合わせ、それ以外は 280px
+- キーを文字で打つ record（`z.record(z.string(), …)`）は、entries と同じ縦の見た目
+
 ## フォームで使えないキー
 
 フォームの欄はフィールドパス（`a.b[0].c`）で指すため、`.`・`[`・`]` を含むキーと空文字のキーは欄にできない。

@@ -34,7 +34,14 @@ describe("欄を出さず、値を保つ", () => {
       s: z.symbol(),
       f: z.function(),
     });
-    const value = { name: "x", a: { deep: 1 }, u: [1], c: { then: 1 }, s: sym, f: fn };
+    const value = {
+      name: "x",
+      a: { deep: 1 },
+      u: [1],
+      c: { then: 1 },
+      s: sym,
+      f: fn,
+    };
     const { submit, onSubmit } = renderForm(schema, value);
     await screen.findByDisplayValue("x");
     expect(screen.queryByText("A")).toBeNull();
@@ -53,7 +60,9 @@ describe("欄を出さず、値を保つ", () => {
     await screen.findByDisplayValue("x");
     submit();
     await waitFor(() =>
-      expect(document.querySelector(".mantine-Text-root")?.textContent ?? "").not.toBe(""),
+      expect(
+        document.querySelector(".mantine-Text-root")?.textContent ?? "",
+      ).not.toBe(""),
     );
     expect(onSubmit).not.toHaveBeenCalled();
   });

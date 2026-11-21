@@ -36,6 +36,7 @@ import { en as reactiveNestedObject } from "./en/reactiveNestedObject";
 import { en as reactiveReadOnly } from "./en/reactiveReadOnly";
 import { en as reactiveRecord } from "./en/reactiveRecord";
 import { en as readOnly } from "./en/readOnly";
+import { en as objectEntries } from "./en/objectEntries";
 import { en as recordEntries } from "./en/recordEntries";
 import { en as recursiveSchema } from "./en/recursiveSchema";
 import { en as refineValidation } from "./en/refineValidation";
@@ -92,6 +93,7 @@ export const en = {
   ...reactiveReadOnly,
   ...reactiveRecord,
   ...readOnly,
+  ...objectEntries,
   ...recordEntries,
   ...recursiveSchema,
   ...refineValidation,

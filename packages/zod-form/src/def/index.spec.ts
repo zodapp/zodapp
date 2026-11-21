@@ -32,7 +32,10 @@ type NumberMeta = CommonMeta & {
   formatter?: (value: number) => ComputedValue;
   placeholder?: string;
 };
-type ObjectMeta = CommonMeta & { properties?: string[] };
+type ObjectMeta = CommonMeta & {
+  properties?: string[];
+  keyOrder?: "definition" | "value";
+};
 type EnumMeta = CommonMeta & {
   valueAction?: RegisteredValueActionConfig;
   unlisted?: "keep" | "clear";

@@ -24,6 +24,7 @@ export { component as LiteralComponent } from "./literal.js";
 export { component as NumberComponent } from "./number.js";
 export { component as NumberSliderComponent } from "./number_slider.js";
 export { component as ObjectComponent } from "./object.js";
+export { component as ObjectEntriesComponent } from "./object_entries.js";
 export { component as RecordComponent } from "./record.js";
 export { component as RecordEntriesComponent } from "./record_entries.js";
 export { component as DynamicComponent } from "./dynamic.js";
@@ -84,10 +85,17 @@ export const componentLibrary: ComponentLibrary = {
   number: (() => import("./number.js")) as DynamicZodFormDef,
   number_slider: (() => import("./number_slider.js")) as DynamicZodFormDef,
   object: (() => import("./object.js")) as DynamicZodFormDef,
+  object_entries: (() => import("./object_entries.js")) as DynamicZodFormDef,
+  // entries の横並び（同じ部品が uiType を見て描き分ける）
+  "object_entries-horizontal": (() =>
+    import("./object_entries.js")) as DynamicZodFormDef,
   record: (() => import("./record.js")) as DynamicZodFormDef,
   set: (() => import("./set.js")) as DynamicZodFormDef,
   map: (() => import("./map.js")) as DynamicZodFormDef,
   record_entries: (() => import("./record_entries.js")) as DynamicZodFormDef,
+  // キーが enum・literal の partialRecord は横並び。ほかの record は entries と同じ
+  "record_entries-horizontal": (() =>
+    import("./record_entries.js")) as DynamicZodFormDef,
   dynamic: (() => import("./dynamic.js")) as DynamicZodFormDef,
   string: (() => import("./string.js")) as DynamicZodFormDef,
   // z.templateLiteral() は文字列の欄で描く（形は zod の検証で確かめる）

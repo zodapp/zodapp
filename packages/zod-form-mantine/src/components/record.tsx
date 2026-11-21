@@ -80,8 +80,11 @@ const FixedKeysRecordBody = ({
   const valueSchema = valueSchemaOverride ?? schema.def.valueType;
   const labels = keyLabelsOf(schema);
   const label = labelFromParent ?? meta?.label;
-  // entries は固定のキーの見た目に無いので、既定の入れ物にする
-  const uiType = meta?.uiType === "entries" ? undefined : meta?.uiType;
+  // entries・entries-horizontal は固定のキーの見た目に無いので、既定の入れ物にする
+  const uiType =
+    meta?.uiType === "entries" || meta?.uiType === "entries-horizontal"
+      ? undefined
+      : meta?.uiType;
   return (
     <FieldContainer
       label={label}

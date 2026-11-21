@@ -2,7 +2,13 @@
 /**
  * キーが enum・literal の z.partialRecord：既定は固定のキー＋optional、uiType entries は下でキーを足す形
  */
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { zf, getDefaultValue } from "@zodapp/zod-form";
@@ -127,9 +133,14 @@ describe("partialRecord（uiType entries：下でキーを足す）", () => {
         }),
     });
 
+  // 行は role="group" で、行の上の名前（label 要素ではない）が付く
   const rowLabels = (container: HTMLElement) =>
-    Array.from(container.querySelectorAll("label"))
-      .map((label) => label.textContent ?? "")
+    Array.from(container.querySelectorAll('[role="group"][aria-labelledby]'))
+      .map(
+        (group) =>
+          document.getElementById(group.getAttribute("aria-labelledby")!)
+            ?.textContent ?? "",
+      )
       .filter((text) => ["アリス", "ボブ", "キャロル"].includes(text));
 
   /** 下の選択を開く（Mantine の Select は、jsdom では選択肢を隠したまま出す） */
@@ -228,5 +239,61 @@ describe("partialRecord（uiType entries：下でキーを足す）", () => {
     await waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith({ nicknames: { alice: "x" } }),
     );
+  });
+
+  it("行の上に必須の印を付けず、全体を枠で囲む", async () => {
+    const { container } = renderForm(entriesSchema(), {
+      nicknames: { alice: "a" },
+    });
+    await ready();
+    expect(container.querySelector("fieldset")).toBeTruthy();
+    expect(screen.getByText("あだ名").tagName).toBe("LEGEND");
+    const row = screen.getByRole("group", { name: "アリス" });
+    expect(row.textContent).not.toContain("*");
+  });
+
+  it("値が optional なら、空にした行を送れる（キーは undefined で残る）", async () => {
+    const schema = z.object({
+      nicknames: z
+        .partialRecord(people, z.string().optional())
+        .register(zf.record.registry, { uiType: "entries" }),
+    });
+    const { values, submit, onSubmit } = renderForm(schema, {
+      nicknames: { alice: "a" },
+    });
+    await ready();
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "アリス" })).getByRole(
+        "textbox",
+      ),
+      { target: { value: "" } },
+    );
+    await waitFor(() =>
+      expect(values().nicknames).toEqual({ alice: undefined }),
+    );
+    expect("alice" in (values().nicknames as object)).toBe(true);
+    submit();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+  });
+
+  it("値が optional でなければ、空にした行は送信でエラーになる", async () => {
+    const schema = z.object({
+      nicknames: z
+        .partialRecord(people, z.string())
+        .register(zf.record.registry, { uiType: "entries" }),
+    });
+    const { submit, onSubmit } = renderForm(schema, {
+      nicknames: { alice: "a" },
+    });
+    await ready();
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "アリス" })).getByRole(
+        "textbox",
+      ),
+      { target: { value: "" } },
+    );
+    submit();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });

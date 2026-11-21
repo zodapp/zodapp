@@ -38,6 +38,7 @@ import { ja as reactiveNestedObject } from "./ja/reactiveNestedObject";
 import { ja as reactiveReadOnly } from "./ja/reactiveReadOnly";
 import { ja as reactiveRecord } from "./ja/reactiveRecord";
 import { ja as readOnly } from "./ja/readOnly";
+import { ja as objectEntries } from "./ja/objectEntries";
 import { ja as recordEntries } from "./ja/recordEntries";
 import { ja as recursiveSchema } from "./ja/recursiveSchema";
 import { ja as refineValidation } from "./ja/refineValidation";
@@ -91,6 +92,7 @@ export const ja = {
   ...reactiveReadOnly,
   ...reactiveRecord,
   ...readOnly,
+  ...objectEntries,
   ...recordEntries,
   ...recursiveSchema,
   ...refineValidation,

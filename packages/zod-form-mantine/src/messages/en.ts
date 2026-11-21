@@ -17,6 +17,7 @@ export const en = defineMessages({
     `Select ${names.join(" and ")}.`,
   "zodFormMantine.object.remove": "Remove",
   "zodFormMantine.object.add": "Add",
+  "zodFormMantine.object.addField": "Add a field",
   "zodFormMantine.time.invalidFormat": ({ format }: { format: string }) =>
     `Enter a valid time in the format ${format}.`,
   "zodFormMantine.date.monthLabelFormat": "MMMM YYYY",

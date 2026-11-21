@@ -2,7 +2,7 @@ import { zodMsgKeyErrorMap } from "@zodapp/i18n-messages-zod";
 import { useMsg } from "../messages/useMsg";
 import { useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { useEffect, useState } from "react";
-import { ActionIcon, Group, InputWrapper, TextInput } from "@mantine/core";
+import { ActionIcon, Group, TextInput } from "@mantine/core";
 import { IconCircleMinus, IconCirclePlus } from "@tabler/icons-react";
 import z from "zod";
 import {
@@ -12,11 +12,10 @@ import {
   type ZodFormProps,
   getDefaultValue,
   wrapComponent,
-  emptinessOf,
   isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
-import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { ownsContainerMarker } from "./container";
+import { EntriesFrame } from "./entries_layout";
 import { FixedKeysRecordComponent } from "./record";
 import { enumeratedRecordKeys, partialRecordKeys } from "@zodapp/zod-form";
 import { PartialRecordEntriesComponent } from "./record_partial_entries";
@@ -66,7 +65,6 @@ const RecordEntriesComponent = wrapComponent(
     fieldPath,
     schema,
     defaultValue,
-    outer,
     readOnly,
     label: labelFromParent,
     error,
@@ -74,7 +72,6 @@ const RecordEntriesComponent = wrapComponent(
     hideError,
     errorToken,
   }: ZodFormInternalProps<RecordSchema>) {
-    const { optional, nullable } = emptinessOf(outer);
     const meta = useResolvedMeta(schema);
     const msg = useMsg();
     const valueSchema = schema.def.valueType;
@@ -321,20 +318,11 @@ const RecordEntriesComponent = wrapComponent(
     );
 
     return (
-      <InputWrapper
-        label={label || undefined}
-        required={!(optional || nullable)}
+      <EntriesFrame
+        label={label}
         error={invalidKey !== undefined ? undefined : error?.message}
-        labelElement="div"
-        style={inputWrapperStyle}
       >
-        <div
-          style={{
-            marginTop: readOnly ? 0 : 15,
-            minHeight: 20,
-            marginBottom: 15,
-          }}
-        >
+        <div style={{ minHeight: 20 }}>
           {rowComponents}
           {ownsContainerMarker({ hideError, errorToken }) && (
             <ContainerMarker fieldPath={fieldPath} />
@@ -364,7 +352,7 @@ const RecordEntriesComponent = wrapComponent(
             </div>
           )}
         </div>
-      </InputWrapper>
+      </EntriesFrame>
     );
   },
   {

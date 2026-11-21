@@ -24,7 +24,10 @@ describe("包みを外して中を描く", () => {
   });
 
   for (const [name, inner] of [
-    ["z", z.object({ a: z.string().register(zf.string.registry, { label: "A" }) })],
+    [
+      "z",
+      z.object({ a: z.string().register(zf.string.registry, { label: "A" }) }),
+    ],
     ["zf", zf.object({ a: text("A") })],
   ] as const) {
     it(`${name}: readonly な object の中の欄を描き、入力できる`, async () => {
@@ -55,7 +58,9 @@ describe("包みを外して中を描く", () => {
     await screen.findByLabelText(/A/);
     submit();
     await waitFor(() =>
-      expect(document.querySelector("[data-error], .mantine-InputWrapper-error")).toBeTruthy(),
+      expect(
+        document.querySelector("[data-error], .mantine-InputWrapper-error"),
+      ).toBeTruthy(),
     );
     expect(onSubmit).not.toHaveBeenCalled();
   });
