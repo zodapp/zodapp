@@ -78,6 +78,13 @@ const condition = zf
 - **未入力の行を送れるか**は schema に任せる。object は項目を optional にすれば `{ key: undefined }` が通る。
   partialRecord は値を optional にすれば通る（`z.partialRecord(keys, z.string().optional())`。確かめ済み）。付けなければ zod の検証でエラーになる。
 
+- **空の object（range の `{}` など）**：ライブラリは消す処理を持たない。送信の値から消したいときは、schema に transform を書く。
+  例：`range.transform((v) => (isEmpty(v) ? undefined : v)).optional()`。pipe は入口の型で描き、送信では parse した出力を渡すので、
+  画面の上では `{}` のまま行が残り、送信の値からは消える想定。entries の外のふつうの `object().optional()` でも同じ書き方が使える。
+  - 入力の値をそのまま保存するアプリ（URL に入力を同期するなど）では `{}` が残る。そうしたアプリは、保存や検索の実行のときにアプリ側で消す。
+  - この書き方が本当に動くか（entries で pipe の項目を optional と判定できるか、optional の包みを外せるか、getDefaultValue が通るか、送信の値から消えるか）は、
+    実装したあとに単体テストと e2e で確かめる。動かなければ、その結果を見て対応策（ライブラリでの手当てなど）を考え、このプランに書き足す。
+
 ### 2.5 並び（keyOrder）
 
 - `definition`（既定）：`meta.properties`、無ければ shape の順。必須の項目と、値にある optional の項目を、この順に並べる。
@@ -138,7 +145,7 @@ const condition = zf
 ### 5.1 form-demo
 
 - 新しいページ「検索条件（object の entries）」を足す。キーワード（必須）、タイトル・著者（string）、価格・ページ数（以上・以下の object）、並べ替え（enum）を optional の項目として持つ。
-  nullable の項目（常に出る）、defaultValues の `{ key: undefined }` で初めから出す未入力の行、`keyOrder: "value"` の例も置く。
+  価格の range には §2.4 の transform を付ける。nullable の項目（常に出る）、defaultValues の `{ key: undefined }` で初めから出す未入力の行、`keyOrder: "value"` の例も置く。
 - 試作した partialRecord の検索条件のページ（未コミット）は使わず、消す。
 - `zf.record` のページの partialRecord の entries は、枠と `*` が変わるのでスクショで前後を比べる。
 
@@ -152,6 +159,7 @@ const condition = zf
 - nullable の項目は初めから行が出て、⊖ が無く、空にすると null になる。
 - defaultValues の `{ key: undefined }` で、初めから未入力の行が出る。
 - partialRecord で値を optional にすると、未入力の行を送れる。付けないとエラーになる。
+- transform を付けた object の項目（pipe）が、optional の項目として行になり、足す・消すができる。
 - `keyOrder` の definition・value の並び。
 - `readOnly` で ⊖ と選択が出ない。
 - partialRecord の entries の既存のテストを、枠と `*` の変更に合わせる。
@@ -160,3 +168,4 @@ const condition = zf
 
 - 新しいページで、項目を足す・値を入れる・⊖ で消す・送信する、を通す。送信した値に、消した項目が無いことを確かめる。
 - 足して何も入れていない optional の行が、送信した値（JSON）に入らないことを確かめる。
+- transform を付けた価格の range で、以上・以下を入れてから両方空にして送信すると、価格が送信した値に入らないことを確かめる。
