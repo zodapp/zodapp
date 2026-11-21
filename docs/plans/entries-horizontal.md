@@ -1,6 +1,6 @@
 # entries の横並び（uiType: entries-horizontal）
 
-- ステータス：プラン（決定済み。実装中）
+- ステータス：実装済み（単体テスト 385 件・form-demo の e2e 184 件が通る）。実装で決めたことは §6
 - 前提：[object の uiType: entries](./object-entries.md)（PR #47）
 
 ## 1. 背景
@@ -89,3 +89,12 @@ zf.object({ ... }).register(zf.object.registry, {
 
 1. 指定のしかた：新しい uiType `entries-horizontal` にする（entries に meta を足す案はとらない）。
 2. 既定の幅：いったん 280px で作り、できた見た目を見て判断する。
+
+## 6. 実装で決めたこと
+
+- 入れ子の object の既定の幅は、横並び（`horizontal`・`horizontal-wrap`）の object なら中の欄の幅の合計＋間、それ以外の object は中の欄の最大にした（縦に並ぶ object で合計にすると広すぎるため）。
+- 足したカードまでのスクロールは、足したキーを ref に覚え、値が変わって描き直したあとの effect で `scrollIntoView`（block・inline とも nearest）する。
+- 「項目を追加」は、横並びでは幅 240px で、並びの下の左に置く。
+- 幅の計算は `utils/width.ts`（`getDistributedWidth`・`layoutWidths`）に移し、表もそこから使う。表の動きは変えていない。
+- 包みと pipe をたどる処理（label・width を探す）は `findThroughWrappers` にまとめた。
+- README（ja・en）に entries-horizontal の節を足した。
