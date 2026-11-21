@@ -36,6 +36,24 @@ export type Outer = {
   readonly optional: boolean;
   readonly nullable: boolean;
   readonly wraps: readonly OuterWrap[];
+  /**
+   * 欄の「有る・無い」を親が扱う（object・partialRecord の `uiType: "entries"` の行）。
+   * true なら、この path の optional・default・prefault の包みを optional として数えない。
+   * {@link emptinessOf} は optional・nullable のどちらでもないとし（部品は取り消しの UI を出さない）、
+   * 空にしたときに書く値は undefined にする（nullish でも null にしない）。
+   * nullable だけの（optional でない）項目は親が扱わないので、この outer を渡さない
+   */
+  readonly presenceByParent?: boolean;
+};
+
+/**
+ * 欄の「有る・無い」を親が扱う行の、内の Switch に渡す outer（{@link Outer.presenceByParent}）
+ */
+export const PRESENCE_BY_PARENT_OUTER: Outer = {
+  optional: false,
+  nullable: false,
+  wraps: [],
+  presenceByParent: true,
 };
 
 const typeOf = (schema: z.ZodTypeAny): string =>
@@ -98,8 +116,10 @@ export const addOuter = (
   ) {
     const def = (schema as unknown as { def: { defaultValue?: unknown } }).def;
     next = {
+      ...(base.presenceByParent ? { presenceByParent: true } : {}),
       optional:
-        base.optional || (!underNonoptional && type !== "nullable"),
+        base.optional ||
+        (!underNonoptional && !base.presenceByParent && type !== "nullable"),
       nullable: base.nullable || type === "nullable",
       wraps: [
         ...base.wraps,
@@ -123,6 +143,10 @@ export const addOuter = (
 
 /** 欄が空を受け付けるかと、空にしたときに書く値 */
 export const emptinessOf = (outer: Outer | undefined) => {
+  // 有る・無いを親が扱う欄は、部品から見ると optional でも nullable でもない（取り消しの UI を出さない）。
+  // 空にしたら undefined を書き、親は undefined のキーを「未入力の行」として残す
+  if (outer?.presenceByParent === true)
+    return { optional: false, nullable: false, emptyValue: undefined } as const;
   const optional = outer?.optional === true;
   const nullable = outer?.nullable === true;
   return {
@@ -222,7 +246,8 @@ export const innerDefaultValue = (
     value === undefined &&
     !WRAPPER_TYPES.has(typeOf(def.innerType as z.ZodTypeAny)) &&
     outer.nullable &&
-    !outer.optional
+    !outer.optional &&
+    !outer.presenceByParent
   )
     value = null;
   return value;

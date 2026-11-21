@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import {
+  PRESENCE_BY_PARENT_OUTER,
   addOuter,
   emptinessOf,
   innerDefaultValue,
@@ -9,8 +10,8 @@ import {
 } from "./outer";
 
 /** 包みの部品と同じ順で、外から内へ outer と defaultValue を運び、一番内側に届く値を返す */
-const relay = (schema: z.ZodTypeAny) => {
-  let outer = undefined as ReturnType<typeof addOuter> | undefined;
+const relay = (schema: z.ZodTypeAny, start?: ReturnType<typeof addOuter>) => {
+  let outer = start;
   let defaultValue: unknown = undefined;
   let current = schema;
   for (;;) {
@@ -115,6 +116,46 @@ describe("outer", () => {
         relay(z.string().optional().nonoptional()).outer,
       );
       expect(nonoptional.safeParse(undefined).success).toBe(false);
+    });
+  });
+
+  describe("有る・無いを親が扱う（presenceByParent）", () => {
+    // object・partialRecord の entries が、optional の項目の行に渡す
+    it.each([
+      ["optional", z.string().optional(), false],
+      ["default", z.string().default("x"), false],
+      ["nullish", z.string().nullish(), true],
+      ["optional の外の nullable", z.string().optional().nullable(), true],
+    ] as const)(
+      "%s は取り消しの UI を出さず、空の値は undefined",
+      (_, schema, nullable) => {
+        const { outer } = relay(schema, PRESENCE_BY_PARENT_OUTER);
+        expect(outer?.optional).toBe(false);
+        expect(outer?.nullable).toBe(nullable);
+        expect(outer?.presenceByParent).toBe(true);
+        // 部品から見ると optional でも nullable でもなく（取り消しの UI を出さない）、空の値は undefined
+        expect(emptinessOf(outer)).toEqual({
+          optional: false,
+          nullable: false,
+          emptyValue: undefined,
+        });
+      },
+    );
+
+    it("nullish の欄に、null を初めの値として渡さない", () => {
+      const { defaultValue } = relay(
+        z.string().nullish(),
+        PRESENCE_BY_PARENT_OUTER,
+      );
+      expect(defaultValue).toBeUndefined();
+    });
+
+    it("default の値は、今までどおり内に渡す", () => {
+      const { defaultValue } = relay(
+        z.string().default("x"),
+        PRESENCE_BY_PARENT_OUTER,
+      );
+      expect(defaultValue).toBe("x");
     });
   });
 });

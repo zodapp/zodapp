@@ -23,6 +23,7 @@ export { emptyValueOf } from "../utils/emptyValue";
 export { isUnsafeFieldKey } from "../utils/path";
 export {
   addOuter,
+  PRESENCE_BY_PARENT_OUTER,
   emptinessOf,
   rewrapWithOuter,
   innerDefaultValue,
