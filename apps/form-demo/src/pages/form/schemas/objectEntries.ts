@@ -118,9 +118,16 @@ export const schema = zf
   .register(zf.object.registry, {});
 
 export const defaultValues: z.input<typeof schema> = {
-  // author は undefined のキー：初めから未入力の行として出す
-  condition: { keyword: "zod", author: undefined, publisher: null },
-  conditionByValue: { author: "山田" },
+  // optional の title・author は値にキーがあるので行が出る（⊖ 付き）。
+  // author は undefined のキー：初めから未入力の行として出す。price・sort は「項目を追加」から足す
+  condition: {
+    keyword: "zod",
+    title: "TypeScript",
+    author: undefined,
+    publisher: null,
+  },
+  // keyOrder: value：定義の順（title が先）ではなく、値の順（author が先）に並ぶ
+  conditionByValue: { author: "Yamada", title: "TypeScript" },
 };
 
 export type SchemaType = z.infer<typeof schema>;

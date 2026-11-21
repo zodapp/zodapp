@@ -53,31 +53,32 @@ test("必須・nullable の項目と、値にある optional の項目だけが�
 }) => {
   await expect
     .poll(() => rowNames(definitionFrame(page)))
-    .toEqual(["キーワード", "著者", "出版社"]);
-  // 必須（キーワード）と nullable（出版社）には ⊖ が無い
+    .toEqual(["キーワード", "タイトル", "著者", "出版社"]);
+  // optional の行（タイトル・著者）だけに ⊖ が付く。必須（キーワード）と nullable（出版社）には無い
   await expect(
     definitionFrame(page).getByRole("button", { name: /を削除$/ }),
-  ).toHaveCount(1);
-  await expect(
-    definitionFrame(page).getByRole("button", { name: "著者を削除" }),
-  ).toBeVisible();
+  ).toHaveCount(2);
+  for (const name of ["タイトルを削除", "著者を削除"]) {
+    await expect(
+      definitionFrame(page).getByRole("button", { name }),
+    ).toBeVisible();
+  }
 });
 
-test("項目を足して入力し、⊖ で消す。足しただけの行は、送信した値に入らない", async ({
+test("⊖ で消すと値からキーごと消え、足すと行が出る。足しただけの行は、送信した値に入らない", async ({
   page,
   pageErrors: _,
 }) => {
   const container = definitionFrame(page);
-  await addField(page, container, "タイトル");
   await expect
-    .poll(() => rowNames(container))
-    .toEqual(["キーワード", "タイトル", "著者", "出版社"]);
-  await row(container, "タイトル").getByRole("textbox").fill("型");
-  await expect.poll(() => condition(page)).toMatchObject({ title: "型" });
+    .poll(() => condition(page))
+    .toMatchObject({ title: "TypeScript" });
 
   // 並べ替えを足すが、選ばないまま送る
   await addField(page, container, "並べ替え");
-  await expect.poll(() => rowNames(container)).toContain("並べ替え");
+  await expect
+    .poll(() => rowNames(container))
+    .toEqual(["キーワード", "タイトル", "著者", "並べ替え", "出版社"]);
 
   await container.getByRole("button", { name: "タイトルを削除" }).click();
   await expect.poll(() => rowNames(container)).not.toContain("タイトル");
@@ -117,24 +118,29 @@ test("transform を付けた価格は、以上・以下を両方空にすると�
   const { submitted } = await formDemo(page);
   const sent = (submitted.values as { condition: Record<string, unknown> })
     .condition;
-  expect(sent).toEqual({ keyword: "zod", publisher: null });
+  expect(sent).toEqual({
+    keyword: "zod",
+    title: "TypeScript",
+    publisher: null,
+  });
   // transform が undefined を返すので、キーは undefined で残り、JSON には入らない
   expect(sent.price).toBeUndefined();
   expect(JSON.parse(JSON.stringify(sent))).toEqual({
     keyword: "zod",
+    title: "TypeScript",
     publisher: null,
   });
 });
 
-test("keyOrder: value では、足した項目が末尾に並ぶ", async ({
+test("keyOrder: value では、値の順に並び、足した項目は末尾に並ぶ", async ({
   page,
   pageErrors: _,
 }) => {
   const container = valueFrame(page);
-  await expect.poll(() => rowNames(container)).toEqual(["著者"]);
+  // 定義の順（タイトルが先）ではなく、値の順
+  await expect.poll(() => rowNames(container)).toEqual(["著者", "タイトル"]);
   await addField(page, container, "価格");
-  await addField(page, container, "タイトル");
   await expect
     .poll(() => rowNames(container))
-    .toEqual(["著者", "価格", "タイトル"]);
+    .toEqual(["著者", "タイトル", "価格"]);
 });
