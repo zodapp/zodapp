@@ -1,6 +1,6 @@
 # object の uiType: entries（項目を後から足し、外側で消す）
 
-- ステータス：プラン（レビュー中）
+- ステータス：実装済み（単体テスト・型・build・form-demo の e2e 181 件が通る）。実装で変えたところは §6
 
 ## 1. 背景
 
@@ -169,3 +169,18 @@ const condition = zf
 - 新しいページで、項目を足す・値を入れる・⊖ で消す・送信する、を通す。送信した値に、消した項目が無いことを確かめる。
 - 足して何も入れていない optional の行が、送信した値（JSON）に入らないことを確かめる。
 - transform を付けた価格の range で、以上・以下を入れてから両方空にして送信すると、価格が送信した値に入らないことを確かめる。
+
+## 6. 実装で決めたこと・プランから変えたこと
+
+- **optional の包みは外さず、outer で伝える**（§2.3）。行の Switch には項目の schema をそのまま渡し、
+  outer に `PRESENCE_BY_PARENT_OUTER`（`presenceByParent: true`）を渡す。`addOuter` は、この下では optional・default・prefault を optional と数えない。
+  `emptinessOf` は、この outer では optional・nullable のどちらでもないと返し、空の値は undefined にする。
+  包みを外さないので、meta の引き継ぎ（§2.3 の最後から 2 つめ）は要らなくなった。
+- **nullish の行も、子に取り消しの UI を出さない**（§2.4 の nullish の 2 行目を変えた）。`emptinessOf` が nullable も false と返すので、
+  値が object の nullish の項目でも、子の ⊖・⊕ は出ない。動きは optional と完全に同じになる。検索用に非推奨なのは、意味が分かりにくいため（変わらず）。
+- **足したときの値**は、外側の optional の包みを外した schema の getDefaultValue（optional のままだと undefined になるため）。
+- **行の名前**は、包み（optional・nullable・default など）と pipe の入口を外から内へたどり、最初に見つかった label を使う（`.transform()` を付けた項目でも名前が出る）。
+- **行のアクセシビリティ**：行の名前は label 要素ではないので、行を `role="group"` にし、`aria-labelledby` で名前を付けた。中の欄は、行の名前で探せない（`getByRole("group", { name })` の中で探す）。
+- **transform で空の object を消す**（§2.4）：動いた。送信の値（parse した出力）では、キーは undefined で残り、JSON にすると消える。画面の上では行が残る。
+- 全体の枠（Fieldset）にしたので、自由キーの record の entries から、record 自体の必須の印（`*`）が無くなった。
+- 部品の置き場所：`entries_layout.tsx` に、枠・行・追加の選択と、`isOptionalProperty`・`addedEntryValue` を置いた。
