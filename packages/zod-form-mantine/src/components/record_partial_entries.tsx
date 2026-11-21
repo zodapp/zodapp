@@ -1,35 +1,31 @@
 import { useMsg } from "../messages/useMsg";
 import { useResolvedMeta, useResolveText } from "@zodapp/zod-form-react/common";
 import React from "react";
-import { ActionIcon, InputWrapper, Select } from "@mantine/core";
-import { IconCircleMinus } from "@tabler/icons-react";
 import z from "zod";
 import {
   Switch,
   ContainerMarker,
   ZodFormInternalProps,
-  getDefaultValue,
+  PRESENCE_BY_PARENT_OUTER,
   wrapComponent,
   isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
-import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { partialRecordKeys } from "@zodapp/zod-form";
 import { ownsContainerMarker } from "./container";
 import { keyLabelsOf } from "./record";
 import { UnsafeRecordEntry } from "../utils/unsafeKey";
+import {
+  EntriesFrame,
+  EntryAddSelect,
+  EntryRow,
+  addedEntryValue,
+  isOptionalProperty,
+} from "./entries_layout";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
 
 const joinFieldPath = (fieldPath: string, key: string) =>
   fieldPath + (fieldPath === "" || fieldPath.endsWith(".") ? "" : ".") + key;
-
-const getValueDefault = (schema: z.ZodTypeAny): unknown => {
-  try {
-    return getDefaultValue(schema);
-  } catch {
-    return undefined;
-  }
-};
 
 /**
  * 行の並び。keyOrder が definition（既定）なら候補の定義順、value なら値の object の順。
@@ -85,118 +81,87 @@ export const PartialRecordEntriesComponent = wrapComponent(
     const unusedKeys = candidates.filter((key) => !usedKeys.has(key));
     const label = labelFromParent ?? meta?.label;
 
-    const handleAdd = (key: string | null) => {
-      if (!key || usedKeys.has(key)) return;
+    const handleAdd = (key: string) => {
+      if (usedKeys.has(key)) return;
       // 足したキーは値の object の末尾に入れる（keyOrder: value のとき、足した順に並ぶ）
-      field.onChange({ ...value, [key]: getValueDefault(valueSchema) });
+      field.onChange({ ...value, [key]: addedEntryValue(valueSchema) });
     };
 
     const handleRemove = (key: string) => {
       const nextValue = { ...value };
       delete nextValue[key];
       field.onChange(nextValue);
+      // 配下の欄に残ったエラーの meta を消す（object の entries と同じ）
+      const path = joinFieldPath(fieldPath, key);
+      const form = field.api.form;
+      const fieldMeta = form.state.fieldMeta as Record<string, unknown>;
+      Object.keys(fieldMeta)
+        .filter((name) => name === path || name.startsWith(`${path}.`))
+        .forEach((name) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          form.setFieldMeta(name, (prev: any) => ({
+            ...prev,
+            errors: [],
+            errorMap: {},
+            errorSourceMap: {},
+          }));
+        });
     };
 
-    const rowComponents = keys.map((key) =>
-      isUnsafeFieldKey(key) ? (
-        <UnsafeRecordEntry
-          key={key}
-          recordPath={fieldPath}
-          entryKey={key}
-          readOnly={readOnly}
-          onRemove={() => handleRemove(key)}
-        />
-      ) : (
-        <div
-          key={key}
-          style={{
-            position: "relative",
-            paddingLeft: readOnly ? 15 : 37,
-            marginTop: 5,
-            marginBottom: 5,
-          }}
-        >
-          <div
-            style={{
-              border: "1px solid var(--mantine-color-gray-3)",
-              borderRadius: 4,
-              paddingLeft: 12,
-              paddingRight: 12,
-              paddingTop: 4,
-              paddingBottom: 4,
-            }}
-          >
-            <Switch
-              fieldPath={joinFieldPath(fieldPath, key)}
-              schema={valueSchema}
-              defaultValue={value[key]}
-              outer={undefined}
+    // 値の schema が optional なら、行の有る・無いを親が扱う（子は取り消しの UI を出さず、空にすると undefined）
+    const valueOuter = isOptionalProperty(valueSchema)
+      ? PRESENCE_BY_PARENT_OUTER
+      : undefined;
+
+    return (
+      <EntriesFrame label={label} error={error?.message}>
+        {keys.map((key) =>
+          isUnsafeFieldKey(key) ? (
+            <UnsafeRecordEntry
+              key={key}
+              recordPath={fieldPath}
+              entryKey={key}
               readOnly={readOnly}
-              label={keyLabel(key)}
+              onRemove={() => handleRemove(key)}
             />
-          </div>
-          {!readOnly && (
-            <ActionIcon
-              aria-label={msg(
+          ) : (
+            <EntryRow
+              key={key}
+              label={keyLabel(key)}
+              readOnly={readOnly}
+              onRemove={() => handleRemove(key)}
+              removeLabel={msg(
                 "zodFormMantine.record.removeRow" /* i18n: ${label}を削除 */,
                 { label: keyLabel(key) },
               )}
-              size={20}
-              variant="light"
-              color="#63687C"
-              style={{
-                position: "absolute",
-                left: 0,
-                top: "50%",
-                transform: "translateY(-50%)",
-                backgroundColor: "white",
-                zIndex: 2,
-                outline: "none",
-              }}
-              onClick={() => handleRemove(key)}
             >
-              <IconCircleMinus />
-            </ActionIcon>
-          )}
-        </div>
-      ),
-    );
-
-    return (
-      <InputWrapper
-        label={label || undefined}
-        required={false}
-        error={error?.message}
-        labelElement="div"
-        style={inputWrapperStyle}
-      >
-        <div style={{ marginTop: 5, minHeight: 20, marginBottom: 15 }}>
-          {rowComponents}
-          {ownsContainerMarker({ hideError, errorToken }) && (
-            <ContainerMarker fieldPath={fieldPath} />
-          )}
-          {!readOnly && unusedKeys.length > 0 && (
-            <Select
-              aria-label={msg(
-                "zodFormMantine.record.addKey" /* i18n: キーを追加 */,
-              )}
-              placeholder={msg(
-                "zodFormMantine.record.addKey" /* i18n: キーを追加 */,
-              )}
-              data={unusedKeys.map((key) => ({
-                value: key,
-                label: keyLabel(key),
-              }))}
-              value={null}
-              onChange={handleAdd}
-              searchable
-              clearable={false}
-              nothingFoundMessage="-"
-              style={{ marginTop: 10, paddingLeft: 37 }}
-            />
-          )}
-        </div>
-      </InputWrapper>
+              <Switch
+                fieldPath={joinFieldPath(fieldPath, key)}
+                schema={valueSchema}
+                defaultValue={value[key]}
+                outer={valueOuter}
+                readOnly={readOnly}
+                label={false}
+              />
+            </EntryRow>
+          ),
+        )}
+        {ownsContainerMarker({ hideError, errorToken }) && (
+          <ContainerMarker fieldPath={fieldPath} />
+        )}
+        {!readOnly && (
+          <EntryAddSelect
+            options={unusedKeys.map((key) => ({
+              value: key,
+              label: keyLabel(key),
+            }))}
+            onAdd={handleAdd}
+            placeholder={msg(
+              "zodFormMantine.record.addKey" /* i18n: キーを追加 */,
+            )}
+          />
+        )}
+      </EntriesFrame>
     );
   },
   {

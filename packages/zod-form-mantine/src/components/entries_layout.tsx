@@ -7,6 +7,8 @@ import {
   Select,
 } from "@mantine/core";
 import { IconCircleMinus } from "@tabler/icons-react";
+import z from "zod";
+import { getDefaultValue } from "@zodapp/zod-form-react/common";
 
 /**
  * `uiType: "entries"`（object・record）の共通の見た目。
@@ -136,3 +138,22 @@ export const EntryAddSelect = ({
       style={{ marginTop: 10, paddingLeft: 37 }}
     />
   );
+
+/** キーが無くても通る項目（`.optional()`・`.default()` など）。行の有る・無いを親が扱う */
+export const isOptionalProperty = (schema: z.ZodTypeAny): boolean =>
+  schema._zod.optin === "optional";
+
+/**
+ * 足した行の値。外側の optional の包みを外した schema の既定値
+ * （optional のままだと undefined になるため。object なら `{}`、`.default(x)` なら x）
+ */
+export const addedEntryValue = (schema: z.ZodTypeAny): unknown => {
+  let current = schema;
+  while (current.def.type === "optional")
+    current = (current.def as unknown as { innerType: z.ZodTypeAny }).innerType;
+  try {
+    return getDefaultValue(current);
+  } catch {
+    return undefined;
+  }
+};

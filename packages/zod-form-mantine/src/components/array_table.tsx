@@ -1,7 +1,4 @@
-import {
-  useResolveText,
-  useResolvedMeta,
-} from "@zodapp/zod-form-react/common";
+import { useResolveText, useResolvedMeta } from "@zodapp/zod-form-react/common";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, InputWrapper, Table, Text } from "@mantine/core";
 import { zf, getMeta, extractCheck } from "@zodapp/zod-form";

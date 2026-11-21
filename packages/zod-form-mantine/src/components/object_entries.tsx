@@ -7,14 +7,19 @@ import {
   ContainerMarker,
   ZodFormInternalProps,
   PRESENCE_BY_PARENT_OUTER,
-  getDefaultValue,
   wrapComponent,
   emptinessOf,
   isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { ownsContainerMarker } from "./container";
 import { OptionalContainer } from "./object";
-import { EntriesFrame, EntryAddSelect, EntryRow } from "./entries_layout";
+import {
+  EntriesFrame,
+  EntryAddSelect,
+  EntryRow,
+  addedEntryValue,
+  isOptionalProperty,
+} from "./entries_layout";
 import { useMsg } from "../messages/useMsg";
 import { UnsafeKeyNameNotice } from "../utils/unsafeKey";
 
@@ -24,25 +29,6 @@ const joinFieldPath = (fieldPath: string, propertyName: string) =>
   fieldPath +
   (fieldPath === "" || fieldPath.endsWith(".") ? "" : ".") +
   propertyName;
-
-/** キーが無くても通る項目（`.optional()`・`.default()` など）。行の有る・無いを親が扱う */
-export const isOptionalProperty = (schema: z.ZodTypeAny): boolean =>
-  schema._zod.optin === "optional";
-
-/**
- * 足した行の値。外側の optional の包みを外した schema の既定値
- * （optional のままだと undefined になるため。object なら `{}`、`.default(x)` なら x）
- */
-export const addedEntryValue = (schema: z.ZodTypeAny): unknown => {
-  let current = schema;
-  while (current.def.type === "optional")
-    current = (current.def as unknown as { innerType: z.ZodTypeAny }).innerType;
-  try {
-    return getDefaultValue(current);
-  } catch {
-    return undefined;
-  }
-};
 
 const WRAPPER_TYPES = new Set([
   "optional",

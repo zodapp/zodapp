@@ -200,28 +200,25 @@ describe("同じ path の外側の包み（dynamic）", () => {
   });
 
   // zf.dynamic() の土台は z.unknown なので、静的な parse が dynamic の所で落ちず、親の refine も走る
-  it(
-    "zf.dynamic() の兄弟がいても、object の .refine() が効く",
-    async () => {
-      const x = zf.dynamic().register(
-        zf.dynamic.registry,
-        defineDynamicMeta({
-          resolve: () => ({ key: "fixed", schema: z.string() }),
-        }),
-      );
-      const schema = object({ a: z.string(), x }).refine((o) => o.a !== "bad", {
-        path: ["a"],
-        message: "object のrefine",
-      });
-      const { submit, onSubmit, messagesAt } = renderForm(schema, {
-        a: "bad",
-        x: "ok",
-      });
-      await submit();
-      expect(messagesAt("a")).toContain("object のrefine");
-      expect(onSubmit).not.toHaveBeenCalled();
-    },
-  );
+  it("zf.dynamic() の兄弟がいても、object の .refine() が効く", async () => {
+    const x = zf.dynamic().register(
+      zf.dynamic.registry,
+      defineDynamicMeta({
+        resolve: () => ({ key: "fixed", schema: z.string() }),
+      }),
+    );
+    const schema = object({ a: z.string(), x }).refine((o) => o.a !== "bad", {
+      path: ["a"],
+      message: "object のrefine",
+    });
+    const { submit, onSubmit, messagesAt } = renderForm(schema, {
+      a: "bad",
+      x: "ok",
+    });
+    await submit();
+    expect(messagesAt("a")).toContain("object のrefine");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 
   it("optional な tuple の要素は、optional にならない（外の包みは path が変わると切れる）", async () => {
     const schema = object({
