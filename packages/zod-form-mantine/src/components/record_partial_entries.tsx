@@ -16,10 +16,14 @@ import { keyLabelsOf } from "./record";
 import { UnsafeRecordEntry } from "../utils/unsafeKey";
 import {
   EntriesFrame,
+  EntriesScroller,
   EntryAddSelect,
   EntryRow,
   addedEntryValue,
+  entryWidthOf,
+  isHorizontalEntries,
   isOptionalProperty,
+  useHorizontalEntries,
 } from "./entries_layout";
 
 type RecordSchema = z.ZodRecord<z.ZodString, z.ZodTypeAny>;
@@ -48,7 +52,8 @@ export const orderPartialRecordKeys = (
  * キーが enum・literal の `z.partialRecord` を `uiType: "entries"` で描く部品。
  * 値にあるキーだけを、キーの label を名前にした行で並べる（キーは書き換えられず、行は削除だけできる）。
  * いちばん下の選択で、まだ値に無いキーを足す（足した行の値は値の schema の既定値）。
- * 行の並びは meta の keyOrder で決める
+ * 行の並びは meta の keyOrder で決める。
+ * `uiType: "entries-horizontal"` では、行をカードにして横一列に並べる（object の entries と同じ）
  */
 export const PartialRecordEntriesComponent = wrapComponent(
   function PartialRecordEntriesComponentImplement({
@@ -63,7 +68,7 @@ export const PartialRecordEntriesComponent = wrapComponent(
     errorToken,
   }: ZodFormInternalProps<RecordSchema>) {
     const meta = useResolvedMeta(schema) as
-      | { label?: string; keyOrder?: "definition" | "value" }
+      | { label?: string; uiType?: string; keyOrder?: "definition" | "value" }
       | undefined;
     const msg = useMsg();
     const resolveText = useResolveText();
@@ -81,10 +86,19 @@ export const PartialRecordEntriesComponent = wrapComponent(
     const unusedKeys = candidates.filter((key) => !usedKeys.has(key));
     const label = labelFromParent ?? meta?.label;
 
+    // entries-horizontal：カードを横に並べる（幅は値の schema で決まり、どのキーも同じ）
+    const horizontal = isHorizontalEntries(meta?.uiType);
+    const cardWidth = entryWidthOf(valueSchema);
+    const { scrollerRef, widthOf, scrollTo } = useHorizontalEntries(
+      horizontal ? keys.map((key) => ({ key, ...cardWidth })) : [],
+    );
+
     const handleAdd = (key: string) => {
       if (usedKeys.has(key)) return;
       // 足したキーは値の object の末尾に入れる（keyOrder: value のとき、足した順に並ぶ）
       field.onChange({ ...value, [key]: addedEntryValue(valueSchema) });
+      // 横並びでは、足したカードが見えるところまでスクロールする
+      if (horizontal) scrollTo(key);
     };
 
     const handleRemove = (key: string) => {
@@ -113,38 +127,46 @@ export const PartialRecordEntriesComponent = wrapComponent(
       ? PRESENCE_BY_PARENT_OUTER
       : undefined;
 
+    const rows = keys.map((key) =>
+      isUnsafeFieldKey(key) ? (
+        <UnsafeRecordEntry
+          key={key}
+          recordPath={fieldPath}
+          entryKey={key}
+          readOnly={readOnly}
+          onRemove={() => handleRemove(key)}
+        />
+      ) : (
+        <EntryRow
+          key={key}
+          label={keyLabel(key)}
+          readOnly={readOnly}
+          width={horizontal ? widthOf(key) : undefined}
+          entryKey={key}
+          onRemove={() => handleRemove(key)}
+          removeLabel={msg(
+            "zodFormMantine.record.removeRow" /* i18n: ${label}を削除 */,
+            { label: keyLabel(key) },
+          )}
+        >
+          <Switch
+            fieldPath={joinFieldPath(fieldPath, key)}
+            schema={valueSchema}
+            defaultValue={value[key]}
+            outer={valueOuter}
+            readOnly={readOnly}
+            label={false}
+          />
+        </EntryRow>
+      ),
+    );
+
     return (
       <EntriesFrame label={label} error={error?.message}>
-        {keys.map((key) =>
-          isUnsafeFieldKey(key) ? (
-            <UnsafeRecordEntry
-              key={key}
-              recordPath={fieldPath}
-              entryKey={key}
-              readOnly={readOnly}
-              onRemove={() => handleRemove(key)}
-            />
-          ) : (
-            <EntryRow
-              key={key}
-              label={keyLabel(key)}
-              readOnly={readOnly}
-              onRemove={() => handleRemove(key)}
-              removeLabel={msg(
-                "zodFormMantine.record.removeRow" /* i18n: ${label}を削除 */,
-                { label: keyLabel(key) },
-              )}
-            >
-              <Switch
-                fieldPath={joinFieldPath(fieldPath, key)}
-                schema={valueSchema}
-                defaultValue={value[key]}
-                outer={valueOuter}
-                readOnly={readOnly}
-                label={false}
-              />
-            </EntryRow>
-          ),
+        {horizontal ? (
+          <EntriesScroller scrollerRef={scrollerRef}>{rows}</EntriesScroller>
+        ) : (
+          rows
         )}
         {ownsContainerMarker({ hideError, errorToken }) && (
           <ContainerMarker fieldPath={fieldPath} />
@@ -159,6 +181,7 @@ export const PartialRecordEntriesComponent = wrapComponent(
             placeholder={msg(
               "zodFormMantine.record.addKey" /* i18n: キーを追加 */,
             )}
+            horizontal={horizontal}
           />
         )}
       </EntriesFrame>

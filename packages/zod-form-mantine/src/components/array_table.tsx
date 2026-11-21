@@ -35,6 +35,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { inputWrapperStyle } from "@zodapp/zod-form-mantine-lite/utils";
 import { tableComponentLibrary } from "@zodapp/zod-form-mantine-lite";
 import { withSupportCheck } from "../utils/unsupported";
+import { getDistributedWidth } from "../utils/width";
 
 type ArraySchema = ReturnType<typeof zf.array>;
 
@@ -335,16 +336,8 @@ const getColumnWidth = (column: TableColumn) =>
 const getColumnWidthWeight = (column: TableColumn) =>
   column.widthWeight ?? getColumnWidth(column);
 
-const getDistributedColumnWidth = (
-  width: number,
-  widthWeight: number,
-  extraWidth: number,
-  totalWidthWeight: number,
-) => {
-  if (extraWidth <= 0 || totalWidthWeight <= 0) return width;
-  const ratio = widthWeight / totalWidthWeight;
-  return width + extraWidth * ratio;
-};
+// 余りの配り方は entries-horizontal のカードと共通
+const getDistributedColumnWidth = getDistributedWidth;
 
 const ArrayTableComponent = wrapComponent(
   function ArrayTableComponentImplement({

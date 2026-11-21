@@ -137,6 +137,15 @@ When `z.partialRecord` is rendered with `uiType: "entries"`, the order of rows i
 - `"definition"` (default): the enum's definition order. For stores that do not keep key order, such as Firestore and DynamoDB
 - `"value"`: the order in the value object. Added keys go at the end, so in stores that keep key order (zod-searchparams, JSON in localStorage, etc.) this is effectively the order they were added. Note that JS objects order keys that look like integers, such as `"1"` and `"2"`, in ascending numeric order regardless of insertion order
 
+## Horizontal entries (`uiType: "entries-horizontal"`)
+
+An object, and a `z.partialRecord` whose keys are an enum or literals, can use `uiType: "entries-horizontal"` to put the entries rows as cards in one horizontal line. Adding, removing and the order (`keyOrder`) work the same as entries.
+
+- Cards that do not fit scroll horizontally. An added card is scrolled into view
+- ⊖ is at the top right of a card. "Add a field" is outside the scroll area (below, on the left)
+- The card width is decided like the columns of a table. `width` (px) in the metadata is the minimum. Without it, a horizontal object uses the sum of the widths of its fields, another object uses the largest width of its fields, and anything else uses 280px. If the line has room left, it is shared out by `widthWeight` (or the width when there is none)
+- A record whose keys are typed as text (`z.record(z.string(), …)`) keeps the vertical entries look
+
 ## Keys that cannot be used in forms
 
 Form fields are addressed by field paths (`a.b[0].c`), so keys containing `.`, `[`, or `]`, and empty-string keys, cannot be fields.
