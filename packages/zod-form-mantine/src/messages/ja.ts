@@ -16,6 +16,7 @@ export const ja = {
     `${names.join("と")}を選択してください`,
   "zodFormMantine.object.remove": "削除",
   "zodFormMantine.object.add": "追加",
+  "zodFormMantine.object.addField": "項目を追加",
   "zodFormMantine.time.invalidFormat": ({ format }) =>
     `${format} の形で、正しい時刻を入力してください`,
   "zodFormMantine.date.monthLabelFormat": "YYYY年M月",
