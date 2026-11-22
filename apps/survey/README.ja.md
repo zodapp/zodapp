@@ -4,7 +4,7 @@
 
 質問の定義（短文・数値・選択・日付など）をアンケートの Item に保存し、実行時に Zod のスキーマへ組み立てて、
 回答フォーム・回答の表・回答の詳細に使い回すサンプルです。
-zodapp にあったアンケートのデモ（`firebase-final` の `apps/web`）を、Firestore から zod-dynamodb（DynamoDB）に移植しました。
+zodapp にあったアンケートのデモを、Firestore から zod-dynamodb（DynamoDB）に移植しました。
 
 taskmanager が「スキーマをコードで書くアプリ」の例なのに対して、このアプリは次のことを示します。
 

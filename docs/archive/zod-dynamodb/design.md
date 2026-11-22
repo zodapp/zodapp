@@ -73,7 +73,7 @@
 
 新しい独立モノレポや独立ブランドを立ち上げるのではなく、既存の `zodapp` モノレポに `zod-dynamodb-*` パッケージ群を置く。
 
-当初は zod-firebase と並べる想定だったが、zod-firebase は zodapp から外し、zodapp のデータベースの層は zod-dynamodb に一本化した（zod-firebase の最後の版はタグ `firebase-final`）。
+当初は zod-firebase と並べる想定だったが、zod-firebase は zodapp から外し、zodapp のデータベースの層は zod-dynamodb に一本化した。
 
 想定構成は以下のとおり。
 

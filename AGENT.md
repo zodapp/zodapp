@@ -392,6 +392,5 @@ For details, see [GUIDE_TO_TURBOREPO.md](GUIDE_TO_TURBOREPO.md).
 - Japanese Zod error messages are the `ja` dictionary of `@zodapp/i18n-messages-zod`
 - Use the `@zodapp/zod-dynamodb` packages for working with the DB
 - Use `@zodapp/zod-form-dynamodb` for foreign key options, and `@zodapp/zod-form-s3` for file uploads (`@zodapp/zod-form-s3-node` on the server)
-- The Firebase (Firestore) version of the packages remains at the tag `firebase-final`
 - Code formatting is `tabWidth: 2`, `useTabs: false` (Prettier settings)
 - For the project's detailed concept, see [README.md](README.md)
