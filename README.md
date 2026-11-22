@@ -176,8 +176,6 @@ You can also use zodapp's modules fully at each layer of a traditional setup tha
 
 The examples that use a DB run DynamoDB Local, a Cognito emulator (magnito), and others in Docker. See each app's README for the steps (taskmanager and survey are documented in Japanese).
 
-The Firebase (Firestore) packages and demos are kept at the `firebase-final` tag.
-
 ## Tech stack
 
 - **Language**: TypeScript 5.x

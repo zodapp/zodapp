@@ -4,7 +4,7 @@
 
 A sample that stores question definitions (short text, number, choice, date, etc.) in a survey Item, assembles them into a Zod schema at runtime,
 and reuses it for the answer form, the table of answers, and the answer details.
-It ports zodapp's survey demo (`apps/web` of `firebase-final`) from Firestore to zod-dynamodb (DynamoDB).
+It ports zodapp's survey demo from Firestore to zod-dynamodb (DynamoDB).
 
 Whereas taskmanager is an example of "an app whose schemas are written in code", this app shows:
 

@@ -1,6 +1,6 @@
 # 実験 1：同じ path の受け渡し
 
-- ステータス: 実験済み（判定：案F（props にまとめる版）を採用。未実装。ブランチの今のコードは案E）
+- ステータス: 実装済み（判定：案F（props にまとめる版）を採用。第1段は e5014a1 で実装。第2段のうち `value` を props で渡す部分は [reactive-value-prop.md](./reactive-value-prop.md)（PR #40）で実装。残り（`parent` を props で渡す、form を使う部品も `value` で読む）は理由が無いので行わない）
 - 対象ブランチ: `claude/project-thread-6bm7mu`（土台は `claude/union-arm-errors-v2`）
 - 対象パッケージ: `@zodapp/zod-form-react`、`@zodapp/zod-form-mantine`、`@zodapp/zod-form-mantine-lite`
 
@@ -130,7 +130,7 @@ form の中でも value にそろえてよい理由と注意：
   - 包みの側に付いた検査（`dyn.optional().refine(...)`）。dynamic からは包みの schema が見えない
   - 入れ子の dynamic の外側に付いた検査。内側の DynamicComponent は内側の schema しか受け取らず、検証には一番深い登録を使う
 
-### 案F：包みの情報を props にまとめて運ぶ（設計。未実装）
+### 案F：包みの情報を props にまとめて運ぶ（採用。§4 を参照）
 
 案E の議論の続きで決めた形。案E の「自分の schema に付いているものは自分で扱い、包みの情報は包みの部品が props で渡す」
 という分担を保ったまま、包みの側に付いた検査も同じ props で運び、案E で失う 2 つを扱う。同じ path の受け渡しのための
@@ -193,7 +193,7 @@ zod では `.default("x").nullable()` も `.nullable().default("x")` も、undef
 ## 4. 判定
 
 **案F を採用**。第1段（`outer` で包みを運ぶ、dynamic・externalKey の包み直し、defaultValue の決まり、`getDefaultValue` の修正）は e5014a1 で実装した。
-第2段（value・parent を props にそろえる）はまだ。
+第2段（value・parent を props にそろえる）は、form を使わない部品の表示値を `value` で渡す部分だけを [reactive-value-prop.md](./reactive-value-prop.md)（PR #40）で行った。`parent` を props で渡すことと、form を使う部品も `value` で読むことは、今は理由が無いので行わない（reactive-value-prop.md の §6）。
 
 第1段の結果：
 

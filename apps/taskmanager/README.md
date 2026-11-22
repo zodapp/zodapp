@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-An application that ports zodapp's task management demo (`apps/web` of `firebase-final`), replacing Firestore with zod-dynamodb (DynamoDB).
+An application that ports zodapp's task management demo, replacing Firestore with zod-dynamodb (DynamoDB).
 It runs the registry (`defineEndpoints`), the server API, the Realtime Gateway, and the React hooks end to end, from the browser to the database.
 
 This README describes the setup that runs on your own machine and in the Claude Code cloud environment (the local version).

@@ -180,8 +180,6 @@ API層を省略し、DBのドキュメント構造とUIフォームの構造を�
 
 DB を使うサンプルは、DynamoDB Local・Cognito のエミュレーター（magnito）などを Docker で動かします。手順は各アプリの README にあります。
 
-Firebase（Firestore）版のパッケージとデモは、タグ `firebase-final` の時点に残っています。
-
 ## 技術スタック
 
 - **言語**: TypeScript 5.x
