@@ -83,6 +83,17 @@ describe("最外側の entries", () => {
         expect(onSubmit).toHaveBeenCalledWith({ keyword: "k", author: "a" }),
       );
     });
+
+    it("足す・消すと、フォームを変えた（isDirty）・触った（isTouched）扱いになる", async () => {
+      const { formRef } = renderForm(schema, { keyword: "k", title: "saved" });
+      await ready();
+      expect(formRef.current!.state.isDirty).toBe(false);
+      fireEvent.click(
+        screen.getByRole("button", { name: /タイトルを削除|Remove タイトル/ }),
+      );
+      await waitFor(() => expect(formRef.current!.state.isDirty).toBe(true));
+      expect(formRef.current!.state.isTouched).toBe(true);
+    });
   });
 
   describe("partialRecord", () => {

@@ -361,8 +361,17 @@ export const useEntriesValue = (
       field.onChange(next);
       return;
     }
-    // 部品からの書き込みは利用者の編集として記録する（欄の onChange と同じ）
+    // 部品からの書き込みは利用者の編集として記録する（欄の onChange と同じ）。
+    // 欄の onChange（setFieldValue）と同じく、触った・変えたの印も付ける
+    // （付けないと isDirty が false のままで、最外側のエラーも送信まで出ない）
     runAsUserEdit(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      form.setFieldMeta(fieldPath, (prev: any) => ({
+        ...prev,
+        isTouched: true,
+        isDirty: true,
+        errorMap: { ...prev?.errorMap, onMount: undefined },
+      }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       form.baseStore.setState((state: any) => ({ ...state, values: next }));
     });
