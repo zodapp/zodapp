@@ -23,6 +23,7 @@ import {
   findThroughWrappers,
   isHorizontalEntries,
   isOptionalProperty,
+  useEntriesValue,
   useHorizontalEntries,
 } from "./entries_layout";
 import { useMsg } from "../messages/useMsg";
@@ -104,8 +105,8 @@ function ObjectEntriesBody({
       return !(propertyMeta?.hidden || propertyMeta?.typeName === "hidden");
     },
   );
-  const value =
-    ((field.value ?? defaultValue ?? {}) as Record<string, unknown>) ?? {};
+  const { value: fieldValue, setValue } = useEntriesValue(fieldPath, field);
+  const value = (fieldValue ?? defaultValue ?? {}) as Record<string, unknown>;
   const valueKeys = Object.keys(value);
   const isOptionalKey = (key: string) => isOptionalProperty(shape[key]!);
   const shown = new Set(
@@ -130,7 +131,7 @@ function ObjectEntriesBody({
   const handleAdd = (key: string) => {
     if (key in value) return;
     // 足したキーは値の object の末尾に入れる（keyOrder: value のとき、足した順に並ぶ）
-    field.onChange({ ...value, [key]: addedEntryValue(shape[key]!) });
+    setValue({ ...value, [key]: addedEntryValue(shape[key]!) });
     // 横並びでは、足したカードが見えるところまでスクロールする
     if (horizontal) scrollTo(key);
   };
@@ -138,7 +139,7 @@ function ObjectEntriesBody({
   const handleRemove = (key: string) => {
     const nextValue = { ...value };
     delete nextValue[key];
-    field.onChange(nextValue);
+    setValue(nextValue);
     // 配下の欄に残ったエラーの meta を消す（OptionalContainer と同じ）
     const path = joinFieldPath(fieldPath, key);
     const form = field.api.form;

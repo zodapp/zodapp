@@ -23,6 +23,7 @@ import {
   entryWidthOf,
   isHorizontalEntries,
   isOptionalProperty,
+  useEntriesValue,
   useHorizontalEntries,
 } from "./entries_layout";
 
@@ -76,10 +77,8 @@ export const PartialRecordEntriesComponent = wrapComponent(
     const candidates = partialRecordKeys(schema) ?? [];
     const labels = keyLabelsOf(schema);
     const keyLabel = (key: string) => resolveText(labels.get(key)) ?? key;
-    const value = (field.value ?? defaultValue ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const { value: fieldValue, setValue } = useEntriesValue(fieldPath, field);
+    const value = (fieldValue ?? defaultValue ?? {}) as Record<string, unknown>;
     const valueKeys = Object.keys(value);
     const keys = orderPartialRecordKeys(valueKeys, candidates, meta?.keyOrder);
     const usedKeys = new Set(valueKeys);
@@ -94,7 +93,7 @@ export const PartialRecordEntriesComponent = wrapComponent(
     const handleAdd = (key: string) => {
       if (usedKeys.has(key)) return;
       // 足したキーは値の object の末尾に入れる（keyOrder: value のとき、足した順に並ぶ）
-      field.onChange({ ...value, [key]: addedEntryValue(valueSchema) });
+      setValue({ ...value, [key]: addedEntryValue(valueSchema) });
       // 横並びでは、足したカードが見えるところまでスクロールする
       if (horizontal) scrollTo(key);
     };
@@ -102,7 +101,7 @@ export const PartialRecordEntriesComponent = wrapComponent(
     const handleRemove = (key: string) => {
       const nextValue = { ...value };
       delete nextValue[key];
-      field.onChange(nextValue);
+      setValue(nextValue);
       // 配下の欄に残ったエラーの meta を消す（object の entries と同じ）
       const path = joinFieldPath(fieldPath, key);
       const form = field.api.form;
