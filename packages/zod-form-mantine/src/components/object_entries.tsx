@@ -23,6 +23,7 @@ import {
   findThroughWrappers,
   isHorizontalEntries,
   isOptionalProperty,
+  useEntriesValue,
   useHorizontalEntries,
 } from "./entries_layout";
 import { useMsg } from "../messages/useMsg";
@@ -104,8 +105,8 @@ function ObjectEntriesBody({
       return !(propertyMeta?.hidden || propertyMeta?.typeName === "hidden");
     },
   );
-  const value =
-    ((field.value ?? defaultValue ?? {}) as Record<string, unknown>) ?? {};
+  const { value: fieldValue, setValue } = useEntriesValue(fieldPath, field);
+  const value = (fieldValue ?? defaultValue ?? {}) as Record<string, unknown>;
   const valueKeys = Object.keys(value);
   const isOptionalKey = (key: string) => isOptionalProperty(shape[key]!);
   const shown = new Set(
@@ -119,8 +120,20 @@ function ObjectEntriesBody({
   );
   const labelOf = (key: string) =>
     resolveText(propertyLabelOf(shape[key]!)) ?? key;
+  // 行を消せない・足せない項目。親が readOnly か、項目自身の meta が readOnly（.optional() の内側の meta も見る）。
+  // キーを消す・足し直すのは値を変えるのと同じなので、読み取り専用の項目は ⊖ も追加の候補も出さない
+  const lockedOf = (key: string): boolean =>
+    Boolean(readOnly) ||
+    findThroughWrappers(
+      shape[key]!,
+      (current) => getMeta(current)?.readOnly as boolean | undefined,
+    ) === true;
   const addable = definitionOrder.filter(
-    (key) => isOptionalKey(key) && !shown.has(key) && !isUnsafeFieldKey(key),
+    (key) =>
+      isOptionalKey(key) &&
+      !shown.has(key) &&
+      !isUnsafeFieldKey(key) &&
+      !lockedOf(key),
   );
 
   // entries-horizontal：カードを横に並べる
@@ -130,7 +143,7 @@ function ObjectEntriesBody({
   const handleAdd = (key: string) => {
     if (key in value) return;
     // 足したキーは値の object の末尾に入れる（keyOrder: value のとき、足した順に並ぶ）
-    field.onChange({ ...value, [key]: addedEntryValue(shape[key]!) });
+    setValue({ ...value, [key]: addedEntryValue(shape[key]!) });
     // 横並びでは、足したカードが見えるところまでスクロールする
     if (horizontal) scrollTo(key);
   };
@@ -138,7 +151,7 @@ function ObjectEntriesBody({
   const handleRemove = (key: string) => {
     const nextValue = { ...value };
     delete nextValue[key];
-    field.onChange(nextValue);
+    setValue(nextValue);
     // 配下の欄に残ったエラーの meta を消す（OptionalContainer と同じ）
     const path = joinFieldPath(fieldPath, key);
     const form = field.api.form;
@@ -161,6 +174,8 @@ function ObjectEntriesBody({
   const rows = keys.map((key) => {
     const optional = isOptionalKey(key);
     const keyLabel = labelOf(key);
+    // 読み取り専用の行は ⊖ を出さない（行の左の余白は、ほかの行とそろえるため親の readOnly で決める）
+    const removable = optional && !lockedOf(key);
     return (
       <EntryRow
         key={key}
@@ -169,7 +184,7 @@ function ObjectEntriesBody({
         horizontal={horizontal}
         width={horizontal ? entryWidthOf(shape[key]!) : undefined}
         entryKey={key}
-        onRemove={optional ? () => handleRemove(key) : undefined}
+        onRemove={removable ? () => handleRemove(key) : undefined}
         removeLabel={msg(
           "zodFormMantine.record.removeRow" /* i18n: ${label}を削除 */,
           { label: keyLabel },
@@ -205,16 +220,15 @@ function ObjectEntriesBody({
       {ownsContainerMarker({ hideError, errorToken }) && (
         <ContainerMarker fieldPath={fieldPath} />
       )}
-      {!readOnly && (
-        <EntryAddSelect
-          options={addable.map((key) => ({ value: key, label: labelOf(key) }))}
-          onAdd={handleAdd}
-          placeholder={msg(
-            "zodFormMantine.object.addField" /* i18n: 項目を追加 */,
-          )}
-          horizontal={horizontal}
-        />
-      )}
+      {/* 読み取り専用の項目は addable に入らない（親が readOnly なら候補が空になり、選択を出さない） */}
+      <EntryAddSelect
+        options={addable.map((key) => ({ value: key, label: labelOf(key) }))}
+        onAdd={handleAdd}
+        placeholder={msg(
+          "zodFormMantine.object.addField" /* i18n: 項目を追加 */,
+        )}
+        horizontal={horizontal}
+      />
     </EntriesFrame>
   );
 }

@@ -288,6 +288,54 @@ describe("object（uiType: entries）", () => {
     expect(screen.queryByRole("button", { name: /削除|Remove/ })).toBeNull();
   });
 
+  describe("項目の meta の readOnly", () => {
+    const schema = () =>
+      z.object({
+        condition: zf
+          .object({
+            keyword: text("キーワード"),
+            title: text("タイトル").optional(),
+            locked: zf
+              .string()
+              .register(zf.string.registry, { label: "固定", readOnly: true })
+              .optional(),
+            open: zf
+              .string()
+              .register(zf.string.registry, {
+                label: "編集可",
+                readOnly: false,
+              })
+              .optional(),
+          })
+          .register(zf.object.registry, {
+            label: "検索条件",
+            uiType: "entries",
+          }),
+      });
+
+    it("readOnly の行には ⊖ を出さない（ほかの optional の行には出す）", async () => {
+      renderForm(schema(), {
+        condition: { keyword: "zod", title: "t", locked: "x" },
+      });
+      await ready();
+      expect(screen.getByText("x")).toBeTruthy();
+      expect(
+        screen.queryByRole("button", { name: /固定を削除|Remove 固定/ }),
+      ).toBeNull();
+      expect(
+        screen.getByRole("button", { name: /タイトルを削除|Remove タイトル/ }),
+      ).toBeTruthy();
+    });
+
+    it("値に無い readOnly の項目は、足す候補に出さない（readOnly: false は出す）", async () => {
+      renderForm(schema(), { condition: { keyword: "zod" } });
+      await ready();
+      openAdd();
+      const options = await screen.findAllByRole("option", { hidden: true });
+      expect(options.map((o) => o.textContent)).toEqual(["タイトル", "編集可"]);
+    });
+  });
+
   it("transform を付けた object の項目も行になり、足す・消すができる", async () => {
     const isEmpty = (v: Record<string, unknown>) =>
       Object.values(v).every((x) => x === undefined);

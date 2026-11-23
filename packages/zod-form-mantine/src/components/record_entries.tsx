@@ -15,7 +15,7 @@ import {
   isUnsafeFieldKey,
 } from "@zodapp/zod-form-react/common";
 import { ownsContainerMarker } from "./container";
-import { EntriesFrame } from "./entries_layout";
+import { EntriesFrame, useEntriesValue } from "./entries_layout";
 import { FixedKeysRecordComponent } from "./record";
 import { enumeratedRecordKeys, partialRecordKeys } from "@zodapp/zod-form";
 import { PartialRecordEntriesComponent } from "./record_partial_entries";
@@ -76,7 +76,11 @@ const RecordEntriesComponent = wrapComponent(
     const msg = useMsg();
     const valueSchema = schema.def.valueType;
     const keySchema = schema.def.keyType;
-    const value = getRecordValue(field.value, defaultValue);
+    const { value: fieldValue, setValue } = useEntriesValue(fieldPath, field);
+    const value = getRecordValue(
+      fieldValue as Record<string, unknown> | undefined,
+      defaultValue,
+    );
     const valueKeys = Object.keys(value);
     const valueKeysSignature = valueKeys.join("\u0000");
     const label = labelFromParent ?? meta?.label;
@@ -125,7 +129,7 @@ const RecordEntriesComponent = wrapComponent(
       const nextValue = { ...value };
       if (row.key) {
         delete nextValue[row.key];
-        field.onChange(nextValue);
+        setValue(nextValue);
       }
       setRows((currentRows) =>
         currentRows.filter((item) => item.id !== row.id),
@@ -162,9 +166,7 @@ const RecordEntriesComponent = wrapComponent(
           const entries = Object.entries(value);
           const index = entries.findIndex(([key]) => key === row.key);
           held = { value: value[row.key], index };
-          field.onChange(
-            Object.fromEntries(entries.filter((_, i) => i !== index)),
-          );
+          setValue(Object.fromEntries(entries.filter((_, i) => i !== index)));
         }
         setRows((currentRows) =>
           currentRows.map((item) =>
@@ -191,7 +193,7 @@ const RecordEntriesComponent = wrapComponent(
               ...entries.slice(row.held.index),
             ])
           : { ...value, [draftKey]: getValueDefault(valueSchema) };
-      field.onChange(nextValue);
+      setValue(nextValue);
       setRows((currentRows) =>
         currentRows.map((item) =>
           item.id === row.id

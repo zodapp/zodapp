@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useId, useRef } from "react";
+import { useStore } from "@tanstack/react-form";
 import {
   ActionIcon,
   Fieldset,
@@ -11,7 +12,9 @@ import z from "zod";
 import {
   getDefaultValue,
   Switch,
+  useRunAsUserEdit,
   useZodFormContext,
+  type ZodFormInternalProps,
 } from "@zodapp/zod-form-react/common";
 import { getMeta } from "@zodapp/zod-form";
 
@@ -333,4 +336,46 @@ export const addedEntryValue = (schema: z.ZodTypeAny): unknown => {
   } catch {
     return undefined;
   }
+};
+
+/**
+ * entries（object・record）の値の読み書き。
+ * 入れ子では欄（`field.value`・`field.onChange`）を通す。
+ * 最外側（`fieldPath === ""`）の欄は名前が空で、TanStack は `""` を「`""` というキー」として読み書きする
+ * （読むと undefined、書くと値に `""` のキーができる）ので、フォーム全体の値を直に読み書きする
+ * （union・dynamic と同じ）。書いたら、欄の onChange と同じく検証し直す
+ */
+export const useEntriesValue = (
+  fieldPath: string,
+  field: ZodFormInternalProps<z.ZodTypeAny>["field"],
+) => {
+  const isRoot = fieldPath === "";
+  const form = field.api.form;
+  const runAsUserEdit = useRunAsUserEdit();
+  const rootValue = useStore(form.store, (state: { values: unknown }) =>
+    isRoot ? state.values : undefined,
+  );
+  const value: unknown = isRoot ? rootValue : field.value;
+  const setValue = (next: unknown) => {
+    if (!isRoot) {
+      field.onChange(next);
+      return;
+    }
+    // 部品からの書き込みは利用者の編集として記録する（欄の onChange と同じ）。
+    // 欄の onChange（setFieldValue）と同じく、触った・変えたの印も付ける
+    // （付けないと isDirty が false のままで、最外側のエラーも送信まで出ない）
+    runAsUserEdit(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      form.setFieldMeta(fieldPath, (prev: any) => ({
+        ...prev,
+        isTouched: true,
+        isDirty: true,
+        errorMap: { ...prev?.errorMap, onMount: undefined },
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      form.baseStore.setState((state: any) => ({ ...state, values: next }));
+    });
+    void form.validate("change");
+  };
+  return { value, setValue };
 };
